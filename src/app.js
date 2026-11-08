@@ -100,6 +100,16 @@ function searchCombos(start,cap,chainLimit,beamWidth,depth){
   }
   return best;
 }
+function validateTiming(moves,timeout,secondsPerMerge){
+  const events=moves.map((move,index)=>({
+    step:index+1,
+    estimatedSeconds:secondsPerMerge,
+    safe:secondsPerMerge<timeout,
+    remaining:timeout-secondsPerMerge,
+    windUpgrades:move.events.filter(e=>e.kind==="wind").length
+  }));
+  return {events,valid:events.every(e=>e.safe),minimumMargin:events.length?Math.min(...events.map(e=>e.remaining)):null,totalDuration:events.length*secondsPerMerge};
+}
 function showSolver(){
   if(!imported)return;
   const cap=Math.min(64,Math.max(1,Number($("windCap").value)||58));
@@ -109,6 +119,12 @@ function showSolver(){
   // Slot arrangement is intentionally unchanged: no proven slot-to-combo effect yet.
   const board=Array.from({length:count},(_,i)=>slots[i]>=0?Math.max(1,Math.min(64,Number($("seedTier").value)||58)):0);
   const result=searchCombos(board,cap,chain,12,Math.min(count-1,18));
+  const timeout=Math.max(0.1,Number($("comboTimeout").value)||5.5);
+  const moveTime=Math.max(0.1,Number($("mergeTime").value)||1.5);
+  const timing=validateTiming(result.moves,timeout,moveTime);
+  $("timingStatus").textContent=timing.valid?"Timing feasible under assumptions":"Timing infeasible under assumptions";
+  $("timingStatus").className=timing.valid?"timing-good":"timing-bad";
+  $("timingDetails").textContent="Estimated execution: "+timing.totalDuration.toFixed(1)+"s · Per-merge margin: "+(timing.minimumMargin===null?"—":timing.minimumMargin.toFixed(1)+"s")+" · Assumes timer refreshes after every manual merge. Heat-triggered timer refresh is unverified.";
   $("solverScore").textContent=result.score.toLocaleString();
   $("solverMoves").textContent=result.moves.length;
   $("solverNote").textContent="Experimental beam search (12 states, 18 moves maximum). Slot arrangement is unchanged pending validation; all sushi tiers are hypothetical, not taken from inventory. Cooking or creating sushi during a combo resets the meter; Salt Shaker scoring is excluded. This score is NOT a proven maximum.";
@@ -117,7 +133,7 @@ function showSolver(){
   make("1 · Slot positions (current, not optimized)",slots.map(x=>x<0?0:["R","H","C","M"][x]));
   make("2 · Hypothetical starting sushi tiers",board);
   const h=document.createElement("h3");h.textContent="3 · Suggested merges (experimental)";$("solverSteps").append(h);
-  result.moves.forEach((m,i)=>{const p=document.createElement("p");p.textContent=(i+1)+". Move slot "+(m.src+1)+" → "+(m.dst+1)+" · +"+m.score+" points ("+m.events.filter(e=>e.kind==="wind").length+" wind upgrades)";$("solverSteps").append(p);});
+  result.moves.forEach((m,i)=>{const p=document.createElement("p");const t=timing.events[i];p.textContent=(i+1)+". Move slot "+(m.src+1)+" → "+(m.dst+1)+" · +"+m.score+" points ("+m.events.filter(e=>e.kind==="wind").length+" wind upgrades) · "+t.estimatedSeconds.toFixed(1)+"s estimated · "+(t.safe?"within timeout":"TIMEOUT RISK");p.className=t.safe?"":"timing-bad";$("solverSteps").append(p);});
   if(!result.moves.length){const p=document.createElement("p");p.textContent="No merge sequence found under these assumptions.";$("solverSteps").append(p);}
 }
 $("runSolver").addEventListener("click",showSolver);
