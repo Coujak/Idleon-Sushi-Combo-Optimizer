@@ -1,5 +1,6 @@
 const $=id=>document.getElementById(id);
 const COLUMNS=15;
+let imported=null;
 function decodeSave(input){
   if(!input||typeof input!=="object")throw Error("Expected a JSON object.");
   const raw=input.data?.Sushi??input.Sushi;
@@ -42,7 +43,9 @@ function renderBoard(tiles,perfecto,slots,fires){
 }
 function importSave(data,label){
   const parsed=decodeSave(data);
+  imported=parsed;
   renderBoard(parsed.tiles,parsed.perfecto,parsed.slots,parsed.fires);
+  $("solver").classList.remove("hidden");$("runSolver").click();
   $("importStatus").textContent="JSON imported";$("importStatus").classList.add("success");
   $("importSummary").textContent=label+" · "+parsed.source+" · "+parsed.tiles.filter(n=>n>=0).length+" occupied sushi slots decoded (120-slot storage).";
   $("importSummary").classList.remove("hidden");
@@ -52,4 +55,69 @@ function error(e){$("importStatus").textContent="Import failed";$("importStatus"
 $("pasteToggle").addEventListener("click",()=>{const open=$("pasteArea").classList.toggle("hidden")===false;$("pasteToggle").setAttribute("aria-expanded",String(open));if(open)$("jsonInput").focus();});
 $("parseJson").addEventListener("click",()=>{try{importSave(JSON.parse($("jsonInput").value),"Pasted JSON");}catch(e){error(e);}});
 $("jsonFile").addEventListener("change",async e=>{const f=e.target.files?.[0];if(!f)return;try{importSave(JSON.parse(await f.text()),f.name);}catch(err){error(err);}});
-$("clearImport").addEventListener("click",()=>{$("jsonInput").value="";$("jsonFile").value="";$("board").replaceChildren();$("fireplaces").replaceChildren();$("importSummary").classList.add("hidden");$("pasteArea").classList.add("hidden");$("pasteToggle").setAttribute("aria-expanded","false");$("importStatus").textContent="Waiting for data";$("importStatus").classList.remove("success");$("boardStatus").textContent="Import a save";$("boardDetails").textContent="Your imported tiles will appear here.";$("jsonPreview").textContent="No JSON imported yet.";});
+$("clearImport").addEventListener("click",()=>{imported=null;$("solver").classList.add("hidden");$("jsonInput").value="";$("jsonFile").value="";$("board").replaceChildren();$("fireplaces").replaceChildren();$("importSummary").classList.add("hidden");$("pasteArea").classList.add("hidden");$("pasteToggle").setAttribute("aria-expanded","false");$("importStatus").textContent="Waiting for data";$("importStatus").classList.remove("success");$("boardStatus").textContent="Import a save";$("boardDetails").textContent="Your imported tiles will appear here.";$("jsonPreview").textContent="No JSON imported yet.";});
+
+/* Experimental combo search. These are explicit assumptions, NOT verified game logic. */
+function simulateMerge(board,src,dst,cap,chainLimit){
+  if(src===dst||board[src]<1||board[src]!==board[dst])return null;
+  const next=board.slice(),before=next[dst];
+  next[src]=0;next[dst]=Math.min(64,before+1);
+  let score=next[dst],events=[{at:dst,tier:next[dst],kind:"merge"}];
+  // Assumption: an affected sushi can trigger another upgrade to its right.
+  let p=dst;
+  for(let k=0;k<chainLimit;k++){
+    const q=p+1;
+    if(q>=next.length||q%COLUMNS===0||next[p]<1||next[p]>cap||next[q]<1||next[q]>=next[p]||next[q]>=64)break;
+    next[q]++;score+=next[q];events.push({at:q,tier:next[q],kind:"wind"});p=q;
+  }
+  return {board:next,score,events,src,dst};
+}
+function searchCombos(start,cap,chainLimit,beamWidth,depth){
+  let states=[{board:start,score:0,moves:[]}],best=states[0];
+  for(let step=0;step<depth;step++){
+    const candidates=[],seen=new Set();
+    for(const st of states){
+      const byTier=new Map();
+      st.board.forEach((tier,i)=>{if(tier>0){if(!byTier.has(tier))byTier.set(tier,[]);byTier.get(tier).push(i);}});
+      for(const indices of byTier.values()){
+        if(indices.length<2)continue;
+        for(let a=0;a<indices.length;a++)for(let b=0;b<indices.length;b++){
+          if(a===b)continue;
+          const result=simulateMerge(st.board,indices[a],indices[b],cap,chainLimit);
+          if(!result)continue;
+          const total=st.score+result.score;
+          const key=result.board.join(",");
+          if(seen.has(key))continue;seen.add(key);
+          const state={board:result.board,score:total,moves:[...st.moves,result]};
+          candidates.push(state);
+          if(total>best.score)best=state;
+        }
+      }
+    }
+    if(!candidates.length)break;
+    candidates.sort((a,b)=>b.score-a.score);
+    states=candidates.slice(0,beamWidth);
+  }
+  return best;
+}
+function showSolver(){
+  if(!imported)return;
+  const cap=Math.min(64,Math.max(1,Number($("windCap").value)||58));
+  const chain=Math.min(30,Math.max(0,Number($("chainLimit").value)||0));
+  const count=imported.slots.filter(x=>x>=0).length;
+  const slots=imported.slots.slice(0,count);
+  // Slot arrangement is intentionally unchanged: no proven slot-to-combo effect yet.
+  const board=Array.from({length:count},(_,i)=>slots[i]>=0?Math.max(1,Math.min(64,Number($("seedTier").value)||58)):0);
+  const result=searchCombos(board,cap,chain,12,Math.min(count-1,18));
+  $("solverScore").textContent=result.score.toLocaleString();
+  $("solverMoves").textContent=result.moves.length;
+  $("solverNote").textContent="Experimental beam search (12 states, 18 moves maximum). Slot arrangement is unchanged pending validation; all sushi tiers are hypothetical, not taken from inventory. This score is NOT a proven maximum.";
+  $("solverSteps").replaceChildren();
+  const make=(label,tiles)=>{const h=document.createElement("h3");h.textContent=label;$("solverSteps").append(h);const g=document.createElement("div");g.className="mini-grid";tiles.forEach((v,i)=>{const e=document.createElement("span");e.textContent=v||"·";e.className="mini-cell";e.title="Slot "+(i+1);g.append(e);});$("solverSteps").append(g);};
+  make("1 · Slot positions (current, not optimized)",slots.map(x=>x<0?0:["R","H","C","M"][x]));
+  make("2 · Hypothetical starting sushi tiers",board);
+  const h=document.createElement("h3");h.textContent="3 · Suggested merges (experimental)";$("solverSteps").append(h);
+  result.moves.forEach((m,i)=>{const p=document.createElement("p");p.textContent=(i+1)+". Move slot "+(m.src+1)+" → "+(m.dst+1)+" · +"+m.score+" points ("+m.events.filter(e=>e.kind==="wind").length+" wind upgrades)";$("solverSteps").append(p);});
+  if(!result.moves.length){const p=document.createElement("p");p.textContent="No merge sequence found under these assumptions.";$("solverSteps").append(p);}
+}
+$("runSolver").addEventListener("click",showSolver);
