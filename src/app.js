@@ -237,7 +237,7 @@ function showSolver(){
       boardGrid.append(tile);
     }
     if(actualInput.value!=="")actualInput.dispatchEvent(new Event("input"));
-    scoreLine.textContent="+cumulative[selected].toLocaleString()+" points"+(move?" · This merge: +"+move.score:" · Ready to begin");
+    scoreLine.textContent="Combo Meter: "+cumulative[selected].toLocaleString()+" points"+(move?" · This merge: +"+move.score:" · Ready to begin");
     stepButtons.forEach((b,i)=>{b.classList.toggle("selected",i===selected);b.setAttribute("aria-current",i===selected?"step":"false");});
     stepButtons[selected]?.scrollIntoView({block:"nearest",behavior:"auto"});
   }
