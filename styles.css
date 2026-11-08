@@ -8,3 +8,6 @@
 #solver input{width:75px;padding:8px;border-radius:6px;background:#10231d;color:#fff;border:1px solid #476151}#solver label{display:inline-flex;align-items:center;gap:7px}.mini-grid{display:grid;grid-template-columns:repeat(15,minmax(28px,1fr));gap:3px;overflow-x:auto}.mini-cell{background:#244a3e;text-align:center;padding:5px 1px;border-radius:3px;font-size:11px}#solverSteps h3{margin-top:22px}
 
 .timing-good{color:#70dca6}.timing-bad{color:#ff8585}
+
+/* Optimizer boards share the exact visual grid and slot palette of Your board. */
+.optimizer-board-scroll{margin-top:8px;margin-bottom:18px}.optimizer-board .slot-marker{opacity:.35;font-size:18px}.optimizer-board .tile.locked{visibility:hidden}
