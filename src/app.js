@@ -106,27 +106,33 @@ function searchCombos(start,cap,chainLimit,beamWidth,depth){
   }
   return best;
 }
-function buildCandidates(count,maxTier,cap){
+function buildCandidates(positions,maxTier,cap){
   const result=[];
   const base=Math.min(maxTier,Math.max(2,cap));
-  const add=(name,make)=>result.push({name,board:Array.from({length:count},(_,i)=>Math.max(1,Math.min(maxTier,make(i))))});
+  const add=(name,make)=>{const board=Array(120).fill(0);positions.forEach(p=>board[p]=Math.max(1,Math.min(maxTier,Math.round(make(p,Math.floor(p/COLUMNS),p%COLUMNS)))));result.push({name,board});};
   add("Uniform high-tier pairs",()=>maxTier);
-  add("Alternating high tiers",i=>maxTier-(i%2));
-  add("Descending eastward staircase",i=>base-(i%COLUMNS));
-  add("Ascending eastward staircase",i=>base-14+(i%COLUMNS));
-  add("Paired staircase",i=>base-Math.floor((i%COLUMNS)/2));
-  add("Alternating row staircase",i=>base-(Math.floor(i/COLUMNS)%2===0?i%COLUMNS:14-i%COLUMNS));
-  add("High-tier merge anchors",i=>i%COLUMNS===0||i%COLUMNS===1?base:base-(i%COLUMNS-1));
-  add("Alternating anchors",i=>i%COLUMNS%3===0?base:base-(i%COLUMNS%3));
-  add("Tier 64 pairs and wind ramps",i=>i%COLUMNS<2?maxTier:base-(i%COLUMNS-2));
-  add("Paired high tiers and ramps",i=>i%COLUMNS<4?maxTier:base-(i%COLUMNS-4));
+  add("Alternating high tiers",p=>maxTier-(p%2));
+  add("Descending eastward staircase",(p,r,c)=>base-c);
+  add("Ascending eastward staircase",(p,r,c)=>base-14+c);
+  add("Paired staircase",(p,r,c)=>base-Math.floor(c/2));
+  add("Alternating row staircase",(p,r,c)=>base-(r%2===0?c:14-c));
+  add("High-tier merge anchors",(p,r,c)=>c<2?base:base-c+1);
+  add("Alternating anchors",(p,r,c)=>c%3===0?base:base-c%3);
+  add("Tier 64 pairs and wind ramps",(p,r,c)=>c<2?maxTier:base-c+2);
+  add("Paired high tiers and ramps",(p,r,c)=>c<4?maxTier:base-c+4);
+  // Recording-inspired layouts: tier ladders are prepared row-by-row,
+  // with repeated merge anchors and eastward lower-tier sushi.
+  add("Repeated eastward staircase",(p,r,c)=>base-(c%8));
+  add("Staggered staircase",(p,r,c)=>base-((c+r%4)%12));
+  add("Double-anchor staircase",(p,r,c)=>c<2?base:base-Math.ceil((c-1)/2));
+  add("Low-tier staircase",(p,r,c)=>Math.max(2,Math.min(base,16)-c));
+  add("Low-tier paired staircase",(p,r,c)=>Math.max(2,Math.min(base,16)-Math.floor(c/2)));
+  add("Row-shifted tier ladders",(p,r,c)=>base-((c+2*r)%15));
   return result;
 }
 function optimizePreparation(positions,maxTier,cap,chainLimit){
   let best=null;
-  for(const candidate of buildCandidates(positions.length,maxTier,cap)){
-    const full=Array(120).fill(0);positions.forEach((p,i)=>full[p]=candidate.board[i]);
-    candidate.board=full;
+  for(const candidate of buildCandidates(positions,maxTier,cap)){
     const search=searchCombos(candidate.board,cap,chainLimit,3,Math.min(positions.length-1,12));
     if(!best||search.score>best.search.score)best={...candidate,search};
   }
@@ -161,7 +167,7 @@ function showSolver(){
   $("timingDetails").textContent="Estimated execution: "+timing.totalDuration.toFixed(1)+"s · Per-merge margin: "+(timing.minimumMargin===null?"—":timing.minimumMargin.toFixed(1)+"s")+" · Assumes timer refreshes after each manual merge.";
   $("solverScore").textContent=result.score.toLocaleString();
   $("solverMoves").textContent=result.moves.length;
-  $("solverNote").textContent="Best of 10 prepared-tier patterns: "+solution.name+". This is a bounded heuristic, NOT a proven global maximum. Slot type does not currently change the simulated combo score, so the existing slot layout is equally optimal under this model. Wind chaining and scoring still require in-game verification.";
+  $("solverNote").textContent="Best of 16 prepared-tier patterns: "+solution.name+". This is a bounded heuristic, NOT a proven global maximum. Slot type does not currently change the simulated combo score, so the existing slot layout is equally optimal under this model. Wind chaining and scoring still require in-game verification.";
   const root=$("solverSteps");root.replaceChildren();
   function make(label,values,showTiers){
     const h=document.createElement("h3");h.textContent=label;root.append(h);
@@ -183,7 +189,7 @@ function showSolver(){
   make("1 · Slot layout (existing positions; equivalent under current combo rules)",[],false);
   make("2 · Recommended prepared sushi tiers (not your current inventory)",solution.board,true);
   const heading=document.createElement("h3");heading.textContent="3 · Interactive merge sequence";root.append(heading);
-  const intro=document.createElement("p");intro.className="hint";intro.textContent="Select a step on the right to see the board after that merge. Blue = source, green = destination, purple = Heat of the East Wind upgrades. Step 0 is the prepared board.";root.append(intro);
+  const intro=document.createElement("p");intro.className="hint";intro.textContent="Select a step on the right to see the board after that merge. Blue = consumed source, green = destination, purple = Heat of the East Wind upgrades. Step 0 is the prepared board.";root.append(intro);
   const layout=document.createElement("div");layout.className="merge-layout";
   const left=document.createElement("div");left.className="merge-board-panel";
   const controls=document.createElement("div");controls.className="merge-controls";
