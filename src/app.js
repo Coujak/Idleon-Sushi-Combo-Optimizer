@@ -104,14 +104,14 @@ function showSolver(){
   if(!imported)return;
   const cap=Math.min(64,Math.max(1,Number($("windCap").value)||58));
   const chain=Math.min(30,Math.max(0,Number($("chainLimit").value)||0));
-  const count=imported.slots.filter(x=>x>=0).length;
+  const count=imported.slots.filter(x=>x>=0).length;\n  if(count<2){$("solverScore").textContent="—";$("solverMoves").textContent="0";$("solverNote").textContent="Not enough unlocked slots to simulate merges.";$("solverSteps").replaceChildren();return;}
   const slots=imported.slots.slice(0,count);
   // Slot arrangement is intentionally unchanged: no proven slot-to-combo effect yet.
   const board=Array.from({length:count},(_,i)=>slots[i]>=0?Math.max(1,Math.min(64,Number($("seedTier").value)||58)):0);
   const result=searchCombos(board,cap,chain,12,Math.min(count-1,18));
   $("solverScore").textContent=result.score.toLocaleString();
   $("solverMoves").textContent=result.moves.length;
-  $("solverNote").textContent="Experimental beam search (12 states, 18 moves maximum). Slot arrangement is unchanged pending validation; all sushi tiers are hypothetical, not taken from inventory. This score is NOT a proven maximum.";
+  $("solverNote").textContent="Experimental beam search (12 states, 18 moves maximum). Slot arrangement is unchanged pending validation; all sushi tiers are hypothetical, not taken from inventory. Cooking or creating sushi during a combo resets the meter; Salt Shaker scoring is excluded. This score is NOT a proven maximum.";
   $("solverSteps").replaceChildren();
   const make=(label,tiles)=>{const h=document.createElement("h3");h.textContent=label;$("solverSteps").append(h);const g=document.createElement("div");g.className="mini-grid";tiles.forEach((v,i)=>{const e=document.createElement("span");e.textContent=v||"·";e.className="mini-cell";e.title="Slot "+(i+1);g.append(e);});$("solverSteps").append(g);};
   make("1 · Slot positions (current, not optimized)",slots.map(x=>x<0?0:["R","H","C","M"][x]));
