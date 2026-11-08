@@ -114,7 +114,8 @@ function showSolver(){
   if(!imported)return;
   const cap=Math.min(64,Math.max(1,Number($("windCap").value)||58));
   const chain=Math.min(30,Math.max(0,Number($("chainLimit").value)||0));
-  const count=imported.slots.filter(x=>x>=0).length;\n  if(count<2){$("solverScore").textContent="—";$("solverMoves").textContent="0";$("solverNote").textContent="Not enough unlocked slots to simulate merges.";$("solverSteps").replaceChildren();return;}
+  const count=imported.slots.filter(x=>x>=0).length;
+  if(count<2){$("solverScore").textContent="—";$("solverMoves").textContent="0";$("solverNote").textContent="Not enough unlocked slots to simulate merges.";$("solverSteps").replaceChildren();return;}
   const slots=imported.slots.slice(0,count);
   // Slot arrangement is intentionally unchanged: no proven slot-to-combo effect yet.
   const board=Array.from({length:count},(_,i)=>slots[i]>=0?Math.max(1,Math.min(64,Number($("seedTier").value)||58)):0);
