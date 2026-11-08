@@ -163,14 +163,25 @@ function showSolver(){
   $("solverMoves").textContent=result.moves.length;
   $("solverNote").textContent="Best of 10 prepared-tier patterns: "+solution.name+". This is a bounded heuristic, NOT a proven global maximum. Slot type does not currently change the simulated combo score, so the existing slot layout is equally optimal under this model. Wind chaining and scoring still require in-game verification.";
   const root=$("solverSteps");root.replaceChildren();
-  function make(label,values,colors){
+  function make(label,values,showTiers){
     const h=document.createElement("h3");h.textContent=label;root.append(h);
-    const g=document.createElement("div");g.className="mini-grid";
-    values.forEach((v,i)=>{const e=document.createElement("span");e.textContent=v===0?"·":v;e.className="mini-cell"+(colors?" slot-"+colors[i]:"");e.title="Board position "+(i+1);g.append(e);});root.append(g);
+    const legend=document.createElement("p");legend.className="hint";legend.textContent="Green: Regular · Red: Hot · Blue: Cold · Gold: Milktoast. Hover over a tile for its slot type and position.";root.append(legend);
+    const scroll=document.createElement("div");scroll.className="board-scroll optimizer-board-scroll";
+    const grid=document.createElement("div");grid.className="board optimizer-board";
+    const last=slots.findLastIndex(v=>v>=0);
+    for(let i=0;i<=last;i++){
+      const slot=slots[i]??-1,tier=values[i]??0;
+      const cell=document.createElement("div");
+      cell.className="tile"+(slot>=0?" slot-"+slot:" locked")+(showTiers&&tier<1?" empty":"");
+      if(slot>=0&&showTiers&&tier>0){const number=document.createElement("span");number.className="tier";number.textContent=tier;cell.append(number);}
+      else if(slot>=0&&!showTiers){const dot=document.createElement("span");dot.className="slot-marker";dot.textContent="•";cell.append(dot);}
+      cell.title="Position "+(i+1)+" · "+(SLOT_NAMES[slot]??"Locked")+(showTiers&&tier>0?" · Tier "+tier:"");
+      grid.append(cell);
+    }
+    scroll.append(grid);root.append(scroll);
   }
-  const slotTypes=slots.map(v=>v<0?"·":["R","H","C","M"][v]);
-  make("1 · Slot layout (existing positions; equivalent under current combo rules)",slotTypes,slots);
-  make("2 · Recommended prepared sushi tiers (not your current inventory)",solution.board);
+  make("1 · Slot layout (existing positions; equivalent under current combo rules)",[],false);
+  make("2 · Recommended prepared sushi tiers (not your current inventory)",solution.board,true);
   const heading=document.createElement("h3");heading.textContent="3 · Merge sequence";root.append(heading);
   const intro=document.createElement("p");intro.textContent="Prepare every sushi before starting. Slot numbers below are 1-based positions in the full 15-column board. No cooking or Salt Shaker actions during the combo.";root.append(intro);
   let cumulative=0;
