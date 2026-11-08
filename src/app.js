@@ -7,17 +7,20 @@ function decodeSave(input){
   let sushi=typeof raw==="string"?JSON.parse(raw):raw;
   if(!Array.isArray(sushi)||!Array.isArray(sushi[0]))throw Error("Sushi data does not contain the expected tile array.");
   if(!sushi[0].every(x=>Number.isInteger(Number(x))))throw Error("Sushi tile array contains non-numeric entries.");
-  return {sushi,tiles:sushi[0].map(Number),source:input.data?.Sushi!=null?"Idleon Toolbox":"Raw game data"};
+  return {sushi,tiles:sushi[0].map(Number),perfecto:Array.isArray(sushi[5])?sushi[5].map(Number):null,source:input.data?.Sushi!=null?"Idleon Toolbox":"Raw game data"};
 }
-function renderBoard(tiles){
+function renderBoard(tiles,perfecto){
   const board=$("board");board.replaceChildren();
   for(const id of tiles){
     const cell=document.createElement("div");cell.className="tile"+(id<0?" empty":id>=63?" high":"");
     if(id<0){cell.textContent="·";cell.title="Empty slot";}
     else{
-      const emoji=document.createElement("span");emoji.className="emoji";emoji.textContent=id>=61?"🍣":"🍱";
+      const isPerfecto=Array.isArray(perfecto)&&perfecto[id]===1;
+      if(isPerfecto)cell.classList.add("perfecto");
       const tier=document.createElement("span");tier.className="tier";tier.textContent=id+1;
-      cell.append(emoji,tier);cell.title="Sushi tier "+(id+1)+" (ID "+id+")";
+      cell.append(tier);
+      if(isPerfecto){const mark=document.createElement("span");mark.className="perfecto-mark";mark.textContent="✓";mark.setAttribute("aria-label","Perfecto");cell.append(mark);}
+      cell.title="Sushi tier "+(id+1)+" (ID "+id+")"+(isPerfecto?" · Perfecto":"");
     }
     board.append(cell);
   }
@@ -27,11 +30,11 @@ function renderBoard(tiles){
 }
 function importSave(data,label){
   const parsed=decodeSave(data);
-  renderBoard(parsed.tiles);
+  renderBoard(parsed.tiles,parsed.perfecto);
   $("importStatus").textContent="JSON imported";$("importStatus").classList.add("success");
   $("importSummary").textContent=label+" · "+parsed.source+" · "+parsed.tiles.length+" sushi positions decoded.";
   $("importSummary").classList.remove("hidden");
-  $("jsonPreview").textContent=JSON.stringify({source:parsed.source,sushiArrayLengths:parsed.sushi.map(x=>Array.isArray(x)?x.length:null),firstTiles:parsed.tiles.slice(0,30)},null,2);
+  $("jsonPreview").textContent=JSON.stringify({source:parsed.source,sushiArrayLengths:parsed.sushi.map(x=>Array.isArray(x)?x.length:null),firstTiles:parsed.tiles.slice(0,30),perfectoFlags:parsed.perfecto?.slice(0,70)??null},null,2);
 }
 function error(e){$("importStatus").textContent="Import failed";$("importStatus").classList.remove("success");$("jsonPreview").textContent=String(e.message??e);$("importSummary").classList.add("hidden");}
 $("pasteToggle").addEventListener("click",()=>{const open=$("pasteArea").classList.toggle("hidden")===false;$("pasteToggle").setAttribute("aria-expanded",String(open));if(open)$("jsonInput").focus();});
