@@ -81,22 +81,50 @@ function searchCombos(start,cap,chainLimit,beamWidth,depth){
       st.board.forEach((tier,i)=>{if(tier>0){if(!byTier.has(tier))byTier.set(tier,[]);byTier.get(tier).push(i);}});
       for(const indices of byTier.values()){
         if(indices.length<2)continue;
-        for(let a=0;a<indices.length;a++)for(let b=0;b<indices.length;b++){
-          if(a===b)continue;
-          const result=simulateMerge(st.board,indices[a],indices[b],cap,chainLimit);
-          if(!result)continue;
-          const total=st.score+result.score;
-          const key=result.board.join(",");
-          if(seen.has(key))continue;seen.add(key);
-          const state={board:result.board,score:total,moves:[...st.moves,result]};
-          candidates.push(state);
-          if(total>best.score)best=state;
+        // Every destination is considered, with a deterministic source choice.
+        // Source identity has no effect on the immediate merge, except its empty position.
+        for(const dst of indices){
+          const sources=indices.filter(i=>i!==dst);
+          sources.sort((a,b)=>((a%COLUMNS===0?1:0)-(b%COLUMNS===0?1:0))||a-b);
+          for(const src of sources.slice(0,2)){
+            const result=simulateMerge(st.board,src,dst,cap,chainLimit);
+            if(!result)continue;
+            const key=result.board.join(",");
+            if(seen.has(key))continue;seen.add(key);
+            const state={board:result.board,score:st.score+result.score,moves:[...st.moves,result]};
+            candidates.push(state);
+            if(state.score>best.score)best=state;
+          }
         }
       }
     }
     if(!candidates.length)break;
     candidates.sort((a,b)=>b.score-a.score);
     states=candidates.slice(0,beamWidth);
+  }
+  return best;
+}
+function buildCandidates(count,maxTier,cap){
+  const result=[];
+  const base=Math.min(maxTier,Math.max(2,cap));
+  const add=(name,make)=>result.push({name,board:Array.from({length:count},(_,i)=>Math.max(1,Math.min(maxTier,make(i))))});
+  add("Uniform high-tier pairs",()=>maxTier);
+  add("Alternating high tiers",i=>maxTier-(i%2));
+  add("Descending eastward staircase",i=>base-(i%COLUMNS));
+  add("Ascending eastward staircase",i=>base-14+(i%COLUMNS));
+  add("Paired staircase",i=>base-Math.floor((i%COLUMNS)/2));
+  add("Alternating row staircase",i=>base-(Math.floor(i/COLUMNS)%2===0?i%COLUMNS:14-i%COLUMNS));
+  add("High-tier merge anchors",i=>i%COLUMNS===0||i%COLUMNS===1?base:base-(i%COLUMNS-1));
+  add("Alternating anchors",i=>i%COLUMNS%3===0?base:base-(i%COLUMNS%3));
+  add("Tier 64 pairs and wind ramps",i=>i%COLUMNS<2?maxTier:base-(i%COLUMNS-2));
+  add("Paired high tiers and ramps",i=>i%COLUMNS<4?maxTier:base-(i%COLUMNS-4));
+  return result;
+}
+function optimizePreparation(count,maxTier,cap,chainLimit){
+  let best=null;
+  for(const candidate of buildCandidates(count,maxTier,cap)){
+    const search=searchCombos(candidate.board,cap,chainLimit,7,Math.min(count-1,26));
+    if(!best||search.score>best.search.score)best={...candidate,search};
   }
   return best;
 }
@@ -114,27 +142,41 @@ function showSolver(){
   if(!imported)return;
   const cap=Math.min(64,Math.max(1,Number($("windCap").value)||58));
   const chain=Math.min(30,Math.max(0,Number($("chainLimit").value)||0));
-  const count=imported.slots.filter(x=>x>=0).length;
-  if(count<2){$("solverScore").textContent="—";$("solverMoves").textContent="0";$("solverNote").textContent="Not enough unlocked slots to simulate merges.";$("solverSteps").replaceChildren();return;}
-  const slots=imported.slots.slice(0,count);
-  // Slot arrangement is intentionally unchanged: no proven slot-to-combo effect yet.
-  const board=Array.from({length:count},(_,i)=>slots[i]>=0?Math.max(1,Math.min(64,Number($("seedTier").value)||58)):0);
-  const result=searchCombos(board,cap,chain,12,Math.min(count-1,18));
-  const timeout=Math.max(0.1,Number($("comboTimeout").value)||5.5);
-  const moveTime=Math.max(0.1,Number($("mergeTime").value)||1.5);
+  const maxTier=Math.min(64,Math.max(1,Number($("seedTier").value)||64));
+  const slots=imported.slots.slice(0,120);
+  const positions=slots.map((v,i)=>v>=0?i:-1).filter(i=>i>=0);
+  if(positions.length<2){$("solverNote").textContent="At least two unlocked slots are required.";$("solverSteps").replaceChildren();return;}
+  $("solverNote").textContent="Searching prepared tier layouts…";
+  const solution=optimizePreparation(positions.length,maxTier,cap,chain);
+  const result=solution.search;
+  const timeout=Math.max(.1,Number($("comboTimeout").value)||5.5);
+  const moveTime=Math.max(.1,Number($("mergeTime").value)||1.5);
   const timing=validateTiming(result.moves,timeout,moveTime);
   $("timingStatus").textContent=timing.valid?"Timing feasible under assumptions":"Timing infeasible under assumptions";
   $("timingStatus").className=timing.valid?"timing-good":"timing-bad";
-  $("timingDetails").textContent="Estimated execution: "+timing.totalDuration.toFixed(1)+"s · Per-merge margin: "+(timing.minimumMargin===null?"—":timing.minimumMargin.toFixed(1)+"s")+" · Assumes timer refreshes after every manual merge. Heat-triggered timer refresh is unverified.";
+  $("timingDetails").textContent="Estimated execution: "+timing.totalDuration.toFixed(1)+"s · Per-merge margin: "+(timing.minimumMargin===null?"—":timing.minimumMargin.toFixed(1)+"s")+" · Assumes timer refreshes after each manual merge.";
   $("solverScore").textContent=result.score.toLocaleString();
   $("solverMoves").textContent=result.moves.length;
-  $("solverNote").textContent="Experimental beam search (12 states, 18 moves maximum). Slot arrangement is unchanged pending validation; all sushi tiers are hypothetical, not taken from inventory. Cooking or creating sushi during a combo resets the meter; Salt Shaker scoring is excluded. This score is NOT a proven maximum.";
-  $("solverSteps").replaceChildren();
-  const make=(label,tiles)=>{const h=document.createElement("h3");h.textContent=label;$("solverSteps").append(h);const g=document.createElement("div");g.className="mini-grid";tiles.forEach((v,i)=>{const e=document.createElement("span");e.textContent=v||"·";e.className="mini-cell";e.title="Slot "+(i+1);g.append(e);});$("solverSteps").append(g);};
-  make("1 · Slot positions (current, not optimized)",slots.map(x=>x<0?0:["R","H","C","M"][x]));
-  make("2 · Hypothetical starting sushi tiers",board);
-  const h=document.createElement("h3");h.textContent="3 · Suggested merges (experimental)";$("solverSteps").append(h);
-  result.moves.forEach((m,i)=>{const p=document.createElement("p");const t=timing.events[i];p.textContent=(i+1)+". Move slot "+(m.src+1)+" → "+(m.dst+1)+" · +"+m.score+" points ("+m.events.filter(e=>e.kind==="wind").length+" wind upgrades) · "+t.estimatedSeconds.toFixed(1)+"s estimated · "+(t.safe?"within timeout":"TIMEOUT RISK");p.className=t.safe?"":"timing-bad";$("solverSteps").append(p);});
-  if(!result.moves.length){const p=document.createElement("p");p.textContent="No merge sequence found under these assumptions.";$("solverSteps").append(p);}
+  $("solverNote").textContent="Best of 10 prepared-tier patterns: "+solution.name+". This is a bounded heuristic, NOT a proven global maximum. Slot type does not currently change the simulated combo score, so the existing slot layout is equally optimal under this model. Wind chaining and scoring still require in-game verification.";
+  const root=$("solverSteps");root.replaceChildren();
+  function make(label,values,colors){
+    const h=document.createElement("h3");h.textContent=label;root.append(h);
+    const g=document.createElement("div");g.className="mini-grid";
+    values.forEach((v,i)=>{const e=document.createElement("span");e.textContent=v===0?"·":v;e.className="mini-cell"+(colors?" slot-"+colors[i]:"");e.title="Board position "+(i+1);g.append(e);});root.append(g);
+  }
+  const slotTypes=slots.map(v=>v<0?"·":["R","H","C","M"][v]);
+  make("1 · Slot layout (existing positions; equivalent under current combo rules)",slotTypes,slots);
+  const full=Array(120).fill(0);positions.forEach((p,i)=>full[p]=solution.board[i]);
+  make("2 · Recommended prepared sushi tiers (not your current inventory)",full);
+  const heading=document.createElement("h3");heading.textContent="3 · Merge sequence";root.append(heading);
+  const intro=document.createElement("p");intro.textContent="Prepare every sushi before starting. Slot numbers below are 1-based positions in the full 15-column board. No cooking or Salt Shaker actions during the combo.";root.append(intro);
+  let cumulative=0;
+  result.moves.forEach((m,i)=>{
+    cumulative+=m.score;
+    const p=document.createElement("p");const t=timing.events[i];
+    p.textContent=(i+1)+". Drag slot "+(positions[m.src]+1)+" → "+(positions[m.dst]+1)+" · +"+m.score+" points · Total "+cumulative+" · "+m.events.filter(e=>e.kind==="wind").length+" wind upgrades · "+(t.safe?"timing OK":"TIMEOUT RISK");
+    p.className=t.safe?"":"timing-bad";root.append(p);
+  });
+  if(!result.moves.length){const p=document.createElement("p");p.textContent="No valid merges found.";root.append(p);}
 }
 $("runSolver").addEventListener("click",showSolver);
