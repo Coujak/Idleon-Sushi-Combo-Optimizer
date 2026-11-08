@@ -15,7 +15,7 @@ function renderBoard(tiles,perfecto){
     const cell=document.createElement("div");cell.className="tile"+(id<0?" empty":id>=63?" high":"");
     if(id<0){cell.textContent="·";cell.title="Empty slot";}
     else{
-      const isPerfecto=Array.isArray(perfecto)&&perfecto[id]===1;
+      const isPerfecto=Array.isArray(perfecto)&&perfecto[id]>0;
       if(isPerfecto)cell.classList.add("perfecto");
       const tier=document.createElement("span");tier.className="tier";tier.textContent=id+1;
       cell.append(tier);
