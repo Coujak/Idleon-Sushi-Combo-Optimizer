@@ -43,15 +43,17 @@ function renderBoard(tiles,perfecto,slots,fires){
 }
 function importSave(data,label){
   const parsed=decodeSave(data);
-  imported=parsed;
+  imported=parsed;$("importError").classList.add("hidden");
   renderBoard(parsed.tiles,parsed.perfecto,parsed.slots,parsed.fires);
-  $("solver").classList.remove("hidden");$("runSolver").click();
+  $("solver").classList.remove("hidden");
+  $("solverNote").textContent="JSON loaded. Click Run optimizer to calculate a suggested preparation and merge sequence.";
+  $("solverScore").textContent="—";$("solverMoves").textContent="—";$("solverSteps").replaceChildren();
   $("importStatus").textContent="JSON imported";$("importStatus").classList.add("success");
   $("importSummary").textContent=label+" · "+parsed.source+" · "+parsed.tiles.filter(n=>n>=0).length+" occupied sushi slots decoded (120-slot storage).";
   $("importSummary").classList.remove("hidden");
   $("jsonPreview").textContent=JSON.stringify({source:parsed.source,sushiArrayLengths:parsed.sushi.map(x=>Array.isArray(x)?x.length:null),firstTiles:parsed.tiles.slice(0,30),slotTypes:parsed.slots,fireTypes:parsed.fires,perfectoFlags:parsed.perfecto?.slice(0,70)??null},null,2);
 }
-function error(e){$("importStatus").textContent="Import failed";$("importStatus").classList.remove("success");$("jsonPreview").textContent=String(e.message??e);$("importSummary").classList.add("hidden");}
+function error(e){$("importStatus").textContent="Import failed";$("importStatus").classList.remove("success");$("jsonPreview").textContent=String(e.message??e);$("importSummary").classList.add("hidden");$("importError").textContent="JSON import error: "+String(e.message??e);$("importError").classList.remove("hidden");}
 $("pasteToggle").addEventListener("click",()=>{const open=$("pasteArea").classList.toggle("hidden")===false;$("pasteToggle").setAttribute("aria-expanded",String(open));if(open)$("jsonInput").focus();});
 $("parseJson").addEventListener("click",()=>{try{importSave(JSON.parse($("jsonInput").value),"Pasted JSON");}catch(e){error(e);}});
 $("jsonFile").addEventListener("change",async e=>{const f=e.target.files?.[0];if(!f)return;try{importSave(JSON.parse(await f.text()),f.name);}catch(err){error(err);}});
@@ -83,7 +85,7 @@ function searchCombos(start,cap,chainLimit,beamWidth,depth){
         if(indices.length<2)continue;
         // Every destination is considered, with a deterministic source choice.
         // Source identity has no effect on the immediate merge, except its empty position.
-        for(const dst of indices){
+        for(const dst of indices.slice(0,24)){
           const sources=indices.filter(i=>i!==dst);
           sources.sort((a,b)=>((a%COLUMNS===0?1:0)-(b%COLUMNS===0?1:0))||a-b);
           for(const src of sources.slice(0,2)){
@@ -125,7 +127,7 @@ function optimizePreparation(positions,maxTier,cap,chainLimit){
   for(const candidate of buildCandidates(positions.length,maxTier,cap)){
     const full=Array(120).fill(0);positions.forEach((p,i)=>full[p]=candidate.board[i]);
     candidate.board=full;
-    const search=searchCombos(candidate.board,cap,chainLimit,7,Math.min(positions.length-1,26));
+    const search=searchCombos(candidate.board,cap,chainLimit,3,Math.min(positions.length-1,12));
     if(!best||search.score>best.search.score)best={...candidate,search};
   }
   return best;
@@ -180,4 +182,9 @@ function showSolver(){
   });
   if(!result.moves.length){const p=document.createElement("p");p.textContent="No valid merges found.";root.append(p);}
 }
-$("runSolver").addEventListener("click",showSolver);
+$("runSolver").addEventListener("click",()=>{
+  if(!imported){$("solverNote").textContent="Import a valid Idleon Toolbox JSON first.";return;}
+  const button=$("runSolver");button.disabled=true;button.textContent="Optimizing…";
+  $("solverNote").textContent="Searching candidate layouts…";
+  setTimeout(()=>{try{showSolver();}catch(e){$("solverNote").textContent="Optimizer error: "+String(e.message??e);}finally{button.disabled=false;button.textContent="Run optimizer";}},20);
+});
