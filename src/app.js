@@ -120,10 +120,12 @@ function buildCandidates(count,maxTier,cap){
   add("Paired high tiers and ramps",i=>i%COLUMNS<4?maxTier:base-(i%COLUMNS-4));
   return result;
 }
-function optimizePreparation(count,maxTier,cap,chainLimit){
+function optimizePreparation(positions,maxTier,cap,chainLimit){
   let best=null;
-  for(const candidate of buildCandidates(count,maxTier,cap)){
-    const search=searchCombos(candidate.board,cap,chainLimit,7,Math.min(count-1,26));
+  for(const candidate of buildCandidates(positions.length,maxTier,cap)){
+    const full=Array(120).fill(0);positions.forEach((p,i)=>full[p]=candidate.board[i]);
+    candidate.board=full;
+    const search=searchCombos(candidate.board,cap,chainLimit,7,Math.min(positions.length-1,26));
     if(!best||search.score>best.search.score)best={...candidate,search};
   }
   return best;
@@ -147,7 +149,7 @@ function showSolver(){
   const positions=slots.map((v,i)=>v>=0?i:-1).filter(i=>i>=0);
   if(positions.length<2){$("solverNote").textContent="At least two unlocked slots are required.";$("solverSteps").replaceChildren();return;}
   $("solverNote").textContent="Searching prepared tier layouts…";
-  const solution=optimizePreparation(positions.length,maxTier,cap,chain);
+  const solution=optimizePreparation(positions,maxTier,cap,chain);
   const result=solution.search;
   const timeout=Math.max(.1,Number($("comboTimeout").value)||5.5);
   const moveTime=Math.max(.1,Number($("mergeTime").value)||1.5);
@@ -166,15 +168,14 @@ function showSolver(){
   }
   const slotTypes=slots.map(v=>v<0?"·":["R","H","C","M"][v]);
   make("1 · Slot layout (existing positions; equivalent under current combo rules)",slotTypes,slots);
-  const full=Array(120).fill(0);positions.forEach((p,i)=>full[p]=solution.board[i]);
-  make("2 · Recommended prepared sushi tiers (not your current inventory)",full);
+  make("2 · Recommended prepared sushi tiers (not your current inventory)",solution.board);
   const heading=document.createElement("h3");heading.textContent="3 · Merge sequence";root.append(heading);
   const intro=document.createElement("p");intro.textContent="Prepare every sushi before starting. Slot numbers below are 1-based positions in the full 15-column board. No cooking or Salt Shaker actions during the combo.";root.append(intro);
   let cumulative=0;
   result.moves.forEach((m,i)=>{
     cumulative+=m.score;
     const p=document.createElement("p");const t=timing.events[i];
-    p.textContent=(i+1)+". Drag slot "+(positions[m.src]+1)+" → "+(positions[m.dst]+1)+" · +"+m.score+" points · Total "+cumulative+" · "+m.events.filter(e=>e.kind==="wind").length+" wind upgrades · "+(t.safe?"timing OK":"TIMEOUT RISK");
+    p.textContent=(i+1)+". Drag slot "+(m.src+1)+" → "+(m.dst+1)+" · +"+m.score+" points · Total "+cumulative+" · "+m.events.filter(e=>e.kind==="wind").length+" wind upgrades · "+(t.safe?"timing OK":"TIMEOUT RISK");
     p.className=t.safe?"":"timing-bad";root.append(p);
   });
   if(!result.moves.length){const p=document.createElement("p");p.textContent="No valid merges found.";root.append(p);}
