@@ -204,6 +204,18 @@ function showSolver(){
   const right=document.createElement("div");right.className="merge-step-list";right.setAttribute("aria-label","Merge steps");
   layout.append(left,right);root.append(layout);
   const cumulative=[0];for(const m of result.moves)cumulative.push(cumulative[cumulative.length-1]+m.score);
+  const comparison=document.createElement("div");comparison.className="replay-comparison";
+  const compareLabel=document.createElement("label");compareLabel.textContent="Observed in-game combo score ";
+  const actualInput=document.createElement("input");actualInput.type="number";actualInput.min="0";actualInput.step="1";actualInput.placeholder="Enter actual score";
+  const comparisonText=document.createElement("p");comparisonText.className="hint";comparisonText.textContent="Enter the Combo Meter score observed at the selected step to compare the simulation against gameplay. Different starting boards are not directly comparable.";
+  compareLabel.append(actualInput);comparison.append(compareLabel,comparisonText);left.append(comparison);
+  actualInput.addEventListener("input",()=>{
+    const actual=actualInput.value===""?null:Number(actualInput.value);
+    if(actual===null||!Number.isFinite(actual)){comparisonText.textContent="Enter the Combo Meter score observed at the selected step to compare against gameplay.";return;}
+    const predicted=cumulative[selected];
+    comparisonText.textContent="At step "+selected+": simulated "+predicted.toLocaleString()+" · observed "+actual.toLocaleString()+" · difference "+(predicted-actual).toLocaleString()+" points. Only meaningful if the starting board and moves match the recording.";
+  });
+
   let selected=0;
   const stepButtons=[];
   function displayStep(step){
@@ -224,7 +236,8 @@ function showSolver(){
       tile.title="Position "+(i+1)+" · "+(SLOT_NAMES[type]??"Locked")+(tier?" · Tier "+tier:" · Empty")+(changes.has(i)?" · "+changes.get(i):"");
       boardGrid.append(tile);
     }
-    scoreLine.textContent="Combo Meter: "+cumulative[selected].toLocaleString()+" points"+(move?" · This merge: +"+move.score:" · Ready to begin");
+    if(actualInput.value!=="")actualInput.dispatchEvent(new Event("input"));
+    scoreLine.textContent="+cumulative[selected].toLocaleString()+" points"+(move?" · This merge: +"+move.score:" · Ready to begin");
     stepButtons.forEach((b,i)=>{b.classList.toggle("selected",i===selected);b.setAttribute("aria-current",i===selected?"step":"false");});
     stepButtons[selected]?.scrollIntoView({block:"nearest",behavior:"auto"});
   }
