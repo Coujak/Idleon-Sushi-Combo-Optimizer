@@ -182,16 +182,61 @@ function showSolver(){
   }
   make("1 · Slot layout (existing positions; equivalent under current combo rules)",[],false);
   make("2 · Recommended prepared sushi tiers (not your current inventory)",solution.board,true);
-  const heading=document.createElement("h3");heading.textContent="3 · Merge sequence";root.append(heading);
-  const intro=document.createElement("p");intro.textContent="Prepare every sushi before starting. Slot numbers below are 1-based positions in the full 15-column board. No cooking or Salt Shaker actions during the combo.";root.append(intro);
-  let cumulative=0;
+  const heading=document.createElement("h3");heading.textContent="3 · Interactive merge sequence";root.append(heading);
+  const intro=document.createElement("p");intro.className="hint";intro.textContent="Select a step on the right to see the board after that merge. Blue = source, green = destination, purple = Heat of the East Wind upgrades. Step 0 is the prepared board.";root.append(intro);
+  const layout=document.createElement("div");layout.className="merge-layout";
+  const left=document.createElement("div");left.className="merge-board-panel";
+  const controls=document.createElement("div");controls.className="merge-controls";
+  const previous=document.createElement("button");previous.className="button secondary";previous.textContent="← Previous";
+  const next=document.createElement("button");next.className="button secondary";next.textContent="Next →";
+  const indicator=document.createElement("strong");indicator.setAttribute("aria-live","polite");
+  controls.append(previous,indicator,next);left.append(controls);
+  const boardScroll=document.createElement("div");boardScroll.className="board-scroll optimizer-board-scroll";
+  const boardGrid=document.createElement("div");boardGrid.className="board optimizer-board merge-board";
+  boardScroll.append(boardGrid);left.append(boardScroll);
+  const scoreLine=document.createElement("p");scoreLine.className="merge-score";left.append(scoreLine);
+  const right=document.createElement("div");right.className="merge-step-list";right.setAttribute("aria-label","Merge steps");
+  layout.append(left,right);root.append(layout);
+  const cumulative=[0];for(const m of result.moves)cumulative.push(cumulative[cumulative.length-1]+m.score);
+  let selected=0;
+  const stepButtons=[];
+  function displayStep(step){
+    selected=Math.max(0,Math.min(result.moves.length,step));
+    indicator.textContent="Step "+selected+" / "+result.moves.length;
+    previous.disabled=selected===0;next.disabled=selected===result.moves.length;
+    const current=selected===0?solution.board:result.moves[selected-1].board;
+    const move=selected>0?result.moves[selected-1]:null;
+    const changes=new Map();
+    if(move){changes.set(move.src,"source");changes.set(move.dst,"destination");for(const e of move.events)if(e.kind==="wind")changes.set(e.at,"wind");}
+    boardGrid.replaceChildren();
+    const last=slots.findLastIndex(v=>v>=0);
+    for(let i=0;i<=last;i++){
+      const type=slots[i]??-1,tier=current[i]??0;
+      const tile=document.createElement("div");
+      tile.className="tile"+(type>=0?" slot-"+type:" locked")+(tier<1?" empty":"")+(changes.has(i)?" merge-"+changes.get(i):"");
+      if(type>=0&&tier>0){const n=document.createElement("span");n.className="tier";n.textContent=tier;tile.append(n);}
+      tile.title="Position "+(i+1)+" · "+(SLOT_NAMES[type]??"Locked")+(tier?" · Tier "+tier:" · Empty")+(changes.has(i)?" · "+changes.get(i):"");
+      boardGrid.append(tile);
+    }
+    scoreLine.textContent="Combo Meter: "+cumulative[selected].toLocaleString()+" points"+(move?" · This merge: +"+move.score:" · Ready to begin");
+    stepButtons.forEach((b,i)=>{b.classList.toggle("selected",i===selected);b.setAttribute("aria-current",i===selected?"step":"false");});
+    stepButtons[selected]?.scrollIntoView({block:"nearest",behavior:"auto"});
+  }
+  function addStep(title,detail,index){
+    const button=document.createElement("button");button.type="button";button.className="merge-step";
+    const name=document.createElement("strong");name.textContent=title;
+    const description=document.createElement("span");description.textContent=detail;
+    button.append(name,description);button.addEventListener("click",()=>displayStep(index));
+    right.append(button);stepButtons.push(button);
+  }
+  addStep("Step 0 · Prepared board","All sushi positioned; combo not started",0);
   result.moves.forEach((m,i)=>{
-    cumulative+=m.score;
-    const p=document.createElement("p");const t=timing.events[i];
-    p.textContent=(i+1)+". Drag slot "+(m.src+1)+" → "+(m.dst+1)+" · +"+m.score+" points · Total "+cumulative+" · "+m.events.filter(e=>e.kind==="wind").length+" wind upgrades · "+(t.safe?"timing OK":"TIMEOUT RISK");
-    p.className=t.safe?"":"timing-bad";root.append(p);
+    addStep("Step "+(i+1)+" · "+(m.src+1)+" → "+(m.dst+1),
+      "+"+m.score+" points · Total "+cumulative[i+1]+" · "+m.events.filter(e=>e.kind==="wind").length+" wind upgrades · "+(timing.events[i].safe?"Timing OK":"Timeout risk"),i+1);
   });
-  if(!result.moves.length){const p=document.createElement("p");p.textContent="No valid merges found.";root.append(p);}
+  previous.addEventListener("click",()=>displayStep(selected-1));
+  next.addEventListener("click",()=>displayStep(selected+1));
+  displayStep(0);
 }
 $("runSolver").addEventListener("click",()=>{
   if(!imported){$("solverNote").textContent="Import a valid Idleon Toolbox JSON first.";return;}
