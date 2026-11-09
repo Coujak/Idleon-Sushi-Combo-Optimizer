@@ -11,6 +11,26 @@ function decodeSave(input){
   if(!sushi[0].every(x=>Number.isInteger(Number(x))))throw Error("Sushi tile array contains non-numeric entries.");
   return {sushi,tiles:sushi[0].slice(0,120).map(Number),perfecto:Array.isArray(sushi[5])?sushi[5].map(Number):null,slots:Array.isArray(sushi[1])?sushi[1].slice(0,120).map(Number):[],fires:Array.isArray(sushi[3])?sushi[3].slice(0,15).map(Number):[],source:input.data?.Sushi!=null?"Idleon Toolbox":"Raw game data"};
 }
+function detectSushiProgress(save){
+  // Sushi[0] stores tier IDs on the board (zero-based). Do not mistake
+  // upgrade levels or knowledge EXP arrays for unlocked-tier flags.
+  const highestOnBoard=Math.max(0,...save.tiles.filter(n=>Number.isInteger(n)&&n>=0).map(n=>n+1));
+  const explicit=[save.sushiHighestUnlockedTier,save.highestUnlockedSushiTier,save.maxUnlockedSushiTier]
+    .find(n=>Number.isInteger(n)&&n>=highestOnBoard&&n<=64);
+  const highest=explicit??highestOnBoard;
+  return {highest,highestOnBoard,source:explicit?"Explicit unlocked-tier field":"Highest sushi found on board (fallback)",windCap:Math.max(0,highest-6)};
+}
+function applyImportedLimits(){
+  if(!imported)return;
+  const progress=detectSushiProgress(imported);
+  if(progress.highest<1){$("seedTier").value="";$("windCap").value="";return;}
+  $("seedTier").value=String(progress.highest);
+  $("windCap").value=String(progress.windCap);
+  $("seedTier").max=String(progress.highest);
+  $("windCap").max=String(progress.windCap);
+  $("seedTier").title=progress.source;
+  $("windCap").title="Highest unlocked sushi tier minus 6";
+}
 const SLOT_NAMES=["Regular","Hot","Cold","Milktoast"];
 const SUSHI_IMAGE_DIR="assets/sushi/";
 function addSushiVisual(cell,tier){
@@ -61,14 +81,15 @@ function renderBoard(tiles,perfecto,slots,fires){
 }
 function importSave(data,label){
   const parsed=decodeSave(data);
-  imported=parsed;customBoard=null;$("importError").classList.add("hidden");
+  imported=parsed;customBoard=null;applyImportedLimits();$("importError").classList.add("hidden");
   renderBoard(parsed.tiles,parsed.perfecto,parsed.slots,parsed.fires);
   if($("baseTier").value==="custom")renderCustomEditor();
   $("solver").classList.remove("hidden");
   $("solverNote").textContent="JSON loaded. Click Run optimizer to calculate a suggested preparation and merge sequence.";
   $("solverScore").textContent="—";$("solverMoves").textContent="—";$("solverSteps").replaceChildren();
   $("importStatus").textContent="JSON imported";$("importStatus").classList.add("success");
-  $("importSummary").textContent=label+" · "+parsed.source+" · "+parsed.tiles.filter(n=>n>=0).length+" occupied sushi slots decoded (120-slot storage).";
+  const tierProgress=detectSushiProgress(parsed);
+  $("importSummary").textContent=label+" · "+parsed.source+" · "+parsed.tiles.filter(n=>n>=0).length+" occupied sushi slots decoded · Tier "+tierProgress.highest+" detected ("+tierProgress.source+") · Wind limit "+tierProgress.windCap+". If the player has unlocked higher tiers not present on the board, correct the Maximum prepared tier field.";
   $("importSummary").classList.remove("hidden");
   $("jsonPreview").textContent=JSON.stringify({source:parsed.source,sushiArrayLengths:parsed.sushi.map(x=>Array.isArray(x)?x.length:null),firstTiles:parsed.tiles.slice(0,30),slotTypes:parsed.slots,fireTypes:parsed.fires,perfectoFlags:parsed.perfecto?.slice(0,70)??null},null,2);
 }
@@ -130,17 +151,17 @@ function buildCandidates(positions,maxTier,cap,selectedBase=0){
     if(shape==="staircase"){
       // User's 40k board: descending staircase in physical board order,
       // then base-tier sushi. Do not overwrite the permanent Tier 64.
-      const length=Math.min(cap-base+1,usable.length-2);
-      for(let i=0;i<length;i++)board[usable[i]]=cap-i;
+      const length=Math.max(0,Math.min(maxTier-base+1,usable.length-2));
+      for(let i=0;i<length;i++)board[usable[i]]=maxTier-i;
     }else if(shape==="paired"){
-      for(let i=0;i<usable.length;i++)board[usable[i]]=Math.max(base,cap-Math.floor((i%30)/2));
+      for(let i=0;i<usable.length;i++)board[usable[i]]=Math.max(base,maxTier-Math.floor((i%30)/2));
     }else if(shape==="uniform"){
       // Uniform baseline tests whether short cascades outperform long ramps.
     }
     if(fixed!==undefined&&maxTier>=64)board[fixed]=64;
     result.push({name,board,base,shape});
   };
-  for(let base=Math.max(1,selectedBase||cap-33);base<=Math.min(cap-1,maxTier,selectedBase||64);base++){
+  for(let base=Math.max(1,selectedBase||Math.max(1,cap-33));base<=Math.min(maxTier,selectedBase||maxTier);base++){
     add("Tier "+base+" → "+cap+" staircase",base,"staircase");
     add("Tier "+base+" paired ramp",base,"paired");
     add("Tier "+base+" uniform",base,"uniform");
@@ -272,9 +293,11 @@ function validateTiming(moves,timeout,secondsPerMerge){
 }
 async function showSolver(){
   if(!imported)return;
-  const cap=Math.min(64,Math.max(1,Number($("windCap").value)||58));
+  const detected=detectSushiProgress(imported);
+  const maxTier=Math.min(64,Math.max(1,Number($("seedTier").value)||detected.highest||1));
+  const cap=Math.max(0,maxTier-6);
+  $("windCap").value=String(cap);
   const chain=Math.min(25,Math.max(0,Number($("chainLimit").value)||0));
-  const maxTier=Math.min(64,Math.max(1,Number($("seedTier").value)||64));
   const slots=imported.slots.slice(0,120);
   const positions=slots.map((v,i)=>v>=0?i:-1).filter(i=>i>=0);
   if(positions.length<2){$("solverNote").textContent="At least two unlocked slots are required.";$("solverSteps").replaceChildren();return;}
@@ -326,7 +349,7 @@ async function showSolver(){
   $("solverScore").textContent=result.score.toLocaleString();
   $("solverMoves").textContent=result.moves.length;
   $("solverNote").textContent=(custom?"Custom board · compared "+result.strategiesTested+" merge strategies. ":"Best of "+solution.testedCandidates+" preparations (base Tier "+solution.base+", "+solution.shape+"). ")+result.remaining+" occupied sushi remain. Heat model: "+mode+". Scores are estimates based on the current game model; the search picks the best tested strategy, not a guaranteed global maximum.";
-  $("solverNote").textContent+=" Winning strategy: "+result.strategy+". Slot arrangement: "+(solution.layoutName??"Current positions")+".";
+  $("solverNote").textContent+=" Winning strategy: "+result.strategy+". Slot arrangement: "+(solution.layoutName??"Current positions")+". Prepared tier cap: "+maxTier+"; East Wind limit: "+cap+".";
   const root=$("solverSteps");root.replaceChildren();
   const recommendedSlots=solution.slots??slots;
   const movedFrom=slots.filter((v,i)=>v>=0&&recommendedSlots[i]<0).length;
