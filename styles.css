@@ -303,7 +303,7 @@ details summary{cursor:pointer;font-size:12px;font-weight:700;color:#9eb7c9}
   box-shadow:0 0 0 1px #b897db66,0 0 8px #ad82d744;
 }
 .merge-layout .merge-board .tile.wind-active{
-  animation:wind-tile-pulse .65s ease-out both;
+  animation:wind-tile-pulse var(--wind-duration,.65s) ease-out both;
   animation-delay:var(--wind-delay,0ms);
 }
 @keyframes wind-tile-pulse{
@@ -338,3 +338,24 @@ details summary{cursor:pointer;font-size:12px;font-weight:700;color:#9eb7c9}
 .board .tile:not(.locked):before{display:none}
 .board .tile.empty{opacity:1}
 .board .tile.perfecto{border-color:#e8c56c}
+
+/* v1.7.4: replay transport controls and seek bar. */
+.merge-navigation{display:flex;align-items:center;gap:7px;flex-wrap:wrap;min-width:0}
+.merge-navigation .button{min-height:38px;padding:8px 10px;font-size:12px;white-space:nowrap}
+.merge-navigation .merge-play{min-width:86px}
+.merge-navigation .merge-play.is-playing{background:#285c59;border-color:#5fc5ad}
+.merge-step-indicator{font-size:12px;white-space:nowrap;color:#c9e4db}
+.merge-timeline{display:flex;align-items:center;gap:14px;margin:5px 0 14px}
+#solver .merge-timeline input.merge-seek{
+  display:block;flex:1 1 auto;min-width:80px;width:auto;
+  height:22px;padding:0;border:0;background:transparent;
+  accent-color:#79d9ae;cursor:pointer;
+}
+#solver .merge-speed-label{flex:0 0 auto;display:inline-flex;flex-direction:row;align-items:center;gap:7px;color:#afc5d1;font-size:12px}
+#solver .merge-speed-label select{min-height:34px;padding:5px 8px;border-radius:8px;font-size:12px}
+@media(max-width:760px){
+  .merge-controls{align-items:flex-start}
+  .merge-navigation{width:100%}
+  .merge-navigation .button{flex:1 1 auto}
+}
+@media(max-width:420px){.merge-timeline{gap:9px}}

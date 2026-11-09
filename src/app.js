@@ -1,9 +1,12 @@
 import {simulateMerge,validateComboReplay,searchStaircaseCombos} from "./optimizer-core.mjs?v=1.7.0";
 import {searchTacticalCombos} from "./tactical-search.mjs?v=1.7.0";
+import {createReplayController} from "./replay-controller.mjs?v=1.7.4";
 const $=id=>document.getElementById(id);
 const COLUMNS=15;
 let imported=null;
 let customBoard=null;
+let replayCleanup=()=>{};
+function disposeReplay(){replayCleanup();replayCleanup=()=>{};}
 function decodeSave(input){
   if(!input||typeof input!=="object")throw Error("Expected a JSON object.");
   const raw=input.data?.Sushi??input.Sushi;
@@ -79,6 +82,7 @@ function renderBoard(tiles,perfecto,slots,fires){
 }
 function importSave(data,label){
   const parsed=decodeSave(data);
+  disposeReplay();
   imported=parsed;customBoard=null;applyImportedLimits();$("importError").classList.add("hidden");
   renderBoard(parsed.tiles,parsed.perfecto,parsed.slots,parsed.fires);
   if($("baseTier").value==="custom")renderCustomEditor();
@@ -95,7 +99,7 @@ function error(e){$("importStatus").textContent="Import failed";$("importStatus"
 $("pasteToggle").addEventListener("click",()=>{const open=$("pasteArea").classList.toggle("hidden")===false;$("pasteToggle").setAttribute("aria-expanded",String(open));if(open)$("jsonInput").focus();});
 $("parseJson").addEventListener("click",()=>{try{importSave(JSON.parse($("jsonInput").value),"Pasted JSON");}catch(e){error(e);}});
 $("jsonFile").addEventListener("change",async e=>{const f=e.target.files?.[0];if(!f)return;try{importSave(JSON.parse(await f.text()),f.name);}catch(err){error(err);}});
-$("clearImport").addEventListener("click",()=>{imported=null;customBoard=null;$("solver").classList.add("hidden");$("jsonInput").value="";$("jsonFile").value="";$("board").replaceChildren();$("fireplaces").replaceChildren();$("importSummary").classList.add("hidden");$("pasteArea").classList.add("hidden");$("pasteToggle").setAttribute("aria-expanded","false");$("importStatus").textContent="Waiting for data";$("importStatus").classList.remove("success");$("boardStatus").textContent="Import a save";$("boardDetails").textContent="Your imported tiles will appear here.";$("jsonPreview").textContent="No JSON imported yet.";});
+$("clearImport").addEventListener("click",()=>{disposeReplay();imported=null;customBoard=null;$("solver").classList.add("hidden");$("jsonInput").value="";$("jsonFile").value="";$("board").replaceChildren();$("fireplaces").replaceChildren();$("importSummary").classList.add("hidden");$("pasteArea").classList.add("hidden");$("pasteToggle").setAttribute("aria-expanded","false");$("importStatus").textContent="Waiting for data";$("importStatus").classList.remove("success");$("boardStatus").textContent="Import a save";$("boardDetails").textContent="Your imported tiles will appear here.";$("jsonPreview").textContent="No JSON imported yet.";});
 
 // Merge physics and staircase recycling live in optimizer-core.mjs.
 function layoutOptions(slots){
@@ -443,15 +447,30 @@ async function showSolver(){
   make("1 · Recommended slot layout ("+(solution.layoutName??"current")+")",[],false);
   make(custom?"2 · Your custom starting board":"2 · Recommended prepared sushi tiers (not your current inventory)",solution.board,true);
   const heading=document.createElement("h3");heading.textContent="3 · Interactive merge sequence";root.append(heading);
-  const intro=document.createElement("p");intro.className="hint";intro.textContent="Follow each step: blue is the source, green is the destination, and purple shows Heat of the East Wind. Other tiles fade so you can focus on the action. Step 0 shows your full board.";root.append(intro);
+  const intro=document.createElement("p");intro.className="hint";intro.textContent="Watch the combo with Play, or jump between steps yourself. Blue is the source, green the destination, and purple is Heat of the East Wind. Step 0 shows the full board.";root.append(intro);
   const layout=document.createElement("div");layout.className="merge-layout";
   const left=document.createElement("div");left.className="merge-board-panel";
   const controls=document.createElement("div");controls.className="merge-controls";
-  const previous=document.createElement("button");previous.className="button secondary";previous.textContent="← Previous";
-  const next=document.createElement("button");next.className="button secondary";next.textContent="Next →";
-  const first=document.createElement("button");first.type="button";first.className="button quiet";first.textContent="↺ Step 1";first.title="Return to the first merge";
-  const indicator=document.createElement("strong");indicator.setAttribute("aria-live","polite");
-  controls.append(previous,first,indicator,next);left.append(controls);
+  const navigation=document.createElement("div");navigation.className="merge-navigation";
+  const first=document.createElement("button");first.type="button";first.className="button quiet";first.textContent="↺ Step 0";first.title="Return to the prepared board";
+  const previous=document.createElement("button");previous.type="button";previous.className="button secondary";previous.textContent="← Previous";
+  const playButton=document.createElement("button");playButton.type="button";playButton.className="button primary merge-play";playButton.textContent="▶ Play";playButton.setAttribute("aria-pressed","false");
+  const next=document.createElement("button");next.type="button";next.className="button secondary";next.textContent="Next →";
+  const lastStep=document.createElement("button");lastStep.type="button";lastStep.className="button quiet";lastStep.textContent="Last step";lastStep.title="Skip to the final step";
+  const indicator=document.createElement("strong");indicator.className="merge-step-indicator";indicator.setAttribute("aria-live","polite");
+  navigation.append(first,previous,playButton,next,lastStep);
+  controls.append(navigation,indicator);left.append(controls);
+  const timeline=document.createElement("div");timeline.className="merge-timeline";
+  const seek=document.createElement("input");seek.type="range";seek.className="merge-seek";seek.min="0";seek.max=String(result.moves.length);seek.step="1";seek.value="0";seek.setAttribute("aria-label","Jump to replay step");
+  const speedLabel=document.createElement("label");speedLabel.className="merge-speed-label";speedLabel.textContent="Speed";
+  const speedSelect=document.createElement("select");speedSelect.setAttribute("aria-label","Playback speed");
+  for(const rate of [0.75,1,1.5,2,3]){
+    const option=document.createElement("option");option.value=String(rate);option.textContent=rate+"×";
+    if(rate===1)option.selected=true;
+    speedSelect.append(option);
+  }
+  speedLabel.append(speedSelect);
+  timeline.append(seek,speedLabel);left.append(timeline);
   const boardScroll=document.createElement("div");boardScroll.className="board-scroll optimizer-board-scroll";
   const boardGrid=document.createElement("div");boardGrid.className="board optimizer-board merge-board";
   boardScroll.append(boardGrid);left.append(boardScroll);
@@ -465,7 +484,11 @@ async function showSolver(){
   function displayStep(step){
     selected=Math.max(0,Math.min(result.moves.length,step));
     indicator.textContent="Step "+selected+" / "+result.moves.length;
-    previous.disabled=selected===0;next.disabled=selected===result.moves.length;
+    seek.value=String(selected);
+    seek.setAttribute("aria-valuetext","Step "+selected+" of "+result.moves.length);
+    first.disabled=selected===0;previous.disabled=selected===0;
+    next.disabled=selected===result.moves.length;
+    lastStep.disabled=selected===result.moves.length;
     const current=selected===0?solution.board:result.moves[selected-1].board;
     const move=selected>0?result.moves[selected-1]:null;
     const changes=new Map(),windOrder=new Map();
@@ -492,7 +515,9 @@ async function showSolver(){
           tile.classList.add("focus-tile","merge-"+change);
           if(change==="wind"){
             tile.classList.add("wind-active");
-            tile.style.setProperty("--wind-delay",(windOrder.get(i)*65)+"ms");
+            const rate=Number(speedSelect.value)||1;
+            tile.style.setProperty("--wind-delay",(windOrder.get(i)*65/rate)+"ms");
+            tile.style.setProperty("--wind-duration",(650/rate)+"ms");
           }
         }else{
           tile.classList.add("dim-tile");
@@ -511,7 +536,7 @@ async function showSolver(){
     const button=document.createElement("button");button.type="button";button.className="merge-step";
     const name=document.createElement("strong");name.textContent=title;
     const description=document.createElement("span");description.textContent=detail;
-    button.append(name,description);button.addEventListener("click",()=>displayStep(index));
+    button.append(name,description);button.addEventListener("click",()=>player.goTo(index));
     right.append(button);stepButtons.push(button);
   }
   addStep("Step 0 · Prepared board","All sushi positioned; combo not started",0);
@@ -520,13 +545,42 @@ async function showSolver(){
     addStep("Step "+(i+1)+" · "+(isMove?"Move":"Merge")+" · "+(m.src+1)+" → "+(m.dst+1),
       (isMove?"Move Tier "+m.tier+" to an empty slot · +0 points":"+"+m.score+" points · "+m.events.filter(e=>e.kind==="wind").length+" Wind upgrades")+" · Total "+cumulative[i+1]+" · "+(timing.events[i].safe?"Timing OK":"Timeout risk"),i+1);
   });
-  previous.addEventListener("click",()=>displayStep(selected-1));
-  first.addEventListener("click",()=>displayStep(Math.min(1,result.moves.length)));
-  next.addEventListener("click",()=>displayStep(selected+1));
+  function showPlaybackState(playing){
+    playButton.textContent=playing?"⏸ Pause":"▶ Play";
+    playButton.setAttribute("aria-pressed",String(playing));
+    playButton.classList.toggle("is-playing",playing);
+    indicator.setAttribute("aria-live",playing?"off":"polite");
+  }
+  const player=createReplayController({
+    totalSteps:result.moves.length,
+    onStep:displayStep,
+    onPlayStateChange:showPlaybackState,
+    getDelay(step){
+      const rate=Number(speedSelect.value)||1;
+      const windCount=step>0?result.moves[step-1].events.filter(e=>e.kind==="wind").length:0;
+      const windDuration=windCount?((windCount-1)*65+650)/rate:0;
+      return Math.max(500,1650/rate,windDuration+240/rate);
+    }
+  });
+  first.addEventListener("click",()=>player.goTo(0));
+  previous.addEventListener("click",()=>player.goTo(player.step-1));
+  next.addEventListener("click",()=>player.goTo(player.step+1));
+  lastStep.addEventListener("click",()=>player.goTo(result.moves.length));
+  playButton.addEventListener("click",()=>player.toggle());
+  seek.addEventListener("input",()=>player.goTo(Number(seek.value)));
+  speedSelect.addEventListener("change",()=>player.reschedule());
+  const pauseWhenHidden=()=>{if(document.hidden)player.pause();};
+  document.addEventListener("visibilitychange",pauseWhenHidden);
+  replayCleanup=()=>{
+    player.dispose();
+    document.removeEventListener("visibilitychange",pauseWhenHidden);
+  };
+  showPlaybackState(false);
   displayStep(0);
 }
 $("runSolver").addEventListener("click",async()=>{
   if(!imported){$("solverNote").textContent="Import a valid Idleon Toolbox JSON first.";return;}
+  disposeReplay();
   const button=$("runSolver");
   button.disabled=true;button.textContent="Optimizing…";
   $("optimizerProgress").classList.remove("hidden");
