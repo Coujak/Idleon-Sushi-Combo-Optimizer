@@ -217,3 +217,42 @@ details summary{cursor:pointer;font-size:12px;font-weight:700;color:#9eb7c9}
   .merge-layout .merge-board{padding:3px;gap:1px}
 }
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}.button,.tile,.merge-step{transition:none}}
+
+
+/* v1.4.3 — refined Sushi Station tiles */
+.board{gap:6px;padding:11px;border-radius:16px;background:linear-gradient(155deg,#112822,#0b1d1b);border-color:#355c50}
+.tile{
+  isolation:isolate;position:relative;min-height:58px;overflow:hidden;
+  border-radius:10px;border:1px solid #587c68;
+  background:linear-gradient(145deg,#355c43,#203b30);
+  box-shadow:inset 0 1px 0 #ffffff21,inset 0 -3px 9px #00000024,0 2px 4px #00000021;
+  transition:transform .15s ease,filter .15s ease,border-color .15s ease,box-shadow .15s ease;
+}
+.tile:before{content:"";position:absolute;z-index:0;inset:1px 1px auto;height:43%;border-radius:9px 9px 45% 45%;background:linear-gradient(#ffffff15,transparent);pointer-events:none}
+.tile:not(.empty):not(.locked):hover{filter:brightness(1.14);transform:translateY(-2px);box-shadow:inset 0 1px 0 #ffffff30,0 5px 12px #0005;z-index:2}
+.tile.slot-0{background:linear-gradient(145deg,#345f3f,#1e3d32);border-color:#5c986e}
+.tile.slot-1{background:linear-gradient(145deg,#854344,#4c292e);border-color:#b86e6d}
+.tile.slot-2{background:linear-gradient(145deg,#346f92,#1c405e);border-color:#6da7c5}
+.tile.slot-3{background:linear-gradient(145deg,#85713c,#504322);border-color:#bfa766}
+.tile.high{background:linear-gradient(145deg,#396e8b,#273c6d);border-color:#7aadd1}
+.tile.empty{opacity:.75;background:#102520;border:1px dashed #426456;box-shadow:inset 0 1px 8px #0004}
+.tile.empty:before,.tile.locked:before{display:none}
+.tile.locked{box-shadow:none}
+.tile .sushi-art{position:relative;z-index:1;width:88%;height:71%;max-height:42px;filter:drop-shadow(0 2px 2px #0006)}
+.tile .tier{z-index:2;font-size:15px;font-weight:900;line-height:1.1;color:#fff;letter-spacing:.015em;text-shadow:0 2px 3px #000b,0 0 6px #0008}
+.tile.perfecto{border-color:#e8c56c;box-shadow:inset 0 0 0 1px #e8c56c77,0 0 9px #e8c56c22}
+.tile .perfecto-mark{top:2px;right:2px;width:19px;height:19px;filter:drop-shadow(0 1px 2px #0009)}
+.custom-board .custom-tile{padding:3px}
+.custom-board .custom-tile:focus-visible{outline:3px solid #c4f7de;outline-offset:1px}
+.custom-board .custom-tile:hover:not(:disabled){outline:2px solid #a2f4c7;outline-offset:0}
+.optimizer-board .tile{min-height:58px}
+.merge-layout .merge-board{gap:3px;padding:7px;border-width:4px}
+.merge-layout .merge-board .tile{min-height:0;border-radius:5px;transform:none}
+.merge-layout .merge-board .tile:hover{transform:none}
+.merge-layout .merge-board .tile .tier{font-size:clamp(8px,.85vw,12px)}
+.merge-layout .merge-board .tile .sushi-art{height:65%;width:95%;filter:drop-shadow(0 1px 1px #0006)}
+.merge-board .tile.merge-source{outline:2px solid #7ecaff;outline-offset:-2px;box-shadow:0 0 0 1px #7ecaff88}
+.merge-board .tile.merge-destination{outline:2px solid #98ffba;outline-offset:-2px;box-shadow:0 0 0 1px #98ffba88}
+.merge-board .tile.merge-wind{outline:2px solid #e3a5ff;outline-offset:-2px;box-shadow:0 0 0 1px #e3a5ff88}
+@media(max-width:760px){.board{gap:4px;padding:7px}.merge-layout .merge-board{gap:2px;padding:5px}}
+@media(prefers-reduced-motion:reduce){.tile{transition:none}.tile:not(.empty):not(.locked):hover{transform:none}}
