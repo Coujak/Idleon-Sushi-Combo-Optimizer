@@ -1,4 +1,5 @@
-import {simulateMerge,validateComboReplay,searchStaircaseCombos} from "./optimizer-core.mjs?v=1.6.0";
+import {simulateMerge,validateComboReplay,searchStaircaseCombos} from "./optimizer-core.mjs?v=1.7.0";
+import {searchTacticalCombos} from "./tactical-search.mjs?v=1.7.0";
 const $=id=>document.getElementById(id);
 const COLUMNS=15;
 let imported=null;
@@ -366,7 +367,8 @@ async function showSolver(){
     if(board.filter(v=>v>0).length<2)throw Error("Place at least two sushi on the custom board.");
     const greedy=searchCombos(board,cap,chain,4,board.filter(v=>v>0).length-1,mode);
     const beam=beamSearchCombos(board,cap,chain,board.filter(v=>v>0).length-1,greedy);
-    const search=searchStaircaseCombos(board,cap,chain,slots,beam);
+    let search=searchStaircaseCombos(board,cap,chain,slots,beam);
+    search=searchTacticalCombos(board,cap,chain,slots,search,{depth:14,width:12,branchLimit:16});
     solution={board,slots,layoutName:"Current positions",base:"custom",shape:"user-defined",name:"Custom board",search,testedCandidates:1};
     progress(1);
   }else{
@@ -383,6 +385,9 @@ async function showSolver(){
     await new Promise(resolve=>setTimeout(resolve,0));
     solution.search=beamSearchCombos(solution.board,cap,chain,solution.board.filter(v=>v>0).length-1,solution.search);
     solution.search=searchStaircaseCombos(solution.board,cap,chain,solution.slots,solution.search);
+    $("solverNote").textContent="Testing tactical Wind setups and repositioning…";
+    await new Promise(resolve=>setTimeout(resolve,0));
+    solution.search=searchTacticalCombos(solution.board,cap,chain,solution.slots,solution.search,{depth:12,width:12,branchLimit:16});
   }
   if(!solution||!solution.search)throw Error("No valid preparations for these tier settings.");
   const result=solution.search;
@@ -401,7 +406,7 @@ async function showSolver(){
   $("solverScore").textContent=result.score.toLocaleString();
   $("solverMoves").textContent=verified.merges;
   $("solverRepositions").textContent=verified.repositions;
-  $("solverNote").textContent=(custom?"Custom board · staircase recycling, greedy and beam strategies tested. ":"Best of "+solution.testedCandidates+" preparations (base Tier "+solution.base+", "+solution.shape+"). ")+result.remaining+" occupied sushi remain. Heat model: "+mode+". Scores remain estimates, not a guaranteed maximum.";
+  $("solverNote").textContent=(custom?"Custom board · staircase recycling, greedy, beam, and tactical reposition searches tested. ":"Best of "+solution.testedCandidates+" preparations (base Tier "+solution.base+", "+solution.shape+"). ")+result.remaining+" occupied sushi remain. Heat model: "+mode+". Scores remain estimates, not a guaranteed maximum.";
   $("solverNote").textContent+=" Winning strategy: "+result.strategy+". Slot arrangement: "+(solution.layoutName??"Current positions")+". Prepared tier cap: "+maxTier+"; East Wind limit: "+cap+".";
   const root=$("solverSteps");root.replaceChildren();
   const movedFrom=slots.filter((v,i)=>v>=0&&recommendedSlots[i]<0).length;
