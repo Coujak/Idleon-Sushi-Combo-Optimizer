@@ -303,7 +303,7 @@ async function showSolver(){
   $("timingDetails").textContent="Estimated execution: "+timing.totalDuration.toFixed(1)+"s · Per-merge margin: "+(timing.minimumMargin===null?"—":timing.minimumMargin.toFixed(1)+"s")+" · Assumes timer refreshes after each manual merge.";
   $("solverScore").textContent=result.score.toLocaleString();
   $("solverMoves").textContent=result.moves.length;
-  $("solverNote").textContent=(custom?"Custom board · compared "+result.strategiesTested+" merge strategies. ":"Best of "+solution.testedCandidates+" preparations (base Tier "+solution.base+", "+solution.shape+"). ")+result.remaining+" occupied sushi remain. Heat model: "+mode+". Scores are experimental and NOT verified in-game; this heuristic does not guarantee the highest possible score.";
+  $("solverNote").textContent=(custom?"Custom board · compared "+result.strategiesTested+" merge strategies. ":"Best of "+solution.testedCandidates+" preparations (base Tier "+solution.base+", "+solution.shape+"). ")+result.remaining+" occupied sushi remain. Heat model: "+mode+". Scores are estimates based on the current game model; the search picks the best tested strategy, not a guaranteed global maximum.";
   $("solverNote").textContent+=" Winning strategy: "+result.strategy+".";
   const root=$("solverSteps");root.replaceChildren();
   function make(label,values,showTiers){
