@@ -115,7 +115,7 @@ function layoutOptions(slots){
   }
   return layouts;
 }
-function buildCandidates(positions,maxTier,cap,selectedBase=0){
+function buildCandidates(positions,maxTier,cap,selectedBase=0,chainLimit=25){
   const result=[],occupied=new Set(positions),blocked=positions.filter(p=>p>=0);
   const fixed=blocked[blocked.length-1];
   const add=(name,base,shape)=>{
@@ -130,7 +130,7 @@ function buildCandidates(positions,maxTier,cap,selectedBase=0){
     }else if(shape==="recycle"){
       // Preserve a low-tier reserve and cap the staircase length so a second
       // Wind pass can reuse the remaining eastern sushi.
-      const peak=Math.min(maxTier,cap+1,base+23);
+      const peak=Math.min(maxTier,cap+1,base+Math.max(1,chainLimit-3));
       const length=Math.max(0,Math.min(peak-base,usable.length-3));
       for(let i=0;i<length;i++)board[usable[i]]=peak-i;
     }else if(shape==="paired"){
@@ -347,7 +347,7 @@ async function showSolver(){
   const arrangements=custom?[{name:"Current positions",slots}]:layoutOptions(slots);
   const candidates=custom?null:arrangements.flatMap(layout=>{
     const layoutPositions=layout.slots.map((v,i)=>v>=0?i:-1).filter(i=>i>=0);
-    return buildCandidates(layoutPositions,maxTier,cap,selectedBase).map(candidate=>({...candidate,slots:layout.slots,layoutName:layout.name}));
+    return buildCandidates(layoutPositions,maxTier,cap,selectedBase,chain).map(candidate=>({...candidate,slots:layout.slots,layoutName:layout.name}));
   });
   const total=custom?1:candidates.length;
   if(total<1)throw Error("No valid preparations for these tier settings.");
