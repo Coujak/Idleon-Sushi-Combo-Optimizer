@@ -359,3 +359,29 @@ details summary{cursor:pointer;font-size:12px;font-weight:700;color:#9eb7c9}
   .merge-navigation .button{flex:1 1 auto}
 }
 @media(max-width:420px){.merge-timeline{gap:9px}}
+
+/* v1.7.5: Center playback controls and keep the step indicator aligned. */
+.merge-board-panel .merge-controls{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:9px;
+  text-align:center;
+}
+.merge-board-panel .merge-navigation{
+  width:100%;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  flex-wrap:wrap;
+}
+.merge-board-panel .merge-step-indicator{
+  display:block;
+  text-align:center;
+}
+@media(max-width:760px){
+  .merge-board-panel .merge-controls{align-items:center}
+  .merge-board-panel .merge-navigation{justify-content:center}
+  .merge-board-panel .merge-navigation .button{flex:0 1 auto}
+}

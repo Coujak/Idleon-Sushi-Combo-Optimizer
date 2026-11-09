@@ -8,6 +8,7 @@ Browser-based Sushi Station preparation and Combo Meter optimizer for Legends of
 - Load Idleon Toolbox JSON locally (your save is processed in your browser).
 - Reconstruct a 15-column Sushi Station board, plate types, fireplaces and Perfecto indicators.
 - Compare prepared layouts; edit individual sushi tiers using the custom board editor.
+- Recommended preparations preserve a single permanent Tier 64 (when unlocked or present in the imported save) at the first unlocked position; imported and custom boards keep their own positions.
 - Simulate Heat of the East Wind and search using greedy, beam, staircase-recycling, and tactical repositioning strategies.
 - Deliberately reuse descending staircases across scoring passes. Search several spare-sushi Wind-tail lengths and test one-tile tactical repositioning before merges on irregular boards. The replay distinguishes zero-point relocations from merges.
 - Enter action times to estimate combo-time feasibility. **Only merges reset the combo timer** in the timing estimate.

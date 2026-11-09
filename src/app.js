@@ -1,6 +1,7 @@
 import {simulateMerge,validateComboReplay,searchStaircaseCombos} from "./optimizer-core.mjs?v=1.7.0";
 import {searchTacticalCombos} from "./tactical-search.mjs?v=1.7.0";
 import {createReplayController} from "./replay-controller.mjs?v=1.7.4";
+import {buildCandidates} from "./preparation-core.mjs?v=1.7.5";
 const $=id=>document.getElementById(id);
 const COLUMNS=15;
 let imported=null;
@@ -119,40 +120,6 @@ function layoutOptions(slots){
     if(!layouts.some(l=>l.slots.every((v,i)=>v===arranged[i])))layouts.push({name:option.name,slots:arranged});
   }
   return layouts;
-}
-function buildCandidates(positions,maxTier,cap,selectedBase=0,chainLimit=25){
-  const result=[],occupied=new Set(positions),blocked=positions.filter(p=>p>=0);
-  const fixed=blocked[blocked.length-1];
-  const add=(name,base,shape)=>{
-    const board=Array(120).fill(0);
-    positions.forEach(p=>board[p]=base);
-    const usable=positions.filter(p=>p!==fixed);
-    if(shape==="staircase"){
-      // User's 40k board: descending staircase in physical board order,
-      // then base-tier sushi. Do not overwrite the permanent Tier 64.
-      const length=Math.max(0,Math.min(maxTier-base+1,usable.length-2));
-      for(let i=0;i<length;i++)board[usable[i]]=maxTier-i;
-    }else if(shape==="recycle"){
-      // Preserve a low-tier reserve and cap the staircase length so a second
-      // Wind pass can reuse the remaining eastern sushi.
-      const peak=Math.min(maxTier,cap+1,base+Math.max(1,chainLimit-3));
-      const length=Math.max(0,Math.min(peak-base,usable.length-3));
-      for(let i=0;i<length;i++)board[usable[i]]=peak-i;
-    }else if(shape==="paired"){
-      for(let i=0;i<usable.length;i++)board[usable[i]]=Math.max(base,maxTier-Math.floor((i%30)/2));
-    }else if(shape==="uniform"){
-      // Uniform baseline tests whether short cascades outperform long ramps.
-    }
-    if(fixed!==undefined&&maxTier>=64)board[fixed]=64;
-    result.push({name,board,base,shape});
-  };
-  for(let base=Math.max(1,selectedBase||Math.max(1,maxTier-33));base<=Math.min(maxTier,selectedBase||maxTier);base++){
-    add("Tier "+base+" → "+cap+" staircase",base,"staircase");
-    if(base<cap&&positions.length>=6)add("Tier "+base+" recycled Wind staircase",base,"recycle");
-    add("Tier "+base+" paired ramp",base,"paired");
-    add("Tier "+base+" uniform",base,"uniform");
-  }
-  return result;
 }
 // Keep several alternative merge orders alive instead of committing to one
 // greedy policy. Only evaluate this more expensive search on the best preparation.
@@ -349,10 +316,12 @@ async function showSolver(){
   const mode="descending domino";
   const custom=$("baseTier").value==="custom";
   const selectedBase=custom?0:(Number($("baseTier").value)||0);
+  // A Tier 64 from the save stays permanent even if the prepared-tier setting is lowered.
+  const protectTier64=maxTier===64||imported.tiles.includes(63);
   const arrangements=custom?[{name:"Current positions",slots}]:layoutOptions(slots);
   const candidates=custom?null:arrangements.flatMap(layout=>{
     const layoutPositions=layout.slots.map((v,i)=>v>=0?i:-1).filter(i=>i>=0);
-    return buildCandidates(layoutPositions,maxTier,cap,selectedBase,chain).map(candidate=>({...candidate,slots:layout.slots,layoutName:layout.name}));
+    return buildCandidates(layoutPositions,maxTier,cap,selectedBase,chain,protectTier64).map(candidate=>({...candidate,slots:layout.slots,layoutName:layout.name}));
   });
   const total=custom?1:candidates.length;
   if(total<1)throw Error("No valid preparations for these tier settings.");
@@ -412,6 +381,7 @@ async function showSolver(){
   $("solverRepositions").textContent=verified.repositions;
   $("solverNote").textContent=(custom?"Custom board · staircase recycling, greedy, beam, and tactical reposition searches tested. ":"Best of "+solution.testedCandidates+" preparations (base Tier "+solution.base+", "+solution.shape+"). ")+result.remaining+" occupied sushi remain. Heat model: "+mode+". Scores remain estimates, not a guaranteed maximum.";
   $("solverNote").textContent+=" Winning strategy: "+result.strategy+". Slot arrangement: "+(solution.layoutName??"Current positions")+". Prepared tier cap: "+maxTier+"; East Wind limit: "+cap+".";
+  if(!custom&&protectTier64)$("solverNote").textContent+=" The permanent Tier 64 is placed in the first unlocked slot of the suggested layout."; 
   const root=$("solverSteps");root.replaceChildren();
   const movedFrom=slots.filter((v,i)=>v>=0&&recommendedSlots[i]<0).length;
   const changedTypes=slots.filter((v,i)=>v>=0&&recommendedSlots[i]>=0&&v!==recommendedSlots[i]).length;
