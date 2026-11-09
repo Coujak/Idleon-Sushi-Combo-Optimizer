@@ -17,7 +17,7 @@ test("100-slot layered preparation remains legal and replayable",()=>{
   assert.equal(board.filter(t=>t>0).length,100);
   assert.equal(board[0],64);
   assert.equal(board.filter(t=>t===64).length,1);
-  assert.ok(board.slice(1).every(t=>t>=1&&t<64));
+  assert.ok(board.slice(1,100).every(t=>t>=1&&t<64), "Only the 100 unlocked slots must hold sushi");
   const result=searchCombos(board,58,25,4,99,"descending domino");
   assert.equal(result.score,49771);
   const replay=validateComboReplay(board,result.moves,58,25,slots);
