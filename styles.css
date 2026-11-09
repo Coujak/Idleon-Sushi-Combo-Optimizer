@@ -299,17 +299,17 @@ details summary{cursor:pointer;font-size:12px;font-weight:700;color:#9eb7c9}
   box-shadow:0 0 0 1px #98ffba88,0 0 15px #76ebad55;
 }
 .merge-layout .merge-board .tile.focus-tile.merge-wind{
-  outline:2px solid #e3a5ff;
-  box-shadow:0 0 0 1px #e3a5ff88,0 0 17px #c88fff66;
+  outline:2px solid #b897db;
+  box-shadow:0 0 0 1px #b897db66,0 0 8px #ad82d744;
 }
 .merge-layout .merge-board .tile.wind-active{
-  animation:wind-tile-pulse .7s cubic-bezier(.25,.65,.2,1) both;
+  animation:wind-tile-pulse .65s ease-out both;
   animation-delay:var(--wind-delay,0ms);
 }
 @keyframes wind-tile-pulse{
-  0%{transform:scale(.97);filter:brightness(.85);box-shadow:0 0 0 0 #ce87ff00}
-  42%{transform:scale(1.085);filter:brightness(1.65);box-shadow:0 0 0 2px #e3a5ff,0 0 24px #cf8affbd}
-  100%{transform:scale(1);filter:brightness(1);box-shadow:0 0 0 1px #e3a5ff88,0 0 17px #c88fff66}
+  0%{transform:scale(1);filter:brightness(1);box-shadow:0 0 0 0 #b897db00}
+  42%{transform:scale(1.025);filter:brightness(1.12);box-shadow:0 0 0 1px #c4a5e088,0 0 11px #ad82d766}
+  100%{transform:scale(1);filter:brightness(1);box-shadow:0 0 0 1px #b897db66,0 0 8px #ad82d744}
 }
 @media(max-width:1050px){
   .merge-layout{grid-template-columns:minmax(0,1fr)}
