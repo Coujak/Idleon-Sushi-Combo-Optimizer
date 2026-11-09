@@ -67,3 +67,6 @@
 @media(prefers-reduced-motion:reduce){
   .fire-cell .campfire-art{animation:none;will-change:auto}
 }
+
+/* Transparent Perfecto symbol replaces the former checkmark. */
+.tile .perfecto-mark{position:absolute;top:1px;right:1px;width:21px;height:21px;object-fit:contain;image-rendering:pixelated;pointer-events:none;z-index:3}
