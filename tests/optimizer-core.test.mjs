@@ -1,3 +1,4 @@
+import {searchTacticalCombos} from "../src/tactical-search.mjs";
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
@@ -72,4 +73,40 @@ test("relocation cannot overwrite or move through locked slots",()=>{
 });
 test("non-matching sushi do not merge",()=>{
   assert.equal(simulateMerge([8,9],0,1,58,25),null);
+});
+
+test("Wind does not upgrade a higher-tier tile immediately to its right",()=>{
+  const r=simulateMerge([8,8,12,11],0,1,58,25);
+  assert.equal(r.score,9);
+  assert.deepEqual(r.board,[0,9,12,11]);
+});
+test("Wind respects a descending chain and its maximum length",()=>{
+  const r=simulateMerge([8,8,6,5,4],0,1,58,2);
+  assert.equal(r.score,22);
+  assert.deepEqual(r.board,[0,9,7,6,4]);
+});
+test("out-of-range merge and moving outside unlocked slots are rejected",()=>{
+  for(const [src,dst] of [[-1,1],[0,-1],[0,8],[8,9]])
+    assert.equal(simulateMerge([8,8],src,dst,58,25),null);
+  assert.equal(simulateRelocation([3,0,0],0,2,[0,0]),null);
+});
+test("tactical prep improves irregular boards over merge-only search",()=>{
+  const board=[7,7,6,0,5,4,0,6],slots=board.map(()=>0);
+  const mergeOnly=searchTacticalCombos(board,58,25,slots,null,{depth:6,width:16,allowRelocations:false});
+  const improved=searchTacticalCombos(board,58,25,slots,null,{depth:6,width:16});
+  assert.ok(improved.score>mergeOnly.score);
+  assert.ok(improved.moves.some(m=>m.kind==="move"));
+  assert.equal(validateComboReplay(board,improved.moves,58,25,slots).score,improved.score);
+});
+test("tactical search honors locked slots and preserves the baseline",()=>{
+  const b=[8,8,7,0,6,5,4,6],slots=b.map(()=>0);
+  slots[3]=-1;
+  const result=searchTacticalCombos(b,58,25,slots,null,{depth:6});
+  assert.ok(result.moves.every(m=>m.kind!=="move"||slots[m.dst]>=0));
+  assert.equal(validateComboReplay(b,result.moves,58,25,slots).score,result.score);
+  const {board,slots:fullSlots}=benchmarkBoard();
+  const baseline=searchStaircaseCombos(board,58,25,fullSlots);
+  const kept=searchTacticalCombos(board,58,25,fullSlots,baseline,{depth:8});
+  assert.ok(kept.score>=7069);
+  assert.equal(validateComboReplay(board,kept.moves,58,25,fullSlots).score,kept.score);
 });
