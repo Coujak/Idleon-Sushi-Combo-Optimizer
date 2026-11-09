@@ -334,12 +334,19 @@ async function showSolver(){
   const layoutInfo=document.createElement("p");layoutInfo.className="hint";
   layoutInfo.textContent="Slot arrangement: "+(solution.layoutName??"Current positions")+". "+movedFrom+" slots need a new position; "+changedTypes+" positions change plate type. Keep all owned plate types. Empty the sushi from any slot before moving it. This is a combo-score comparison, not a Bucks/EXP production forecast.";
   root.append(layoutInfo);
+  if(movedFrom||changedTypes){
+    const moves=document.createElement("p");moves.className="hint";
+    const remove=slots.map((v,i)=>v>=0&&v!==recommendedSlots[i]?i+1:null).filter(Boolean);
+    const add=recommendedSlots.map((v,i)=>v>=0&&v!==slots[i]?i+1:null).filter(Boolean);
+    moves.textContent="Rearrangement guide (positions counted left to right, top to bottom): Empty sushi from slots being moved. Move plates out of positions "+(remove.join(", ")||"none")+" and place the same plate types into the recommended positions "+(add.join(", ")||"none")+". Use the colored boards below to match each plate type; you may need temporary empty positions to swap plates.";
+    root.append(moves);
+  }
   function make(label,values,showTiers){
     const h=document.createElement("h3");h.textContent=label;if(label.startsWith("1 ·"))h.id="optimizerSlotLayout";root.append(h);
     const legend=document.createElement("p");legend.className="hint";legend.textContent="Green: Regular · Red: Hot · Blue: Cold · Gold: Milktoast. Hover over a tile for its slot type and position.";root.append(legend);
     const scroll=document.createElement("div");scroll.className="board-scroll optimizer-board-scroll";
     const grid=document.createElement("div");grid.className="board optimizer-board";
-    const displaySlots=label.startsWith("1 ·")?recommendedSlots:recommendedSlots;
+    const displaySlots=label.startsWith("0 ·")?slots:recommendedSlots;
     const last=displaySlots.findLastIndex(v=>v>=0);
     for(let i=0;i<=last;i++){
       const slot=displaySlots[i]??-1,tier=values[i]??0;
@@ -352,6 +359,7 @@ async function showSolver(){
     }
     scroll.append(grid);root.append(scroll);
   }
+  make("0 · Current slot layout",[],false);
   make("1 · Recommended slot layout ("+(solution.layoutName??"current")+")",[],false);
   make(custom?"2 · Your custom starting board":"2 · Recommended prepared sushi tiers (not your current inventory)",solution.board,true);
   const heading=document.createElement("h3");heading.textContent="3 · Interactive merge sequence";root.append(heading);
@@ -394,9 +402,9 @@ async function showSolver(){
     const changes=new Map();
     if(move){changes.set(move.src,"source");changes.set(move.dst,"destination");for(const e of move.events)if(e.kind==="wind")changes.set(e.at,"wind");}
     boardGrid.replaceChildren();
-    const last=slots.findLastIndex(v=>v>=0);
+    const last=recommendedSlots.findLastIndex(v=>v>=0);
     for(let i=0;i<=last;i++){
-      const type=slots[i]??-1,tier=current[i]??0;
+      const type=recommendedSlots[i]??-1,tier=current[i]??0;
       const tile=document.createElement("div");
       tile.className="tile"+(type>=0?" slot-"+type:" locked")+(tier<1?" empty":"")+(changes.has(i)?" merge-"+changes.get(i):"");
       if(type>=0&&tier>0){addSushiVisual(tile,tier);}
