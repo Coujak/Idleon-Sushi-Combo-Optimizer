@@ -49,7 +49,7 @@ $("seedTier").addEventListener("input",()=>syncWindTierLimit());
 $("seedTier").addEventListener("change",()=>{
   const raw=Number($("seedTier").value);
   $("seedTier").value=String(Math.max(1,Math.min(64,Number.isFinite(raw)?Math.trunc(raw):1)));
-  syncWindTierLimit(true);
+  syncWindTierLimit({normalize:true});
 });
 $("windCap").addEventListener("input",()=>{
   const field=$("windCap");
@@ -57,7 +57,7 @@ $("windCap").addEventListener("input",()=>{
     field.value=String(clampWindTier(field.value,$("seedTier").value));
   }
 });
-$("windCap").addEventListener("change",()=>syncWindTierLimit(true));
+$("windCap").addEventListener("change",()=>syncWindTierLimit({normalize:true}));
 syncWindTierLimit();
 function applyImportedLimits(){
   if(!imported)return;
@@ -66,7 +66,7 @@ function applyImportedLimits(){
   $("seedTier").value=String(progress.highest);
   $("windCap").value=String(progress.windCap);
   $("seedTier").title=progress.source;
-  syncWindTierLimit(true);
+  syncWindTierLimit({normalize:true});
 }
 const SLOT_NAMES=["Regular","Hot","Cold","Milktoast"];
 const SUSHI_IMAGE_DIR="assets/sushi/";
