@@ -9,7 +9,7 @@ Browser-based Sushi Station preparation and Combo Meter optimizer for Legends of
 - Reconstruct the complete **8×15 board (120 positions)**, supporting **up to 100 unlocked slots in any positions**, with plate types, fireplaces and Perfecto indicators.
 - Compare prepared layouts; edit individual sushi tiers using the custom board editor.
 - Choose **Default** for the established preparations, or **Experimental** to additionally try layered Wind reserves on compatible automatic boards. The optimizer can be cancelled while searching.
-- Optimizer settings are editable: enter any starting base tier, override the suggested Wind tier limit, and customize chain and timing settings within game-supported ranges.
+- Optimizer settings are editable: enter any starting base tier, lower the Wind tier limit (never above maximum prepared tier minus 6), and customize chain and timing settings within game-supported ranges.
 - Recommended preparations preserve a single permanent Tier 64 (when unlocked or present in the imported save) at the first unlocked position; imported and custom boards keep their own positions, including bottom-row slots.
 - Simulate Heat of the East Wind and search using greedy, beam, staircase-recycling, and tactical repositioning strategies.
 - Deliberately reuse descending staircases across scoring passes. Search several spare-sushi Wind-tail lengths and test one-tile tactical repositioning before merges on irregular boards. The replay distinguishes zero-point relocations from merges.

@@ -414,3 +414,6 @@ details summary{cursor:pointer;font-size:12px;font-weight:700;color:#9eb7c9}
   #solver>.actions .optimizer-run-actions{grid-template-columns:minmax(0,1fr) auto}
   #solver>.actions .optimizer-run-actions #cancelSolver{min-width:86px;padding-inline:10px}
 }
+
+/* Wind threshold limit is shown beside its editable field. */
+#solver .wind-cap-hint{font-size:11px;font-weight:500;color:#99b0c0;line-height:1.3}

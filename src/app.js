@@ -7,6 +7,7 @@ import {throwIfCancelled,yieldToUI} from "./optimizer-run.mjs?v=1.8.1";
 import {searchCombos} from "./merge-search.mjs?v=1.8.0";
 const $=id=>document.getElementById(id);
 import {BOARD_COLUMNS,BOARD_CELLS,normalizeBoardData,layoutOptions} from "./board-geometry.mjs?v=1.8.4";
+import {windTierMaximum,clampWindTier} from "./wind-limit.mjs?v=1.8.5";
 const COLUMNS=BOARD_COLUMNS;
 let imported=null;
 let customBoard=null;
@@ -33,14 +34,39 @@ function detectSushiProgress(save){
   const highest=highestOnBoard;
   return {highest,highestOnBoard,source:"Highest sushi found on board (fallback)",windCap:Math.max(0,highest-6)};
 }
+function syncWindTierLimit({normalize=false}={}){
+  const tierField=$("seedTier"),windField=$("windCap");
+  const preparedTier=Number(tierField.value);
+  const allowed=windTierMaximum(preparedTier);
+  windField.max=String(allowed);
+  $("windCapHint").textContent="Maximum: "+allowed+" (prepared tier − 6)";
+  windField.title="Choose any Wind tier from 0 to "+allowed+".";
+  if(normalize||windField.value!==""&&Number(windField.value)>allowed){
+    windField.value=String(clampWindTier(windField.value,preparedTier));
+  }
+}
+$("seedTier").addEventListener("input",()=>syncWindTierLimit());
+$("seedTier").addEventListener("change",()=>{
+  const raw=Number($("seedTier").value);
+  $("seedTier").value=String(Math.max(1,Math.min(64,Number.isFinite(raw)?Math.trunc(raw):1)));
+  syncWindTierLimit(true);
+});
+$("windCap").addEventListener("input",()=>{
+  const field=$("windCap");
+  if(field.value!==""&&(Number(field.value)>Number(field.max)||Number(field.value)<0)){
+    field.value=String(clampWindTier(field.value,$("seedTier").value));
+  }
+});
+$("windCap").addEventListener("change",()=>syncWindTierLimit(true));
+syncWindTierLimit();
 function applyImportedLimits(){
   if(!imported)return;
   const progress=detectSushiProgress(imported);
-  if(progress.highest<1){$("seedTier").value="";$("windCap").value="";return;}
+  if(progress.highest<1){$("seedTier").value="";$("windCap").value="";syncWindTierLimit();return;}
   $("seedTier").value=String(progress.highest);
   $("windCap").value=String(progress.windCap);
   $("seedTier").title=progress.source;
-  $("windCap").title="Suggested limit from imported sushi progress; you can override it.";
+  syncWindTierLimit(true);
 }
 const SLOT_NAMES=["Regular","Hot","Cold","Milktoast"];
 const SUSHI_IMAGE_DIR="assets/sushi/";
@@ -253,7 +279,11 @@ async function showSolver(signal){
   if(!imported)return;
   const detected=detectSushiProgress(imported);
   const maxTier=Math.min(64,Math.max(1,Number($("seedTier").value)||detected.highest||1));
-  const cap=Math.min(64,Math.max(0,Number($("windCap").value)||0));
+  // Enforce the same ceiling in the simulator even if the field was
+  // edited programmatically or the change event has not fired.
+  const cap=clampWindTier($("windCap").value,maxTier);
+  $("windCap").value=String(cap);
+  syncWindTierLimit();
   const chain=Math.min(25,Math.max(0,Number($("chainLimit").value)||0));
   const slots=imported.slots.slice(0,BOARD_CELLS);
   const positions=slots.map((v,i)=>v>=0?i:-1).filter(i=>i>=0);
