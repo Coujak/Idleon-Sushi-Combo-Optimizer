@@ -428,7 +428,7 @@ async function showSolver(signal){
   const seek=document.createElement("input");seek.type="range";seek.className="merge-seek";seek.min="0";seek.max=String(result.moves.length);seek.step="1";seek.value="0";seek.setAttribute("aria-label","Jump to replay step");
   const speedLabel=document.createElement("label");speedLabel.className="merge-speed-label";speedLabel.textContent="Speed";
   const speedSelect=document.createElement("select");speedSelect.setAttribute("aria-label","Playback speed");
-  for(const rate of [0.75,1,1.5,2,3]){
+  for(const rate of [0.5,0.75,1,1.5,2,3]){
     const option=document.createElement("option");option.value=String(rate);option.textContent=rate+"×";
     if(rate===1)option.selected=true;
     speedSelect.append(option);
