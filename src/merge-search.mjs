@@ -2,7 +2,7 @@
 // Exported so candidate preparation scores can be regression-tested.
 import {simulateMerge} from "./optimizer-core.mjs";
 
-export function searchCombos(start,cap,chainLimit,beamWidth,depth,mode="adjacent"){
+export function searchCombos(start,cap,chainLimit,beamWidth,depth,mode="adjacent",maximumTier=64){
   // Multiple deterministic policies reduce the chance of one greedy dead-end.
   let best=null;
   const strategies=["East Wind chains","Low-tier setup","Immediate points","Preserve future pairs","Right-to-left staircase","Long-chain setup","High-tier merges","Compact merges"];
@@ -10,7 +10,7 @@ export function searchCombos(start,cap,chainLimit,beamWidth,depth,mode="adjacent
     let board=start.slice(),score=0,moves=[];
     for(let step=0;step<depth;step++){
       const byTier=new Map();
-      board.forEach((tier,i)=>{if(tier>0&&tier<64){if(!byTier.has(tier))byTier.set(tier,[]);byTier.get(tier).push(i);}});
+      board.forEach((tier,i)=>{if(tier>0&&tier<maximumTier){if(!byTier.has(tier))byTier.set(tier,[]);byTier.get(tier).push(i);}});
       let chosen=null,rank=-Infinity;
       for(const [tier,indices] of byTier){
         if(indices.length<2)continue;
@@ -19,12 +19,12 @@ export function searchCombos(start,cap,chainLimit,beamWidth,depth,mode="adjacent
           const sources=indices.filter(i=>i!==dst);
           sources.sort((a,b)=>Math.abs(a-dst)-Math.abs(b-dst));
           for(const src of sources.slice(0,Math.min(4,sources.length))){
-            const move=simulateMerge(board,src,dst,cap,chainLimit);
+            const move=simulateMerge(board,src,dst,cap,chainLimit,maximumTier);
             if(!move)continue;
             const wind=move.events.length-1;
-            const continues=east<120&&move.board[east]===move.board[dst]&&move.board[dst]<64;
+            const continues=east<120&&move.board[east]===move.board[dst]&&move.board[dst]<maximumTier;
             const pairs=new Map();
-            move.board.forEach(t=>{if(t>0&&t<64)pairs.set(t,(pairs.get(t)||0)+1);});
+            move.board.forEach(t=>{if(t>0&&t<maximumTier)pairs.set(t,(pairs.get(t)||0)+1);});
             const remainingPairs=[...pairs.values()].reduce((sum,n)=>sum+Math.floor(n/2),0);
             const rightToLeft=src>dst;
             const staircaseContinuation=rightToLeft&&tier<cap&&board.some((t,i)=>i<dst&&t===tier+1);

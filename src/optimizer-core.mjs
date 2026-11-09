@@ -1,9 +1,9 @@
 // Pure sushi-combo mechanics and a deterministic, multi-pass East Wind planner.
 // Kept separate from the DOM so real gameplay sequences can be regression-tested.
-export function simulateMerge(board,src,dst,cap,chainLimit){
+export function simulateMerge(board,src,dst,cap,chainLimit,maximumTier=64){
   if(!Number.isInteger(src)||!Number.isInteger(dst)||src<0||dst<0||
     src>=board.length||dst>=board.length||src===dst||
-    board[src]<1||board[src]!==board[dst]||board[src]>=64)return null;
+    board[src]<1||board[src]!==board[dst]||board[src]>=maximumTier)return null;
   const next=board.slice(),before=next[dst];
   next[src]=0;next[dst]=before+1;
   let score=next[dst];
@@ -14,7 +14,7 @@ export function simulateMerge(board,src,dst,cap,chainLimit){
       const tier=next[q];
       // First target must be lower than the merged sushi; subsequent ones
       // must form a strictly descending staircase.
-      if(tier<1||tier>=64||(q===dst+1?tier>before:tier!==previous-1))break;
+      if(tier<1||tier>=maximumTier||(q===dst+1?tier>before:tier!==previous-1))break;
       next[q]=tier+1;
       score+=next[q];
       events.push({at:q,tier:next[q],kind:"wind"});
@@ -23,22 +23,22 @@ export function simulateMerge(board,src,dst,cap,chainLimit){
   }
   return {kind:"merge",board:next,score,events,src,dst};
 }
-export function simulateRelocation(board,src,dst,slots){
+export function simulateRelocation(board,src,dst,slots,maximumTier=64){
   if(!Number.isInteger(src)||!Number.isInteger(dst)||src===dst||
     src<0||dst<0||src>=board.length||dst>=board.length||
-    board[src]<1||board[src]>=64||board[dst]!==0||
+    board[src]<1||board[src]>=maximumTier||board[dst]!==0||
     (slots&&(!(slots[src]>=0)||!(slots[dst]>=0))))return null;
   const next=board.slice(),tier=board[src];
   next[dst]=tier;next[src]=0;
   return {kind:"move",board:next,score:0,src,dst,tier,events:[]};
 }
-export function validateComboReplay(start,moves,cap,chainLimit,slots){
+export function validateComboReplay(start,moves,cap,chainLimit,slots,maximumTier=64){
   let board=start.slice(),score=0,merges=0,repositions=0;
   for(let i=0;i<moves.length;i++){
     const expected=moves[i];
     const actual=expected.kind==="move"?
-      simulateRelocation(board,expected.src,expected.dst,slots):
-      simulateMerge(board,expected.src,expected.dst,cap,chainLimit);
+      simulateRelocation(board,expected.src,expected.dst,slots,maximumTier):
+      simulateMerge(board,expected.src,expected.dst,cap,chainLimit,maximumTier);
     if(!actual||actual.score!==expected.score||
       actual.board.length!==expected.board.length||
       !actual.board.every((t,p)=>t===expected.board[p])){
@@ -49,32 +49,32 @@ export function validateComboReplay(start,moves,cap,chainLimit,slots){
   }
   return {board,score,merges,repositions};
 }
-function staircaseLength(board,start,base){
+function staircaseLength(board,start,base,maximumTier){
   let count=0;
-  for(let tier=base+1;tier<64;tier++){
+  for(let tier=base+1;tier<Math.min(maximumTier,base+board.length+1);tier++){
     if(!board.slice(0,start).includes(tier))break;
     count++;
   }
   return count;
 }
-function sweepFromSeed(initial,seed,cap,chainLimit,slots,maxCycles,extraWindTargets){
+function sweepFromSeed(initial,seed,cap,chainLimit,slots,maxCycles,extraWindTargets,maximumTier){
   let board=initial.slice(),score=0,moves=[],anchor=seed+1;
   const base=board[seed];
   function merge(src,dst){
-    const event=simulateMerge(board,src,dst,cap,chainLimit);
+    const event=simulateMerge(board,src,dst,cap,chainLimit,maximumTier);
     if(!event)return false;
     board=event.board;score+=event.score;moves.push(event);return true;
   }
   function shift(src,dst){
-    const event=simulateRelocation(board,src,dst,slots);
+    const event=simulateRelocation(board,src,dst,slots,maximumTier);
     if(!event)return false;
     board=event.board;moves.push(event);return true;
   }
   function climb(){
     let progressed=false;
-    for(let guard=0;guard<65;guard++){
+    for(let guard=0;guard<initial.length;guard++){
       const tier=board[anchor];
-      if(tier<1||tier>=64)break;
+      if(tier<1||tier>=maximumTier)break;
       // An existing staircase tier to the west can feed the growing pair.
       let src=-1;
       for(let i=anchor-1;i>=0;i--)if(board[i]===tier){src=i;break;}
@@ -83,7 +83,7 @@ function sweepFromSeed(initial,seed,cap,chainLimit,slots,maxCycles,extraWindTarg
     }
     // Once the western staircase is exhausted, merge the two tips.
     // Their new right-hand staircase becomes the seed for another pass.
-    if(board[anchor]>0&&board[anchor]<64&&board[anchor+1]===board[anchor]&&
+    if(board[anchor]>0&&board[anchor]<maximumTier&&board[anchor+1]===board[anchor]&&
        merge(anchor,anchor+1)){
       anchor++;
       progressed=true;
@@ -120,6 +120,7 @@ function sweepFromSeed(initial,seed,cap,chainLimit,slots,maxCycles,extraWindTarg
 }
 export function searchStaircaseCombos(start,cap,chainLimit,slots,baseline=null,options={}){
   const maxSeeds=options.maxSeeds??12,maxCycles=options.maxCycles??5;
+  const maximumTier=options.maximumTier??64;
   const maxExtraWindTargets=options.extraWindTarget===false?0:
     Math.max(0,Math.min(chainLimit,options.maxExtraWindTargets??12));
   let best=baseline;
@@ -129,7 +130,7 @@ export function searchStaircaseCombos(start,cap,chainLimit,slots,baseline=null,o
     if(base<1||base>=64||start[i+1]!==base||start[i+2]!==base)continue;
     let run=0;
     while(i+run<start.length&&start[i+run]===base)run++;
-    const ladder=staircaseLength(start,i,base);
+    const ladder=staircaseLength(start,i,base,maximumTier);
     seeds.push({i,rank:ladder*1000+run*10-i*.01});
   }
   seeds.sort((a,b)=>b.rank-a.rank);
@@ -137,7 +138,7 @@ export function searchStaircaseCombos(start,cap,chainLimit,slots,baseline=null,o
     // Keep shorter variants in case a longer tail consumes tiles needed
     // to recycle the staircase on the next pass.
     for(let tail=0;tail<=maxExtraWindTargets;tail++){
-      const candidate=sweepFromSeed(start,i,cap,chainLimit,slots,maxCycles,tail);
+      const candidate=sweepFromSeed(start,i,cap,chainLimit,slots,maxCycles,tail,maximumTier);
       if(candidate&&(!best||candidate.score>best.score||
         (candidate.score===best.score&&(candidate.remaining<best.remaining||
           (candidate.remaining===best.remaining&&candidate.moves.length<best.moves.length))))){

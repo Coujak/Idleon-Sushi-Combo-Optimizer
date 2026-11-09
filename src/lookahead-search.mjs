@@ -3,12 +3,12 @@
 // Bounded to avoid exponential search; no repositioning is added.
 import {simulateMerge} from "./optimizer-core.mjs";
 
-export function rolloutEastWind(start,cap,chainLimit){
+export function rolloutEastWind(start,cap,chainLimit,maximumTier=64){
   let board=start.slice(),score=0,moves=[];
   const depth=start.filter(t=>t>0).length-1;
   for(let step=0;step<depth;step++){
     const byTier=new Map();
-    board.forEach((tier,i)=>{if(tier>0&&tier<64){if(!byTier.has(tier))byTier.set(tier,[]);byTier.get(tier).push(i);}});
+    board.forEach((tier,i)=>{if(tier>0&&tier<maximumTier){if(!byTier.has(tier))byTier.set(tier,[]);byTier.get(tier).push(i);}});
     let chosen=null,rank=-Infinity;
     for(const [,indices] of byTier){
       if(indices.length<2)continue;
@@ -16,9 +16,9 @@ export function rolloutEastWind(start,cap,chainLimit){
         const sources=indices.filter(i=>i!==dst);
         sources.sort((a,b)=>Math.abs(a-dst)-Math.abs(b-dst));
         for(const src of sources.slice(0,Math.min(4,sources.length))){
-          const move=simulateMerge(board,src,dst,cap,chainLimit);
+          const move=simulateMerge(board,src,dst,cap,chainLimit,maximumTier);
           const wind=move.events.length-1;
-          const continues=dst+1<board.length&&move.board[dst+1]===move.board[dst]&&move.board[dst]<64;
+          const continues=dst+1<board.length&&move.board[dst+1]===move.board[dst]&&move.board[dst]<maximumTier;
           const priority=(continues?3000:0)+wind*350+(src===dst-1?400:0)-Math.abs(src-dst)*.1;
           if(priority>rank){rank=priority;chosen=move;}
         }
@@ -30,18 +30,18 @@ export function rolloutEastWind(start,cap,chainLimit){
   return {board,score,moves,remaining:board.filter(x=>x>0).length,strategy:"East Wind rollout"};
 }
 
-function nextChoices(board,excluded,maxBranches,cap,chainLimit){
+function nextChoices(board,excluded,maxBranches,cap,chainLimit,maximumTier){
   const groups=new Map();
-  board.forEach((tier,p)=>{if(tier>0&&tier<64){if(!groups.has(tier))groups.set(tier,[]);groups.get(tier).push(p);}});
+  board.forEach((tier,p)=>{if(tier>0&&tier<maximumTier){if(!groups.has(tier))groups.set(tier,[]);groups.get(tier).push(p);}});
   const choices=[];
   for(const positions of groups.values()){
     if(positions.length<2)continue;
     for(const dst of positions){
       for(const src of positions){
         if(src===dst)continue;
-        const move=simulateMerge(board,src,dst,cap,chainLimit);
+        const move=simulateMerge(board,src,dst,cap,chainLimit,maximumTier);
         const wind=move.events.length-1;
-        const continues=dst+1<board.length&&move.board[dst+1]===move.board[dst]&&move.board[dst]<64;
+        const continues=dst+1<board.length&&move.board[dst+1]===move.board[dst]&&move.board[dst]<maximumTier;
         const priority=wind*1000+(continues?1300:0)+(src===dst-1?250:0)+move.score;
         choices.push({move,priority});
       }
@@ -58,17 +58,18 @@ function nextChoices(board,excluded,maxBranches,cap,chainLimit){
 }
 
 export function searchLookaheadCombos(start,cap,chainLimit,baseline=null,options={}){
+  const maximumTier=options.maximumTier??64;
   const maxPasses=Math.max(0,Math.min(5,options.maxPasses??3));
   const maxBranches=Math.max(1,Math.min(24,options.maxBranches??18));
   const maxEvaluations=Math.max(0,Math.min(10000,options.maxEvaluations??3500));
-  let best=rolloutEastWind(start,cap,chainLimit),trials=0;
+  let best=rolloutEastWind(start,cap,chainLimit,maximumTier),trials=0;
   for(let pass=0;pass<maxPasses;pass++){
     const original=best.moves;
     let score=0,improved=false;
     for(let step=0;step<original.length&&trials<maxEvaluations;step++){
       const board=step===0?start:original[step-1].board;
-      for(const {move} of nextChoices(board,original[step],maxBranches,cap,chainLimit)){
-        const suffix=rolloutEastWind(move.board,cap,chainLimit);
+      for(const {move} of nextChoices(board,original[step],maxBranches,cap,chainLimit,maximumTier)){
+        const suffix=rolloutEastWind(move.board,cap,chainLimit,maximumTier);
         const total=score+move.score+suffix.score;
         trials++;
         if(total>best.score){

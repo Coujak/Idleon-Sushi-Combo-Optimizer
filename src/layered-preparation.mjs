@@ -9,9 +9,9 @@ export function buildLayeredCandidates(positions,maxTier,cap,chainLimit,protectT
   // Wind moves in board order: a locked gap would break this layout.
   if(sorted.length<90||sorted.length>100||sorted.some((p,i)=>i&&p!==sorted[i-1]+1))return [];
   const base=cap-27,peak=cap-1;
-  if(base<3||peak>63||peak<=base||peak>maxTier)return [];
+  if(base<3||peak>=maxTier||peak<=base)return [];
   const board=Array(120).fill(0);
-  board[sorted[0]]=64;
+  board[sorted[0]]=maxTier;
   let j=1;
   for(let tier=peak;tier>base&&j<sorted.length;tier--){
     board[sorted[j++]]=tier;

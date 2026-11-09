@@ -3,18 +3,19 @@
 export function buildCandidates(positions,maxTier,cap,selectedBase=0,chainLimit=25,protectTier64=maxTier>=64){
   const result=[];
   const ordered=[...new Set(positions.filter(i=>Number.isInteger(i)&&i>=0&&i<120))].sort((a,b)=>a-b);
-  if(ordered.length<2||ordered.length>100)return result;
-  // Tier 64 is a permanent sushi, not an ordinary mergeable ingredient.
-  // Anchor exactly one at the first unlocked position in automatic preparations.
+  if(ordered.length<2||ordered.length>100||!Number.isSafeInteger(maxTier)||maxTier<1)return result;
+  // Keep the highest prepared tier as an unmergeable anchor. At the original
+  // 64-tier setting the protected sushi is Tier 64, preserving old benchmarks.
   const protectedPosition=protectTier64?ordered[0]:undefined;
   const usable=protectTier64?ordered.slice(1):ordered;
-  const highestIngredient=Math.min(maxTier,protectTier64?63:64);
+  const protectedTier=maxTier>=64?maxTier:64;
+  const highestIngredient=protectTier64&&maxTier>=64?maxTier-1:maxTier;
   if(highestIngredient<1)return result;
 
   const add=(name,base,shape)=>{
     const board=Array(120).fill(0);
     for(const pos of usable)board[pos]=base;
-    if(protectedPosition!==undefined)board[protectedPosition]=64;
+    if(protectedPosition!==undefined)board[protectedPosition]=protectedTier;
     if(shape==="staircase"){
       // Keep descending tiers in physical order, leaving base-tier reserves.
       const length=Math.max(0,Math.min(highestIngredient-base+1,usable.length-2));
