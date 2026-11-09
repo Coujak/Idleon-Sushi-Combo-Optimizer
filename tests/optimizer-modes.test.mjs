@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import {getModeCandidates} from "../src/optimizer-modes.mjs";
 import {throwIfCancelled,yieldToUI} from "../src/optimizer-run.mjs";
 
-const positions=Array.from({length:105},(_,i)=>i);
+const positions=Array.from({length:100},(_,i)=>i);
 test("Default never adds layered Wind preparations",()=>{
   const normal=getModeCandidates(positions,64,58,0,25,true,"default");
   assert.ok(normal.length>0);
@@ -12,9 +12,10 @@ test("Default never adds layered Wind preparations",()=>{
 test("Experimental includes default candidates and the layered setup",()=>{
   const normal=getModeCandidates(positions,64,58,0,25,true,"default");
   const experimental=getModeCandidates(positions,64,58,0,25,true,"experimental");
-  assert.equal(experimental.length,normal.length+1);
+  assert.equal(experimental.length,normal.length+2);
   assert.deepEqual(experimental.slice(0,normal.length),normal);
-  assert.equal(experimental.at(-1).shape,"layered Wind reserves");
+  assert.equal(experimental.at(-2).shape,"layered Wind reserves");
+  assert.equal(experimental.at(-1).shape,"tuned Wind reserves");
 });
 test("Experimental respects selected base and unsupported boards",()=>{
   const selected=getModeCandidates(positions,64,58,32,25,true,"experimental");

@@ -7,6 +7,7 @@ import {throwIfCancelled,yieldToUI} from "./optimizer-run.mjs?v=1.8.1";
 import {searchCombos} from "./merge-search.mjs?v=1.8.0";
 const $=id=>document.getElementById(id);
 const COLUMNS=15;
+const MAX_PLAYABLE_SLOTS=100;
 let imported=null;
 let customBoard=null;
 let replayCleanup=()=>{};
@@ -20,7 +21,14 @@ function decodeSave(input){
   let sushi=typeof raw==="string"?JSON.parse(raw):raw;
   if(!Array.isArray(sushi)||!Array.isArray(sushi[0]))throw Error("Sushi data does not contain the expected tile array.");
   if(!sushi[0].every(x=>Number.isInteger(Number(x))))throw Error("Sushi tile array contains non-numeric entries.");
-  return {sushi,tiles:sushi[0].slice(0,120).map(Number),perfecto:Array.isArray(sushi[5])?sushi[5].map(Number):null,slots:Array.isArray(sushi[1])?sushi[1].slice(0,120).map(Number):[],fires:Array.isArray(sushi[3])?sushi[3].slice(0,15).map(Number):[],source:input.data?.Sushi!=null?"Idleon Toolbox":"Raw game data"};
+  // The final five locations of the 7x15 visual grid are not playable.
+  // Never count game-data entries outside the first 100 as owned slots.
+  const tiles=Array(120).fill(-1),slots=Array(120).fill(-1);
+  for(let i=0;i<Math.min(MAX_PLAYABLE_SLOTS,sushi[0].length);i++)tiles[i]=Number(sushi[0][i]);
+  if(Array.isArray(sushi[1])){
+    for(let i=0;i<Math.min(MAX_PLAYABLE_SLOTS,sushi[1].length);i++)slots[i]=Number(sushi[1][i]);
+  }
+  return {sushi,tiles,perfecto:Array.isArray(sushi[5])?sushi[5].map(Number):null,slots,fires:Array.isArray(sushi[3])?sushi[3].slice(0,15).map(Number):[],source:input.data?.Sushi!=null?"Idleon Toolbox":"Raw game data"};
 }
 function detectSushiProgress(save){
   // Sushi[0] stores tier IDs on the board (zero-based). Do not mistake
@@ -110,14 +118,14 @@ $("clearImport").addEventListener("click",()=>{cancelRunningSearch();disposeRepl
 
 // Merge physics and staircase recycling live in optimizer-core.mjs.
 function layoutOptions(slots){
-  const current=slots.slice(0,120);
+  const current=slots.slice(0,120).map((v,i)=>i<MAX_PLAYABLE_SLOTS?v:-1);
   const types=current.filter(v=>v>=0);
   const count=types.length;
   const layouts=[{name:"Current positions",slots:current}];
   const options=[
     {name:"Left-packed",positions:Array.from({length:count},(_,i)=>i)},
-    {name:"Right-packed",positions:Array.from({length:count},(_,i)=>120-count+i)},
-    {name:"Centered",positions:Array.from({length:count},(_,i)=>Math.floor((120-count)/2)+i)}
+    {name:"Right-packed",positions:Array.from({length:count},(_,i)=>MAX_PLAYABLE_SLOTS-count+i)},
+    {name:"Centered",positions:Array.from({length:count},(_,i)=>Math.floor((MAX_PLAYABLE_SLOTS-count)/2)+i)}
   ];
   for(const option of options){
     const arranged=Array(120).fill(-1);
@@ -190,7 +198,7 @@ function getCustomBoard(){
   if(!imported)return null;
   if(!customBoard){
     customBoard=Array(120).fill(0);
-    imported.slots.forEach((type,i)=>{if(i<120&&type>=0)customBoard[i]=Math.max(0,(imported.tiles[i]??-1)+1);});
+    imported.slots.forEach((type,i)=>{if(i<MAX_PLAYABLE_SLOTS&&type>=0)customBoard[i]=Math.max(0,(imported.tiles[i]??-1)+1);});
   }
   return customBoard;
 }
@@ -235,13 +243,13 @@ $("customFill").addEventListener("click",()=>{
   const value=Number($("paintTier").value);
   if(!Number.isInteger(value)||value<0||value>64)return;
   const board=getCustomBoard();
-  imported.slots.forEach((type,i)=>{if(i<120&&type>=0&&board[i]!==64)board[i]=value;});
+  imported.slots.forEach((type,i)=>{if(i<MAX_PLAYABLE_SLOTS&&type>=0&&board[i]!==64)board[i]=value;});
   renderCustomEditor();
 });
 $("customClear").addEventListener("click",()=>{
   if(!imported)return;
   const board=getCustomBoard();
-  imported.slots.forEach((type,i)=>{if(i<120&&type>=0&&board[i]!==64)board[i]=0;});
+  imported.slots.forEach((type,i)=>{if(i<MAX_PLAYABLE_SLOTS&&type>=0&&board[i]!==64)board[i]=0;});
   renderCustomEditor();
 });
 function validateTiming(moves,timeout,secondsPerMerge,secondsPerRelocation){
@@ -270,7 +278,7 @@ async function showSolver(signal){
   const cap=Math.max(0,maxTier-6);
   $("windCap").value=String(cap);
   const chain=Math.min(25,Math.max(0,Number($("chainLimit").value)||0));
-  const slots=imported.slots.slice(0,120);
+  const slots=imported.slots.slice(0,120).map((v,i)=>i<MAX_PLAYABLE_SLOTS?v:-1);
   const positions=slots.map((v,i)=>v>=0?i:-1).filter(i=>i>=0);
   if(positions.length<2){$("solverNote").textContent="At least two unlocked slots are required.";$("solverSteps").replaceChildren();return;}
   $("solverNote").textContent="Searching prepared tier layouts…";

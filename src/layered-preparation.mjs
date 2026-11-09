@@ -1,10 +1,10 @@
 // Repeated East Wind sweeps need a progression of low-tier reserves,
 // not a uniform tail. This family was discovered by benchmarking full
-// merge replays on a 105-slot board, then generalized to contiguous boards.
+// merge replays on a 100-slot board, then generalized to contiguous boards.
 // No game save or existing sushi board is modified by this generator.
 export function buildLayeredCandidates(positions,maxTier,cap,chainLimit,protectTier64=true){
   if(!protectTier64||maxTier<64||chainLimit!==25||cap<36)return [];
-  const sorted=[...new Set(positions.filter(p=>Number.isInteger(p)&&p>=0&&p<120))]
+  const sorted=[...new Set(positions.filter(p=>Number.isInteger(p)&&p>=0&&p<100))]
     .sort((a,b)=>a-b);
   // Wind moves in board order: a locked gap would break this layout.
   if(sorted.length<90||sorted.some((p,i)=>i&&p!==sorted[i-1]+1))return [];

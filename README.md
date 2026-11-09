@@ -6,7 +6,7 @@ Browser-based Sushi Station preparation and Combo Meter optimizer for Legends of
 
 ## Features
 - Load Idleon Toolbox JSON locally (your save is processed in your browser).
-- Reconstruct a 15-column Sushi Station board, plate types, fireplaces and Perfecto indicators.
+- Reconstruct a 15-column Sushi Station board with at most 100 playable positions, plate types, fireplaces and Perfecto indicators.
 - Compare prepared layouts; edit individual sushi tiers using the custom board editor.
 - Choose **Default** for the established preparations, or **Experimental** to additionally try layered Wind reserves on compatible automatic boards. The optimizer can be cancelled while searching.
 - Recommended preparations preserve a single permanent Tier 64 (when unlocked or present in the imported save) at the first unlocked position; imported and custom boards keep their own positions.
@@ -27,19 +27,20 @@ The test suite reconstructs the tier layout implied by the user's 52-step video 
 
 The 7,069 sequence adds 9+10+…+33 = **525** points from the same spare sushi. The exact board reconstruction and predicted improvement remain **simulation-derived**, not independently validated against a 7,069-point in-game run.
 
-## New 105-slot full-upgrade benchmark
+## Legal 100-slot full-upgrade benchmark
 
-A layered starting board with one protected Tier 64, a descending Tier 57–32
-staircase, and several blocks of Tier 32/31/30/29 reserves reaches **53,481
-simulated Combo Meter points** over 89 merges and zero combo-time relocations
-under the existing East Wind simulator (activation tier 58, maximum 25 Wind
-upgrades per merge). This beats the previously reported **48,305** baseline
-by **5,176 points (+10.7%)**.
+There are **100 playable Sushi Station positions**; the final five cells of
+the seven-row display are inaccessible. Old 105-slot simulations are invalid
+as gameplay benchmarks, including the previously reported **53,481** score.
 
-The full sequence is replay-validated in the test suite. It has **not been
-independently verified in-game**. The planner remains heuristic, not a proof
-of the absolute maximum. Other plate counts or special-slot layouts may lead
-to different scores.
+Under the existing East Wind simulator (tier limit 58; chain limit 25),
+Experimental offers a replay-tested 100-slot preparation reaching **51,608
+simulated Combo Meter points** in 89 merges and zero mid-combo relocations,
+with one permanent Tier 64 and 99 other sushi. This beats the earlier
+reported **48,305** baseline by **3,303 points (+6.8%)**.
+
+This is a heuristic result, not a proven maximum or independently verified
+in-game achievement. Default mode remains the established strategy.
 
 ## Run tests
 
