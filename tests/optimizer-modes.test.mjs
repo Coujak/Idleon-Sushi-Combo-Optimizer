@@ -96,3 +96,12 @@ test("Experimental 8.0 retains all prior preparations and adds the new benchmark
   assert.ok(getModeCandidates(positions,64,58,0,25,true,"default")
     .every(c=>c.name!==latest.at(-1).name));
 });
+test("Experimental 9.0 adds a record without changing older mode candidates",()=>{
+  const previous=getModeCandidates(positions,64,58,0,25,true,"experimental8");
+  const latest=getModeCandidates(positions,64,58,0,25,true,"experimental9");
+  assert.equal(latest.length,previous.length+1);
+  assert.deepEqual(latest.slice(0,previous.length),previous);
+  assert.equal(latest.at(-1).name,"Experimental 9.0 · 70K Wind chains");
+  assert.ok(getModeCandidates(positions,64,58,0,25,true,"default")
+    .every(candidate=>candidate.name!==latest.at(-1).name));
+});
