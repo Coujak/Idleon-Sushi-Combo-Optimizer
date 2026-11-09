@@ -40,7 +40,7 @@ function renderBoard(tiles,perfecto,slots,fires){
       const isPerfecto=Array.isArray(perfecto)&&perfecto[id]>0;
       if(isPerfecto)cell.classList.add("perfecto");
       addSushiVisual(cell,id+1);
-      if(isPerfecto){const mark=document.createElement("span");mark.className="perfecto-mark";mark.textContent="✓";mark.setAttribute("aria-label","Perfecto");cell.append(mark);}
+      if(isPerfecto){const mark=document.createElement("img");mark.className="perfecto-mark";mark.src="assets/Perfecto_Symbol.png";mark.alt="Perfecto";mark.title="Perfecto";mark.loading="lazy";cell.append(mark);}
     }else if(slot>=0){cell.textContent="·";}
     cell.title="Position "+(i+1)+" · "+(SLOT_NAMES[slot]??"Locked")+(id>=0?" · Tier "+(id+1):" · Empty")+(id>=0&&perfecto?.[id]>0?" · Perfecto":"");
     board.append(cell);
