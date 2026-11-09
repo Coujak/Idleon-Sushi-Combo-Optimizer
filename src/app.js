@@ -60,22 +60,20 @@ $("jsonFile").addEventListener("change",async e=>{const f=e.target.files?.[0];if
 $("clearImport").addEventListener("click",()=>{imported=null;$("solver").classList.add("hidden");$("jsonInput").value="";$("jsonFile").value="";$("board").replaceChildren();$("fireplaces").replaceChildren();$("importSummary").classList.add("hidden");$("pasteArea").classList.add("hidden");$("pasteToggle").setAttribute("aria-expanded","false");$("importStatus").textContent="Waiting for data";$("importStatus").classList.remove("success");$("boardStatus").textContent="Import a save";$("boardDetails").textContent="Your imported tiles will appear here.";$("jsonPreview").textContent="No JSON imported yet.";});
 
 /* Experimental combo search. These are explicit assumptions, NOT verified game logic. */
-// Experimental models: adjacent is user-observed; propagation is an unverified hypothesis.
+// User-observed Heat model: exactly one immediate-right upgrade per qualifying merge.
 // All indices are physical board slots; Heat never jumps over a locked slot or row edge.
 function simulateMerge(board,src,dst,cap,chainLimit,mode="adjacent"){
   if(src===dst||board[src]<1||board[src]!==board[dst]||board[src]>=64)return null;
   const next=board.slice(),before=next[dst];
   next[src]=0;next[dst]=before+1;
   let score=next[dst],events=[{at:dst,tier:next[dst],kind:"merge"}];
-  let p=dst;
-  const limit=mode==="recursive"?chainLimit:Math.min(1,chainLimit);
-  for(let k=0;k<limit;k++){
-    const q=p+1;
-    if(q>=next.length||q%COLUMNS===0||next[q]<1||next[q]>=64||next[p]>cap)break;
-    // Only the directly observed adjacent behavior is assumed for adjacent mode.
-    // Recursive mode requires a descending neighbor to propagate.
-    if(mode==="recursive"&&next[q]!==next[p]-1)break;
-    next[q]++;score+=next[q];events.push({at:q,tier:next[q],kind:"wind"});p=q;
+  // Only the destination and its immediate right neighbor may change.
+  // Heat cannot propagate recursively or wrap to the next row.
+  const q=dst+1;
+  if(chainLimit>0&&q<next.length&&q%COLUMNS!==0&&before<=cap&&next[q]>0&&next[q]<64){
+    next[q]++;
+    score+=next[q];
+    events.push({at:q,tier:next[q],kind:"wind"});
   }
   return {board:next,score,events,src,dst};
 }
@@ -122,7 +120,7 @@ function searchCombos(start,cap,chainLimit,beamWidth,depth,mode="adjacent"){
           const sources=indices.filter(i=>i!==dst);
           sources.sort((a,b)=>Math.abs(a-dst)-Math.abs(b-dst));
           for(const src of sources.slice(0,Math.min(4,sources.length))){
-            const move=simulateMerge(board,src,dst,cap,mode==="recursive"?chainLimit:(streak>=chainLimit?0:1),mode);
+            const move=simulateMerge(board,src,dst,cap,streak>=chainLimit?0:1,mode);
             if(!move)continue;
             const wind=move.events.length-1;
             const continues=east<120&&east%COLUMNS!==0&&move.board[east]===move.board[dst]&&move.board[dst]<64;
@@ -173,7 +171,7 @@ function showSolver(){
   const positions=slots.map((v,i)=>v>=0?i:-1).filter(i=>i>=0);
   if(positions.length<2){$("solverNote").textContent="At least two unlocked slots are required.";$("solverSteps").replaceChildren();return;}
   $("solverNote").textContent="Searching prepared tier layouts…";
-  const mode=$("heatMode").value;
+  const mode="adjacent";
   const solution=optimizePreparation(positions,maxTier,cap,chain,mode);
   const result=solution.search;
   const timeout=Math.max(.1,Number($("comboTimeout").value)||5.5);
