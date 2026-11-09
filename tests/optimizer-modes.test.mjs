@@ -78,3 +78,12 @@ test("Experimental 6.0 retains all earlier candidates and adds one new layout",(
   assert.ok(getModeCandidates(positions,64,58,0,25,true,"default")
     .every(candidate=>candidate.name!==newest.at(-1).name));
 });
+test("Experimental 7.0 preserves older benchmarks and adds the 65K preparation",()=>{
+  const previous=getModeCandidates(positions,64,58,0,25,true,"experimental6");
+  const newMode=getModeCandidates(positions,64,58,0,25,true,"experimental7");
+  assert.equal(newMode.length,previous.length+1);
+  assert.deepEqual(newMode.slice(0,previous.length),previous);
+  assert.equal(newMode.at(-1).name,"Experimental 7.0 · 65K Wind chains");
+  assert.ok(getModeCandidates(positions,64,58,0,25,true,"default")
+    .every(candidate=>candidate.name!==newMode.at(-1).name));
+});
