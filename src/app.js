@@ -60,88 +60,99 @@ $("jsonFile").addEventListener("change",async e=>{const f=e.target.files?.[0];if
 $("clearImport").addEventListener("click",()=>{imported=null;$("solver").classList.add("hidden");$("jsonInput").value="";$("jsonFile").value="";$("board").replaceChildren();$("fireplaces").replaceChildren();$("importSummary").classList.add("hidden");$("pasteArea").classList.add("hidden");$("pasteToggle").setAttribute("aria-expanded","false");$("importStatus").textContent="Waiting for data";$("importStatus").classList.remove("success");$("boardStatus").textContent="Import a save";$("boardDetails").textContent="Your imported tiles will appear here.";$("jsonPreview").textContent="No JSON imported yet.";});
 
 /* Experimental combo search. These are explicit assumptions, NOT verified game logic. */
-function simulateMerge(board,src,dst,cap,chainLimit){
+// Experimental models: adjacent is user-observed; propagation is an unverified hypothesis.
+// All indices are physical board slots; Heat never jumps over a locked slot or row edge.
+function simulateMerge(board,src,dst,cap,chainLimit,mode="adjacent"){
   if(src===dst||board[src]<1||board[src]!==board[dst]||board[src]>=64)return null;
   const next=board.slice(),before=next[dst];
   next[src]=0;next[dst]=before+1;
   let score=next[dst],events=[{at:dst,tier:next[dst],kind:"merge"}];
-  // Verified example: [41,41,41,41] -> [empty,42,42,41].
-  // Heat upgrades ONLY the immediate eastern neighbor, not a recursive chain.
-  const q=dst+1;
-  if(chainLimit>0&&q<next.length&&q%COLUMNS!==0&&before<=cap&&next[q]>0&&next[q]<64){
-    next[q]++;
-    score+=next[q];
-    events.push({at:q,tier:next[q],kind:"wind"});
+  let p=dst;
+  const limit=mode==="recursive"?chainLimit:Math.min(1,chainLimit);
+  for(let k=0;k<limit;k++){
+    const q=p+1;
+    if(q>=next.length||q%COLUMNS===0||next[q]<1||next[q]>=64||next[p]>cap)break;
+    // Only the directly observed adjacent behavior is assumed for adjacent mode.
+    // Recursive mode requires a descending neighbor to propagate.
+    if(mode==="recursive"&&next[q]!==next[p]-1)break;
+    next[q]++;score+=next[q];events.push({at:q,tier:next[q],kind:"wind"});p=q;
   }
   return {board:next,score,events,src,dst};
 }
-function searchCombos(start,cap,chainLimit,beamWidth,depth){
-  let board=start.slice(),score=0,moves=[],windStreak=0;
-  for(let step=0;step<depth;step++){
-    const byTier=new Map();
-    board.forEach((tier,i)=>{if(tier>0&&tier<64){if(!byTier.has(tier))byTier.set(tier,[]);byTier.get(tier).push(i);}});
-    let chosen=null,priority=-Infinity;
-    for(const [tier,indices] of byTier){
-      if(indices.length<2)continue;
-      for(const dst of indices){
-        const sources=indices.filter(i=>i!==dst);
-        sources.sort((a,b)=>Number(b===dst-1)-Number(a===dst-1)||Math.abs(a-dst)-Math.abs(b-dst));
-        for(const src of sources.slice(0,3)){
-          const move=simulateMerge(board,src,dst,cap,windStreak>=chainLimit?0:1);
-          if(!move)continue;
-          const east=dst+1,wind=move.events.some(e=>e.kind==="wind");
-          const continues=east<board.length&&east%COLUMNS!==0&&move.board[east]===move.board[dst]&&move.board[dst]<64;
-          const rank=(continues?10000:0)+(wind?1200:0)+(src===dst-1?700:0)+(tier===41?120:0)+move.score*.05-Math.abs(src-dst)*.1;
-          if(rank>priority){priority=rank;chosen=move;}
-        }
-      }
-    }
-    if(!chosen)break;
-    board=chosen.board;score+=chosen.score;moves.push(chosen);
-    windStreak=chosen.events.some(e=>e.kind==="wind")?windStreak+1:0;
-  }
-  return {board,score,moves,remaining:board.filter(v=>v>0).length};
-}
 function buildCandidates(positions,maxTier,cap){
-  const result=[];
-  const base=Math.min(maxTier,Math.max(2,cap));
-  const add=(name,make)=>{const board=Array(120).fill(0);positions.forEach(p=>board[p]=Math.max(1,Math.min(maxTier,Math.round(make(p,Math.floor(p/COLUMNS),p%COLUMNS)))));result.push({name,board});};
-  add("Uniform high-tier pairs",()=>maxTier);
-  add("Alternating high tiers",p=>maxTier-(p%2));
-  add("Descending eastward staircase",(p,r,c)=>base-c);
-  add("Ascending eastward staircase",(p,r,c)=>base-14+c);
-  add("Paired staircase",(p,r,c)=>base-Math.floor(c/2));
-  add("Alternating row staircase",(p,r,c)=>base-(r%2===0?c:14-c));
-  add("High-tier merge anchors",(p,r,c)=>c<2?base:base-c+1);
-  add("Alternating anchors",(p,r,c)=>c%3===0?base:base-c%3);
-  add("Tier 64 pairs and wind ramps",(p,r,c)=>c<2?maxTier:base-c+2);
-  add("Paired high tiers and ramps",(p,r,c)=>c<4?maxTier:base-c+4);
-  // Recording-inspired layouts: tier ladders are prepared row-by-row,
-  // with repeated merge anchors and eastward lower-tier sushi.
-  add("Repeated eastward staircase",(p,r,c)=>base-(c%8));
-  add("Staggered staircase",(p,r,c)=>base-((c+r%4)%12));
-  add("Double-anchor staircase",(p,r,c)=>c<2?base:base-Math.ceil((c-1)/2));
-  add("Low-tier staircase",(p,r,c)=>Math.max(2,Math.min(base,16)-c));
-  add("Low-tier paired staircase",(p,r,c)=>Math.max(2,Math.min(base,16)-Math.floor(c/2)));
-  add("Row-shifted tier ladders",(p,r,c)=>base-((c+2*r)%15));
-  // User-tested baseline: descending Tier 58..42 staircase, then Tier 41,
-  // with the last unlocked slot occupied by the permanent Tier 64.
-  if(positions.length>=17&&maxTier>=64){
+  const result=[],occupied=new Set(positions),blocked=positions.filter(p=>p>=0);
+  const fixed=blocked[blocked.length-1];
+  const add=(name,base,shape)=>{
     const board=Array(120).fill(0);
-    positions.forEach(p=>board[p]=41);
-    for(let i=0;i<17;i++)if(positions.includes(i))board[i]=58-i;
-    board[positions[positions.length-1]]=64;
-    result.push({name:"Tested 40k staircase (Tier 58→42, Tier 41 supply, fixed Tier 64)",board});
+    positions.forEach(p=>board[p]=base);
+    const usable=positions.filter(p=>p!==fixed);
+    if(shape==="staircase"){
+      // User's 40k board: descending staircase in physical board order,
+      // then base-tier sushi. Do not overwrite the permanent Tier 64.
+      const length=Math.min(cap-base,usable.length-2);
+      for(let i=0;i<length;i++)board[usable[i]]=cap-i;
+    }else if(shape==="paired"){
+      for(let i=0;i<usable.length;i++)board[usable[i]]=Math.max(base,cap-Math.floor((i%30)/2));
+    }else if(shape==="uniform"){
+      // Uniform baseline tests whether short cascades outperform long ramps.
+    }
+    if(fixed!==undefined&&maxTier>=64)board[fixed]=64;
+    result.push({name,board,base,shape});
+  };
+  for(let base=Math.max(1,cap-33);base<=Math.min(cap-1,maxTier);base++){
+    add("Tier "+base+" → "+cap+" staircase",base,"staircase");
+    add("Tier "+base+" paired ramp",base,"paired");
+    add("Tier "+base+" uniform",base,"uniform");
   }
   return result;
 }
-function optimizePreparation(positions,maxTier,cap,chainLimit){
+function searchCombos(start,cap,chainLimit,beamWidth,depth,mode="adjacent"){
+  // Multiple deterministic policies reduce the chance of one greedy dead-end.
   let best=null;
-  for(const candidate of buildCandidates(positions,maxTier,cap)){
-    const search=searchCombos(candidate.board,cap,chainLimit,3,positions.length-1);
-    if(!best||search.moves.length>best.search.moves.length||(search.moves.length===best.search.moves.length&&search.score>best.search.score))best={...candidate,search};
+  for(let policy=0;policy<4;policy++){
+    let board=start.slice(),score=0,moves=[],streak=0;
+    for(let step=0;step<depth;step++){
+      const byTier=new Map();
+      board.forEach((tier,i)=>{if(tier>0&&tier<64){if(!byTier.has(tier))byTier.set(tier,[]);byTier.get(tier).push(i);}});
+      let chosen=null,rank=-Infinity;
+      for(const [tier,indices] of byTier){
+        if(indices.length<2)continue;
+        for(const dst of indices){
+          const east=dst+1;
+          const sources=indices.filter(i=>i!==dst);
+          sources.sort((a,b)=>Math.abs(a-dst)-Math.abs(b-dst));
+          for(const src of sources.slice(0,Math.min(4,sources.length))){
+            const move=simulateMerge(board,src,dst,cap,mode==="recursive"?chainLimit:(streak>=chainLimit?0:1),mode);
+            if(!move)continue;
+            const wind=move.events.length-1;
+            const continues=east<120&&east%COLUMNS!==0&&move.board[east]===move.board[dst]&&move.board[dst]<64;
+            const pairs=new Map();
+            move.board.forEach(t=>{if(t>0&&t<64)pairs.set(t,(pairs.get(t)||0)+1);});
+            const remainingPairs=[...pairs.values()].reduce((sum,n)=>sum+Math.floor(n/2),0);
+            const r=(continues?3000:0)+wind*(policy===0?350:policy===1?150:500)+
+              (src===dst-1?400:0)+(policy===2?move.score*5:policy===3?remainingPairs*20:0)+
+              (policy===1?-tier:0)-Math.abs(src-dst)*.1;
+            if(r>rank){rank=r;chosen=move;}
+          }
+        }
+      }
+      if(!chosen)break;
+      board=chosen.board;score+=chosen.score;moves.push(chosen);
+      streak=chosen.events.length>1?streak+1:0;
+    }
+    const result={board,score,moves,remaining:board.filter(t=>t>0).length};
+    if(!best||result.score>best.score||(result.score===best.score&&result.remaining<best.remaining))best=result;
   }
   return best;
+}
+function optimizePreparation(positions,maxTier,cap,chainLimit,mode){
+  let best=null;
+  const candidates=buildCandidates(positions,maxTier,cap);
+  for(const candidate of candidates){
+    const search=searchCombos(candidate.board,cap,chainLimit,4,positions.length-1,mode);
+    if(!best||search.score>best.search.score||(search.score===best.search.score&&search.remaining<best.search.remaining))best={...candidate,search};
+  }
+  return {...best,testedCandidates:candidates.length};
 }
 function validateTiming(moves,timeout,secondsPerMerge){
   const events=moves.map((move,index)=>({
@@ -162,7 +173,8 @@ function showSolver(){
   const positions=slots.map((v,i)=>v>=0?i:-1).filter(i=>i>=0);
   if(positions.length<2){$("solverNote").textContent="At least two unlocked slots are required.";$("solverSteps").replaceChildren();return;}
   $("solverNote").textContent="Searching prepared tier layouts…";
-  const solution=optimizePreparation(positions,maxTier,cap,chain);
+  const mode=$("heatMode").value;
+  const solution=optimizePreparation(positions,maxTier,cap,chain,mode);
   const result=solution.search;
   const timeout=Math.max(.1,Number($("comboTimeout").value)||5.5);
   const moveTime=Math.max(.1,Number($("mergeTime").value)||1.5);
@@ -172,7 +184,7 @@ function showSolver(){
   $("timingDetails").textContent="Estimated execution: "+timing.totalDuration.toFixed(1)+"s · Per-merge margin: "+(timing.minimumMargin===null?"—":timing.minimumMargin.toFixed(1)+"s")+" · Assumes timer refreshes after each manual merge.";
   $("solverScore").textContent=result.score.toLocaleString();
   $("solverMoves").textContent=result.moves.length;
-  $("solverNote").textContent="Longest sequence among 17 prepared-tier patterns (including your tested staircase): "+solution.name+". This is a bounded heuristic, NOT a proven global maximum. Slot type does not currently change the simulated combo score, so the existing slot layout is equally optimal under this model. Heat now affects only the immediate right neighbor. Remaining occupied slots: "+result.remaining+". Tier 64 is preserved; a complete clear is not guaranteed. Scoring and Wind streak interpretation still require verification.";
+  $("solverNote").textContent="Best of "+solution.testedCandidates+" preparations (base Tier "+solution.base+", "+solution.shape+"). "+result.remaining+" occupied sushi remain. Heat model: "+mode+". Scores are experimental and NOT verified in-game. Tier 64 is preserved; a full clear is not guaranteed.";
   const root=$("solverSteps");root.replaceChildren();
   function make(label,values,showTiers){
     const h=document.createElement("h3");h.textContent=label;root.append(h);
