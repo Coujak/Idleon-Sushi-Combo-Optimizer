@@ -2,7 +2,7 @@ import {simulateMerge,validateComboReplay,searchStaircaseCombos} from "./optimiz
 import {searchTacticalCombos} from "./tactical-search.mjs?v=1.7.0";
 import {createReplayController} from "./replay-controller.mjs?v=1.7.4";
 import {buildCandidates} from "./preparation-core.mjs?v=1.7.5";
-import {getModeCandidates} from "./optimizer-modes.mjs?v=1.8.1";
+import {getModeCandidates} from "./optimizer-modes.mjs?v=1.8.6";
 import {throwIfCancelled,yieldToUI} from "./optimizer-run.mjs?v=1.8.1";
 import {searchCombos} from "./merge-search.mjs?v=1.8.0";
 const $=id=>document.getElementById(id);
@@ -290,7 +290,8 @@ async function showSolver(signal){
   if(positions.length<2){$("solverNote").textContent="At least two unlocked slots are required.";$("solverSteps").replaceChildren();return;}
   $("solverNote").textContent="Searching prepared tier layouts…";
   const mode="descending domino";
-  const optimizerMode=$("optimizerMode").value==="experimental"?"experimental":"default";
+  const optimizerMode=["default","experimental","experimental2"].includes($("optimizerMode").value)?$("optimizerMode").value:"default";
+  const optimizerModeLabel=optimizerMode==="experimental2"?"Experimental 2.0":optimizerMode==="experimental"?"Experimental 1.0":"Default";
   const custom=$("baseTier").value==="custom";
   const selectedBase=custom?0:($("baseTier").value==="manual"?Math.min(maxTier,Math.max(1,Math.round(Number($("manualBaseTier").value)||1))):(Number($("baseTier").value)||0));
   // A Tier 64 from the save stays permanent even if the prepared-tier setting is lowered.
@@ -308,7 +309,7 @@ async function showSolver(signal){
     const pct=Math.round(done/total*100);
     $("optimizerProgressBar").value=done;
     $("optimizerProgressBar").max=total;
-    $("optimizerProgressText").textContent=(optimizerMode==="experimental"?"Experimental":"Default")+" · "+pct+"% · "+done+" / "+total+" layouts evaluated";
+    $("optimizerProgressText").textContent=optimizerModeLabel+" · "+pct+"% · "+done+" / "+total+" layouts evaluated";
   };
   progress(0);
   // Yield between candidate evaluations so progress can paint in the browser.
@@ -366,7 +367,7 @@ async function showSolver(signal){
   $("solverMoves").textContent=verified.merges;
   $("solverRepositions").textContent=verified.repositions;
   $("solverNote").textContent=(custom?"Custom board · staircase recycling, greedy, beam, and tactical reposition searches tested. ":"Best of "+solution.testedCandidates+" preparations (base Tier "+solution.base+", "+solution.shape+"). ")+result.remaining+" occupied sushi remain. Heat model: "+mode+". Scores remain estimates, not a guaranteed maximum.";
-  $("solverNote").textContent+=" Mode: "+(optimizerMode==="experimental"?"Experimental":"Default")+". Winning strategy: "+result.strategy+". Slot arrangement: "+(solution.layoutName??"Current positions")+". Prepared tier cap: "+maxTier+"; East Wind limit: "+cap+".";
+  $("solverNote").textContent+=" Mode: "+optimizerModeLabel+". Winning strategy: "+result.strategy+". Slot arrangement: "+(solution.layoutName??"Current positions")+". Prepared tier cap: "+maxTier+"; East Wind limit: "+cap+".";
   if(!custom&&protectTier64)$("solverNote").textContent+=" The permanent Tier 64 is placed in the first unlocked slot of the suggested layout."; 
   const root=$("solverSteps");root.replaceChildren();
   const movedFrom=slots.filter((v,i)=>v>=0&&recommendedSlots[i]<0).length;
@@ -533,10 +534,12 @@ async function showSolver(signal){
   displayStep(0);
 }
 function updateOptimizerModeHint(){
-  const experimental=$("optimizerMode").value==="experimental";
-  $("optimizerModeHint").textContent=experimental
-    ?"Experimental also tests layered Wind reserves on compatible automatic boards. Custom boards use the same search in either mode."
-    :"Default uses the original board preparations and merge strategies.";
+  const mode=$("optimizerMode").value;
+  $("optimizerModeHint").textContent=mode==="experimental2"
+    ?"Experimental 2.0 adds a 56,315-point simulated preparation for compatible 100-slot full-upgrade boards. The other strategies remain available."
+    :mode==="experimental"
+      ?"Experimental 1.0 adds layered Wind reserves and the earlier 51,608-point simulated setup."
+      :"Default uses the original board preparations and merge strategies.";
 }
 $("optimizerMode").addEventListener("change",updateOptimizerModeHint);
 updateOptimizerModeHint();

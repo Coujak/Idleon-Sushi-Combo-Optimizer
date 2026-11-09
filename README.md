@@ -8,7 +8,7 @@ Browser-based Sushi Station preparation and Combo Meter optimizer for Legends of
 - Load Idleon Toolbox JSON locally (your save is processed in your browser).
 - Reconstruct the complete **8×15 board (120 positions)**, supporting **up to 100 unlocked slots in any positions**, with plate types, fireplaces and Perfecto indicators.
 - Compare prepared layouts; edit individual sushi tiers using the custom board editor.
-- Choose **Default** for the established preparations, or **Experimental** to additionally try layered Wind reserves on compatible automatic boards. The optimizer can be cancelled while searching.
+- Choose **Default** for the established preparations, **Experimental 1.0** for earlier layered Wind setups, or **Experimental 2.0** for an additional verified multi-wave preparation. You can cancel an active search.
 - Optimizer settings are editable: enter any starting base tier, lower the Wind tier limit (never above maximum prepared tier minus 6), and customize chain and timing settings within game-supported ranges.
 - Recommended preparations preserve a single permanent Tier 64 (when unlocked or present in the imported save) at the first unlocked position; imported and custom boards keep their own positions, including bottom-row slots.
 - Simulate Heat of the East Wind and search using greedy, beam, staircase-recycling, and tactical repositioning strategies.
@@ -42,6 +42,8 @@ Experimental offers a replay-tested 100-slot preparation reaching **51,608
 simulated Combo Meter points** in 89 merges and zero mid-combo relocations,
 with one permanent Tier 64 and 99 other sushi. This beats the earlier
 reported **48,305** baseline by **3,303 points (+6.8%)**.
+
+Experimental 2.0 adds a **56,315-point simulated benchmark** with 88 merges, 1,373 Wind upgrades, and no mid-combo relocations. The exact 100-sushi preparation and replay are covered by regression tests. It requires a contiguous 100-slot full-upgrade setup (Tier 64, Wind limit 58, chain limit 25).
 
 This is a heuristic result, not a proven maximum or independently verified
 in-game achievement. Default mode remains the established strategy.

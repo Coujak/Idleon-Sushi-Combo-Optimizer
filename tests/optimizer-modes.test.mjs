@@ -31,3 +31,13 @@ test("Cancellation stops processing at asynchronous checkpoints",async()=>{
   assert.throws(()=>throwIfCancelled(controller.signal),{name:"AbortError"});
   await assert.rejects(yieldToUI(controller.signal),{name:"AbortError"});
 });
+test("Experimental 2.0 adds a new candidate without altering existing modes",()=>{
+  const defaults=getModeCandidates(positions,64,58,0,25,true,"default");
+  const oldExperimental=getModeCandidates(positions,64,58,0,25,true,"experimental");
+  const second=getModeCandidates(positions,64,58,0,25,true,"experimental2");
+  assert.equal(second.length,oldExperimental.length+1);
+  assert.deepEqual(second.slice(0,oldExperimental.length),oldExperimental);
+  assert.equal(second.at(-1).name,"Experimental 2.0 · Multi-wave Wind");
+  assert.ok(defaults.every(c=>c.name!=="Experimental 2.0 · Multi-wave Wind"));
+  assert.ok(oldExperimental.every(c=>c.name!=="Experimental 2.0 · Multi-wave Wind"));
+});
