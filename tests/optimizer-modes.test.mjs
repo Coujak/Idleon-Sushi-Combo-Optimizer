@@ -114,3 +114,12 @@ test("Experimental 10.0 includes all previous layouts plus a new verified prepar
   assert.ok(getModeCandidates(positions,64,58,0,25,true,"default")
     .every(candidate=>candidate.name!==latest.at(-1).name));
 });
+test("Experimental 11.0 retains all earlier layouts and adds the 75K preparation",()=>{
+  const previous=getModeCandidates(positions,64,58,0,25,true,"experimental10");
+  const latest=getModeCandidates(positions,64,58,0,25,true,"experimental11");
+  assert.equal(latest.length,previous.length+1);
+  assert.deepEqual(latest.slice(0,previous.length),previous);
+  assert.equal(latest.at(-1).name,"Experimental 11.0 · 75K Wind chains");
+  assert.ok(getModeCandidates(positions,64,58,0,25,true,"default")
+    .every(candidate=>candidate.name!==latest.at(-1).name));
+});
