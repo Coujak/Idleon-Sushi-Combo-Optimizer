@@ -26,7 +26,8 @@ function addSushiVisual(cell,tier){
   number.className="tier";number.textContent=tier;
   cell.append(img,number);
 }
-const FIRE_NAMES=["Red · Charcoal","Green · Barium","Blue · Copper","Pink · Lithium","Purple · Potassium"];
+const FIRE_NAMES=["Orange · Charcoal Fireplace","Green · Barium Firelighter","Blue · Copper Firelighter","Pink · Lithium Firelighter","Purple · Potassium Firelighter"];
+const FIRE_IMAGES=["SushiUpg23.png","SushiUpg27.png","SushiUpg24.png","SushiUpg26.png","SushiUpg25.png"];
 function renderBoard(tiles,perfecto,slots,fires){
   const board=$("board");board.replaceChildren();
   const active=Math.max(0,slots.findLastIndex(n=>n>=0)+1);
@@ -47,7 +48,9 @@ function renderBoard(tiles,perfecto,slots,fires){
   const fireRow=document.createElement("div");fireRow.className="fire-row";
   for(let i=0;i<COLUMNS;i++){
     const f=fires[i]??-1,cell=document.createElement("div");cell.className="fire-cell"+(f>=0?" fire-"+f:"");
-    cell.textContent=f>=0?"♨":"";
+    if(f>=0&&f<FIRE_IMAGES.length){
+      const img=document.createElement("img");img.className="campfire-art";img.src="assets/campfires/"+FIRE_IMAGES[f];img.alt=FIRE_NAMES[f];img.loading="lazy";img.onerror=()=>{img.remove();cell.textContent="♨";};cell.append(img);
+    }
     cell.title="Column "+(i+1)+" · "+(FIRE_NAMES[f]??"No fireplace");
     fireRow.append(cell);
   }
