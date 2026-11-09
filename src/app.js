@@ -1,6 +1,7 @@
 const $=id=>document.getElementById(id);
 const COLUMNS=15;
 let imported=null;
+let customBoard=null;
 function decodeSave(input){
   if(!input||typeof input!=="object")throw Error("Expected a JSON object.");
   const raw=input.data?.Sushi??input.Sushi;
@@ -43,8 +44,9 @@ function renderBoard(tiles,perfecto,slots,fires){
 }
 function importSave(data,label){
   const parsed=decodeSave(data);
-  imported=parsed;$("importError").classList.add("hidden");
+  imported=parsed;customBoard=null;$("importError").classList.add("hidden");
   renderBoard(parsed.tiles,parsed.perfecto,parsed.slots,parsed.fires);
+  if($("baseTier").value==="custom")renderCustomEditor();
   $("solver").classList.remove("hidden");
   $("solverNote").textContent="JSON loaded. Click Run optimizer to calculate a suggested preparation and merge sequence.";
   $("solverScore").textContent="—";$("solverMoves").textContent="—";$("solverSteps").replaceChildren();
@@ -57,7 +59,7 @@ function error(e){$("importStatus").textContent="Import failed";$("importStatus"
 $("pasteToggle").addEventListener("click",()=>{const open=$("pasteArea").classList.toggle("hidden")===false;$("pasteToggle").setAttribute("aria-expanded",String(open));if(open)$("jsonInput").focus();});
 $("parseJson").addEventListener("click",()=>{try{importSave(JSON.parse($("jsonInput").value),"Pasted JSON");}catch(e){error(e);}});
 $("jsonFile").addEventListener("change",async e=>{const f=e.target.files?.[0];if(!f)return;try{importSave(JSON.parse(await f.text()),f.name);}catch(err){error(err);}});
-$("clearImport").addEventListener("click",()=>{imported=null;$("solver").classList.add("hidden");$("jsonInput").value="";$("jsonFile").value="";$("board").replaceChildren();$("fireplaces").replaceChildren();$("importSummary").classList.add("hidden");$("pasteArea").classList.add("hidden");$("pasteToggle").setAttribute("aria-expanded","false");$("importStatus").textContent="Waiting for data";$("importStatus").classList.remove("success");$("boardStatus").textContent="Import a save";$("boardDetails").textContent="Your imported tiles will appear here.";$("jsonPreview").textContent="No JSON imported yet.";});
+$("clearImport").addEventListener("click",()=>{imported=null;customBoard=null;$("solver").classList.add("hidden");$("jsonInput").value="";$("jsonFile").value="";$("board").replaceChildren();$("fireplaces").replaceChildren();$("importSummary").classList.add("hidden");$("pasteArea").classList.add("hidden");$("pasteToggle").setAttribute("aria-expanded","false");$("importStatus").textContent="Waiting for data";$("importStatus").classList.remove("success");$("boardStatus").textContent="Import a save";$("boardDetails").textContent="Your imported tiles will appear here.";$("jsonPreview").textContent="No JSON imported yet.";});
 
 /* Experimental scoring: sum resulting tiers, including each Heat upgrade.
    Gameplay rules: merge source tier <=58 triggers a descending domino chain,
@@ -158,6 +160,64 @@ function optimizePreparation(positions,maxTier,cap,chainLimit,mode,selectedBase)
   }
   return {...best,testedCandidates:candidates.length};
 }
+function getCustomBoard(){
+  if(!imported)return null;
+  if(!customBoard){
+    customBoard=Array(120).fill(0);
+    imported.slots.forEach((type,i)=>{if(i<120&&type>=0)customBoard[i]=Math.max(0,(imported.tiles[i]??-1)+1);});
+  }
+  return customBoard;
+}
+function renderCustomEditor(){
+  if(!imported)return;
+  const grid=$("customBoard");grid.replaceChildren();
+  const board=getCustomBoard(),slots=imported.slots;
+  const last=slots.findLastIndex(v=>v>=0);
+  for(let i=0;i<=last;i++){
+    const type=slots[i]??-1,tier=board[i];
+    const cell=document.createElement("button");cell.type="button";
+    cell.className="tile custom-tile"+(type>=0?" slot-"+type:" locked")+(tier===0?" empty":"");
+    cell.disabled=type<0;
+    cell.textContent=tier||"·";
+    cell.title="Position "+(i+1)+" · "+(tier?"Tier "+tier:"Empty")+" · Click to paint selected tier";
+    cell.setAttribute("aria-label",cell.title);
+    cell.addEventListener("click",()=>{
+      const value=Number($("paintTier").value);
+      if(!Number.isInteger(value)||value<0||value>64)return;
+      board[i]=value;renderCustomEditor();
+    });
+    grid.append(cell);
+  }
+  const occupied=board.filter(v=>v>0).length;
+  $("customStatus").textContent=occupied+" sushi placed · "+slots.filter(v=>v>=0).length+" unlocked slots";
+}
+$("baseTier").addEventListener("change",()=>{
+  const custom=$("baseTier").value==="custom";
+  $("customEditor").classList.toggle("hidden",!custom);
+  if(custom&&imported)renderCustomEditor();
+});
+$("paintTier").addEventListener("change",()=>{
+  const n=Number($("paintTier").value);
+  if(!Number.isInteger(n)||n<0||n>64)$("paintTier").value="41";
+});
+$("customFromSave").addEventListener("click",()=>{
+  if(!imported)return;
+  customBoard=null;renderCustomEditor();
+});
+$("customFill").addEventListener("click",()=>{
+  if(!imported)return;
+  const value=Number($("paintTier").value);
+  if(!Number.isInteger(value)||value<0||value>64)return;
+  const board=getCustomBoard();
+  imported.slots.forEach((type,i)=>{if(i<120&&type>=0&&board[i]!==64)board[i]=value;});
+  renderCustomEditor();
+});
+$("customClear").addEventListener("click",()=>{
+  if(!imported)return;
+  const board=getCustomBoard();
+  imported.slots.forEach((type,i)=>{if(i<120&&type>=0&&board[i]!==64)board[i]=0;});
+  renderCustomEditor();
+});
 function validateTiming(moves,timeout,secondsPerMerge){
   const events=moves.map((move,index)=>({
     step:index+1,
@@ -178,8 +238,14 @@ function showSolver(){
   if(positions.length<2){$("solverNote").textContent="At least two unlocked slots are required.";$("solverSteps").replaceChildren();return;}
   $("solverNote").textContent="Searching prepared tier layouts…";
   const mode="descending domino";
-  const selectedBase=Number($("baseTier").value)||0;
-  const solution=optimizePreparation(positions,maxTier,cap,chain,mode,selectedBase);
+  const custom=$("baseTier").value==="custom";
+  const selectedBase=custom?0:(Number($("baseTier").value)||0);
+  const solution=custom?(()=>{
+    const board=getCustomBoard().slice();
+    if(board.filter(v=>v>0).length<2)throw Error("Place at least two sushi on the custom board.");
+    const search=searchCombos(board,cap,chain,4,board.filter(v=>v>0).length-1,mode);
+    return {board,base:"custom",shape:"user-defined",name:"Custom board",search,testedCandidates:1};
+  })():optimizePreparation(positions,maxTier,cap,chain,mode,selectedBase);
   if(!solution||!solution.search)throw Error("No valid preparations for these tier settings.");
   const result=solution.search;
   const timeout=Math.max(.1,Number($("comboTimeout").value)||5.5);
@@ -190,7 +256,7 @@ function showSolver(){
   $("timingDetails").textContent="Estimated execution: "+timing.totalDuration.toFixed(1)+"s · Per-merge margin: "+(timing.minimumMargin===null?"—":timing.minimumMargin.toFixed(1)+"s")+" · Assumes timer refreshes after each manual merge.";
   $("solverScore").textContent=result.score.toLocaleString();
   $("solverMoves").textContent=result.moves.length;
-  $("solverNote").textContent="Best of "+solution.testedCandidates+" preparations (base Tier "+solution.base+", "+solution.shape+"). "+result.remaining+" occupied sushi remain. Heat model: "+mode+". Scores are experimental and NOT verified in-game. Tier 64 is preserved; a full clear is not guaranteed.";
+  $("solverNote").textContent=(custom?"Custom board · best of 4 merge policies. ":"Best of "+solution.testedCandidates+" preparations (base Tier "+solution.base+", "+solution.shape+"). ")+result.remaining+" occupied sushi remain. Heat model: "+mode+". Scores are experimental and NOT verified in-game; this heuristic does not guarantee the highest possible score.";
   const root=$("solverSteps");root.replaceChildren();
   function make(label,values,showTiers){
     const h=document.createElement("h3");h.textContent=label;root.append(h);
@@ -210,7 +276,7 @@ function showSolver(){
     scroll.append(grid);root.append(scroll);
   }
   make("1 · Slot layout (existing positions; equivalent under current combo rules)",[],false);
-  make("2 · Recommended prepared sushi tiers (not your current inventory)",solution.board,true);
+  make(custom?"2 · Your custom starting board":"2 · Recommended prepared sushi tiers (not your current inventory)",solution.board,true);
   const heading=document.createElement("h3");heading.textContent="3 · Interactive merge sequence";root.append(heading);
   const intro=document.createElement("p");intro.className="hint";intro.textContent="Select a step on the right to see the board after that merge. Blue = consumed source, green = destination, purple = Heat of the East Wind upgrades. Step 0 is the prepared board.";root.append(intro);
   const layout=document.createElement("div");layout.className="merge-layout";
