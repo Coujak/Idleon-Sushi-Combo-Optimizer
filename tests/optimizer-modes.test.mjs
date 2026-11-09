@@ -87,3 +87,12 @@ test("Experimental 7.0 preserves older benchmarks and adds the 65K preparation",
   assert.ok(getModeCandidates(positions,64,58,0,25,true,"default")
     .every(candidate=>candidate.name!==newMode.at(-1).name));
 });
+test("Experimental 8.0 retains all prior preparations and adds the new benchmark",()=>{
+  const prior=getModeCandidates(positions,64,58,0,25,true,"experimental7");
+  const latest=getModeCandidates(positions,64,58,0,25,true,"experimental8");
+  assert.equal(latest.length,prior.length+1);
+  assert.deepEqual(latest.slice(0,prior.length),prior);
+  assert.equal(latest.at(-1).name,"Experimental 8.0 · 68K Wind chains");
+  assert.ok(getModeCandidates(positions,64,58,0,25,true,"default")
+    .every(c=>c.name!==latest.at(-1).name));
+});

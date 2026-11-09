@@ -9,32 +9,36 @@ import {buildExperimental4Candidates} from "./experimental4-preparation.mjs";
 import {buildExperimental5Candidates} from "./experimental5-preparation.mjs";
 import {buildExperimental6Candidates} from "./experimental6-preparation.mjs";
 import {buildExperimental7Candidates} from "./experimental7-preparation.mjs";
+import {buildExperimental8Candidates} from "./experimental8-preparation.mjs";
 
 export function getModeCandidates(positions,maxTier,cap,selectedBase,chainLimit,protectTier64,mode="default"){
   const candidates=buildCandidates(positions,maxTier,cap,selectedBase,chainLimit,protectTier64);
-  if(["experimental","experimental2","experimental3","experimental4","experimental5","experimental6","experimental7"].includes(mode)&&(!selectedBase||selectedBase===cap-27)){
+  if(["experimental","experimental2","experimental3","experimental4","experimental5","experimental6","experimental7","experimental8"].includes(mode)&&(!selectedBase||selectedBase===cap-27)){
     candidates.push(...buildLayeredCandidates(positions,maxTier,cap,chainLimit,protectTier64));
     candidates.push(...buildTuned100Candidates(positions,maxTier,cap,chainLimit,protectTier64));
   }
   // Experimental 2.0 adds its verified layout without changing earlier modes.
-  if(["experimental2","experimental3","experimental4","experimental5","experimental6","experimental7"].includes(mode)&&(!selectedBase||selectedBase===23)){
+  if(["experimental2","experimental3","experimental4","experimental5","experimental6","experimental7","experimental8"].includes(mode)&&(!selectedBase||selectedBase===23)){
     candidates.push(...buildExperimental2Candidates(positions,maxTier,cap,chainLimit,protectTier64));
   }
   // Newer modes retain the older candidates; only 3.0 gets this benchmark.
-  if(["experimental3","experimental4","experimental5","experimental6","experimental7"].includes(mode)&&(!selectedBase||selectedBase===21)){
+  if(["experimental3","experimental4","experimental5","experimental6","experimental7","experimental8"].includes(mode)&&(!selectedBase||selectedBase===21)){
     candidates.push(...buildExperimental3Candidates(positions,maxTier,cap,chainLimit,protectTier64));
   }
-  if(["experimental4","experimental5","experimental6","experimental7"].includes(mode)&&(!selectedBase||selectedBase===18)){
+  if(["experimental4","experimental5","experimental6","experimental7","experimental8"].includes(mode)&&(!selectedBase||selectedBase===18)){
     candidates.push(...buildExperimental4Candidates(positions,maxTier,cap,chainLimit,protectTier64));
   }
-  if(["experimental5","experimental6","experimental7"].includes(mode)&&(!selectedBase||selectedBase===12)){
+  if(["experimental5","experimental6","experimental7","experimental8"].includes(mode)&&(!selectedBase||selectedBase===12)){
     candidates.push(...buildExperimental5Candidates(positions,maxTier,cap,chainLimit,protectTier64));
   }
-  if((mode==="experimental6"||mode==="experimental7")&&(!selectedBase||selectedBase===11)){
+  if(["experimental6","experimental7","experimental8"].includes(mode)&&(!selectedBase||selectedBase===11)){
     candidates.push(...buildExperimental6Candidates(positions,maxTier,cap,chainLimit,protectTier64));
   }
-  if(mode==="experimental7"&&(!selectedBase||selectedBase===8)){
+  if((mode==="experimental7"||mode==="experimental8")&&(!selectedBase||selectedBase===8)){
     candidates.push(...buildExperimental7Candidates(positions,maxTier,cap,chainLimit,protectTier64));
+  }
+  if(mode==="experimental8"&&(!selectedBase||selectedBase===8)){
+    candidates.push(...buildExperimental8Candidates(positions,maxTier,cap,chainLimit,protectTier64));
   }
   return candidates;
 }
