@@ -87,7 +87,7 @@ function simulateMerge(board,src,dst,cap,chainLimit){
   next[src]=0;next[dst]=before+1;
   let score=next[dst];
   const events=[{at:dst,tier:next[dst],kind:"merge"}];
-  if(before<=cap){
+  if(src<dst&&before<=cap){
     let previous=before;
     for(let q=dst+1;q<next.length&&events.length-1<chainLimit;q++){
       const tier=next[q];
@@ -132,7 +132,7 @@ function buildCandidates(positions,maxTier,cap,selectedBase=0){
 function searchCombos(start,cap,chainLimit,beamWidth,depth,mode="adjacent"){
   // Multiple deterministic policies reduce the chance of one greedy dead-end.
   let best=null;
-  for(let policy=0;policy<4;policy++){
+  for(let policy=0;policy<5;policy++){
     let board=start.slice(),score=0,moves=[];
     for(let step=0;step<depth;step++){
       const byTier=new Map();
@@ -152,9 +152,12 @@ function searchCombos(start,cap,chainLimit,beamWidth,depth,mode="adjacent"){
             const pairs=new Map();
             move.board.forEach(t=>{if(t>0&&t<64)pairs.set(t,(pairs.get(t)||0)+1);});
             const remainingPairs=[...pairs.values()].reduce((sum,n)=>sum+Math.floor(n/2),0);
-            const r=(continues?3000:0)+wind*(policy===0?350:policy===1?150:500)+
+            const rightToLeft=src>dst;
+            const staircaseContinuation=rightToLeft&&tier<cap&&board.some((t,i)=>i<dst&&t===tier+1);
+            const r=(policy===4?(rightToLeft?7000:-1000)+(staircaseContinuation?2500:0)-tier*75+move.score*.1:
+              (continues?3000:0)+wind*(policy===0?350:policy===1?150:500)+
               (src===dst-1?400:0)+(policy===2?move.score*5:policy===3?remainingPairs*20:0)+
-              (policy===1?-tier:0)-Math.abs(src-dst)*.1;
+              (policy===1?-tier:0)-Math.abs(src-dst)*.1);
             if(r>rank){rank=r;chosen=move;}
           }
         }
