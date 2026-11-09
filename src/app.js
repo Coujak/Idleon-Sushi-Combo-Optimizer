@@ -44,7 +44,7 @@ function applyImportedLimits(){
   $("seedTier").value=String(progress.highest);
   $("windCap").value=String(progress.windCap);
   $("seedTier").title=progress.source;
-  $("windCap").title="Highest unlocked sushi tier minus 6";
+  $("windCap").title="Suggested limit from imported sushi progress; you can override it.";
 }
 const SLOT_NAMES=["Regular","Hot","Cold","Milktoast"];
 const SUSHI_IMAGE_DIR="assets/sushi/";
@@ -227,6 +227,7 @@ function renderCustomEditor(){
 }
 $("baseTier").addEventListener("change",()=>{
   const custom=$("baseTier").value==="custom";
+  $("manualBaseTierLabel").classList.toggle("hidden",$("baseTier").value!=="manual");
   $("customEditor").classList.toggle("hidden",!custom);
   if(custom&&imported)renderCustomEditor();
 });
@@ -275,8 +276,7 @@ async function showSolver(signal){
   if(!imported)return;
   const detected=detectSushiProgress(imported);
   const maxTier=Math.min(64,Math.max(1,Number($("seedTier").value)||detected.highest||1));
-  const cap=Math.max(0,maxTier-6);
-  $("windCap").value=String(cap);
+  const cap=Math.min(64,Math.max(0,Number($("windCap").value)||0));
   const chain=Math.min(25,Math.max(0,Number($("chainLimit").value)||0));
   const slots=imported.slots.slice(0,120).map((v,i)=>i<MAX_PLAYABLE_SLOTS?v:-1);
   const positions=slots.map((v,i)=>v>=0?i:-1).filter(i=>i>=0);
@@ -285,7 +285,7 @@ async function showSolver(signal){
   const mode="descending domino";
   const optimizerMode=$("optimizerMode").value==="experimental"?"experimental":"default";
   const custom=$("baseTier").value==="custom";
-  const selectedBase=custom?0:(Number($("baseTier").value)||0);
+  const selectedBase=custom?0:($("baseTier").value==="manual"?Math.min(maxTier,Math.max(1,Math.round(Number($("manualBaseTier").value)||1))):(Number($("baseTier").value)||0));
   // A Tier 64 from the save stays permanent even if the prepared-tier setting is lowered.
   const protectTier64=maxTier===64||imported.tiles.includes(63);
   const arrangements=custom?[{name:"Current positions",slots}]:layoutOptions(slots);
