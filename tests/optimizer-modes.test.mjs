@@ -53,3 +53,10 @@ test("Experimental 3.0 keeps previous modes intact",()=>{
     assert.ok(group.every(candidate=>candidate.name!=="Experimental 3.0 · Layered multi-wave Wind"));
   }
 });
+test("Experimental 4.0 adds a new benchmark without changing earlier modes",()=>{
+ const third=getModeCandidates(positions,64,58,0,25,true,"experimental3");
+ const fourth=getModeCandidates(positions,64,58,0,25,true,"experimental4");
+ assert.equal(fourth.length,third.length+1);
+ assert.deepEqual(fourth.slice(0,third.length),third);
+ assert.equal(fourth.at(-1).name,"Experimental 4.0 · Extended Wind reserves");
+});

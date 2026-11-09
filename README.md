@@ -8,7 +8,7 @@ Browser-based Sushi Station preparation and Combo Meter optimizer for Legends of
 - Load Idleon Toolbox JSON locally (your save is processed in your browser).
 - Reconstruct the complete **8×15 board (120 positions)**, supporting **up to 100 unlocked slots in any positions**, with plate types, fireplaces and Perfecto indicators.
 - Compare prepared layouts; edit individual sushi tiers using the custom board editor.
-- Choose **Default** for established preparations, or **Experimental 1.0**, **2.0**, and **3.0** for progressively newer layered Wind layouts. You can cancel an active search.
+- Choose **Default** for established preparations, or **Experimental 1.0**, **2.0**, **3.0**, and **4.0** for progressively newer layered Wind layouts. You can cancel an active search.
 - Optimizer settings are editable: enter any starting base tier, lower the Wind tier limit (never above maximum prepared tier minus 6), and customize chain and timing settings within game-supported ranges.
 - Recommended preparations preserve a single permanent Tier 64 (when unlocked or present in the imported save) at the first unlocked position; imported and custom boards keep their own positions, including bottom-row slots.
 - Simulate Heat of the East Wind and search using greedy, beam, staircase-recycling, and tactical repositioning strategies.
@@ -46,6 +46,8 @@ reported **48,305** baseline by **3,303 points (+6.8%)**.
 Experimental 2.0 adds a **56,315-point simulated benchmark** with 88 merges, 1,373 Wind upgrades, and no mid-combo relocations. The exact 100-sushi preparation and replay are covered by regression tests. It requires a contiguous 100-slot full-upgrade setup (Tier 64, Wind limit 58, chain limit 25).
 
 Experimental 3.0 adds a reproducible **57,328-point simulated benchmark**: 88 merges, 1,418 Wind upgrades, zero repositioning, and exactly 100 unlocked slots including one Tier 64. Both a top-placed and bottom-placed contiguous board are tested in the replay suite.
+
+Experimental 4.0 adds a replay-validated **58,684-point simulated benchmark** with 88 merges, 1,483 Wind upgrades and no repositioning, using 100 unlocked slots including one permanent Tier 64.
 
 This is a heuristic result, not a proven maximum or independently verified
 in-game achievement. Default mode remains the established strategy.
