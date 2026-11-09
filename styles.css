@@ -33,3 +33,12 @@
 .custom-board .custom-tile:focus-visible{outline:3px solid #fff;outline-offset:-2px}
 .custom-board .custom-tile:disabled{cursor:default;visibility:hidden}
 #solver select{padding:8px;border-radius:6px;background:#10231d;color:#fff;border:1px solid #476151}
+
+/* Tier-specific Sushi Station artwork, with tier labels remaining readable. */
+.tile .sushi-art{display:block;width:85%;height:75%;max-height:43px;object-fit:contain;pointer-events:none;flex:0 1 auto;min-height:0}
+.tile .tier{display:block;position:relative;z-index:1;line-height:1.05;pointer-events:none;text-shadow:0 1px 3px #000,0 0 4px #000}
+.custom-board .custom-tile{padding:2px;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.custom-board .custom-tile .sushi-art{max-height:37px}
+.custom-board .custom-tile .tier{font-size:12px}
+.merge-layout .merge-board .tile .sushi-art{width:95%;height:67%;max-height:none;object-fit:contain}
+.merge-layout .merge-board .tile .tier{line-height:1;flex:0 0 auto}
