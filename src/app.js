@@ -12,6 +12,20 @@ function decodeSave(input){
   return {sushi,tiles:sushi[0].slice(0,120).map(Number),perfecto:Array.isArray(sushi[5])?sushi[5].map(Number):null,slots:Array.isArray(sushi[1])?sushi[1].slice(0,120).map(Number):[],fires:Array.isArray(sushi[3])?sushi[3].slice(0,15).map(Number):[],source:input.data?.Sushi!=null?"Idleon Toolbox":"Raw game data"};
 }
 const SLOT_NAMES=["Regular","Hot","Cold","Milktoast"];
+const SUSHI_IMAGE_DIR="assets/sushi/";
+function addSushiVisual(cell,tier){
+  if(!Number.isInteger(tier)||tier<1||tier>64)return;
+  const img=document.createElement("img");
+  img.className="sushi-art";
+  img.src=SUSHI_IMAGE_DIR+"Sushi_Station_Sushi_"+tier+".png";
+  img.alt="";
+  img.loading="lazy";
+  img.decoding="async";
+  img.onerror=()=>{img.remove();cell.classList.add("sushi-art-missing");};
+  const number=document.createElement("span");
+  number.className="tier";number.textContent=tier;
+  cell.append(img,number);
+}
 const FIRE_NAMES=["Red · Charcoal","Green · Barium","Blue · Copper","Pink · Lithium","Purple · Potassium"];
 function renderBoard(tiles,perfecto,slots,fires){
   const board=$("board");board.replaceChildren();
@@ -24,7 +38,7 @@ function renderBoard(tiles,perfecto,slots,fires){
     if(slot>=0&&id>=0){
       const isPerfecto=Array.isArray(perfecto)&&perfecto[id]>0;
       if(isPerfecto)cell.classList.add("perfecto");
-      const tier=document.createElement("span");tier.className="tier";tier.textContent=id+1;cell.append(tier);
+      addSushiVisual(cell,id+1);
       if(isPerfecto){const mark=document.createElement("span");mark.className="perfecto-mark";mark.textContent="✓";mark.setAttribute("aria-label","Perfecto");cell.append(mark);}
     }else if(slot>=0){cell.textContent="·";}
     cell.title="Position "+(i+1)+" · "+(SLOT_NAMES[slot]??"Locked")+(id>=0?" · Tier "+(id+1):" · Empty")+(id>=0&&perfecto?.[id]>0?" · Perfecto":"");
@@ -178,7 +192,7 @@ function renderCustomEditor(){
     const cell=document.createElement("button");cell.type="button";
     cell.className="tile custom-tile"+(type>=0?" slot-"+type:" locked")+(tier===0?" empty":"");
     cell.disabled=type<0;
-    cell.textContent=tier||"·";
+    if(tier>0)addSushiVisual(cell,tier);else cell.textContent="·";
     cell.title="Position "+(i+1)+" · "+(tier?"Tier "+tier:"Empty")+" · Click to paint selected tier";
     cell.setAttribute("aria-label",cell.title);
     cell.addEventListener("click",()=>{
@@ -268,7 +282,7 @@ function showSolver(){
       const slot=slots[i]??-1,tier=values[i]??0;
       const cell=document.createElement("div");
       cell.className="tile"+(slot>=0?" slot-"+slot:" locked")+(showTiers&&tier<1?" empty":"");
-      if(slot>=0&&showTiers&&tier>0){const number=document.createElement("span");number.className="tier";number.textContent=tier;cell.append(number);}
+      if(slot>=0&&showTiers&&tier>0){addSushiVisual(cell,tier);}
       else if(slot>=0&&!showTiers){const dot=document.createElement("span");dot.className="slot-marker";dot.textContent="•";cell.append(dot);}
       cell.title="Position "+(i+1)+" · "+(SLOT_NAMES[slot]??"Locked")+(showTiers&&tier>0?" · Tier "+tier:"");
       grid.append(cell);
@@ -321,7 +335,7 @@ function showSolver(){
       const type=slots[i]??-1,tier=current[i]??0;
       const tile=document.createElement("div");
       tile.className="tile"+(type>=0?" slot-"+type:" locked")+(tier<1?" empty":"")+(changes.has(i)?" merge-"+changes.get(i):"");
-      if(type>=0&&tier>0){const n=document.createElement("span");n.className="tier";n.textContent=tier;tile.append(n);}
+      if(type>=0&&tier>0){addSushiVisual(tile,tier);}
       tile.title="Position "+(i+1)+" · "+(SLOT_NAMES[type]??"Locked")+(tier?" · Tier "+tier:" · Empty")+(changes.has(i)?" · "+changes.get(i):"");
       boardGrid.append(tile);
     }
