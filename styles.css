@@ -22,7 +22,6 @@
 .merge-layout .merge-board-panel,.merge-layout .board-scroll{min-width:0;width:100%;overflow-x:hidden}
 @media(max-width:850px){.merge-layout .merge-board .tile .tier{font-size:clamp(8px,1.6vw,12px)}}
 
-.replay-comparison{margin:12px 0;padding:12px;border:1px solid var(--line);border-radius:9px}.replay-comparison label{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.replay-comparison input{max-width:165px}
 
 /* Custom board painter */
 .custom-editor{margin:18px 0;padding:16px;border:1px solid var(--line);border-radius:12px;background:#10231e}
@@ -186,7 +185,6 @@ details summary{cursor:pointer;font-size:12px;font-weight:700;color:#9eb7c9}
 .merge-step span{line-height:1.55}
 .merge-controls{padding:10px 0}
 .merge-controls button{border-radius:8px}
-.replay-comparison{border-radius:12px;background:#111e2c;border-color:#304659;padding:15px}
 .changelog-panel{margin-top:24px}
 .changelog-content{max-height:190px;overflow-y:auto;padding-right:8px;scrollbar-width:thin;scrollbar-color:#42645e #172331}
 .changelog-content p{margin:0;padding:10px 0;border-bottom:1px solid #263748;font-size:12px;line-height:1.55;color:#a6b8c8}
@@ -266,3 +264,63 @@ details summary{cursor:pointer;font-size:12px;font-weight:700;color:#9eb7c9}
 /* v1.4.5 — crisp, sharp corners for all sushi slots. */
 .board .tile,.custom-board .custom-tile,.merge-layout .merge-board .tile{border-radius:0}
 .board .tile:before{border-radius:0}
+
+/* v1.7.1: Replay board has priority over the step list. */
+.merge-layout{
+  grid-template-columns:minmax(0,2.15fr) minmax(270px,.95fr);
+  gap:16px;
+}
+.merge-board-panel{padding:15px}
+.merge-layout .merge-board{width:100%;gap:3px;padding:9px;border-width:4px}
+.merge-layout .merge-board .tile .tier{font-size:clamp(10px,1vw,14px)}
+.merge-layout .merge-board .tile .sushi-art{width:96%;height:69%}
+.merge-score{margin:15px 3px 6px}
+
+/* Step 0 remains fully visible; later steps highlight only involved tiles. */
+.merge-layout .merge-board .tile.dim-tile,
+.merge-layout .merge-board .tile.dim-tile:hover{
+  opacity:.19;
+  filter:grayscale(.4) brightness(.68);
+  transform:none;
+  box-shadow:none;
+  transition:opacity .18s ease,filter .18s ease;
+}
+.merge-layout .merge-board .tile.focus-tile{
+  opacity:1;
+  filter:none;
+  z-index:2;
+}
+.merge-layout .merge-board .tile.focus-tile.merge-source{
+  outline:2px solid #7ecaff;
+  box-shadow:0 0 0 1px #7ecaff88,0 0 15px #56b6ff55;
+}
+.merge-layout .merge-board .tile.focus-tile.merge-destination{
+  outline:2px solid #98ffba;
+  box-shadow:0 0 0 1px #98ffba88,0 0 15px #76ebad55;
+}
+.merge-layout .merge-board .tile.focus-tile.merge-wind{
+  outline:2px solid #e3a5ff;
+  box-shadow:0 0 0 1px #e3a5ff88,0 0 17px #c88fff66;
+}
+.merge-layout .merge-board .tile.wind-active{
+  animation:wind-tile-pulse .7s cubic-bezier(.25,.65,.2,1) both;
+  animation-delay:var(--wind-delay,0ms);
+}
+@keyframes wind-tile-pulse{
+  0%{transform:scale(.97);filter:brightness(.85);box-shadow:0 0 0 0 #ce87ff00}
+  42%{transform:scale(1.085);filter:brightness(1.65);box-shadow:0 0 0 2px #e3a5ff,0 0 24px #cf8affbd}
+  100%{transform:scale(1);filter:brightness(1);box-shadow:0 0 0 1px #e3a5ff88,0 0 17px #c88fff66}
+}
+@media(max-width:1050px){
+  .merge-layout{grid-template-columns:minmax(0,1fr)}
+  .merge-step-list{max-height:300px}
+}
+@media(max-width:470px){
+  .merge-board-panel{padding:8px}
+  .merge-layout .merge-board{gap:1px;padding:4px}
+  .merge-layout .merge-board .tile .tier{font-size:clamp(8px,2vw,11px)}
+}
+@media(prefers-reduced-motion:reduce){
+  .merge-layout .merge-board .tile.wind-active{animation:none}
+  .merge-layout .merge-board .tile.dim-tile{transition:none}
+}

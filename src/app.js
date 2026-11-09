@@ -443,7 +443,7 @@ async function showSolver(){
   make("1 · Recommended slot layout ("+(solution.layoutName??"current")+")",[],false);
   make(custom?"2 · Your custom starting board":"2 · Recommended prepared sushi tiers (not your current inventory)",solution.board,true);
   const heading=document.createElement("h3");heading.textContent="3 · Interactive merge sequence";root.append(heading);
-  const intro=document.createElement("p");intro.className="hint";intro.textContent="Select an action to see the board after a merge or a zero-point relocation. Blue = source, green = destination, purple = Heat of the East Wind upgrades. Step 0 is the prepared board.";root.append(intro);
+  const intro=document.createElement("p");intro.className="hint";intro.textContent="Follow each step: blue is the source, green is the destination, and purple shows Heat of the East Wind. Other tiles fade so you can focus on the action. Step 0 shows your full board.";root.append(intro);
   const layout=document.createElement("div");layout.className="merge-layout";
   const left=document.createElement("div");left.className="merge-board-panel";
   const controls=document.createElement("div");controls.className="merge-controls";
@@ -459,17 +459,6 @@ async function showSolver(){
   const right=document.createElement("div");right.className="merge-step-list";right.setAttribute("aria-label","Merge steps");
   layout.append(left,right);root.append(layout);
   const cumulative=[0];for(const m of result.moves)cumulative.push(cumulative[cumulative.length-1]+m.score);
-  const comparison=document.createElement("div");comparison.className="replay-comparison";
-  const compareLabel=document.createElement("label");compareLabel.textContent="Observed in-game combo score ";
-  const actualInput=document.createElement("input");actualInput.type="number";actualInput.min="0";actualInput.step="1";actualInput.placeholder="Enter actual score";
-  const comparisonText=document.createElement("p");comparisonText.className="hint";comparisonText.textContent="Enter the Combo Meter score observed at the selected step to compare the simulation against gameplay. Different starting boards are not directly comparable.";
-  compareLabel.append(actualInput);comparison.append(compareLabel,comparisonText);left.append(comparison);
-  actualInput.addEventListener("input",()=>{
-    const actual=actualInput.value===""?null:Number(actualInput.value);
-    if(actual===null||!Number.isFinite(actual)){comparisonText.textContent="Enter the Combo Meter score observed at the selected step to compare against gameplay.";return;}
-    const predicted=cumulative[selected];
-    comparisonText.textContent="At step "+selected+": simulated "+predicted.toLocaleString()+" · observed "+actual.toLocaleString()+" · difference "+(predicted-actual).toLocaleString()+" points. Only meaningful if the starting board and moves match the recording.";
-  });
 
   let selected=0;
   const stepButtons=[];
@@ -479,19 +468,41 @@ async function showSolver(){
     previous.disabled=selected===0;next.disabled=selected===result.moves.length;
     const current=selected===0?solution.board:result.moves[selected-1].board;
     const move=selected>0?result.moves[selected-1]:null;
-    const changes=new Map();
-    if(move){changes.set(move.src,"source");changes.set(move.dst,"destination");for(const e of move.events)if(e.kind==="wind")changes.set(e.at,"wind");}
+    const changes=new Map(),windOrder=new Map();
+    if(move){
+      changes.set(move.src,"source");
+      changes.set(move.dst,"destination");
+      let order=0;
+      for(const event of move.events){
+        if(event.kind==="wind"){
+          changes.set(event.at,"wind");
+          windOrder.set(event.at,order++);
+        }
+      }
+    }
     boardGrid.replaceChildren();
     const last=recommendedSlots.findLastIndex(v=>v>=0);
     for(let i=0;i<=last;i++){
       const type=recommendedSlots[i]??-1,tier=current[i]??0;
       const tile=document.createElement("div");
-      tile.className="tile"+(type>=0?" slot-"+type:" locked")+(tier<1?" empty":"")+(changes.has(i)?" merge-"+changes.get(i):"");
-      if(type>=0&&tier>0){addSushiVisual(tile,tier);}
-      tile.title="Position "+(i+1)+" · "+(SLOT_NAMES[type]??"Locked")+(tier?" · Tier "+tier:" · Empty")+(changes.has(i)?" · "+changes.get(i):"");
+      tile.className="tile"+(type>=0?" slot-"+type:" locked")+(tier<1?" empty":"");
+      if(move&&type>=0){
+        const change=changes.get(i);
+        if(change){
+          tile.classList.add("focus-tile","merge-"+change);
+          if(change==="wind"){
+            tile.classList.add("wind-active");
+            tile.style.setProperty("--wind-delay",(windOrder.get(i)*65)+"ms");
+          }
+        }else{
+          tile.classList.add("dim-tile");
+        }
+      }
+      if(type>=0&&tier>0)addSushiVisual(tile,tier);
+      tile.title="Position "+(i+1)+" · "+(SLOT_NAMES[type]??"Locked")+
+        (tier?" · Tier "+tier:" · Empty")+(changes.has(i)?" · "+changes.get(i):"");
       boardGrid.append(tile);
     }
-    if(actualInput.value!=="")actualInput.dispatchEvent(new Event("input"));
     scoreLine.textContent="Combo Meter: "+cumulative[selected].toLocaleString()+" points"+(move?(move.kind==="move"?" · Reposition · +0":" · This merge: +"+move.score):" · Ready to begin");
     stepButtons.forEach((b,i)=>{b.classList.toggle("selected",i===selected);b.setAttribute("aria-current",i===selected?"step":"false");});
     stepButtons[selected]?.scrollIntoView({block:"nearest",behavior:"auto"});

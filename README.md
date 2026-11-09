@@ -11,7 +11,7 @@ Browser-based Sushi Station preparation and Combo Meter optimizer for Legends of
 - Simulate Heat of the East Wind and search using greedy, beam, staircase-recycling, and tactical repositioning strategies.
 - Deliberately reuse descending staircases across scoring passes. Search several spare-sushi Wind-tail lengths and test one-tile tactical repositioning before merges on irregular boards. The replay distinguishes zero-point relocations from merges.
 - Enter action times to estimate combo-time feasibility. **Only merges reset the combo timer** in the timing estimate.
-- Inspect the full board after each merge or relocation and compare predicted scores with observed gameplay.
+- Follow each merge or relocation in a larger replay board with highlighted actions, dimmed inactive tiles, and a staggered East Wind animation.
 
 ## Verified model regression
 
