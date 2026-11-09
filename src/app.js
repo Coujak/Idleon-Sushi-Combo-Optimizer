@@ -59,25 +59,29 @@ $("parseJson").addEventListener("click",()=>{try{importSave(JSON.parse($("jsonIn
 $("jsonFile").addEventListener("change",async e=>{const f=e.target.files?.[0];if(!f)return;try{importSave(JSON.parse(await f.text()),f.name);}catch(err){error(err);}});
 $("clearImport").addEventListener("click",()=>{imported=null;$("solver").classList.add("hidden");$("jsonInput").value="";$("jsonFile").value="";$("board").replaceChildren();$("fireplaces").replaceChildren();$("importSummary").classList.add("hidden");$("pasteArea").classList.add("hidden");$("pasteToggle").setAttribute("aria-expanded","false");$("importStatus").textContent="Waiting for data";$("importStatus").classList.remove("success");$("boardStatus").textContent="Import a save";$("boardDetails").textContent="Your imported tiles will appear here.";$("jsonPreview").textContent="No JSON imported yet.";});
 
-/* Experimental combo search. These are explicit assumptions, NOT verified game logic. */
-// User-observed Heat model: exactly one immediate-right upgrade per qualifying merge.
-// All indices are physical board slots; Heat never jumps over a locked slot or row edge.
-function simulateMerge(board,src,dst,cap,chainLimit,mode="adjacent"){
+/* Experimental scoring: sum resulting tiers, including each Heat upgrade.
+   Gameplay rules: merge source tier <=58 triggers a descending domino chain,
+   across row boundaries, up to 25 upgrades. */
+function simulateMerge(board,src,dst,cap,chainLimit){
   if(src===dst||board[src]<1||board[src]!==board[dst]||board[src]>=64)return null;
   const next=board.slice(),before=next[dst];
   next[src]=0;next[dst]=before+1;
-  let score=next[dst],events=[{at:dst,tier:next[dst],kind:"merge"}];
-  // Only the destination and its immediate right neighbor may change.
-  // Heat cannot propagate recursively or wrap to the next row.
-  const q=dst+1;
-  if(chainLimit>0&&q<next.length&&q%COLUMNS!==0&&before<=cap&&next[q]>0&&next[q]<64){
-    next[q]++;
-    score+=next[q];
-    events.push({at:q,tier:next[q],kind:"wind"});
+  let score=next[dst];
+  const events=[{at:dst,tier:next[dst],kind:"merge"}];
+  if(before<=cap){
+    let previous=before;
+    for(let q=dst+1;q<next.length&&events.length-1<chainLimit;q++){
+      const tier=next[q];
+      if(tier<1||tier>=64||tier!==previous-1)break;
+      next[q]=tier+1;
+      score+=next[q];
+      events.push({at:q,tier:next[q],kind:"wind"});
+      previous=tier;
+    }
   }
   return {board:next,score,events,src,dst};
 }
-function buildCandidates(positions,maxTier,cap){
+function buildCandidates(positions,maxTier,cap,selectedBase=0){
   const result=[],occupied=new Set(positions),blocked=positions.filter(p=>p>=0);
   const fixed=blocked[blocked.length-1];
   const add=(name,base,shape)=>{
@@ -87,7 +91,7 @@ function buildCandidates(positions,maxTier,cap){
     if(shape==="staircase"){
       // User's 40k board: descending staircase in physical board order,
       // then base-tier sushi. Do not overwrite the permanent Tier 64.
-      const length=Math.min(cap-base,usable.length-2);
+      const length=Math.min(cap-base+1,usable.length-2);
       for(let i=0;i<length;i++)board[usable[i]]=cap-i;
     }else if(shape==="paired"){
       for(let i=0;i<usable.length;i++)board[usable[i]]=Math.max(base,cap-Math.floor((i%30)/2));
@@ -97,7 +101,7 @@ function buildCandidates(positions,maxTier,cap){
     if(fixed!==undefined&&maxTier>=64)board[fixed]=64;
     result.push({name,board,base,shape});
   };
-  for(let base=Math.max(1,cap-33);base<=Math.min(cap-1,maxTier);base++){
+  for(let base=Math.max(1,selectedBase||cap-33);base<=Math.min(cap-1,maxTier,selectedBase||64);base++){
     add("Tier "+base+" → "+cap+" staircase",base,"staircase");
     add("Tier "+base+" paired ramp",base,"paired");
     add("Tier "+base+" uniform",base,"uniform");
@@ -108,7 +112,7 @@ function searchCombos(start,cap,chainLimit,beamWidth,depth,mode="adjacent"){
   // Multiple deterministic policies reduce the chance of one greedy dead-end.
   let best=null;
   for(let policy=0;policy<4;policy++){
-    let board=start.slice(),score=0,moves=[],streak=0;
+    let board=start.slice(),score=0,moves=[];
     for(let step=0;step<depth;step++){
       const byTier=new Map();
       board.forEach((tier,i)=>{if(tier>0&&tier<64){if(!byTier.has(tier))byTier.set(tier,[]);byTier.get(tier).push(i);}});
@@ -120,10 +124,10 @@ function searchCombos(start,cap,chainLimit,beamWidth,depth,mode="adjacent"){
           const sources=indices.filter(i=>i!==dst);
           sources.sort((a,b)=>Math.abs(a-dst)-Math.abs(b-dst));
           for(const src of sources.slice(0,Math.min(4,sources.length))){
-            const move=simulateMerge(board,src,dst,cap,streak>=chainLimit?0:1,mode);
+            const move=simulateMerge(board,src,dst,cap,chainLimit);
             if(!move)continue;
             const wind=move.events.length-1;
-            const continues=east<120&&east%COLUMNS!==0&&move.board[east]===move.board[dst]&&move.board[dst]<64;
+            const continues=east<120&&move.board[east]===move.board[dst]&&move.board[dst]<64;
             const pairs=new Map();
             move.board.forEach(t=>{if(t>0&&t<64)pairs.set(t,(pairs.get(t)||0)+1);});
             const remainingPairs=[...pairs.values()].reduce((sum,n)=>sum+Math.floor(n/2),0);
@@ -136,16 +140,16 @@ function searchCombos(start,cap,chainLimit,beamWidth,depth,mode="adjacent"){
       }
       if(!chosen)break;
       board=chosen.board;score+=chosen.score;moves.push(chosen);
-      streak=chosen.events.length>1?streak+1:0;
+
     }
     const result={board,score,moves,remaining:board.filter(t=>t>0).length};
     if(!best||result.score>best.score||(result.score===best.score&&result.remaining<best.remaining))best=result;
   }
   return best;
 }
-function optimizePreparation(positions,maxTier,cap,chainLimit,mode){
+function optimizePreparation(positions,maxTier,cap,chainLimit,mode,selectedBase){
   let best=null;
-  const candidates=buildCandidates(positions,maxTier,cap);
+  const candidates=buildCandidates(positions,maxTier,cap,selectedBase);
   for(const candidate of candidates){
     const search=searchCombos(candidate.board,cap,chainLimit,4,positions.length-1,mode);
     if(!best||search.score>best.search.score||(search.score===best.search.score&&search.remaining<best.search.remaining))best={...candidate,search};
@@ -171,8 +175,10 @@ function showSolver(){
   const positions=slots.map((v,i)=>v>=0?i:-1).filter(i=>i>=0);
   if(positions.length<2){$("solverNote").textContent="At least two unlocked slots are required.";$("solverSteps").replaceChildren();return;}
   $("solverNote").textContent="Searching prepared tier layouts…";
-  const mode="adjacent";
-  const solution=optimizePreparation(positions,maxTier,cap,chain,mode);
+  const mode="descending domino";
+  const selectedBase=Number($("baseTier").value)||0;
+  const solution=optimizePreparation(positions,maxTier,cap,chain,mode,selectedBase);
+  if(!solution||!solution.search)throw Error("No valid preparations for these tier settings.");
   const result=solution.search;
   const timeout=Math.max(.1,Number($("comboTimeout").value)||5.5);
   const moveTime=Math.max(.1,Number($("mergeTime").value)||1.5);
