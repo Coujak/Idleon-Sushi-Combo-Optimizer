@@ -324,3 +324,17 @@ details summary{cursor:pointer;font-size:12px;font-weight:700;color:#9eb7c9}
   .merge-layout .merge-board .tile.wind-active{animation:none}
   .merge-layout .merge-board .tile.dim-tile{transition:none}
 }
+
+/* v1.7.2: Sushi Station-inspired flat plate colors, sampled from gameplay. */
+.board{
+  background:#17271c;
+  border-color:#324b37;
+}
+.board .tile.slot-0{background:#1e3121;border-color:#35513b}
+.board .tile.slot-1{background:#6a1421;border-color:#94372f}
+.board .tile.slot-2{background:#092f68;border-color:#21619c}
+.board .tile.slot-3{background:#684a27;border-color:#967026}
+.board .tile:not(.locked){background-image:none}
+.board .tile:not(.locked):before{display:none}
+.board .tile.empty{opacity:1}
+.board .tile.perfecto{border-color:#e8c56c}
