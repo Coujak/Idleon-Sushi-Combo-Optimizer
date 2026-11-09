@@ -19,8 +19,8 @@ test("noncontiguous positions preserve the same number of sushi and one Tier 64"
   for(const candidate of candidates){
     assert.equal(candidate.board[8],64);
     assert.equal(candidate.board.filter(t=>t===64).length,1);
-    assert.equal(candidate.board.filter(t=>t>0).length,positions.length-1);
-    for(let i=0;i<120;i++)if(i>=100||!positions.includes(i))assert.equal(candidate.board[i],0);
+    assert.equal(candidate.board.filter(t=>t>0).length,positions.length);
+    for(let i=0;i<120;i++)if(!positions.includes(i))assert.equal(candidate.board[i],0);
   }
 });
 test("no permanent Tier 64 is invented below Tier 64",()=>{
@@ -39,4 +39,16 @@ test("an imported Tier 64 remains protected when recommended preparation max is 
     assert.equal(candidate.board.filter(t=>t===64).length,1);
     assert.ok(candidate.board.slice(1).every(t=>t<=60));
   }
+});
+test("the 8th row is available, but no layout may unlock more than 100 slots",()=>{
+  const lower=Array.from({length:100},(_,i)=>i+20);
+  const candidates=buildCandidates(lower,64,58);
+  assert.ok(candidates.length>0);
+  for(const candidate of candidates){
+    assert.equal(candidate.board[20],64);
+    assert.equal(candidate.board.filter(t=>t>0).length,100);
+    assert.deepEqual(candidate.board.slice(0,20),Array(20).fill(0));
+  }
+  const impossible=Array.from({length:101},(_,i)=>i);
+  assert.equal(buildCandidates(impossible,64,58).length,0);
 });

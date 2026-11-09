@@ -25,14 +25,15 @@ test("100-slot layered preparation remains legal and replayable",()=>{
   assert.equal(replay.merges,89);
   assert.equal(replay.repositions,0);
 });
-test("layered preparation adapts to an offset within 100 playable slots",()=>{
+test("layered preparation supports slots in the bottom row",()=>{
   const {positions}=layout(90);
-  const shifted=positions.map(i=>i+10);
+  const shifted=positions.map(i=>i+30);
   const candidate=buildLayeredCandidates(shifted,64,58,25,true)[0];
   assert.ok(candidate);
-  assert.equal(candidate.board[10],64);
+  assert.equal(candidate.board[30],64);
   assert.equal(candidate.board.filter(t=>t>0).length,90);
   assert.equal(candidate.board.filter(t=>t===64).length,1);
+  assert.ok(candidate.board[119]>0);
 });
 test("layered preparation skips locked gaps or incompatible upgrades",()=>{
   const {positions}=layout(100);

@@ -6,11 +6,11 @@ Browser-based Sushi Station preparation and Combo Meter optimizer for Legends of
 
 ## Features
 - Load Idleon Toolbox JSON locally (your save is processed in your browser).
-- Reconstruct a 15-column Sushi Station board with at most 100 playable positions, plate types, fireplaces and Perfecto indicators.
+- Reconstruct the complete **8×15 board (120 positions)**, supporting **up to 100 unlocked slots in any positions**, with plate types, fireplaces and Perfecto indicators.
 - Compare prepared layouts; edit individual sushi tiers using the custom board editor.
 - Choose **Default** for the established preparations, or **Experimental** to additionally try layered Wind reserves on compatible automatic boards. The optimizer can be cancelled while searching.
 - Optimizer settings are editable: enter any starting base tier, override the suggested Wind tier limit, and customize chain and timing settings within game-supported ranges.
-- Recommended preparations preserve a single permanent Tier 64 (when unlocked or present in the imported save) at the first unlocked position; imported and custom boards keep their own positions.
+- Recommended preparations preserve a single permanent Tier 64 (when unlocked or present in the imported save) at the first unlocked position; imported and custom boards keep their own positions, including bottom-row slots.
 - Simulate Heat of the East Wind and search using greedy, beam, staircase-recycling, and tactical repositioning strategies.
 - Deliberately reuse descending staircases across scoring passes. Search several spare-sushi Wind-tail lengths and test one-tile tactical repositioning before merges on irregular boards. The replay distinguishes zero-point relocations from merges.
 - Enter action times to estimate combo-time feasibility. **Only merges reset the combo timer** in the timing estimate.
@@ -30,9 +30,12 @@ The 7,069 sequence adds 9+10+…+33 = **525** points from the same spare sushi. 
 
 ## Legal 100-slot full-upgrade benchmark
 
-There are **100 playable Sushi Station positions**; the final five cells of
-the seven-row display are inaccessible. Old 105-slot simulations are invalid
-as gameplay benchmarks, including the previously reported **53,481** score.
+There are **120 physical grid positions (8 rows × 15 columns)** but only
+**100 unlockable slots**. The unlocked slots may be at the top, bottom, or
+split across rows. The original 105-unlocked-slot simulations remain invalid,
+including the previously reported **53,481** score. Positions 101–120 are
+valid when those slots are unlocked in the imported save or when plates are
+rearranged into a valid layout.
 
 Under the existing East Wind simulator (tier limit 58; chain limit 25),
 Experimental offers a replay-tested 100-slot preparation reaching **51,608

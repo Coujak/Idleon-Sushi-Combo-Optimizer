@@ -1,9 +1,9 @@
-// Candidate board layouts for the 100 playable Sushi Station slots.
+// Candidate board layouts for up to 100 unlocked slots among 120 grid positions.
 // Imported game boards are not modified; this only prepares recommendations.
 export function buildCandidates(positions,maxTier,cap,selectedBase=0,chainLimit=25,protectTier64=maxTier>=64){
   const result=[];
-  const ordered=[...new Set(positions.filter(i=>Number.isInteger(i)&&i>=0&&i<100))].sort((a,b)=>a-b);
-  if(ordered.length<2)return result;
+  const ordered=[...new Set(positions.filter(i=>Number.isInteger(i)&&i>=0&&i<120))].sort((a,b)=>a-b);
+  if(ordered.length<2||ordered.length>100)return result;
   // Tier 64 is a permanent sushi, not an ordinary mergeable ingredient.
   // Anchor exactly one at the first unlocked position in automatic preparations.
   const protectedPosition=protectTier64?ordered[0]:undefined;

@@ -4,10 +4,10 @@
 // No game save or existing sushi board is modified by this generator.
 export function buildLayeredCandidates(positions,maxTier,cap,chainLimit,protectTier64=true){
   if(!protectTier64||maxTier<64||chainLimit!==25||cap<36)return [];
-  const sorted=[...new Set(positions.filter(p=>Number.isInteger(p)&&p>=0&&p<100))]
+  const sorted=[...new Set(positions.filter(p=>Number.isInteger(p)&&p>=0&&p<120))]
     .sort((a,b)=>a-b);
   // Wind moves in board order: a locked gap would break this layout.
-  if(sorted.length<90||sorted.some((p,i)=>i&&p!==sorted[i-1]+1))return [];
+  if(sorted.length<90||sorted.length>100||sorted.some((p,i)=>i&&p!==sorted[i-1]+1))return [];
   const base=cap-27,peak=cap-1;
   if(base<3||peak>63||peak<=base||peak>maxTier)return [];
   const board=Array(120).fill(0);
