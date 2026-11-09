@@ -164,6 +164,56 @@ function buildCandidates(positions,maxTier,cap,selectedBase=0){
   }
   return result;
 }
+// Keep several alternative merge orders alive instead of committing to one
+// greedy policy. Only evaluate this more expensive search on the best preparation.
+function beamSearchCombos(start,cap,chainLimit,depth,baseline,width=12,branchLimit=12){
+  const key=b=>b.join(",");
+  const pairCount=b=>{
+    const counts=new Uint8Array(65);
+    for(const t of b)if(t>0&&t<64)counts[t]++;
+    let pairs=0;for(let t=1;t<64;t++)pairs+=Math.floor(counts[t]/2);
+    return pairs;
+  };
+  let best=baseline;
+  let frontier=[{board:start,score:0,moves:[],remaining:start.filter(t=>t>0).length}];
+  for(let step=0;step<depth&&frontier.length;step++){
+    const next=new Map();
+    for(const state of frontier){
+      const groups=new Map();
+      state.board.forEach((t,i)=>{if(t>0&&t<64){if(!groups.has(t))groups.set(t,[]);groups.get(t).push(i);}});
+      const choices=[];
+      for(const [tier,positions] of groups){
+        if(positions.length<2)continue;
+        for(const dst of positions){
+          for(const src of positions){
+            if(src===dst)continue;
+            const move=simulateMerge(state.board,src,dst,cap,chainLimit);
+            if(!move)continue;
+            const future=pairCount(move.board);
+            const wind=move.events.length-1;
+            const continuation=dst+1<120&&move.board[dst]===move.board[dst+1];
+            // Score is primary; future pairs and retained staircase potential break ties.
+            const priority=move.score+wind*3+future*3+(continuation?40:0);
+            choices.push({move,priority});
+          }
+        }
+      }
+      choices.sort((a,b)=>b.priority-a.priority);
+      for(const {move} of choices.slice(0,branchLimit)){
+        const score=state.score+move.score;
+        const candidate={board:move.board,score,moves:[...state.moves,move],remaining:state.remaining-1};
+        if(score>best.score||(score===best.score&&candidate.remaining<best.remaining)){
+          best={...candidate,strategy:"Beam search (multi-step)",strategiesTested:baseline.strategiesTested};
+        }
+        const id=key(move.board);
+        const previous=next.get(id);
+        if(!previous||score>previous.score)next.set(id,candidate);
+      }
+    }
+    frontier=[...next.values()].sort((a,b)=>(b.score+pairCount(b.board)*8)-(a.score+pairCount(a.board)*8)).slice(0,width);
+  }
+  return best;
+}
 function searchCombos(start,cap,chainLimit,beamWidth,depth,mode="adjacent"){
   // Multiple deterministic policies reduce the chance of one greedy dead-end.
   let best=null;
@@ -321,7 +371,8 @@ async function showSolver(){
   if(custom){
     const board=getCustomBoard().slice();
     if(board.filter(v=>v>0).length<2)throw Error("Place at least two sushi on the custom board.");
-    const search=searchCombos(board,cap,chain,4,board.filter(v=>v>0).length-1,mode);
+    const greedy=searchCombos(board,cap,chain,4,board.filter(v=>v>0).length-1,mode);
+    const search=beamSearchCombos(board,cap,chain,board.filter(v=>v>0).length-1,greedy);
     solution={board,slots,layoutName:"Current positions",base:"custom",shape:"user-defined",name:"Custom board",search,testedCandidates:1};
     progress(1);
   }else{
@@ -333,6 +384,9 @@ async function showSolver(){
       await new Promise(resolve=>setTimeout(resolve,0));
     }
     solution={...solution,testedCandidates:candidates.length};
+    $("solverNote").textContent="Refining best preparation with multi-step search…";
+    await new Promise(resolve=>setTimeout(resolve,0));
+    solution.search=beamSearchCombos(solution.board,cap,chain,solution.board.filter(v=>v>0).length-1,solution.search);
   }
   if(!solution||!solution.search)throw Error("No valid preparations for these tier settings.");
   const result=solution.search;
