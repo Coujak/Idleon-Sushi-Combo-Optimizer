@@ -276,7 +276,7 @@ function showSolver(){
   $("timingDetails").textContent="Estimated execution: "+timing.totalDuration.toFixed(1)+"s · Per-merge margin: "+(timing.minimumMargin===null?"—":timing.minimumMargin.toFixed(1)+"s")+" · Assumes timer refreshes after each manual merge.";
   $("solverScore").textContent=result.score.toLocaleString();
   $("solverMoves").textContent=result.moves.length;
-  $("solverNote").textContent=(custom?"Custom board · best of 4 merge policies. ":"Best of "+solution.testedCandidates+" preparations (base Tier "+solution.base+", "+solution.shape+"). ")+result.remaining+" occupied sushi remain. Heat model: "+mode+". Scores are experimental and NOT verified in-game; this heuristic does not guarantee the highest possible score.";
+  $("solverNote").textContent=(custom?"Custom board · best of 5 merge policies. ":"Best of "+solution.testedCandidates+" preparations (base Tier "+solution.base+", "+solution.shape+"). ")+result.remaining+" occupied sushi remain. Heat model: "+mode+". Scores are experimental and NOT verified in-game; this heuristic does not guarantee the highest possible score.";
   const root=$("solverSteps");root.replaceChildren();
   function make(label,values,showTiers){
     const h=document.createElement("h3");h.textContent=label;root.append(h);
