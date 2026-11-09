@@ -41,3 +41,15 @@ test("Experimental 2.0 adds a new candidate without altering existing modes",()=
   assert.ok(defaults.every(c=>c.name!=="Experimental 2.0 · Multi-wave Wind"));
   assert.ok(oldExperimental.every(c=>c.name!=="Experimental 2.0 · Multi-wave Wind"));
 });
+test("Experimental 3.0 keeps previous modes intact",()=>{
+  const defaults=getModeCandidates(positions,64,58,0,25,true,"default");
+  const older=getModeCandidates(positions,64,58,0,25,true,"experimental");
+  const second=getModeCandidates(positions,64,58,0,25,true,"experimental2");
+  const third=getModeCandidates(positions,64,58,0,25,true,"experimental3");
+  assert.equal(third.length,second.length+1);
+  assert.deepEqual(third.slice(0,second.length),second);
+  assert.equal(third.at(-1).name,"Experimental 3.0 · Layered multi-wave Wind");
+  for(const group of [defaults,older,second]){
+    assert.ok(group.every(candidate=>candidate.name!=="Experimental 3.0 · Layered multi-wave Wind"));
+  }
+});
