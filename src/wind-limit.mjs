@@ -11,3 +11,13 @@ export function clampWindTier(value,preparedTier){
   if(!Number.isFinite(n))return 0;
   return Math.max(0,Math.min(upper,Math.trunc(n)));
 }
+
+// Follow the updated Wind ceiling if the player was using the previous
+// ceiling; otherwise preserve their deliberately lower selection.
+export function windTierAfterPreparedChange(currentWind,previousPreparedTier,nextPreparedTier){
+  const oldMax=windTierMaximum(previousPreparedTier);
+  const newMax=windTierMaximum(nextPreparedTier);
+  const current=Number(currentWind);
+  if(!Number.isFinite(current))return 0;
+  return Math.trunc(current)===oldMax?newMax:clampWindTier(currentWind,nextPreparedTier);
+}

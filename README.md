@@ -9,7 +9,7 @@ Browser-based Sushi Station preparation and Combo Meter optimizer for Legends of
 - Reconstruct the complete **8×15 board (120 positions)**, supporting **up to 100 unlocked slots in any positions**, with plate types, fireplaces and Perfecto indicators.
 - Compare prepared layouts; edit individual sushi tiers using the custom board editor.
 - Choose **Balanced Planner** (Default) or one of twelve named Experimental strategies, from **Wind Foundations** to **Wind Foresight**. The interface labels their estimated manual execution difficulty and simulated benchmark. Original strategy IDs and algorithms remain unchanged.
-- **Maximum prepared tier has no fixed 64-tier ceiling**: enter 65, 100, or higher. Wind can scale to the chosen maximum minus six, and merges above Tier 64 are supported in the model. Tiers lacking sprite artwork still show their numbers. Other timing and tier settings remain configurable.
+- **Maximum prepared tier has no fixed 64-tier ceiling**: enter 65, 100, or higher for future-update simulation. Wind automatically follows **prepared tier − 6** when already maxed (e.g., 64 → 58, 66 → 60), but lower manual Wind selections are preserved. Tiers above the available art assets appear as numbers.
 - Recommended preparations preserve the configured highest tier at the first unlocked position (Tier 64 for historical benchmarks, higher when configured). Imported and custom boards keep their own positions, including bottom-row slots.
 - Simulate Heat of the East Wind and search using greedy, beam, staircase-recycling, and tactical repositioning strategies.
 - Replay combo sequences at **0.5×**, 0.75×, 1× (default), 1.5×, 2×, or 3× speed; the Wind animation timing scales with playback speed.
@@ -71,7 +71,7 @@ Tests cover prior benchmarks, full multi-wave replay, Wind limits, legal relocat
 ## Notes
 - The displayed highest sushi on the imported board is a **fallback**, not proof of the account's actual highest unlocked tier. If you unlocked a higher sushi tier, set *Maximum prepared tier* manually so the Wind cap (highest tier minus six) is accurate.
 - Cancellation takes effect at the next search checkpoint (after an in-progress synchronous candidate or refinement stage).
-- Experimental benchmark records were validated at Tier 64 with Wind cap 58; higher-tier model predictions remain hypothetical until checked in-game.
+- **Research stays fixed at maximum Tier 64, Wind cap 58, chain length 25, and 100 unlocked slots.** All current benchmark records and future record attempts use these settings. Higher tier scenarios are hypothetical previews of possible future sushi updates, not new record claims.
 - The optimizer is a bounded search and does **not** guarantee a globally optimal score. Tactical search considers at most one relocation before each merge and uses a limited beam/depth on the best preparation; deeper strategies may be missed.
 - The timing estimate does not model animation delays, network lag or player precision.
 - Local JSON imports are never sent to a server by the site.

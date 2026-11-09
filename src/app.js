@@ -9,7 +9,7 @@ import {searchCombos} from "./merge-search.mjs?v=1.9.9";
 import {MODE_CATALOG,getModeInfo,modeOptionLabel,modeDisplayLabel} from "./mode-catalog.mjs?v=1.9.8";
 const $=id=>document.getElementById(id);
 import {BOARD_COLUMNS,BOARD_CELLS,normalizeBoardData,layoutOptions} from "./board-geometry.mjs?v=1.8.4";
-import {windTierMaximum,clampWindTier} from "./wind-limit.mjs?v=1.9.9";
+import {windTierMaximum,clampWindTier,windTierAfterPreparedChange} from "./wind-limit.mjs?v=1.9.10";
 const COLUMNS=BOARD_COLUMNS;
 let imported=null;
 let customBoard=null;
@@ -36,25 +36,38 @@ function detectSushiProgress(save){
   const highest=highestOnBoard;
   return {highest,highestOnBoard,source:"Highest sushi found on board (fallback)",windCap:Math.max(0,highest-6)};
 }
-function syncWindTierLimit({normalize=false}={}){
+let previousPreparedTierForWind=Number($("seedTier").value);
+function syncWindTierLimit({normalize=false,followMaximum=false}={}){
   const tierField=$("seedTier"),windField=$("windCap");
   const preparedTier=Number(tierField.value);
-  const normalizedTier=Number.isSafeInteger(preparedTier)&&preparedTier>=1?preparedTier:64;
-  $("manualBaseTier").max=String(normalizedTier);
-  $("paintTier").max=String(normalizedTier);
+  // Keep the previous maximum through transient blank or invalid input.
+  if(tierField.value===""||!Number.isSafeInteger(preparedTier)||preparedTier<1){
+    $("windCapHint").textContent="Enter a positive prepared tier to calculate the Wind limit.";
+    return;
+  }
+  $("manualBaseTier").max=String(preparedTier);
+  $("paintTier").max=String(preparedTier);
   const allowed=windTierMaximum(preparedTier);
   windField.max=String(allowed);
   $("windCapHint").textContent="Maximum: "+allowed+" (prepared tier − 6)";
   windField.title="Choose any Wind tier from 0 to "+allowed+".";
-  if(normalize||windField.value!==""&&Number(windField.value)>allowed){
+  if(followMaximum&&windField.value!==""){
+    windField.value=String(windTierAfterPreparedChange(
+      windField.value,previousPreparedTierForWind,preparedTier));
+  }else if(normalize||windField.value!==""&&Number(windField.value)>allowed){
     windField.value=String(clampWindTier(windField.value,preparedTier));
   }
+  previousPreparedTierForWind=preparedTier;
 }
-$("seedTier").addEventListener("input",()=>syncWindTierLimit());
+$("seedTier").addEventListener("input",()=>{
+  syncWindTierLimit({followMaximum:true});
+  updateOptimizerModeHint();
+});
 $("seedTier").addEventListener("change",()=>{
   const raw=Number($("seedTier").value);
   $("seedTier").value=String(Number.isSafeInteger(raw)&&raw>=1?raw:64);
-  syncWindTierLimit({normalize:true});
+  syncWindTierLimit({normalize:true,followMaximum:true});
+  updateOptimizerModeHint();
 });
 $("windCap").addEventListener("input",()=>{
   const field=$("windCap");
@@ -576,8 +589,12 @@ function updateOptimizerModeHint(){
  const difficulty=$("optimizerDifficulty");
  difficulty.textContent=info.difficulty;
  difficulty.className="mode-difficulty mode-difficulty-"+info.difficulty.toLowerCase();
- $("optimizerModeBenchmark").textContent=info.benchmark===null?"Flexible setups":info.benchmark.toLocaleString()+" simulated pts";
- $("optimizerModeHint").textContent=info.summary;
+ const preview=Number($("seedTier").value)>64;
+ $("optimizerModeBenchmark").textContent=info.benchmark===null?
+  (preview?"Future-tier preview":"Flexible setups"):
+  (preview?"Tier 64 benchmark: ":"")+info.benchmark.toLocaleString()+" simulated pts";
+ $("optimizerModeHint").textContent=info.summary+(preview?
+  " Higher tiers are hypothetical future-update previews. All record research remains at Tier 64, Wind cap 58, chain 25 and 100 unlocked slots.":"");
  for(const row of $("modeComparisonRows").rows)row.classList.toggle("is-selected",row.dataset.mode===info.id);
 }
 initModePicker();

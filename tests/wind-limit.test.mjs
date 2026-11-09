@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import {windTierMaximum,clampWindTier} from "../src/wind-limit.mjs";
+import {windTierMaximum,clampWindTier,windTierAfterPreparedChange} from "../src/wind-limit.mjs";
 
 test("Wind tier cannot exceed highest prepared tier minus six",()=>{
   assert.equal(windTierMaximum(64),58);
@@ -26,4 +26,18 @@ test("Input is clamped to integers and invalid limits cannot grow the cap",()=>{
   assert.equal(windTierMaximum(100),94);
   assert.equal(windTierMaximum(1000),994);
   assert.equal(clampWindTier(150,100),94);
+});
+
+test("Wind follows an old maximum when prepared tier increases",()=>{
+ assert.equal(windTierAfterPreparedChange(58,64,66),60);
+ assert.equal(windTierAfterPreparedChange(60,66,67),61);
+ assert.equal(windTierAfterPreparedChange(58,64,100),94);
+ assert.equal(windTierAfterPreparedChange(59,65,100),94);
+});
+test("Lower manually chosen Wind settings are retained or clamped",()=>{
+ assert.equal(windTierAfterPreparedChange(32,64,66),32);
+ assert.equal(windTierAfterPreparedChange(32,66,100),32);
+ assert.equal(windTierAfterPreparedChange(55,66,50),44);
+ assert.equal(windTierAfterPreparedChange(58,64,50),44);
+ assert.equal(windTierAfterPreparedChange(0,64,66),0);
 });
