@@ -105,3 +105,12 @@ test("Experimental 9.0 adds a record without changing older mode candidates",()=
   assert.ok(getModeCandidates(positions,64,58,0,25,true,"default")
     .every(candidate=>candidate.name!==latest.at(-1).name));
 });
+test("Experimental 10.0 includes all previous layouts plus a new verified preparation",()=>{
+  const prior=getModeCandidates(positions,64,58,0,25,true,"experimental9");
+  const latest=getModeCandidates(positions,64,58,0,25,true,"experimental10");
+  assert.equal(latest.length,prior.length+1);
+  assert.deepEqual(latest.slice(0,prior.length),prior);
+  assert.equal(latest.at(-1).name,"Experimental 10.0 · Extended high-tier Wind waves");
+  assert.ok(getModeCandidates(positions,64,58,0,25,true,"default")
+    .every(candidate=>candidate.name!==latest.at(-1).name));
+});
