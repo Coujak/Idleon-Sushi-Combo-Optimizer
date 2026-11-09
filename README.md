@@ -8,8 +8,8 @@ Browser-based Sushi Station preparation and Combo Meter optimizer for Legends of
 - Load Idleon Toolbox JSON locally (your save is processed in your browser).
 - Reconstruct a 15-column Sushi Station board, plate types, fireplaces and Perfecto indicators.
 - Compare prepared layouts; edit individual sushi tiers using the custom board editor.
-- Simulate Heat of the East Wind and search using greedy, beam, and staircase-recycling strategies.
-- Deliberately reuse descending staircases across scoring passes. The replay includes zero-point relocations of sushi between unlocked slots and distinguishes them from merges.
+- Simulate Heat of the East Wind and search using greedy, beam, staircase-recycling, and tactical repositioning strategies.
+- Deliberately reuse descending staircases across scoring passes. Search several spare-sushi Wind-tail lengths and test one-tile tactical repositioning before merges on irregular boards. The replay distinguishes zero-point relocations from merges.
 - Enter action times to estimate combo-time feasibility. **Only merges reset the combo timer** in the timing estimate.
 - Inspect the full board after each merge or relocation and compare predicted scores with observed gameplay.
 
@@ -31,10 +31,10 @@ The 7,069 sequence adds 9+10+…+33 = **525** points from the same spare sushi. 
 node --test tests/optimizer-core.test.mjs
 ```
 
-Tests cover the full 50-merge score progression, extra Wind-target upgrade, Wind limit, replay consistency and legal relocation.
+Tests cover the full 50-merge score progression, extra Wind-target upgrade, Wind limit, higher-tier target rejection, replay consistency, locked-slot checks, and a crafted board where tactical repositioning improves the score.
 
 ## Notes
 - The displayed highest sushi on the imported board is a **fallback**, not proof of the account's actual highest unlocked tier. If you unlocked a higher sushi tier, set *Maximum prepared tier* manually so the Wind cap (highest tier minus six) is accurate.
-- The optimizer is a bounded search and does **not** guarantee a globally optimal score.
+- The optimizer is a bounded search and does **not** guarantee a globally optimal score. Tactical search considers at most one relocation before each merge and uses a limited beam/depth on the best preparation; deeper strategies may be missed.
 - The timing estimate does not model animation delays, network lag or player precision.
 - Local JSON imports are never sent to a server by the site.
