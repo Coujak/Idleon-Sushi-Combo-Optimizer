@@ -15,10 +15,8 @@ function detectSushiProgress(save){
   // Sushi[0] stores tier IDs on the board (zero-based). Do not mistake
   // upgrade levels or knowledge EXP arrays for unlocked-tier flags.
   const highestOnBoard=Math.max(0,...save.tiles.filter(n=>Number.isInteger(n)&&n>=0).map(n=>n+1));
-  const explicit=[save.sushiHighestUnlockedTier,save.highestUnlockedSushiTier,save.maxUnlockedSushiTier]
-    .find(n=>Number.isInteger(n)&&n>=highestOnBoard&&n<=64);
-  const highest=explicit??highestOnBoard;
-  return {highest,highestOnBoard,source:explicit?"Explicit unlocked-tier field":"Highest sushi found on board (fallback)",windCap:Math.max(0,highest-6)};
+  const highest=highestOnBoard;
+  return {highest,highestOnBoard,source:"Highest sushi found on board (fallback)",windCap:Math.max(0,highest-6)};
 }
 function applyImportedLimits(){
   if(!imported)return;
@@ -26,8 +24,6 @@ function applyImportedLimits(){
   if(progress.highest<1){$("seedTier").value="";$("windCap").value="";return;}
   $("seedTier").value=String(progress.highest);
   $("windCap").value=String(progress.windCap);
-  $("seedTier").max=String(progress.highest);
-  $("windCap").max=String(progress.windCap);
   $("seedTier").title=progress.source;
   $("windCap").title="Highest unlocked sushi tier minus 6";
 }
@@ -161,7 +157,7 @@ function buildCandidates(positions,maxTier,cap,selectedBase=0){
     if(fixed!==undefined&&maxTier>=64)board[fixed]=64;
     result.push({name,board,base,shape});
   };
-  for(let base=Math.max(1,selectedBase||Math.max(1,cap-33));base<=Math.min(maxTier,selectedBase||maxTier);base++){
+  for(let base=Math.max(1,selectedBase||Math.max(1,maxTier-33));base<=Math.min(maxTier,selectedBase||maxTier);base++){
     add("Tier "+base+" → "+cap+" staircase",base,"staircase");
     add("Tier "+base+" paired ramp",base,"paired");
     add("Tier "+base+" uniform",base,"uniform");
