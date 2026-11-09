@@ -2,6 +2,8 @@ import {simulateMerge,validateComboReplay,searchStaircaseCombos} from "./optimiz
 import {searchTacticalCombos} from "./tactical-search.mjs?v=1.7.0";
 import {createReplayController} from "./replay-controller.mjs?v=1.7.4";
 import {buildCandidates} from "./preparation-core.mjs?v=1.7.5";
+import {buildLayeredCandidates} from "./layered-preparation.mjs?v=1.8.0";
+import {searchCombos} from "./merge-search.mjs?v=1.8.0";
 const $=id=>document.getElementById(id);
 const COLUMNS=15;
 let imported=null;
@@ -171,52 +173,6 @@ function beamSearchCombos(start,cap,chainLimit,depth,baseline,width=12,branchLim
   }
   return best;
 }
-function searchCombos(start,cap,chainLimit,beamWidth,depth,mode="adjacent"){
-  // Multiple deterministic policies reduce the chance of one greedy dead-end.
-  let best=null;
-  const strategies=["East Wind chains","Low-tier setup","Immediate points","Preserve future pairs","Right-to-left staircase","Long-chain setup","High-tier merges","Compact merges"];
-  for(let policy=0;policy<strategies.length;policy++){
-    let board=start.slice(),score=0,moves=[];
-    for(let step=0;step<depth;step++){
-      const byTier=new Map();
-      board.forEach((tier,i)=>{if(tier>0&&tier<64){if(!byTier.has(tier))byTier.set(tier,[]);byTier.get(tier).push(i);}});
-      let chosen=null,rank=-Infinity;
-      for(const [tier,indices] of byTier){
-        if(indices.length<2)continue;
-        for(const dst of indices){
-          const east=dst+1;
-          const sources=indices.filter(i=>i!==dst);
-          sources.sort((a,b)=>Math.abs(a-dst)-Math.abs(b-dst));
-          for(const src of sources.slice(0,Math.min(4,sources.length))){
-            const move=simulateMerge(board,src,dst,cap,chainLimit);
-            if(!move)continue;
-            const wind=move.events.length-1;
-            const continues=east<120&&move.board[east]===move.board[dst]&&move.board[dst]<64;
-            const pairs=new Map();
-            move.board.forEach(t=>{if(t>0&&t<64)pairs.set(t,(pairs.get(t)||0)+1);});
-            const remainingPairs=[...pairs.values()].reduce((sum,n)=>sum+Math.floor(n/2),0);
-            const rightToLeft=src>dst;
-            const staircaseContinuation=rightToLeft&&tier<cap&&board.some((t,i)=>i<dst&&t===tier+1);
-            const r=(policy===4?(rightToLeft?7000:-1000)+(staircaseContinuation?2500:0)-tier*75+move.score*.1:
-              policy===5?wind*1000+(continues?2500:0)+(rightToLeft&&staircaseContinuation?2200:0)-tier*15:
-              policy===6?move.score*8+tier*12+wind*90:
-              policy===7?remainingPairs*75-Math.abs(src-dst)*25+wind*80:
-              (continues?3000:0)+wind*(policy===0?350:policy===1?150:500)+
-              (src===dst-1?400:0)+(policy===2?move.score*5:policy===3?remainingPairs*20:0)+
-              (policy===1?-tier:0)-Math.abs(src-dst)*.1);
-            if(r>rank){rank=r;chosen=move;}
-          }
-        }
-      }
-      if(!chosen)break;
-      board=chosen.board;score+=chosen.score;moves.push(chosen);
-
-    }
-    const result={board,score,moves,remaining:board.filter(t=>t>0).length,strategy:strategies[policy],strategiesTested:strategies.length};
-    if(!best||result.score>best.score||(result.score===best.score&&result.remaining<best.remaining))best=result;
-  }
-  return best;
-}
 function optimizePreparation(positions,maxTier,cap,chainLimit,mode,selectedBase){
   let best=null;
   const candidates=buildCandidates(positions,maxTier,cap,selectedBase);
@@ -321,7 +277,13 @@ async function showSolver(){
   const arrangements=custom?[{name:"Current positions",slots}]:layoutOptions(slots);
   const candidates=custom?null:arrangements.flatMap(layout=>{
     const layoutPositions=layout.slots.map((v,i)=>v>=0?i:-1).filter(i=>i>=0);
-    return buildCandidates(layoutPositions,maxTier,cap,selectedBase,chain,protectTier64).map(candidate=>({...candidate,slots:layout.slots,layoutName:layout.name}));
+    const prepared=buildCandidates(layoutPositions,maxTier,cap,selectedBase,chain,protectTier64);
+    // The additional multi-wave preparation is available for full-upgrade
+    // boards when the selected base tier is Auto or matches its own base.
+    if(!selectedBase||selectedBase===cap-27){
+      prepared.push(...buildLayeredCandidates(layoutPositions,maxTier,cap,chain,protectTier64));
+    }
+    return prepared.map(candidate=>({...candidate,slots:layout.slots,layoutName:layout.name}));
   });
   const total=custom?1:candidates.length;
   if(total<1)throw Error("No valid preparations for these tier settings.");

@@ -8,6 +8,7 @@ Browser-based Sushi Station preparation and Combo Meter optimizer for Legends of
 - Load Idleon Toolbox JSON locally (your save is processed in your browser).
 - Reconstruct a 15-column Sushi Station board, plate types, fireplaces and Perfecto indicators.
 - Compare prepared layouts; edit individual sushi tiers using the custom board editor.
+- On full-upgrade, contiguous boards, try a layered reserve preparation that builds several Wind-scoring waves rather than using a uniform reserve.
 - Recommended preparations preserve a single permanent Tier 64 (when unlocked or present in the imported save) at the first unlocked position; imported and custom boards keep their own positions.
 - Simulate Heat of the East Wind and search using greedy, beam, staircase-recycling, and tactical repositioning strategies.
 - Deliberately reuse descending staircases across scoring passes. Search several spare-sushi Wind-tail lengths and test one-tile tactical repositioning before merges on irregular boards. The replay distinguishes zero-point relocations from merges.
@@ -26,13 +27,27 @@ The test suite reconstructs the tier layout implied by the user's 52-step video 
 
 The 7,069 sequence adds 9+10+…+33 = **525** points from the same spare sushi. The exact board reconstruction and predicted improvement remain **simulation-derived**, not independently validated against a 7,069-point in-game run.
 
+## New 105-slot full-upgrade benchmark
+
+A layered starting board with one protected Tier 64, a descending Tier 57–32
+staircase, and several blocks of Tier 32/31/30/29 reserves reaches **53,481
+simulated Combo Meter points** over 89 merges and zero combo-time relocations
+under the existing East Wind simulator (activation tier 58, maximum 25 Wind
+upgrades per merge). This beats the previously reported **48,305** baseline
+by **5,176 points (+10.7%)**.
+
+The full sequence is replay-validated in the test suite. It has **not been
+independently verified in-game**. The planner remains heuristic, not a proof
+of the absolute maximum. Other plate counts or special-slot layouts may lead
+to different scores.
+
 ## Run tests
 
 ```sh
-node --test tests/optimizer-core.test.mjs
+node --test tests/*.test.mjs
 ```
 
-Tests cover the full 50-merge score progression, extra Wind-target upgrade, Wind limit, higher-tier target rejection, replay consistency, locked-slot checks, and a crafted board where tactical repositioning improves the score.
+Tests cover prior benchmarks, full multi-wave replay, Wind limits, legal relocation, and autoplay control behavior.
 
 ## Notes
 - The displayed highest sushi on the imported board is a **fallback**, not proof of the account's actual highest unlocked tier. If you unlocked a higher sushi tier, set *Maximum prepared tier* manually so the Wind cap (highest tier minus six) is accurate.
