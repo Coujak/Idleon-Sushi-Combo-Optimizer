@@ -102,6 +102,24 @@ function simulateMerge(board,src,dst,cap,chainLimit){
   }
   return {board:next,score,events,src,dst};
 }
+function layoutOptions(slots){
+  const current=slots.slice(0,120);
+  const types=current.filter(v=>v>=0);
+  const count=types.length;
+  const layouts=[{name:"Current positions",slots:current}];
+  const options=[
+    {name:"Left-packed",positions:Array.from({length:count},(_,i)=>i)},
+    {name:"Right-packed",positions:Array.from({length:count},(_,i)=>120-count+i)},
+    {name:"Centered",positions:Array.from({length:count},(_,i)=>Math.floor((120-count)/2)+i)}
+  ];
+  for(const option of options){
+    const arranged=Array(120).fill(-1);
+    // Preserve the exact number of each unlocked plate type.
+    option.positions.forEach((p,i)=>{arranged[p]=types[i];});
+    if(!layouts.some(l=>l.slots.every((v,i)=>v===arranged[i])))layouts.push({name:option.name,slots:arranged});
+  }
+  return layouts;
+}
 function buildCandidates(positions,maxTier,cap,selectedBase=0){
   const result=[],occupied=new Set(positions),blocked=positions.filter(p=>p>=0);
   const fixed=blocked[blocked.length-1];
@@ -264,7 +282,11 @@ async function showSolver(){
   const mode="descending domino";
   const custom=$("baseTier").value==="custom";
   const selectedBase=custom?0:(Number($("baseTier").value)||0);
-  const candidates=custom?null:buildCandidates(positions,maxTier,cap,selectedBase);
+  const arrangements=custom?[{name:"Current positions",slots}]:layoutOptions(slots);
+  const candidates=custom?null:arrangements.flatMap(layout=>{
+    const layoutPositions=layout.slots.map((v,i)=>v>=0?i:-1).filter(i=>i>=0);
+    return buildCandidates(layoutPositions,maxTier,cap,selectedBase).map(candidate=>({...candidate,slots:layout.slots,layoutName:layout.name}));
+  });
   const total=custom?1:candidates.length;
   if(total<1)throw Error("No valid preparations for these tier settings.");
   let solution=null;
@@ -281,7 +303,7 @@ async function showSolver(){
     const board=getCustomBoard().slice();
     if(board.filter(v=>v>0).length<2)throw Error("Place at least two sushi on the custom board.");
     const search=searchCombos(board,cap,chain,4,board.filter(v=>v>0).length-1,mode);
-    solution={board,base:"custom",shape:"user-defined",name:"Custom board",search,testedCandidates:1};
+    solution={board,slots,layoutName:"Current positions",base:"custom",shape:"user-defined",name:"Custom board",search,testedCandidates:1};
     progress(1);
   }else{
     for(let i=0;i<candidates.length;i++){
@@ -304,16 +326,23 @@ async function showSolver(){
   $("solverScore").textContent=result.score.toLocaleString();
   $("solverMoves").textContent=result.moves.length;
   $("solverNote").textContent=(custom?"Custom board · compared "+result.strategiesTested+" merge strategies. ":"Best of "+solution.testedCandidates+" preparations (base Tier "+solution.base+", "+solution.shape+"). ")+result.remaining+" occupied sushi remain. Heat model: "+mode+". Scores are estimates based on the current game model; the search picks the best tested strategy, not a guaranteed global maximum.";
-  $("solverNote").textContent+=" Winning strategy: "+result.strategy+".";
+  $("solverNote").textContent+=" Winning strategy: "+result.strategy+". Slot arrangement: "+(solution.layoutName??"Current positions")+".";
   const root=$("solverSteps");root.replaceChildren();
+  const recommendedSlots=solution.slots??slots;
+  const movedFrom=slots.filter((v,i)=>v>=0&&recommendedSlots[i]<0).length;
+  const changedTypes=slots.filter((v,i)=>v>=0&&recommendedSlots[i]>=0&&v!==recommendedSlots[i]).length;
+  const layoutInfo=document.createElement("p");layoutInfo.className="hint";
+  layoutInfo.textContent="Slot arrangement: "+(solution.layoutName??"Current positions")+". "+movedFrom+" slots need a new position; "+changedTypes+" positions change plate type. Keep all owned plate types. Empty the sushi from any slot before moving it. This is a combo-score comparison, not a Bucks/EXP production forecast.";
+  root.append(layoutInfo);
   function make(label,values,showTiers){
-    const h=document.createElement("h3");h.textContent=label;if(label.startsWith("1 · Slot layout"))h.id="optimizerSlotLayout";root.append(h);
+    const h=document.createElement("h3");h.textContent=label;if(label.startsWith("1 ·"))h.id="optimizerSlotLayout";root.append(h);
     const legend=document.createElement("p");legend.className="hint";legend.textContent="Green: Regular · Red: Hot · Blue: Cold · Gold: Milktoast. Hover over a tile for its slot type and position.";root.append(legend);
     const scroll=document.createElement("div");scroll.className="board-scroll optimizer-board-scroll";
     const grid=document.createElement("div");grid.className="board optimizer-board";
-    const last=slots.findLastIndex(v=>v>=0);
+    const displaySlots=label.startsWith("1 ·")?recommendedSlots:recommendedSlots;
+    const last=displaySlots.findLastIndex(v=>v>=0);
     for(let i=0;i<=last;i++){
-      const slot=slots[i]??-1,tier=values[i]??0;
+      const slot=displaySlots[i]??-1,tier=values[i]??0;
       const cell=document.createElement("div");
       cell.className="tile"+(slot>=0?" slot-"+slot:" locked")+(showTiers&&tier<1?" empty":"");
       if(slot>=0&&showTiers&&tier>0){addSushiVisual(cell,tier);}
@@ -323,7 +352,7 @@ async function showSolver(){
     }
     scroll.append(grid);root.append(scroll);
   }
-  make("1 · Slot layout (existing positions; equivalent under current combo rules)",[],false);
+  make("1 · Recommended slot layout ("+(solution.layoutName??"current")+")",[],false);
   make(custom?"2 · Your custom starting board":"2 · Recommended prepared sushi tiers (not your current inventory)",solution.board,true);
   const heading=document.createElement("h3");heading.textContent="3 · Interactive merge sequence";root.append(heading);
   const intro=document.createElement("p");intro.className="hint";intro.textContent="Select a step on the right to see the board after that merge. Blue = consumed source, green = destination, purple = Heat of the East Wind upgrades. Step 0 is the prepared board.";root.append(intro);
