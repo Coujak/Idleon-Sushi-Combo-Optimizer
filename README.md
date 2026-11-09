@@ -8,7 +8,7 @@ Browser-based Sushi Station preparation and Combo Meter optimizer for Legends of
 - Load Idleon Toolbox JSON locally (your save is processed in your browser).
 - Reconstruct the complete **8×15 board (120 positions)**, supporting **up to 100 unlocked slots in any positions**, with plate types, fireplaces and Perfecto indicators.
 - Compare prepared layouts; edit individual sushi tiers using the custom board editor.
-- Choose **Balanced Planner** (Default) or one of twelve named Experimental strategies, from **Wind Foundations** to **Wind Foresight**. The interface labels their estimated manual execution difficulty and simulated benchmark. Original strategy IDs and algorithms remain unchanged.
+- Choose **Balanced Planner** (Default) or one of thirteen named Experimental strategies, from **Wind Foundations** to **Cascade Resonance**. The interface labels their estimated manual execution difficulty and simulated benchmark. Original strategy IDs and algorithms remain unchanged.
 - **Maximum prepared tier has no fixed 64-tier ceiling**: enter 65, 100, or higher for future-update simulation. Wind automatically follows **prepared tier − 6** when already maxed (e.g., 64 → 58, 66 → 60), but lower manual Wind selections are preserved. Tiers above the available art assets appear as numbers.
 - Recommended preparations preserve the configured highest tier at the first unlocked position (Tier 64 for historical benchmarks, higher when configured). Imported and custom boards keep their own positions, including bottom-row slots.
 - Simulate Heat of the East Wind and search using greedy, beam, staircase-recycling, and tactical repositioning strategies.
@@ -54,8 +54,9 @@ For all benchmarks: 100 contiguous unlocked slots, tier 64, Wind cap 58, chain l
 | Exp 10.0 | High-Tier Tempest | Grandmaster | 73,367 |
 | Exp 11.0 | Perfect Storm | Grandmaster | 75,047 |
 | Exp 12.0 | Wind Foresight | Grandmaster | 75,546 |
+| Exp 13.0 | Cascade Resonance | Grandmaster | 76,532 |
 
-Newer modes retain all earlier candidate preparations. The current 75,546-point record is replay-validated in the simulator, not in-game confirmed; 80,000 remains the research goal.
+Newer modes retain all earlier candidate preparations. The current 76,532-point record is replay-validated in the simulator, not in-game confirmed; 80,000 remains the research goal.
 
 This is a heuristic result, not a proven maximum or independently verified
 in-game achievement. Default mode remains the established strategy.

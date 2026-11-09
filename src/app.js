@@ -2,11 +2,11 @@ import {simulateMerge,validateComboReplay,searchStaircaseCombos} from "./optimiz
 import {searchTacticalCombos} from "./tactical-search.mjs?v=1.9.9";
 import {createReplayController} from "./replay-controller.mjs?v=1.7.4";
 import {buildCandidates} from "./preparation-core.mjs?v=1.9.9";
-import {getModeCandidates} from "./optimizer-modes.mjs?v=1.9.9";
+import {getModeCandidates} from "./optimizer-modes.mjs?v=1.9.11";
 import {searchLookaheadCombos} from "./lookahead-search.mjs?v=1.9.9";
 import {throwIfCancelled,yieldToUI} from "./optimizer-run.mjs?v=1.8.1";
 import {searchCombos} from "./merge-search.mjs?v=1.9.9";
-import {MODE_CATALOG,getModeInfo,modeOptionLabel,modeDisplayLabel} from "./mode-catalog.mjs?v=1.9.8";
+import {MODE_CATALOG,getModeInfo,modeOptionLabel,modeDisplayLabel} from "./mode-catalog.mjs?v=1.9.11";
 const $=id=>document.getElementById(id);
 import {BOARD_COLUMNS,BOARD_CELLS,normalizeBoardData,layoutOptions} from "./board-geometry.mjs?v=1.8.4";
 import {windTierMaximum,clampWindTier,windTierAfterPreparedChange} from "./wind-limit.mjs?v=1.9.10";
@@ -377,7 +377,7 @@ async function showSolver(signal){
     await yieldToUI(signal);
     solution.search=searchTacticalCombos(solution.board,cap,chain,solution.slots,solution.search,{depth:12,width:12,branchLimit:16,maximumTier:maxTier});
     await yieldToUI(signal);
-    if(optimizerMode==="experimental12"){
+    if(optimizerMode==="experimental12"||optimizerMode==="experimental13"){
       $("optimizerProgressText").textContent="Exploring deeper merge orders…";
       await yieldToUI(signal);
       solution.search=searchLookaheadCombos(solution.board,cap,chain,solution.search,

@@ -132,3 +132,12 @@ test("Experimental 12.0 retains all previous preparations and adds the lookahead
   assert.ok(getModeCandidates(positions,64,58,0,25,true,"default")
     .every(candidate=>candidate.name!==current.at(-1).name));
 });
+test("Experimental 13.0 preserves all previous modes and adds its new board",()=>{
+ const previous=getModeCandidates(positions,64,58,0,25,true,"experimental12");
+ const latest=getModeCandidates(positions,64,58,0,25,true,"experimental13");
+ assert.equal(latest.length,previous.length+1);
+ assert.deepEqual(latest.slice(0,previous.length),previous);
+ assert.equal(latest.at(-1).name,"Experimental 13.0 · Cascade Resonance");
+ assert.ok(getModeCandidates(positions,100,94,0,25,true,"experimental13")
+   .every(candidate=>candidate.name!==latest.at(-1).name));
+});

@@ -105,6 +105,14 @@ export const MODE_CATALOG=Object.freeze([
     "difficulty": "Grandmaster",
     "benchmark": 75546,
     "summary": "Uses bounded merge-order lookahead to preserve better future cascades."
+  },
+  {
+    "id": "experimental13",
+    "number": 13,
+    "name": "Cascade Resonance",
+    "difficulty": "Grandmaster",
+    "benchmark": 76532,
+    "summary": "Rebalances high-tier reserve sushi for stronger repeated Wind cascades; verified under Tier 64 settings."
   }
 ]);
 export function getModeInfo(id){return MODE_CATALOG.find(m=>m.id===id)??MODE_CATALOG[0];}
