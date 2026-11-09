@@ -302,7 +302,7 @@ async function showSolver(){
   $("solverNote").textContent=(custom?"Custom board · best of 5 merge policies. ":"Best of "+solution.testedCandidates+" preparations (base Tier "+solution.base+", "+solution.shape+"). ")+result.remaining+" occupied sushi remain. Heat model: "+mode+". Scores are experimental and NOT verified in-game; this heuristic does not guarantee the highest possible score.";
   const root=$("solverSteps");root.replaceChildren();
   function make(label,values,showTiers){
-    const h=document.createElement("h3");h.textContent=label;root.append(h);
+    const h=document.createElement("h3");h.textContent=label;if(label.startsWith("1 · Slot layout"))h.id="optimizerSlotLayout";root.append(h);
     const legend=document.createElement("p");legend.className="hint";legend.textContent="Green: Regular · Red: Hot · Blue: Cold · Gold: Milktoast. Hover over a tile for its slot type and position.";root.append(legend);
     const scroll=document.createElement("div");scroll.className="board-scroll optimizer-board-scroll";
     const grid=document.createElement("div");grid.className="board optimizer-board";
@@ -327,8 +327,9 @@ async function showSolver(){
   const controls=document.createElement("div");controls.className="merge-controls";
   const previous=document.createElement("button");previous.className="button secondary";previous.textContent="← Previous";
   const next=document.createElement("button");next.className="button secondary";next.textContent="Next →";
+  const first=document.createElement("button");first.type="button";first.className="button quiet";first.textContent="↺ Step 1";first.title="Return to the first merge";
   const indicator=document.createElement("strong");indicator.setAttribute("aria-live","polite");
-  controls.append(previous,indicator,next);left.append(controls);
+  controls.append(previous,first,indicator,next);left.append(controls);
   const boardScroll=document.createElement("div");boardScroll.className="board-scroll optimizer-board-scroll";
   const boardGrid=document.createElement("div");boardGrid.className="board optimizer-board merge-board";
   boardScroll.append(boardGrid);left.append(boardScroll);
@@ -386,6 +387,7 @@ async function showSolver(){
       "+"+m.score+" points · Total "+cumulative[i+1]+" · "+m.events.filter(e=>e.kind==="wind").length+" wind upgrades · "+(timing.events[i].safe?"Timing OK":"Timeout risk"),i+1);
   });
   previous.addEventListener("click",()=>displayStep(selected-1));
+  first.addEventListener("click",()=>displayStep(Math.min(1,result.moves.length)));
   next.addEventListener("click",()=>displayStep(selected+1));
   displayStep(0);
 }
@@ -402,6 +404,10 @@ $("runSolver").addEventListener("click",async()=>{
     await showSolver();
     $("solverResults").classList.remove("hidden");
     $("optimizerProgressText").textContent="Complete · Results ready";
+    requestAnimationFrame(()=>{
+      const target=$("optimizerSlotLayout");
+      if(target)target.scrollIntoView({behavior:window.matchMedia("(prefers-reduced-motion: reduce)").matches?"auto":"smooth",block:"start"});
+    });
   }catch(e){
     $("solverNote").textContent="Optimizer error: "+String(e.message??e);
     $("optimizerProgressText").textContent="Optimization failed";
