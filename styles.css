@@ -262,3 +262,7 @@ details summary{cursor:pointer;font-size:12px;font-weight:700;color:#9eb7c9}
 .optimizer-board .tile{aspect-ratio:1 / 1;min-height:0}
 .custom-board .custom-tile{aspect-ratio:1 / 1;min-height:0}
 .merge-layout .merge-board .tile{aspect-ratio:1 / 1;min-height:0}
+
+/* v1.4.5 — crisp, sharp corners for all sushi slots. */
+.board .tile,.custom-board .custom-tile,.merge-layout .merge-board .tile{border-radius:0}
+.board .tile:before{border-radius:0}
