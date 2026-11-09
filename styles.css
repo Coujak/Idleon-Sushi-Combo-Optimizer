@@ -256,3 +256,9 @@ details summary{cursor:pointer;font-size:12px;font-weight:700;color:#9eb7c9}
 .merge-board .tile.merge-wind{outline:2px solid #e3a5ff;outline-offset:-2px;box-shadow:0 0 0 1px #e3a5ff88}
 @media(max-width:760px){.board{gap:4px;padding:7px}.merge-layout .merge-board{gap:2px;padding:5px}}
 @media(prefers-reduced-motion:reduce){.tile{transition:none}.tile:not(.empty):not(.locked):hover{transform:none}}
+
+/* v1.4.4 — every unlocked sushi slot is a true square. */
+.board .tile{aspect-ratio:1 / 1;min-height:0;height:auto;min-width:0}
+.optimizer-board .tile{aspect-ratio:1 / 1;min-height:0}
+.custom-board .custom-tile{aspect-ratio:1 / 1;min-height:0}
+.merge-layout .merge-board .tile{aspect-ratio:1 / 1;min-height:0}
