@@ -69,3 +69,12 @@ test("Experimental 5.0 includes older candidates plus one verified 60,572-point 
  assert.ok(getModeCandidates(positions,64,58,0,25,true,"default")
    .every(candidate=>candidate.name!==newest.at(-1).name));
 });
+test("Experimental 6.0 retains all earlier candidates and adds one new layout",()=>{
+  const old=getModeCandidates(positions,64,58,0,25,true,"experimental5");
+  const newest=getModeCandidates(positions,64,58,0,25,true,"experimental6");
+  assert.equal(newest.length,old.length+1);
+  assert.deepEqual(newest.slice(0,old.length),old);
+  assert.equal(newest.at(-1).name,"Experimental 6.0 · Extended third Wind wave");
+  assert.ok(getModeCandidates(positions,64,58,0,25,true,"default")
+    .every(candidate=>candidate.name!==newest.at(-1).name));
+});
