@@ -2,7 +2,8 @@ import {simulateMerge,validateComboReplay,searchStaircaseCombos} from "./optimiz
 import {searchTacticalCombos} from "./tactical-search.mjs?v=1.7.0";
 import {createReplayController} from "./replay-controller.mjs?v=1.7.4";
 import {buildCandidates} from "./preparation-core.mjs?v=1.7.5";
-import {getModeCandidates} from "./optimizer-modes.mjs?v=1.9.5";
+import {getModeCandidates} from "./optimizer-modes.mjs?v=1.9.6";
+import {searchLookaheadCombos} from "./lookahead-search.mjs?v=1.9.6";
 import {throwIfCancelled,yieldToUI} from "./optimizer-run.mjs?v=1.8.1";
 import {searchCombos} from "./merge-search.mjs?v=1.8.0";
 const $=id=>document.getElementById(id);
@@ -290,8 +291,8 @@ async function showSolver(signal){
   if(positions.length<2){$("solverNote").textContent="At least two unlocked slots are required.";$("solverSteps").replaceChildren();return;}
   $("solverNote").textContent="Searching prepared tier layouts…";
   const mode="descending domino";
-  const optimizerMode=["default","experimental","experimental2","experimental3","experimental4","experimental5","experimental6","experimental7","experimental8","experimental9","experimental10","experimental11"].includes($("optimizerMode").value)?$("optimizerMode").value:"default";
-  const optimizerModeLabel=optimizerMode==="experimental11"?"Experimental 11.0":optimizerMode==="experimental10"?"Experimental 10.0":optimizerMode==="experimental9"?"Experimental 9.0":optimizerMode==="experimental8"?"Experimental 8.0":optimizerMode==="experimental7"?"Experimental 7.0":optimizerMode==="experimental6"?"Experimental 6.0":optimizerMode==="experimental5"?"Experimental 5.0":optimizerMode==="experimental4"?"Experimental 4.0":optimizerMode==="experimental3"?"Experimental 3.0":optimizerMode==="experimental2"?"Experimental 2.0":optimizerMode==="experimental"?"Experimental 1.0":"Default";
+  const optimizerMode=["default","experimental","experimental2","experimental3","experimental4","experimental5","experimental6","experimental7","experimental8","experimental9","experimental10","experimental11","experimental12"].includes($("optimizerMode").value)?$("optimizerMode").value:"default";
+  const optimizerModeLabel=optimizerMode==="experimental12"?"Experimental 12.0":optimizerMode==="experimental11"?"Experimental 11.0":optimizerMode==="experimental10"?"Experimental 10.0":optimizerMode==="experimental9"?"Experimental 9.0":optimizerMode==="experimental8"?"Experimental 8.0":optimizerMode==="experimental7"?"Experimental 7.0":optimizerMode==="experimental6"?"Experimental 6.0":optimizerMode==="experimental5"?"Experimental 5.0":optimizerMode==="experimental4"?"Experimental 4.0":optimizerMode==="experimental3"?"Experimental 3.0":optimizerMode==="experimental2"?"Experimental 2.0":optimizerMode==="experimental"?"Experimental 1.0":"Default";
   const custom=$("baseTier").value==="custom";
   const selectedBase=custom?0:($("baseTier").value==="manual"?Math.min(maxTier,Math.max(1,Math.round(Number($("manualBaseTier").value)||1))):(Number($("baseTier").value)||0));
   // A Tier 64 from the save stays permanent even if the prepared-tier setting is lowered.
@@ -347,6 +348,13 @@ async function showSolver(signal){
     await yieldToUI(signal);
     solution.search=searchTacticalCombos(solution.board,cap,chain,solution.slots,solution.search,{depth:12,width:12,branchLimit:16});
     await yieldToUI(signal);
+    if(optimizerMode==="experimental12"){
+      $("optimizerProgressText").textContent="Exploring deeper merge orders…";
+      await yieldToUI(signal);
+      solution.search=searchLookaheadCombos(solution.board,cap,chain,solution.search,
+        {maxPasses:3,maxBranches:18,maxEvaluations:3500});
+      await yieldToUI(signal);
+    }
   }
   throwIfCancelled(signal);
   if(!solution||!solution.search)throw Error("No valid preparations for these tier settings.");
@@ -535,7 +543,9 @@ async function showSolver(signal){
 }
 function updateOptimizerModeHint(){
   const mode=$("optimizerMode").value;
-  $("optimizerModeHint").textContent=mode==="experimental11"
+  $("optimizerModeHint").textContent=mode==="experimental12"
+    ?"Experimental 12.0 adds bounded merge-order lookahead; its benchmark is 75,546 replay-validated simulated points."
+    :mode==="experimental11"
     ?"Experimental 11.0 includes a replay-validated 75,047-point simulated combo on compatible full-upgrade 100-slot boards."
     :mode==="experimental10"
     ?"Experimental 10.0 adds a replay-validated 73,367-point simulated preparation on compatible full-upgrade 100-slot boards."

@@ -123,3 +123,12 @@ test("Experimental 11.0 retains all earlier layouts and adds the 75K preparation
   assert.ok(getModeCandidates(positions,64,58,0,25,true,"default")
     .every(candidate=>candidate.name!==latest.at(-1).name));
 });
+test("Experimental 12.0 retains all previous preparations and adds the lookahead board",()=>{
+  const previous=getModeCandidates(positions,64,58,0,25,true,"experimental11");
+  const current=getModeCandidates(positions,64,58,0,25,true,"experimental12");
+  assert.equal(current.length,previous.length+1);
+  assert.deepEqual(current.slice(0,previous.length),previous);
+  assert.equal(current.at(-1).name,"Experimental 12.0 · Lookahead Wind chains");
+  assert.ok(getModeCandidates(positions,64,58,0,25,true,"default")
+    .every(candidate=>candidate.name!==current.at(-1).name));
+});
