@@ -6,6 +6,7 @@ import {getModeCandidates} from "./optimizer-modes.mjs?v=1.9.6";
 import {searchLookaheadCombos} from "./lookahead-search.mjs?v=1.9.6";
 import {throwIfCancelled,yieldToUI} from "./optimizer-run.mjs?v=1.8.1";
 import {searchCombos} from "./merge-search.mjs?v=1.8.0";
+import {MODE_CATALOG,getModeInfo,modeOptionLabel,modeDisplayLabel} from "./mode-catalog.mjs?v=1.9.8";
 const $=id=>document.getElementById(id);
 import {BOARD_COLUMNS,BOARD_CELLS,normalizeBoardData,layoutOptions} from "./board-geometry.mjs?v=1.8.4";
 import {windTierMaximum,clampWindTier} from "./wind-limit.mjs?v=1.8.5";
@@ -291,8 +292,8 @@ async function showSolver(signal){
   if(positions.length<2){$("solverNote").textContent="At least two unlocked slots are required.";$("solverSteps").replaceChildren();return;}
   $("solverNote").textContent="Searching prepared tier layouts…";
   const mode="descending domino";
-  const optimizerMode=["default","experimental","experimental2","experimental3","experimental4","experimental5","experimental6","experimental7","experimental8","experimental9","experimental10","experimental11","experimental12"].includes($("optimizerMode").value)?$("optimizerMode").value:"default";
-  const optimizerModeLabel=optimizerMode==="experimental12"?"Experimental 12.0":optimizerMode==="experimental11"?"Experimental 11.0":optimizerMode==="experimental10"?"Experimental 10.0":optimizerMode==="experimental9"?"Experimental 9.0":optimizerMode==="experimental8"?"Experimental 8.0":optimizerMode==="experimental7"?"Experimental 7.0":optimizerMode==="experimental6"?"Experimental 6.0":optimizerMode==="experimental5"?"Experimental 5.0":optimizerMode==="experimental4"?"Experimental 4.0":optimizerMode==="experimental3"?"Experimental 3.0":optimizerMode==="experimental2"?"Experimental 2.0":optimizerMode==="experimental"?"Experimental 1.0":"Default";
+   const optimizerMode=getModeInfo($("optimizerMode").value).id;
+   const optimizerModeLabel=modeDisplayLabel(getModeInfo(optimizerMode));
   const custom=$("baseTier").value==="custom";
   const selectedBase=custom?0:($("baseTier").value==="manual"?Math.min(maxTier,Math.max(1,Math.round(Number($("manualBaseTier").value)||1))):(Number($("baseTier").value)||0));
   // A Tier 64 from the save stays permanent even if the prepared-tier setting is lowered.
@@ -541,34 +542,30 @@ async function showSolver(signal){
   showPlaybackState(false);
   displayStep(0);
 }
-function updateOptimizerModeHint(){
-  const mode=$("optimizerMode").value;
-  $("optimizerModeHint").textContent=mode==="experimental12"
-    ?"Experimental 12.0 adds bounded merge-order lookahead; its benchmark is 75,546 replay-validated simulated points."
-    :mode==="experimental11"
-    ?"Experimental 11.0 includes a replay-validated 75,047-point simulated combo on compatible full-upgrade 100-slot boards."
-    :mode==="experimental10"
-    ?"Experimental 10.0 adds a replay-validated 73,367-point simulated preparation on compatible full-upgrade 100-slot boards."
-    :mode==="experimental9"
-    ?"Experimental 9.0 adds a 70,071-point replay-validated simulated board for compatible 100-slot, full-upgrade setups."
-    :mode==="experimental8"
-    ?"Experimental 8.0 adds a replay-validated 68,415-point simulated layout for compatible 100-slot full-upgrade boards."
-    :mode==="experimental7"
-    ?"Experimental 7.0 reaches 65,542 simulated points on a compatible 100-slot full-upgrade layout, with a validated 85-merge replay."
-    :mode==="experimental6"
-    ?"Experimental 6.0 adds a 64,017-point simulated preparation, replay-validated on 100 contiguous full-upgrade slots."
-    :mode==="experimental5"
-    ?"Experimental 5.0 includes a 60,572-point replay-validated simulated layout for compatible full-upgrade 100-slot boards."
-    :mode==="experimental4"
-    ?"Experimental 4.0 adds a 58,684-point replay-validated simulated layout for compatible full-upgrade boards."
-    :mode==="experimental3"
-    ?"Experimental 3.0 adds a 57,328-point simulated preparation for compatible 100-slot full-upgrade boards, alongside earlier strategies."
-    :mode==="experimental2"
-    ?"Experimental 2.0 adds a 56,315-point simulated preparation for compatible 100-slot full-upgrade boards. The other strategies remain available."
-    :mode==="experimental"
-      ?"Experimental 1.0 adds layered Wind reserves and the earlier 51,608-point simulated setup."
-      :"Default uses the original board preparations and merge strategies.";
+function initModePicker(){
+ const selector=$("optimizerMode"),old=selector.value,rows=$("modeComparisonRows");
+ selector.replaceChildren();rows.replaceChildren();
+ for(const mode of MODE_CATALOG){
+  const option=document.createElement("option");option.value=mode.id;option.textContent=modeOptionLabel(mode);selector.append(option);
+  const row=document.createElement("tr");row.dataset.mode=mode.id;
+  for(const value of [modeDisplayLabel(mode),mode.difficulty,mode.benchmark===null?"—":mode.benchmark.toLocaleString()]){
+   const cell=document.createElement("td");cell.textContent=value;row.append(cell);
+  }
+  rows.append(row);
+ }
+ selector.value=MODE_CATALOG.some(mode=>mode.id===old)?old:"default";
 }
+function updateOptimizerModeHint(){
+ const info=getModeInfo($("optimizerMode").value);
+ $("optimizerModeName").textContent=modeDisplayLabel(info);
+ const difficulty=$("optimizerDifficulty");
+ difficulty.textContent=info.difficulty;
+ difficulty.className="mode-difficulty mode-difficulty-"+info.difficulty.toLowerCase();
+ $("optimizerModeBenchmark").textContent=info.benchmark===null?"Flexible setups":info.benchmark.toLocaleString()+" simulated pts";
+ $("optimizerModeHint").textContent=info.summary;
+ for(const row of $("modeComparisonRows").rows)row.classList.toggle("is-selected",row.dataset.mode===info.id);
+}
+initModePicker();
 $("optimizerMode").addEventListener("change",updateOptimizerModeHint);
 updateOptimizerModeHint();
 $("cancelSolver").addEventListener("click",()=>{

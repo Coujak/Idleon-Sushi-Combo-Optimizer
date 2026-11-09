@@ -8,7 +8,7 @@ Browser-based Sushi Station preparation and Combo Meter optimizer for Legends of
 - Load Idleon Toolbox JSON locally (your save is processed in your browser).
 - Reconstruct the complete **8×15 board (120 positions)**, supporting **up to 100 unlocked slots in any positions**, with plate types, fireplaces and Perfecto indicators.
 - Compare prepared layouts; edit individual sushi tiers using the custom board editor.
-- Choose **Default** for established preparations, or **Experimental 1.0**, **2.0**, **3.0**, **4.0**, **5.0**, **6.0**, **7.0**, **8.0**, **9.0**, **10.0**, **11.0**, and **12.0** for progressively newer layered Wind layouts. You can cancel an active search.
+- Choose **Balanced Planner** (Default) or one of twelve named Experimental strategies, from **Wind Foundations** to **Wind Foresight**. The interface labels their estimated manual execution difficulty and simulated benchmark. Original strategy IDs and algorithms remain unchanged.
 - Optimizer settings are editable: enter any starting base tier, lower the Wind tier limit (never above maximum prepared tier minus 6), and customize chain and timing settings within game-supported ranges.
 - Recommended preparations preserve a single permanent Tier 64 (when unlocked or present in the imported save) at the first unlocked position; imported and custom boards keep their own positions, including bottom-row slots.
 - Simulate Heat of the East Wind and search using greedy, beam, staircase-recycling, and tactical repositioning strategies.
@@ -38,33 +38,24 @@ including the previously reported **53,481** score. Positions 101–120 are
 valid when those slots are unlocked in the imported save or when plates are
 rearranged into a valid layout.
 
-Under the existing East Wind simulator (tier limit 58; chain limit 25),
-Experimental offers a replay-tested 100-slot preparation reaching **51,608
-simulated Combo Meter points** in 89 merges and zero mid-combo relocations,
-with one permanent Tier 64 and 99 other sushi. This beats the earlier
-reported **48,305** baseline by **3,303 points (+6.8%)**.
+For all benchmarks: 100 contiguous unlocked slots, tier 64, Wind cap 58, chain limit 25. Difficulty is a subjective estimate of manual preparation and replay complexity, not an official game rating or optimizer runtime.
 
-Experimental 2.0 adds a **56,315-point simulated benchmark** with 88 merges, 1,373 Wind upgrades, and no mid-combo relocations. The exact 100-sushi preparation and replay are covered by regression tests. It requires a contiguous 100-slot full-upgrade setup (Tier 64, Wind limit 58, chain limit 25).
+| Mode | Strategy name | Difficulty | Simulated points |
+| --- | --- | --- | ---: |
+| Exp 1.0 | Wind Foundations | Advanced | 51,608 |
+| Exp 2.0 | Reserve Tides | Advanced | 56,315 |
+| Exp 3.0 | Layered Currents | Advanced | 57,328 |
+| Exp 4.0 | Long Cascade | Expert | 58,684 |
+| Exp 5.0 | Deep Reserves | Expert | 60,572 |
+| Exp 6.0 | Third-Wave Engine | Expert | 64,017 |
+| Exp 7.0 | Low-Tier Overdrive | Master | 65,542 |
+| Exp 8.0 | Chaotic Reserves | Master | 68,415 |
+| Exp 9.0 | Triple-Wave Surge | Master | 70,071 |
+| Exp 10.0 | High-Tier Tempest | Grandmaster | 73,367 |
+| Exp 11.0 | Perfect Storm | Grandmaster | 75,047 |
+| Exp 12.0 | Wind Foresight | Grandmaster | 75,546 |
 
-Experimental 3.0 adds a reproducible **57,328-point simulated benchmark**: 88 merges, 1,418 Wind upgrades, zero repositioning, and exactly 100 unlocked slots including one Tier 64. Both a top-placed and bottom-placed contiguous board are tested in the replay suite.
-
-Experimental 4.0 adds a replay-validated **58,684-point simulated benchmark** with 88 merges, 1,483 Wind upgrades and no repositioning, using 100 unlocked slots including one permanent Tier 64.
-
-Experimental 5.0 reaches **60,572 simulated points**, with 88 merges, 1,595 Wind upgrades and no repositioning. The 100-sushi starting board preserves one Tier 64, and the complete replay is regression-tested at both ends of the 8×15 grid (requiring a contiguous 100-slot full-upgrade arrangement, Wind cap 58, chain limit 25).
-
-Experimental 6.0 reaches **64,017 simulated points**, with 85 merges, 1,709 Wind upgrades and no repositioning. The full 100-sushi starting board (including permanent Tier 64) is replay-tested at positions 1–100 and 21–120. The current research target is 65,000 points.
-
-Experimental 7.0 **passes the 65,000 target**, reaching **65,542 simulated points**, with 85 merges, 1,759 Wind upgrades, and zero repositioning. The exact starting board is tested at both ends of the 8×15 grid. This benchmark requires 100 contiguous unlocked positions, Tier 64, Wind cap 58, and chain limit 25.
-
-Experimental 8.0 reaches **68,415 simulated points** using 100 sushi including Tier 64, with 94 merges, 1,818 Wind upgrades, and no repositioning. Both a top-aligned and bottom-aligned 100-slot replay are tested. The ongoing research target is 70,000 points.
-
-Experimental 9.0 crosses the **70,000-point milestone** with **70,071 simulated points**, 91 merges, 1,851 Wind upgrades and no repositioning. The saved 100-sushi board and full merge replay are validated at both the top and bottom of the eight-row grid (100 contiguous unlocked slots, Tier 64, Wind cap 58, chain limit 25).
-
-Experimental 10.0 improves the record to **73,367 simulated points**, with 92 merges, 1,871 Wind upgrades and no relocation. The 100-unlocked-slot board includes exactly one Tier 64; top and bottom positions are independently replay-tested. **75,000 remains a research target, not an achieved record.**
-
-Experimental 11.0 clears the **75,000-point target** with **75,047 simulated points**, 94 merges, 1,875 Wind upgrades, and no repositioning. The saved 100-sushi board and its replay are regression-tested at both the top and the bottom of the 8×15 grid. Requirements: 100 contiguous unlocked slots, Tier 64, Wind cap 58, chain limit 25.
-
-Experimental 12.0 adds **bounded merge-order lookahead**, allowing a lower-scoring immediate merge when it creates a stronger subsequent cascade. Its replay-validated benchmark is **75,546 simulated points** (96 merges, 1,881 Wind upgrades, zero repositioning), compared with 75,318 from the same board under existing greedy search. It uses exactly 100 sushi, a permanent Tier 64, cap 58 and a 25-target Wind limit; top- and bottom-aligned layouts are tested. **80,000 points remains a research target**, not an achieved benchmark.
+Newer modes retain all earlier candidate preparations. The current 75,546-point record is replay-validated in the simulator, not in-game confirmed; 80,000 remains the research goal.
 
 This is a heuristic result, not a proven maximum or independently verified
 in-game achievement. Default mode remains the established strategy.
