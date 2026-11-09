@@ -248,7 +248,7 @@ function validateTiming(moves,timeout,secondsPerMerge){
   }));
   return {events,valid:events.every(e=>e.safe),minimumMargin:events.length?Math.min(...events.map(e=>e.remaining)):null,totalDuration:events.length*secondsPerMerge};
 }
-function showSolver(){
+async function showSolver(){
   if(!imported)return;
   const cap=Math.min(64,Math.max(1,Number($("windCap").value)||58));
   const chain=Math.min(25,Math.max(0,Number($("chainLimit").value)||0));
@@ -260,12 +260,35 @@ function showSolver(){
   const mode="descending domino";
   const custom=$("baseTier").value==="custom";
   const selectedBase=custom?0:(Number($("baseTier").value)||0);
-  const solution=custom?(()=>{
+  const candidates=custom?null:buildCandidates(positions,maxTier,cap,selectedBase);
+  const total=custom?1:candidates.length;
+  if(total<1)throw Error("No valid preparations for these tier settings.");
+  let solution=null;
+  const progress=(done)=>{
+    const pct=Math.round(done/total*100);
+    $("optimizerProgressBar").value=done;
+    $("optimizerProgressBar").max=total;
+    $("optimizerProgressText").textContent=pct+"% · "+done+" / "+total+" layouts evaluated";
+  };
+  progress(0);
+  // Yield between candidate evaluations so progress can paint in the browser.
+  await new Promise(resolve=>setTimeout(resolve,0));
+  if(custom){
     const board=getCustomBoard().slice();
     if(board.filter(v=>v>0).length<2)throw Error("Place at least two sushi on the custom board.");
     const search=searchCombos(board,cap,chain,4,board.filter(v=>v>0).length-1,mode);
-    return {board,base:"custom",shape:"user-defined",name:"Custom board",search,testedCandidates:1};
-  })():optimizePreparation(positions,maxTier,cap,chain,mode,selectedBase);
+    solution={board,base:"custom",shape:"user-defined",name:"Custom board",search,testedCandidates:1};
+    progress(1);
+  }else{
+    for(let i=0;i<candidates.length;i++){
+      const candidate=candidates[i];
+      const search=searchCombos(candidate.board,cap,chain,4,positions.length-1,mode);
+      if(!solution||search.score>solution.search.score||(search.score===solution.search.score&&search.remaining<solution.search.remaining))solution={...candidate,search};
+      progress(i+1);
+      await new Promise(resolve=>setTimeout(resolve,0));
+    }
+    solution={...solution,testedCandidates:candidates.length};
+  }
   if(!solution||!solution.search)throw Error("No valid preparations for these tier settings.");
   const result=solution.search;
   const timeout=Math.max(.1,Number($("comboTimeout").value)||5.5);
@@ -366,9 +389,23 @@ function showSolver(){
   next.addEventListener("click",()=>displayStep(selected+1));
   displayStep(0);
 }
-$("runSolver").addEventListener("click",()=>{
+$("runSolver").addEventListener("click",async()=>{
   if(!imported){$("solverNote").textContent="Import a valid Idleon Toolbox JSON first.";return;}
-  const button=$("runSolver");button.disabled=true;button.textContent="Optimizing…";
+  const button=$("runSolver");
+  button.disabled=true;button.textContent="Optimizing…";
+  $("optimizerProgress").classList.remove("hidden");
+  $("optimizerProgressBar").value=0;$("optimizerProgressBar").max=1;
+  $("optimizerProgressText").textContent="Preparing search…";
+  $("solverResults").classList.add("hidden");
   $("solverNote").textContent="Searching candidate layouts…";
-  setTimeout(()=>{try{showSolver();}catch(e){$("solverNote").textContent="Optimizer error: "+String(e.message??e);}finally{button.disabled=false;button.textContent="Run optimizer";}},20);
+  try{
+    await showSolver();
+    $("solverResults").classList.remove("hidden");
+    $("optimizerProgressText").textContent="Complete · Results ready";
+  }catch(e){
+    $("solverNote").textContent="Optimizer error: "+String(e.message??e);
+    $("optimizerProgressText").textContent="Optimization failed";
+  }finally{
+    button.disabled=false;button.textContent="Run optimizer";
+  }
 });
