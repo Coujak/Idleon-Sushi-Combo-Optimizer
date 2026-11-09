@@ -132,7 +132,8 @@ function buildCandidates(positions,maxTier,cap,selectedBase=0){
 function searchCombos(start,cap,chainLimit,beamWidth,depth,mode="adjacent"){
   // Multiple deterministic policies reduce the chance of one greedy dead-end.
   let best=null;
-  for(let policy=0;policy<5;policy++){
+  const strategies=["East Wind chains","Low-tier setup","Immediate points","Preserve future pairs","Right-to-left staircase","Long-chain setup","High-tier merges","Compact merges"];
+  for(let policy=0;policy<strategies.length;policy++){
     let board=start.slice(),score=0,moves=[];
     for(let step=0;step<depth;step++){
       const byTier=new Map();
@@ -155,6 +156,9 @@ function searchCombos(start,cap,chainLimit,beamWidth,depth,mode="adjacent"){
             const rightToLeft=src>dst;
             const staircaseContinuation=rightToLeft&&tier<cap&&board.some((t,i)=>i<dst&&t===tier+1);
             const r=(policy===4?(rightToLeft?7000:-1000)+(staircaseContinuation?2500:0)-tier*75+move.score*.1:
+              policy===5?wind*1000+(continues?2500:0)+(rightToLeft&&staircaseContinuation?2200:0)-tier*15:
+              policy===6?move.score*8+tier*12+wind*90:
+              policy===7?remainingPairs*75-Math.abs(src-dst)*25+wind*80:
               (continues?3000:0)+wind*(policy===0?350:policy===1?150:500)+
               (src===dst-1?400:0)+(policy===2?move.score*5:policy===3?remainingPairs*20:0)+
               (policy===1?-tier:0)-Math.abs(src-dst)*.1);
@@ -166,7 +170,7 @@ function searchCombos(start,cap,chainLimit,beamWidth,depth,mode="adjacent"){
       board=chosen.board;score+=chosen.score;moves.push(chosen);
 
     }
-    const result={board,score,moves,remaining:board.filter(t=>t>0).length};
+    const result={board,score,moves,remaining:board.filter(t=>t>0).length,strategy:strategies[policy],strategiesTested:strategies.length};
     if(!best||result.score>best.score||(result.score===best.score&&result.remaining<best.remaining))best=result;
   }
   return best;
@@ -299,7 +303,8 @@ async function showSolver(){
   $("timingDetails").textContent="Estimated execution: "+timing.totalDuration.toFixed(1)+"s · Per-merge margin: "+(timing.minimumMargin===null?"—":timing.minimumMargin.toFixed(1)+"s")+" · Assumes timer refreshes after each manual merge.";
   $("solverScore").textContent=result.score.toLocaleString();
   $("solverMoves").textContent=result.moves.length;
-  $("solverNote").textContent=(custom?"Custom board · best of 5 merge policies. ":"Best of "+solution.testedCandidates+" preparations (base Tier "+solution.base+", "+solution.shape+"). ")+result.remaining+" occupied sushi remain. Heat model: "+mode+". Scores are experimental and NOT verified in-game; this heuristic does not guarantee the highest possible score.";
+  $("solverNote").textContent=(custom?"Custom board · compared "+result.strategiesTested+" merge strategies. ":"Best of "+solution.testedCandidates+" preparations (base Tier "+solution.base+", "+solution.shape+"). ")+result.remaining+" occupied sushi remain. Heat model: "+mode+". Scores are experimental and NOT verified in-game; this heuristic does not guarantee the highest possible score.";
+  $("solverNote").textContent+=" Winning strategy: "+result.strategy+".";
   const root=$("solverSteps");root.replaceChildren();
   function make(label,values,showTiers){
     const h=document.createElement("h3");h.textContent=label;if(label.startsWith("1 · Slot layout"))h.id="optimizerSlotLayout";root.append(h);
