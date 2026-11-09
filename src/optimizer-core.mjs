@@ -53,7 +53,7 @@ function staircaseLength(board,start,base){
   }
   return count;
 }
-function sweepFromSeed(initial,seed,cap,chainLimit,slots,maxCycles){
+function sweepFromSeed(initial,seed,cap,chainLimit,slots,maxCycles,extraWindTarget){
   let board=initial.slice(),score=0,moves=[],anchor=seed+1;
   const base=board[seed];
   function merge(src,dst){
@@ -103,7 +103,7 @@ function sweepFromSeed(initial,seed,cap,chainLimit,slots,maxCycles){
     if(!shift(q,p)||!shift(q+1,q))break;
     // Key improvement observed in gameplay: feed an additional low-tier
     // sushi into Wind's path so it scores on every subsequent merge.
-    if(q+2<board.length&&board[q+2]===base&&board[q+1]===0){
+    if(extraWindTarget&&q+2<board.length&&board[q+2]===base&&board[q+1]===0){
       shift(q+2,q+1);
     }
     anchor=p;
@@ -114,6 +114,7 @@ function sweepFromSeed(initial,seed,cap,chainLimit,slots,maxCycles){
 }
 export function searchStaircaseCombos(start,cap,chainLimit,slots,baseline=null,options={}){
   const maxSeeds=options.maxSeeds??12,maxCycles=options.maxCycles??5;
+  const extraWindTarget=options.extraWindTarget!==false;
   let best=baseline;
   const seeds=[];
   for(let i=0;i+2<start.length;i++){
@@ -126,7 +127,7 @@ export function searchStaircaseCombos(start,cap,chainLimit,slots,baseline=null,o
   }
   seeds.sort((a,b)=>b.rank-a.rank);
   for(const {i} of seeds.slice(0,maxSeeds)){
-    const candidate=sweepFromSeed(start,i,cap,chainLimit,slots,maxCycles);
+    const candidate=sweepFromSeed(start,i,cap,chainLimit,slots,maxCycles,extraWindTarget);
     if(candidate&&(!best||candidate.score>best.score||
        (candidate.score===best.score&&candidate.remaining<best.remaining))){
       best=candidate;
