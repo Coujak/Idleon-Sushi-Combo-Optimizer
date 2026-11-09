@@ -2,7 +2,7 @@ import {simulateMerge,validateComboReplay,searchStaircaseCombos} from "./optimiz
 import {searchTacticalCombos} from "./tactical-search.mjs?v=1.7.0";
 import {createReplayController} from "./replay-controller.mjs?v=1.7.4";
 import {buildCandidates} from "./preparation-core.mjs?v=1.7.5";
-import {getModeCandidates} from "./optimizer-modes.mjs?v=1.8.8";
+import {getModeCandidates} from "./optimizer-modes.mjs?v=1.8.9";
 import {throwIfCancelled,yieldToUI} from "./optimizer-run.mjs?v=1.8.1";
 import {searchCombos} from "./merge-search.mjs?v=1.8.0";
 const $=id=>document.getElementById(id);
@@ -290,8 +290,8 @@ async function showSolver(signal){
   if(positions.length<2){$("solverNote").textContent="At least two unlocked slots are required.";$("solverSteps").replaceChildren();return;}
   $("solverNote").textContent="Searching prepared tier layouts…";
   const mode="descending domino";
-  const optimizerMode=["default","experimental","experimental2","experimental3","experimental4"].includes($("optimizerMode").value)?$("optimizerMode").value:"default";
-  const optimizerModeLabel=optimizerMode==="experimental4"?"Experimental 4.0":optimizerMode==="experimental3"?"Experimental 3.0":optimizerMode==="experimental2"?"Experimental 2.0":optimizerMode==="experimental"?"Experimental 1.0":"Default";
+  const optimizerMode=["default","experimental","experimental2","experimental3","experimental4","experimental5"].includes($("optimizerMode").value)?$("optimizerMode").value:"default";
+  const optimizerModeLabel=optimizerMode==="experimental5"?"Experimental 5.0":optimizerMode==="experimental4"?"Experimental 4.0":optimizerMode==="experimental3"?"Experimental 3.0":optimizerMode==="experimental2"?"Experimental 2.0":optimizerMode==="experimental"?"Experimental 1.0":"Default";
   const custom=$("baseTier").value==="custom";
   const selectedBase=custom?0:($("baseTier").value==="manual"?Math.min(maxTier,Math.max(1,Math.round(Number($("manualBaseTier").value)||1))):(Number($("baseTier").value)||0));
   // A Tier 64 from the save stays permanent even if the prepared-tier setting is lowered.
@@ -535,7 +535,9 @@ async function showSolver(signal){
 }
 function updateOptimizerModeHint(){
   const mode=$("optimizerMode").value;
-  $("optimizerModeHint").textContent=mode==="experimental4"
+  $("optimizerModeHint").textContent=mode==="experimental5"
+    ?"Experimental 5.0 includes a 60,572-point replay-validated simulated layout for compatible full-upgrade 100-slot boards."
+    :mode==="experimental4"
     ?"Experimental 4.0 adds a 58,684-point replay-validated simulated layout for compatible full-upgrade boards."
     :mode==="experimental3"
     ?"Experimental 3.0 adds a 57,328-point simulated preparation for compatible 100-slot full-upgrade boards, alongside earlier strategies."

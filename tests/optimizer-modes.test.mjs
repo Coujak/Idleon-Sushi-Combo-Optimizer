@@ -60,3 +60,12 @@ test("Experimental 4.0 adds a new benchmark without changing earlier modes",()=>
  assert.deepEqual(fourth.slice(0,third.length),third);
  assert.equal(fourth.at(-1).name,"Experimental 4.0 · Extended Wind reserves");
 });
+test("Experimental 5.0 includes older candidates plus one verified 60,572-point layout",()=>{
+ const before=getModeCandidates(positions,64,58,0,25,true,"experimental4");
+ const newest=getModeCandidates(positions,64,58,0,25,true,"experimental5");
+ assert.equal(newest.length,before.length+1);
+ assert.deepEqual(newest.slice(0,before.length),before);
+ assert.equal(newest.at(-1).name,"Experimental 5.0 · Extended Tier 12–34 Wind reserves");
+ assert.ok(getModeCandidates(positions,64,58,0,25,true,"default")
+   .every(candidate=>candidate.name!==newest.at(-1).name));
+});
