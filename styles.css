@@ -46,3 +46,24 @@
 /* Original Sushi Station fireplace sprites */
 .fire-cell{display:flex;align-items:center;justify-content:center}
 .fire-cell .campfire-art{width:38px;height:38px;object-fit:contain;image-rendering:pixelated}
+
+/* Gentle, staggered fireplace flame motion. Keep the base anchored. */
+.fire-cell{overflow:visible}
+.fire-cell .campfire-art{
+  transform-origin:50% 91%;
+  will-change:transform,filter;
+  animation:campfire-flicker 1.65s ease-in-out infinite;
+}
+.fire-cell:nth-child(3n + 1) .campfire-art{animation-duration:1.43s;animation-delay:-.37s}
+.fire-cell:nth-child(3n + 2) .campfire-art{animation-duration:1.87s;animation-delay:-.91s}
+.fire-cell:nth-child(5n) .campfire-art{animation-duration:1.59s;animation-delay:-1.18s}
+@keyframes campfire-flicker{
+  0%,100%{transform:translateY(0) scaleX(1) scaleY(1) rotate(0deg);filter:brightness(1)}
+  18%{transform:translateY(-1px) scaleX(.96) scaleY(1.055) rotate(-1.2deg);filter:brightness(1.11)}
+  38%{transform:translateY(0) scaleX(1.035) scaleY(.975) rotate(.9deg);filter:brightness(.97)}
+  62%{transform:translateY(-1.5px) scaleX(.975) scaleY(1.07) rotate(1.2deg);filter:brightness(1.15)}
+  82%{transform:translateY(-.5px) scaleX(1.02) scaleY(1.015) rotate(-.6deg);filter:brightness(1.04)}
+}
+@media(prefers-reduced-motion:reduce){
+  .fire-cell .campfire-art{animation:none;will-change:auto}
+}
