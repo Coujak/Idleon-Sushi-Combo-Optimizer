@@ -1,3 +1,4 @@
+import {simulateMerge,validateComboReplay,searchStaircaseCombos} from "./optimizer-core.mjs?v=1.6.0";
 const $=id=>document.getElementById(id);
 const COLUMNS=15;
 let imported=null;
@@ -95,30 +96,7 @@ $("parseJson").addEventListener("click",()=>{try{importSave(JSON.parse($("jsonIn
 $("jsonFile").addEventListener("change",async e=>{const f=e.target.files?.[0];if(!f)return;try{importSave(JSON.parse(await f.text()),f.name);}catch(err){error(err);}});
 $("clearImport").addEventListener("click",()=>{imported=null;customBoard=null;$("solver").classList.add("hidden");$("jsonInput").value="";$("jsonFile").value="";$("board").replaceChildren();$("fireplaces").replaceChildren();$("importSummary").classList.add("hidden");$("pasteArea").classList.add("hidden");$("pasteToggle").setAttribute("aria-expanded","false");$("importStatus").textContent="Waiting for data";$("importStatus").classList.remove("success");$("boardStatus").textContent="Import a save";$("boardDetails").textContent="Your imported tiles will appear here.";$("jsonPreview").textContent="No JSON imported yet.";});
 
-/* Experimental scoring: sum resulting tiers, including each Heat upgrade.
-   Gameplay rules: merge source tier <=58 triggers a descending domino chain,
-   across row boundaries, up to 25 upgrades. */
-function simulateMerge(board,src,dst,cap,chainLimit){
-  if(src===dst||board[src]<1||board[src]!==board[dst]||board[src]>=64)return null;
-  const next=board.slice(),before=next[dst];
-  next[src]=0;next[dst]=before+1;
-  let score=next[dst];
-  const events=[{at:dst,tier:next[dst],kind:"merge"}];
-  if(src<dst&&before<=cap){
-    let previous=before;
-    for(let q=dst+1;q<next.length&&events.length-1<chainLimit;q++){
-      const tier=next[q];
-      // First eastern sushi receives Heat regardless of its tier.
-      // Subsequent dominoes require strictly descending ORIGINAL tiers.
-      if(tier<1||tier>=64||(q>dst+1&&tier!==previous-1))break;
-      next[q]=tier+1;
-      score+=next[q];
-      events.push({at:q,tier:next[q],kind:"wind"});
-      previous=tier;
-    }
-  }
-  return {board:next,score,events,src,dst};
-}
+// Merge physics and staircase recycling live in optimizer-core.mjs.
 function layoutOptions(slots){
   const current=slots.slice(0,120);
   const types=current.filter(v=>v>=0);
@@ -149,6 +127,12 @@ function buildCandidates(positions,maxTier,cap,selectedBase=0){
       // then base-tier sushi. Do not overwrite the permanent Tier 64.
       const length=Math.max(0,Math.min(maxTier-base+1,usable.length-2));
       for(let i=0;i<length;i++)board[usable[i]]=maxTier-i;
+    }else if(shape==="recycle"){
+      // Preserve a low-tier reserve and cap the staircase length so a second
+      // Wind pass can reuse the remaining eastern sushi.
+      const peak=Math.min(maxTier,cap+1,base+23);
+      const length=Math.max(0,Math.min(peak-base,usable.length-3));
+      for(let i=0;i<length;i++)board[usable[i]]=peak-i;
     }else if(shape==="paired"){
       for(let i=0;i<usable.length;i++)board[usable[i]]=Math.max(base,maxTier-Math.floor((i%30)/2));
     }else if(shape==="uniform"){
@@ -159,6 +143,7 @@ function buildCandidates(positions,maxTier,cap,selectedBase=0){
   };
   for(let base=Math.max(1,selectedBase||Math.max(1,maxTier-33));base<=Math.min(maxTier,selectedBase||maxTier);base++){
     add("Tier "+base+" → "+cap+" staircase",base,"staircase");
+    if(base<cap&&positions.length>=6)add("Tier "+base+" recycled Wind staircase",base,"recycle");
     add("Tier "+base+" paired ramp",base,"paired");
     add("Tier "+base+" uniform",base,"uniform");
   }
@@ -327,15 +312,23 @@ $("customClear").addEventListener("click",()=>{
   imported.slots.forEach((type,i)=>{if(i<120&&type>=0&&board[i]!==64)board[i]=0;});
   renderCustomEditor();
 });
-function validateTiming(moves,timeout,secondsPerMerge){
-  const events=moves.map((move,index)=>({
-    step:index+1,
-    estimatedSeconds:secondsPerMerge,
-    safe:secondsPerMerge<timeout,
-    remaining:timeout-secondsPerMerge,
-    windUpgrades:move.events.filter(e=>e.kind==="wind").length
-  }));
-  return {events,valid:events.every(e=>e.safe),minimumMargin:events.length?Math.min(...events.map(e=>e.remaining)):null,totalDuration:events.length*secondsPerMerge};
+function validateTiming(moves,timeout,secondsPerMerge,secondsPerRelocation){
+  let elapsed=0,totalDuration=0;
+  const events=moves.map((move,index)=>{
+    const actionSeconds=move.kind==="move"?secondsPerRelocation:secondsPerMerge;
+    elapsed+=actionSeconds;
+    totalDuration+=actionSeconds;
+    const event={
+      step:index+1,estimatedSeconds:actionSeconds,safe:elapsed<timeout,
+      remaining:timeout-elapsed,
+      windUpgrades:move.events.filter(e=>e.kind==="wind").length
+    };
+    // Repositioning does not refresh the combo timer. Only merging does.
+    if(move.kind!=="move")elapsed=0;
+    return event;
+  });
+  return {events,valid:events.every(e=>e.safe),
+    minimumMargin:events.length?Math.min(...events.map(e=>e.remaining)):null,totalDuration};
 }
 async function showSolver(){
   if(!imported)return;
@@ -372,13 +365,15 @@ async function showSolver(){
     const board=getCustomBoard().slice();
     if(board.filter(v=>v>0).length<2)throw Error("Place at least two sushi on the custom board.");
     const greedy=searchCombos(board,cap,chain,4,board.filter(v=>v>0).length-1,mode);
-    const search=beamSearchCombos(board,cap,chain,board.filter(v=>v>0).length-1,greedy);
+    const beam=beamSearchCombos(board,cap,chain,board.filter(v=>v>0).length-1,greedy);
+    const search=searchStaircaseCombos(board,cap,chain,slots,beam);
     solution={board,slots,layoutName:"Current positions",base:"custom",shape:"user-defined",name:"Custom board",search,testedCandidates:1};
     progress(1);
   }else{
     for(let i=0;i<candidates.length;i++){
       const candidate=candidates[i];
-      const search=searchCombos(candidate.board,cap,chain,4,positions.length-1,mode);
+      const greedy=searchCombos(candidate.board,cap,chain,4,positions.length-1,mode);
+      const search=searchStaircaseCombos(candidate.board,cap,chain,candidate.slots,greedy);
       if(!solution||search.score>solution.search.score||(search.score===solution.search.score&&search.remaining<solution.search.remaining))solution={...candidate,search};
       progress(i+1);
       await new Promise(resolve=>setTimeout(resolve,0));
@@ -387,21 +382,28 @@ async function showSolver(){
     $("solverNote").textContent="Refining best preparation with multi-step search…";
     await new Promise(resolve=>setTimeout(resolve,0));
     solution.search=beamSearchCombos(solution.board,cap,chain,solution.board.filter(v=>v>0).length-1,solution.search);
+    solution.search=searchStaircaseCombos(solution.board,cap,chain,solution.slots,solution.search);
   }
   if(!solution||!solution.search)throw Error("No valid preparations for these tier settings.");
   const result=solution.search;
+  const recommendedSlots=solution.slots??slots;
+  const verified=validateComboReplay(solution.board,result.moves,cap,chain,recommendedSlots);
+  if(verified.score!==result.score||!verified.board.every((t,i)=>t===result.board[i])){
+    throw Error("Combo replay validation disagrees with the optimizer result.");
+  }
   const timeout=Math.max(.1,Number($("comboTimeout").value)||5.5);
   const moveTime=Math.max(.1,Number($("mergeTime").value)||1.5);
-  const timing=validateTiming(result.moves,timeout,moveTime);
+  const relocationTime=Math.max(.1,Number($("relocationTime").value)||.6);
+  const timing=validateTiming(result.moves,timeout,moveTime,relocationTime);
   $("timingStatus").textContent=timing.valid?"Timing feasible under assumptions":"Timing infeasible under assumptions";
   $("timingStatus").className=timing.valid?"timing-good":"timing-bad";
-  $("timingDetails").textContent="Estimated execution: "+timing.totalDuration.toFixed(1)+"s · Per-merge margin: "+(timing.minimumMargin===null?"—":timing.minimumMargin.toFixed(1)+"s")+" · Assumes timer refreshes after each manual merge.";
+  $("timingDetails").textContent="Estimated execution: "+timing.totalDuration.toFixed(1)+"s · Tightest interval margin: "+(timing.minimumMargin===null?"—":timing.minimumMargin.toFixed(1)+"s")+" · Repositioning does not refresh the combo timer; merging does.";
   $("solverScore").textContent=result.score.toLocaleString();
-  $("solverMoves").textContent=result.moves.length;
-  $("solverNote").textContent=(custom?"Custom board · compared "+result.strategiesTested+" merge strategies. ":"Best of "+solution.testedCandidates+" preparations (base Tier "+solution.base+", "+solution.shape+"). ")+result.remaining+" occupied sushi remain. Heat model: "+mode+". Scores are estimates based on the current game model; the search picks the best tested strategy, not a guaranteed global maximum.";
+  $("solverMoves").textContent=verified.merges;
+  $("solverRepositions").textContent=verified.repositions;
+  $("solverNote").textContent=(custom?"Custom board · staircase recycling, greedy and beam strategies tested. ":"Best of "+solution.testedCandidates+" preparations (base Tier "+solution.base+", "+solution.shape+"). ")+result.remaining+" occupied sushi remain. Heat model: "+mode+". Scores remain estimates, not a guaranteed maximum.";
   $("solverNote").textContent+=" Winning strategy: "+result.strategy+". Slot arrangement: "+(solution.layoutName??"Current positions")+". Prepared tier cap: "+maxTier+"; East Wind limit: "+cap+".";
   const root=$("solverSteps");root.replaceChildren();
-  const recommendedSlots=solution.slots??slots;
   const movedFrom=slots.filter((v,i)=>v>=0&&recommendedSlots[i]<0).length;
   const changedTypes=slots.filter((v,i)=>v>=0&&recommendedSlots[i]>=0&&v!==recommendedSlots[i]).length;
   const layoutInfo=document.createElement("p");layoutInfo.className="hint";
@@ -436,7 +438,7 @@ async function showSolver(){
   make("1 · Recommended slot layout ("+(solution.layoutName??"current")+")",[],false);
   make(custom?"2 · Your custom starting board":"2 · Recommended prepared sushi tiers (not your current inventory)",solution.board,true);
   const heading=document.createElement("h3");heading.textContent="3 · Interactive merge sequence";root.append(heading);
-  const intro=document.createElement("p");intro.className="hint";intro.textContent="Select a step on the right to see the board after that merge. Blue = consumed source, green = destination, purple = Heat of the East Wind upgrades. Step 0 is the prepared board.";root.append(intro);
+  const intro=document.createElement("p");intro.className="hint";intro.textContent="Select an action to see the board after a merge or a zero-point relocation. Blue = source, green = destination, purple = Heat of the East Wind upgrades. Step 0 is the prepared board.";root.append(intro);
   const layout=document.createElement("div");layout.className="merge-layout";
   const left=document.createElement("div");left.className="merge-board-panel";
   const controls=document.createElement("div");controls.className="merge-controls";
@@ -485,7 +487,7 @@ async function showSolver(){
       boardGrid.append(tile);
     }
     if(actualInput.value!=="")actualInput.dispatchEvent(new Event("input"));
-    scoreLine.textContent="Combo Meter: "+cumulative[selected].toLocaleString()+" points"+(move?" · This merge: +"+move.score:" · Ready to begin");
+    scoreLine.textContent="Combo Meter: "+cumulative[selected].toLocaleString()+" points"+(move?(move.kind==="move"?" · Reposition · +0":" · This merge: +"+move.score):" · Ready to begin");
     stepButtons.forEach((b,i)=>{b.classList.toggle("selected",i===selected);b.setAttribute("aria-current",i===selected?"step":"false");});
     stepButtons[selected]?.scrollIntoView({block:"nearest",behavior:"auto"});
   }
@@ -498,8 +500,9 @@ async function showSolver(){
   }
   addStep("Step 0 · Prepared board","All sushi positioned; combo not started",0);
   result.moves.forEach((m,i)=>{
-    addStep("Step "+(i+1)+" · "+(m.src+1)+" → "+(m.dst+1),
-      "+"+m.score+" points · Total "+cumulative[i+1]+" · "+m.events.filter(e=>e.kind==="wind").length+" wind upgrades · "+(timing.events[i].safe?"Timing OK":"Timeout risk"),i+1);
+    const isMove=m.kind==="move";
+    addStep("Step "+(i+1)+" · "+(isMove?"Move":"Merge")+" · "+(m.src+1)+" → "+(m.dst+1),
+      (isMove?"Move Tier "+m.tier+" to an empty slot · +0 points":"+"+m.score+" points · "+m.events.filter(e=>e.kind==="wind").length+" Wind upgrades")+" · Total "+cumulative[i+1]+" · "+(timing.events[i].safe?"Timing OK":"Timeout risk"),i+1);
   });
   previous.addEventListener("click",()=>displayStep(selected-1));
   first.addEventListener("click",()=>displayStep(Math.min(1,result.moves.length)));
