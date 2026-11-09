@@ -72,7 +72,9 @@ function simulateMerge(board,src,dst,cap,chainLimit){
     let previous=before;
     for(let q=dst+1;q<next.length&&events.length-1<chainLimit;q++){
       const tier=next[q];
-      if(tier<1||tier>=64||tier!==previous-1)break;
+      // First eastern sushi receives Heat regardless of its tier.
+      // Subsequent dominoes require strictly descending ORIGINAL tiers.
+      if(tier<1||tier>=64||(q>dst+1&&tier!==previous-1))break;
       next[q]=tier+1;
       score+=next[q];
       events.push({at:q,tier:next[q],kind:"wind"});
