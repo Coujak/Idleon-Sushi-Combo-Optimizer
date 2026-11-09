@@ -42,3 +42,7 @@
 .custom-board .custom-tile .tier{font-size:12px}
 .merge-layout .merge-board .tile .sushi-art{width:95%;height:67%;max-height:none;object-fit:contain}
 .merge-layout .merge-board .tile .tier{line-height:1;flex:0 0 auto}
+
+/* Original Sushi Station fireplace sprites */
+.fire-cell{display:flex;align-items:center;justify-content:center}
+.fire-cell .campfire-art{width:38px;height:38px;object-fit:contain;image-rendering:pixelated}
