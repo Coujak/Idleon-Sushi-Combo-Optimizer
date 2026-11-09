@@ -76,36 +76,31 @@ function simulateMerge(board,src,dst,cap,chainLimit){
   return {board:next,score,events,src,dst};
 }
 function searchCombos(start,cap,chainLimit,beamWidth,depth){
-  let states=[{board:start,score:0,moves:[],windStreak:0}],best=states[0];
+  let board=start.slice(),score=0,moves=[],windStreak=0;
   for(let step=0;step<depth;step++){
-    const candidates=[],seen=new Set();
-    for(const st of states){
-      const byTier=new Map();
-      st.board.forEach((tier,i)=>{if(tier>0){if(!byTier.has(tier))byTier.set(tier,[]);byTier.get(tier).push(i);}});
-      for(const indices of byTier.values()){
-        if(indices.length<2)continue;
-        // Every destination is considered, with a deterministic source choice.
-        // Source identity has no effect on the immediate merge, except its empty position.
-        for(const dst of indices.slice(0,24)){
-          const sources=indices.filter(i=>i!==dst);
-          sources.sort((a,b)=>((a%COLUMNS===0?1:0)-(b%COLUMNS===0?1:0))||a-b);
-          for(const src of sources.slice(0,2)){
-            const result=simulateMerge(st.board,src,dst,cap,st.windStreak>=chainLimit?0:1);
-            if(!result)continue;
-            const key=result.board.join(",");
-            if(seen.has(key))continue;seen.add(key);
-            const state={board:result.board,score:st.score+result.score,moves:[...st.moves,result],windStreak:result.events.some(e=>e.kind==="wind")?st.windStreak+1:0};
-            candidates.push(state);
-            if(state.score>best.score)best=state;
-          }
+    const byTier=new Map();
+    board.forEach((tier,i)=>{if(tier>0&&tier<64){if(!byTier.has(tier))byTier.set(tier,[]);byTier.get(tier).push(i);}});
+    let chosen=null,priority=-Infinity;
+    for(const [tier,indices] of byTier){
+      if(indices.length<2)continue;
+      for(const dst of indices){
+        const sources=indices.filter(i=>i!==dst);
+        sources.sort((a,b)=>Number(b===dst-1)-Number(a===dst-1)||Math.abs(a-dst)-Math.abs(b-dst));
+        for(const src of sources.slice(0,3)){
+          const move=simulateMerge(board,src,dst,cap,windStreak>=chainLimit?0:1);
+          if(!move)continue;
+          const east=dst+1,wind=move.events.some(e=>e.kind==="wind");
+          const continues=east<board.length&&east%COLUMNS!==0&&move.board[east]===move.board[dst]&&move.board[dst]<64;
+          const rank=(continues?10000:0)+(wind?1200:0)+(src===dst-1?700:0)+(tier===41?120:0)+move.score*.05-Math.abs(src-dst)*.1;
+          if(rank>priority){priority=rank;chosen=move;}
         }
       }
     }
-    if(!candidates.length)break;
-    candidates.sort((a,b)=>b.score-a.score);
-    states=candidates.slice(0,beamWidth);
+    if(!chosen)break;
+    board=chosen.board;score+=chosen.score;moves.push(chosen);
+    windStreak=chosen.events.some(e=>e.kind==="wind")?windStreak+1:0;
   }
-  return best;
+  return {board,score,moves,remaining:board.filter(v=>v>0).length};
 }
 function buildCandidates(positions,maxTier,cap){
   const result=[];
@@ -143,8 +138,8 @@ function buildCandidates(positions,maxTier,cap){
 function optimizePreparation(positions,maxTier,cap,chainLimit){
   let best=null;
   for(const candidate of buildCandidates(positions,maxTier,cap)){
-    const search=searchCombos(candidate.board,cap,chainLimit,3,Math.min(positions.length-1,12));
-    if(!best||search.score>best.search.score)best={...candidate,search};
+    const search=searchCombos(candidate.board,cap,chainLimit,3,positions.length-1);
+    if(!best||search.moves.length>best.search.moves.length||(search.moves.length===best.search.moves.length&&search.score>best.search.score))best={...candidate,search};
   }
   return best;
 }
@@ -177,7 +172,7 @@ function showSolver(){
   $("timingDetails").textContent="Estimated execution: "+timing.totalDuration.toFixed(1)+"s · Per-merge margin: "+(timing.minimumMargin===null?"—":timing.minimumMargin.toFixed(1)+"s")+" · Assumes timer refreshes after each manual merge.";
   $("solverScore").textContent=result.score.toLocaleString();
   $("solverMoves").textContent=result.moves.length;
-  $("solverNote").textContent="Best of 17 prepared-tier patterns (including your tested staircase): "+solution.name+". This is a bounded heuristic, NOT a proven global maximum. Slot type does not currently change the simulated combo score, so the existing slot layout is equally optimal under this model. Heat now affects only the immediate right neighbor. Wind streak limit is applied; scoring still requires in-game verification.";
+  $("solverNote").textContent="Longest sequence among 17 prepared-tier patterns (including your tested staircase): "+solution.name+". This is a bounded heuristic, NOT a proven global maximum. Slot type does not currently change the simulated combo score, so the existing slot layout is equally optimal under this model. Heat now affects only the immediate right neighbor. Remaining occupied slots: "+result.remaining+". Tier 64 is preserved; a complete clear is not guaranteed. Scoring and Wind streak interpretation still require verification.";
   const root=$("solverSteps");root.replaceChildren();
   function make(label,values,showTiers){
     const h=document.createElement("h3");h.textContent=label;root.append(h);
