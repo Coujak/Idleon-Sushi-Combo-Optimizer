@@ -23,3 +23,13 @@
 @media(max-width:850px){.merge-layout .merge-board .tile .tier{font-size:clamp(8px,1.6vw,12px)}}
 
 .replay-comparison{margin:12px 0;padding:12px;border:1px solid var(--line);border-radius:9px}.replay-comparison label{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.replay-comparison input{max-width:165px}
+
+/* Custom board painter */
+.custom-editor{margin:18px 0;padding:16px;border:1px solid var(--line);border-radius:12px;background:#10231e}
+.custom-editor h3{margin:0 0 8px}
+.custom-board{margin-top:10px}
+.custom-board .custom-tile{font:800 17px/1 ui-sans-serif,system-ui,sans-serif;color:#f2f9f4;cursor:pointer;min-width:0}
+.custom-board .custom-tile:hover:not(:disabled){outline:2px solid #b9f6c5;outline-offset:-2px;filter:brightness(1.25)}
+.custom-board .custom-tile:focus-visible{outline:3px solid #fff;outline-offset:-2px}
+.custom-board .custom-tile:disabled{cursor:default;visibility:hidden}
+#solver select{padding:8px;border-radius:6px;background:#10231d;color:#fff;border:1px solid #476151}
