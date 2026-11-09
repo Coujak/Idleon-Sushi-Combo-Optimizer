@@ -1,7 +1,9 @@
 // Pure sushi-combo mechanics and a deterministic, multi-pass East Wind planner.
 // Kept separate from the DOM so real gameplay sequences can be regression-tested.
 export function simulateMerge(board,src,dst,cap,chainLimit){
-  if(src===dst||board[src]<1||board[src]!==board[dst]||board[src]>=64)return null;
+  if(!Number.isInteger(src)||!Number.isInteger(dst)||src<0||dst<0||
+    src>=board.length||dst>=board.length||src===dst||
+    board[src]<1||board[src]!==board[dst]||board[src]>=64)return null;
   const next=board.slice(),before=next[dst];
   next[src]=0;next[dst]=before+1;
   let score=next[dst];
@@ -10,7 +12,9 @@ export function simulateMerge(board,src,dst,cap,chainLimit){
     let previous=before;
     for(let q=dst+1;q<next.length&&events.length-1<chainLimit;q++){
       const tier=next[q];
-      if(tier<1||tier>=64||(q>dst+1&&tier!==previous-1))break;
+      // First target must be lower than the merged sushi; subsequent ones
+      // must form a strictly descending staircase.
+      if(tier<1||tier>=64||(q===dst+1?tier>before:tier!==previous-1))break;
       next[q]=tier+1;
       score+=next[q];
       events.push({at:q,tier:next[q],kind:"wind"});
@@ -23,7 +27,7 @@ export function simulateRelocation(board,src,dst,slots){
   if(!Number.isInteger(src)||!Number.isInteger(dst)||src===dst||
     src<0||dst<0||src>=board.length||dst>=board.length||
     board[src]<1||board[src]>=64||board[dst]!==0||
-    (slots&&(slots[src]<0||slots[dst]<0)))return null;
+    (slots&&(!(slots[src]>=0)||!(slots[dst]>=0))))return null;
   const next=board.slice(),tier=board[src];
   next[dst]=tier;next[src]=0;
   return {kind:"move",board:next,score:0,src,dst,tier,events:[]};
@@ -53,7 +57,7 @@ function staircaseLength(board,start,base){
   }
   return count;
 }
-function sweepFromSeed(initial,seed,cap,chainLimit,slots,maxCycles,extraWindTarget){
+function sweepFromSeed(initial,seed,cap,chainLimit,slots,maxCycles,extraWindTargets){
   let board=initial.slice(),score=0,moves=[],anchor=seed+1;
   const base=board[seed];
   function merge(src,dst){
@@ -101,10 +105,12 @@ function sweepFromSeed(initial,seed,cap,chainLimit,slots,maxCycles,extraWindTarg
     if(!merge(p,q))break;
     // Pack both next to the leftmost (base+1) sushi of the staircase.
     if(!shift(q,p)||!shift(q+1,q))break;
-    // Key improvement observed in gameplay: feed an additional low-tier
-    // sushi into Wind's path so it scores on every subsequent merge.
-    if(extraWindTarget&&q+2<board.length&&board[q+2]===base&&board[q+1]===0){
-      shift(q+2,q+1);
+    // Every spare sushi added to the Wind tail can earn points during
+    // later merges once previous targets have been upgraded.
+    for(let offset=0;offset<extraWindTargets;offset++){
+      const src=q+2+offset,dst=q+1+offset;
+      if(src>=board.length||board[src]!==base||board[dst]!==0||
+         !shift(src,dst))break;
     }
     anchor=p;
     climb();
@@ -114,7 +120,8 @@ function sweepFromSeed(initial,seed,cap,chainLimit,slots,maxCycles,extraWindTarg
 }
 export function searchStaircaseCombos(start,cap,chainLimit,slots,baseline=null,options={}){
   const maxSeeds=options.maxSeeds??12,maxCycles=options.maxCycles??5;
-  const extraWindTarget=options.extraWindTarget!==false;
+  const maxExtraWindTargets=options.extraWindTarget===false?0:
+    Math.max(0,Math.min(chainLimit,options.maxExtraWindTargets??12));
   let best=baseline;
   const seeds=[];
   for(let i=0;i+2<start.length;i++){
@@ -127,10 +134,15 @@ export function searchStaircaseCombos(start,cap,chainLimit,slots,baseline=null,o
   }
   seeds.sort((a,b)=>b.rank-a.rank);
   for(const {i} of seeds.slice(0,maxSeeds)){
-    const candidate=sweepFromSeed(start,i,cap,chainLimit,slots,maxCycles,extraWindTarget);
-    if(candidate&&(!best||candidate.score>best.score||
-       (candidate.score===best.score&&candidate.remaining<best.remaining))){
-      best=candidate;
+    // Keep shorter variants in case a longer tail consumes tiles needed
+    // to recycle the staircase on the next pass.
+    for(let tail=0;tail<=maxExtraWindTargets;tail++){
+      const candidate=sweepFromSeed(start,i,cap,chainLimit,slots,maxCycles,tail);
+      if(candidate&&(!best||candidate.score>best.score||
+        (candidate.score===best.score&&(candidate.remaining<best.remaining||
+          (candidate.remaining===best.remaining&&candidate.moves.length<best.moves.length))))){
+        best=candidate;
+      }
     }
   }
   return best;
