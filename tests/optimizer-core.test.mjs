@@ -110,3 +110,24 @@ test("tactical search honors locked slots and preserves the baseline",()=>{
   assert.ok(kept.score>=7069);
   assert.equal(validateComboReplay(board,kept.moves,58,25,fullSlots).score,kept.score);
 });
+
+test("Tier 64 protection remains at the legacy limit, but higher-tier merges are supported",()=>{
+  assert.equal(simulateMerge([64,64,63],0,1,70,25),null);
+  const result=simulateMerge([64,64,63],0,1,70,25,100);
+  assert.equal(result.score,129);
+  assert.deepEqual(result.board,[0,65,64]);
+  assert.equal(validateComboReplay([64,64,63],[result],70,25,[0,0,0],100).score,129);
+  assert.equal(simulateRelocation([65,0],0,1,[0,0]),null);
+  assert.deepEqual(simulateRelocation([65,0],0,1,[0,0],100).board,[0,65]);
+  assert.equal(simulateMerge([100,100],0,1,94,25,100),null);
+});
+test("greedy and tactical searches support high-tier Wind chains",async()=>{
+  const {searchCombos}=await import("../src/merge-search.mjs");
+  const board=[101,95,95,94,93],slots=board.map(()=>0);
+  const greedy=searchCombos(board,95,25,4,4,"adjacent",101);
+  assert.ok(greedy.score>=285);
+  assert.equal(validateComboReplay(board,greedy.moves,95,25,slots,101).score,greedy.score);
+  const tactical=searchTacticalCombos(board,95,25,slots,greedy,{maximumTier:101,depth:3});
+  assert.ok(tactical.score>=greedy.score);
+  assert.equal(validateComboReplay(board,tactical.moves,95,25,slots,101).score,tactical.score);
+});

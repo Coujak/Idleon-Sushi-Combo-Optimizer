@@ -52,3 +52,15 @@ test("the 8th row is available, but no layout may unlock more than 100 slots",()
   const impossible=Array.from({length:101},(_,i)=>i);
   assert.equal(buildCandidates(impossible,64,58).length,0);
 });
+
+test("higher-tier preparation has a protected top tier and mergeable ingredients above 64",()=>{
+  const positions=Array.from({length:100},(_,i)=>i);
+  const candidates=buildCandidates(positions,100,94,90);
+  assert.ok(candidates.length>0);
+  for(const candidate of candidates){
+    assert.equal(candidate.board[0],100);
+    assert.equal(candidate.board.filter(t=>t>0).length,100);
+    assert.ok(candidate.board.slice(1).every(t=>t<=99));
+    assert.ok(candidate.board.slice(1).some(t=>t>64));
+  }
+});

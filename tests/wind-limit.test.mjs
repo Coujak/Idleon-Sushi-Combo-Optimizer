@@ -21,5 +21,9 @@ test("Input is clamped to integers and invalid limits cannot grow the cap",()=>{
   assert.equal(clampWindTier(12.5,64),12);
   assert.equal(clampWindTier("999",64),58);
   assert.equal(clampWindTier("bad",64),0);
-  assert.equal(windTierMaximum(999),58);
+  assert.equal(windTierMaximum(999),993);
+  assert.equal(windTierMaximum(65),59);
+  assert.equal(windTierMaximum(100),94);
+  assert.equal(windTierMaximum(1000),994);
+  assert.equal(clampWindTier(150,100),94);
 });
