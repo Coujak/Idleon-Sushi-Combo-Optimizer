@@ -51,6 +51,15 @@ test("placing the spare Tier 8 creates exactly 525 extra Wind points",()=>{
   assert.equal(replay.merges,50);
   assert.equal(replay.repositions,3);
 });
+test("the proposed bonus depends on the account's Wind tier limit",()=>{
+  const {board,slots}=benchmarkBoard();
+  const tier32=searchStaircaseCombos(board,32,25,slots);
+  const tier33=searchStaircaseCombos(board,33,25,slots);
+  assert.equal(tier32.score,7036);
+  assert.equal(tier33.score,7069);
+  assert.equal(tier33.score-tier32.score,33);
+  assert.equal(searchStaircaseCombos(board,32,25,slots,null,{extraWindTarget:false}).score,6544);
+});
 test("relocation cannot overwrite or move through locked slots",()=>{
   const board=[3,0,5,0],slots=[0,0,0,-1];
   assert.equal(simulateRelocation(board,0,2,slots),null);
