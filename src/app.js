@@ -2,13 +2,16 @@ import {simulateMerge,validateComboReplay,searchStaircaseCombos} from "./optimiz
 import {searchTacticalCombos} from "./tactical-search.mjs?v=1.7.0";
 import {createReplayController} from "./replay-controller.mjs?v=1.7.4";
 import {buildCandidates} from "./preparation-core.mjs?v=1.7.5";
-import {buildLayeredCandidates} from "./layered-preparation.mjs?v=1.8.0";
+import {getModeCandidates} from "./optimizer-modes.mjs?v=1.8.1";
+import {throwIfCancelled,yieldToUI} from "./optimizer-run.mjs?v=1.8.1";
 import {searchCombos} from "./merge-search.mjs?v=1.8.0";
 const $=id=>document.getElementById(id);
 const COLUMNS=15;
 let imported=null;
 let customBoard=null;
 let replayCleanup=()=>{};
+let activeSearch=null;
+function cancelRunningSearch(){activeSearch?.abort();}
 function disposeReplay(){replayCleanup();replayCleanup=()=>{};}
 function decodeSave(input){
   if(!input||typeof input!=="object")throw Error("Expected a JSON object.");
@@ -85,6 +88,7 @@ function renderBoard(tiles,perfecto,slots,fires){
 }
 function importSave(data,label){
   const parsed=decodeSave(data);
+  cancelRunningSearch();
   disposeReplay();
   imported=parsed;customBoard=null;applyImportedLimits();$("importError").classList.add("hidden");
   renderBoard(parsed.tiles,parsed.perfecto,parsed.slots,parsed.fires);
@@ -102,7 +106,7 @@ function error(e){$("importStatus").textContent="Import failed";$("importStatus"
 $("pasteToggle").addEventListener("click",()=>{const open=$("pasteArea").classList.toggle("hidden")===false;$("pasteToggle").setAttribute("aria-expanded",String(open));if(open)$("jsonInput").focus();});
 $("parseJson").addEventListener("click",()=>{try{importSave(JSON.parse($("jsonInput").value),"Pasted JSON");}catch(e){error(e);}});
 $("jsonFile").addEventListener("change",async e=>{const f=e.target.files?.[0];if(!f)return;try{importSave(JSON.parse(await f.text()),f.name);}catch(err){error(err);}});
-$("clearImport").addEventListener("click",()=>{disposeReplay();imported=null;customBoard=null;$("solver").classList.add("hidden");$("jsonInput").value="";$("jsonFile").value="";$("board").replaceChildren();$("fireplaces").replaceChildren();$("importSummary").classList.add("hidden");$("pasteArea").classList.add("hidden");$("pasteToggle").setAttribute("aria-expanded","false");$("importStatus").textContent="Waiting for data";$("importStatus").classList.remove("success");$("boardStatus").textContent="Import a save";$("boardDetails").textContent="Your imported tiles will appear here.";$("jsonPreview").textContent="No JSON imported yet.";});
+$("clearImport").addEventListener("click",()=>{cancelRunningSearch();disposeReplay();imported=null;customBoard=null;$("solver").classList.add("hidden");$("jsonInput").value="";$("jsonFile").value="";$("board").replaceChildren();$("fireplaces").replaceChildren();$("importSummary").classList.add("hidden");$("pasteArea").classList.add("hidden");$("pasteToggle").setAttribute("aria-expanded","false");$("importStatus").textContent="Waiting for data";$("importStatus").classList.remove("success");$("boardStatus").textContent="Import a save";$("boardDetails").textContent="Your imported tiles will appear here.";$("jsonPreview").textContent="No JSON imported yet.";});
 
 // Merge physics and staircase recycling live in optimizer-core.mjs.
 function layoutOptions(slots){
@@ -258,7 +262,8 @@ function validateTiming(moves,timeout,secondsPerMerge,secondsPerRelocation){
   return {events,valid:events.every(e=>e.safe),
     minimumMargin:events.length?Math.min(...events.map(e=>e.remaining)):null,totalDuration};
 }
-async function showSolver(){
+async function showSolver(signal){
+  throwIfCancelled(signal);
   if(!imported)return;
   const detected=detectSushiProgress(imported);
   const maxTier=Math.min(64,Math.max(1,Number($("seedTier").value)||detected.highest||1));
@@ -270,6 +275,7 @@ async function showSolver(){
   if(positions.length<2){$("solverNote").textContent="At least two unlocked slots are required.";$("solverSteps").replaceChildren();return;}
   $("solverNote").textContent="Searching prepared tier layouts…";
   const mode="descending domino";
+  const optimizerMode=$("optimizerMode").value==="experimental"?"experimental":"default";
   const custom=$("baseTier").value==="custom";
   const selectedBase=custom?0:(Number($("baseTier").value)||0);
   // A Tier 64 from the save stays permanent even if the prepared-tier setting is lowered.
@@ -277,12 +283,7 @@ async function showSolver(){
   const arrangements=custom?[{name:"Current positions",slots}]:layoutOptions(slots);
   const candidates=custom?null:arrangements.flatMap(layout=>{
     const layoutPositions=layout.slots.map((v,i)=>v>=0?i:-1).filter(i=>i>=0);
-    const prepared=buildCandidates(layoutPositions,maxTier,cap,selectedBase,chain,protectTier64);
-    // The additional multi-wave preparation is available for full-upgrade
-    // boards when the selected base tier is Auto or matches its own base.
-    if(!selectedBase||selectedBase===cap-27){
-      prepared.push(...buildLayeredCandidates(layoutPositions,maxTier,cap,chain,protectTier64));
-    }
+    const prepared=getModeCandidates(layoutPositions,maxTier,cap,selectedBase,chain,protectTier64,optimizerMode);
     return prepared.map(candidate=>({...candidate,slots:layout.slots,layoutName:layout.name}));
   });
   const total=custom?1:candidates.length;
@@ -292,38 +293,46 @@ async function showSolver(){
     const pct=Math.round(done/total*100);
     $("optimizerProgressBar").value=done;
     $("optimizerProgressBar").max=total;
-    $("optimizerProgressText").textContent=pct+"% · "+done+" / "+total+" layouts evaluated";
+    $("optimizerProgressText").textContent=(optimizerMode==="experimental"?"Experimental":"Default")+" · "+pct+"% · "+done+" / "+total+" layouts evaluated";
   };
   progress(0);
   // Yield between candidate evaluations so progress can paint in the browser.
-  await new Promise(resolve=>setTimeout(resolve,0));
+  await yieldToUI(signal);
   if(custom){
     const board=getCustomBoard().slice();
     if(board.filter(v=>v>0).length<2)throw Error("Place at least two sushi on the custom board.");
     const greedy=searchCombos(board,cap,chain,4,board.filter(v=>v>0).length-1,mode);
+    await yieldToUI(signal);
     const beam=beamSearchCombos(board,cap,chain,board.filter(v=>v>0).length-1,greedy);
+    await yieldToUI(signal);
     let search=searchStaircaseCombos(board,cap,chain,slots,beam);
+    await yieldToUI(signal);
     search=searchTacticalCombos(board,cap,chain,slots,search,{depth:14,width:12,branchLimit:16});
+    await yieldToUI(signal);
     solution={board,slots,layoutName:"Current positions",base:"custom",shape:"user-defined",name:"Custom board",search,testedCandidates:1};
     progress(1);
   }else{
     for(let i=0;i<candidates.length;i++){
+      throwIfCancelled(signal);
       const candidate=candidates[i];
       const greedy=searchCombos(candidate.board,cap,chain,4,positions.length-1,mode);
       const search=searchStaircaseCombos(candidate.board,cap,chain,candidate.slots,greedy);
       if(!solution||search.score>solution.search.score||(search.score===solution.search.score&&search.remaining<solution.search.remaining))solution={...candidate,search};
       progress(i+1);
-      await new Promise(resolve=>setTimeout(resolve,0));
+      await yieldToUI(signal);
     }
     solution={...solution,testedCandidates:candidates.length};
-    $("solverNote").textContent="Refining best preparation with multi-step search…";
-    await new Promise(resolve=>setTimeout(resolve,0));
+    $("optimizerProgressText").textContent="Refining the best preparation…";
+    await yieldToUI(signal);
     solution.search=beamSearchCombos(solution.board,cap,chain,solution.board.filter(v=>v>0).length-1,solution.search);
+    await yieldToUI(signal);
     solution.search=searchStaircaseCombos(solution.board,cap,chain,solution.slots,solution.search);
-    $("solverNote").textContent="Testing tactical Wind setups and repositioning…";
-    await new Promise(resolve=>setTimeout(resolve,0));
+    $("optimizerProgressText").textContent="Checking tactical Wind setups…";
+    await yieldToUI(signal);
     solution.search=searchTacticalCombos(solution.board,cap,chain,solution.slots,solution.search,{depth:12,width:12,branchLimit:16});
+    await yieldToUI(signal);
   }
+  throwIfCancelled(signal);
   if(!solution||!solution.search)throw Error("No valid preparations for these tier settings.");
   const result=solution.search;
   const recommendedSlots=solution.slots??slots;
@@ -342,7 +351,7 @@ async function showSolver(){
   $("solverMoves").textContent=verified.merges;
   $("solverRepositions").textContent=verified.repositions;
   $("solverNote").textContent=(custom?"Custom board · staircase recycling, greedy, beam, and tactical reposition searches tested. ":"Best of "+solution.testedCandidates+" preparations (base Tier "+solution.base+", "+solution.shape+"). ")+result.remaining+" occupied sushi remain. Heat model: "+mode+". Scores remain estimates, not a guaranteed maximum.";
-  $("solverNote").textContent+=" Winning strategy: "+result.strategy+". Slot arrangement: "+(solution.layoutName??"Current positions")+". Prepared tier cap: "+maxTier+"; East Wind limit: "+cap+".";
+  $("solverNote").textContent+=" Mode: "+(optimizerMode==="experimental"?"Experimental":"Default")+". Winning strategy: "+result.strategy+". Slot arrangement: "+(solution.layoutName??"Current positions")+". Prepared tier cap: "+maxTier+"; East Wind limit: "+cap+".";
   if(!custom&&protectTier64)$("solverNote").textContent+=" The permanent Tier 64 is placed in the first unlocked slot of the suggested layout."; 
   const root=$("solverSteps");root.replaceChildren();
   const movedFrom=slots.filter((v,i)=>v>=0&&recommendedSlots[i]<0).length;
@@ -510,18 +519,38 @@ async function showSolver(){
   showPlaybackState(false);
   displayStep(0);
 }
+function updateOptimizerModeHint(){
+  const experimental=$("optimizerMode").value==="experimental";
+  $("optimizerModeHint").textContent=experimental
+    ?"Experimental also tests layered Wind reserves on compatible automatic boards. Custom boards use the same search in either mode."
+    :"Default uses the original board preparations and merge strategies.";
+}
+$("optimizerMode").addEventListener("change",updateOptimizerModeHint);
+updateOptimizerModeHint();
+$("cancelSolver").addEventListener("click",()=>{
+  if(!activeSearch)return;
+  cancelRunningSearch();
+  $("cancelSolver").disabled=true;
+  $("cancelSolver").textContent="Stopping…";
+  $("optimizerProgressText").textContent="Stopping after the current calculation…";
+});
 $("runSolver").addEventListener("click",async()=>{
   if(!imported){$("solverNote").textContent="Import a valid Idleon Toolbox JSON first.";return;}
+  if(activeSearch)return;
   disposeReplay();
-  const button=$("runSolver");
+  const controller=new AbortController();
+  activeSearch=controller;
+  const button=$("runSolver"),cancel=$("cancelSolver");
   button.disabled=true;button.textContent="Optimizing…";
+  cancel.classList.remove("hidden");cancel.disabled=false;cancel.textContent="Cancel";
   $("optimizerProgress").classList.remove("hidden");
   $("optimizerProgressBar").value=0;$("optimizerProgressBar").max=1;
   $("optimizerProgressText").textContent="Preparing search…";
   $("solverResults").classList.add("hidden");
   $("solverNote").textContent="Searching candidate layouts…";
   try{
-    await showSolver();
+    await showSolver(controller.signal);
+    throwIfCancelled(controller.signal);
     $("solverResults").classList.remove("hidden");
     $("optimizerProgressText").textContent="Complete · Results ready";
     requestAnimationFrame(()=>{
@@ -529,9 +558,16 @@ $("runSolver").addEventListener("click",async()=>{
       if(target)target.scrollIntoView({behavior:window.matchMedia("(prefers-reduced-motion: reduce)").matches?"auto":"smooth",block:"start"});
     });
   }catch(e){
-    $("solverNote").textContent="Optimizer error: "+String(e.message??e);
-    $("optimizerProgressText").textContent="Optimization failed";
+    if(e.name==="AbortError"){
+      $("optimizerProgressText").textContent="Search cancelled · Change settings and run again";
+      $("solverNote").textContent="Search cancelled. No incomplete results were shown.";
+    }else{
+      $("solverNote").textContent="Optimizer error: "+String(e.message??e);
+      $("optimizerProgressText").textContent="Optimization failed";
+    }
   }finally{
+    if(activeSearch===controller)activeSearch=null;
     button.disabled=false;button.textContent="Run optimizer";
+    cancel.disabled=false;cancel.textContent="Cancel";cancel.classList.add("hidden");
   }
 });

@@ -385,3 +385,32 @@ details summary{cursor:pointer;font-size:12px;font-weight:700;color:#9eb7c9}
   .merge-board-panel .merge-navigation{justify-content:center}
   .merge-board-panel .merge-navigation .button{flex:0 1 auto}
 }
+
+/* v1.8.1: strategy selection and cancellable optimizer runs. */
+#solver>.actions .optimizer-run-actions{
+  grid-column:1 / -1;
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto;
+  gap:10px;
+  align-items:stretch;
+}
+#solver>.actions .optimizer-run-actions #runSolver{
+  grid-column:auto;
+  margin:0;
+  min-height:46px;
+}
+#solver>.actions .optimizer-run-actions #cancelSolver{
+  min-width:112px;
+  border-color:#805359;
+  background:#493037;
+  color:#f5d8d9;
+}
+#solver>.actions .optimizer-run-actions #cancelSolver:hover:not(:disabled){
+  background:#633741;
+  border-color:#b7797f;
+}
+.optimizer-mode-hint{margin:10px 4px 0}
+@media(max-width:470px){
+  #solver>.actions .optimizer-run-actions{grid-template-columns:minmax(0,1fr) auto}
+  #solver>.actions .optimizer-run-actions #cancelSolver{min-width:86px;padding-inline:10px}
+}
