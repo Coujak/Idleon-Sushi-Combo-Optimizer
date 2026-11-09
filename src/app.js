@@ -11,22 +11,6 @@ function decodeSave(input){
   if(!sushi[0].every(x=>Number.isInteger(Number(x))))throw Error("Sushi tile array contains non-numeric entries.");
   return {sushi,tiles:sushi[0].slice(0,120).map(Number),perfecto:Array.isArray(sushi[5])?sushi[5].map(Number):null,slots:Array.isArray(sushi[1])?sushi[1].slice(0,120).map(Number):[],fires:Array.isArray(sushi[3])?sushi[3].slice(0,15).map(Number):[],source:input.data?.Sushi!=null?"Idleon Toolbox":"Raw game data"};
 }
-function detectHeatUpgrade(save){
-  // Wiki upgrade #50 is one-based; Sushi[2] is believed to be the upgrade-level
-  // array. Only read a numeric 0/1 entry; otherwise require player confirmation.
-  const levels=save.sushi[2];
-  const level=Array.isArray(levels)&&levels.length>=50?Number(levels[49]):NaN;
-  return (level===0||level===1)?{enabled:level===1,source:"Sushi[2][49] (upgrade #50; verify against game)"}:{enabled:null,source:"Upgrade level not identified in JSON"};
-}
-function updateWindAvailability(){
-  if(!imported)return;
-  const setting=$("heatUpgrade").value;
-  const heat=detectHeatUpgrade(imported);
-  const enabled=setting==="auto"?heat.enabled:setting==="on";
-  const tier=Math.min(64,Math.max(1,Number($("seedTier").value)||detectSushiProgress(imported).highest||1));
-  $("windCap").value=String(enabled?Math.max(0,tier-6):0);
-  $("windCap").title=enabled===null?"Heat upgrade unverified; simulation will disable Wind until confirmed":enabled?"Heat enabled; prepared tier minus six":"Heat disabled";
-}
 function detectSushiProgress(save){
   // Sushi[0] stores tier IDs on the board (zero-based). Do not mistake
   // upgrade levels or knowledge EXP arrays for unlocked-tier flags.
@@ -39,11 +23,9 @@ function applyImportedLimits(){
   const progress=detectSushiProgress(imported);
   if(progress.highest<1){$("seedTier").value="";$("windCap").value="";return;}
   $("seedTier").value=String(progress.highest);
-  const heat=detectHeatUpgrade(imported);
-  $("heatUpgrade").value="auto";
-  $("windCap").value=String(heat.enabled?progress.windCap:0);
+  $("windCap").value=String(progress.windCap);
   $("seedTier").title=progress.source;
-  $("windCap").title=heat.source;
+  $("windCap").title="Highest unlocked sushi tier minus 6";
 }
 const SLOT_NAMES=["Regular","Hot","Cold","Milktoast"];
 const SUSHI_IMAGE_DIR="assets/sushi/";
@@ -309,10 +291,7 @@ async function showSolver(){
   if(!imported)return;
   const detected=detectSushiProgress(imported);
   const maxTier=Math.min(64,Math.max(1,Number($("seedTier").value)||detected.highest||1));
-  const heat=detectHeatUpgrade(imported);
-  const selection=$("heatUpgrade").value;
-  const windEnabled=selection==="auto"?heat.enabled:selection==="on";
-  const cap=windEnabled?Math.max(0,maxTier-6):0;
+  const cap=Math.max(0,maxTier-6);
   $("windCap").value=String(cap);
   const chain=Math.min(25,Math.max(0,Number($("chainLimit").value)||0));
   const slots=imported.slots.slice(0,120);
@@ -366,7 +345,7 @@ async function showSolver(){
   $("solverScore").textContent=result.score.toLocaleString();
   $("solverMoves").textContent=result.moves.length;
   $("solverNote").textContent=(custom?"Custom board · compared "+result.strategiesTested+" merge strategies. ":"Best of "+solution.testedCandidates+" preparations (base Tier "+solution.base+", "+solution.shape+"). ")+result.remaining+" occupied sushi remain. Heat model: "+mode+". Scores are estimates based on the current game model; the search picks the best tested strategy, not a guaranteed global maximum.";
-  $("solverNote").textContent+=" Winning strategy: "+result.strategy+". Slot arrangement: "+(solution.layoutName??"Current positions")+". Prepared tier cap: "+maxTier+"; East Wind: "+(windEnabled?"enabled (tier limit "+cap+")":windEnabled===null?"disabled until upgrade status is confirmed":"disabled")+". "+(selection==="auto"?heat.source:"Player-selected upgrade status")+".";
+  $("solverNote").textContent+=" Winning strategy: "+result.strategy+". Slot arrangement: "+(solution.layoutName??"Current positions")+". Prepared tier cap: "+maxTier+"; East Wind limit: "+cap+".";
   const root=$("solverSteps");root.replaceChildren();
   const recommendedSlots=solution.slots??slots;
   const movedFrom=slots.filter((v,i)=>v>=0&&recommendedSlots[i]<0).length;
@@ -497,6 +476,3 @@ $("runSolver").addEventListener("click",async()=>{
     button.disabled=false;button.textContent="Run optimizer";
   }
 });
-
-$("heatUpgrade").addEventListener("change",updateWindAvailability);
-$("seedTier").addEventListener("input",updateWindAvailability);
