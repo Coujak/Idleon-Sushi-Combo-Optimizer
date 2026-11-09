@@ -61,21 +61,22 @@ $("clearImport").addEventListener("click",()=>{imported=null;$("solver").classLi
 
 /* Experimental combo search. These are explicit assumptions, NOT verified game logic. */
 function simulateMerge(board,src,dst,cap,chainLimit){
-  if(src===dst||board[src]<1||board[src]!==board[dst])return null;
+  if(src===dst||board[src]<1||board[src]!==board[dst]||board[src]>=64)return null;
   const next=board.slice(),before=next[dst];
-  next[src]=0;next[dst]=Math.min(64,before+1);
+  next[src]=0;next[dst]=before+1;
   let score=next[dst],events=[{at:dst,tier:next[dst],kind:"merge"}];
-  // Assumption: an affected sushi can trigger another upgrade to its right.
-  let p=dst;
-  for(let k=0;k<chainLimit;k++){
-    const q=p+1;
-    if(q>=next.length||q%COLUMNS===0||next[p]<1||next[p]>cap||next[q]<1||next[q]>=next[p]||next[q]>=64)break;
-    next[q]++;score+=next[q];events.push({at:q,tier:next[q],kind:"wind"});p=q;
+  // Verified example: [41,41,41,41] -> [empty,42,42,41].
+  // Heat upgrades ONLY the immediate eastern neighbor, not a recursive chain.
+  const q=dst+1;
+  if(chainLimit>0&&q<next.length&&q%COLUMNS!==0&&before<=cap&&next[q]>0&&next[q]<64){
+    next[q]++;
+    score+=next[q];
+    events.push({at:q,tier:next[q],kind:"wind"});
   }
   return {board:next,score,events,src,dst};
 }
 function searchCombos(start,cap,chainLimit,beamWidth,depth){
-  let states=[{board:start,score:0,moves:[]}],best=states[0];
+  let states=[{board:start,score:0,moves:[],windStreak:0}],best=states[0];
   for(let step=0;step<depth;step++){
     const candidates=[],seen=new Set();
     for(const st of states){
@@ -89,11 +90,11 @@ function searchCombos(start,cap,chainLimit,beamWidth,depth){
           const sources=indices.filter(i=>i!==dst);
           sources.sort((a,b)=>((a%COLUMNS===0?1:0)-(b%COLUMNS===0?1:0))||a-b);
           for(const src of sources.slice(0,2)){
-            const result=simulateMerge(st.board,src,dst,cap,chainLimit);
+            const result=simulateMerge(st.board,src,dst,cap,st.windStreak>=chainLimit?0:1);
             if(!result)continue;
             const key=result.board.join(",");
             if(seen.has(key))continue;seen.add(key);
-            const state={board:result.board,score:st.score+result.score,moves:[...st.moves,result]};
+            const state={board:result.board,score:st.score+result.score,moves:[...st.moves,result],windStreak:result.events.some(e=>e.kind==="wind")?st.windStreak+1:0};
             candidates.push(state);
             if(state.score>best.score)best=state;
           }
@@ -128,6 +129,15 @@ function buildCandidates(positions,maxTier,cap){
   add("Low-tier staircase",(p,r,c)=>Math.max(2,Math.min(base,16)-c));
   add("Low-tier paired staircase",(p,r,c)=>Math.max(2,Math.min(base,16)-Math.floor(c/2)));
   add("Row-shifted tier ladders",(p,r,c)=>base-((c+2*r)%15));
+  // User-tested baseline: descending Tier 58..42 staircase, then Tier 41,
+  // with the last unlocked slot occupied by the permanent Tier 64.
+  if(positions.length>=17&&maxTier>=64){
+    const board=Array(120).fill(0);
+    positions.forEach(p=>board[p]=41);
+    for(let i=0;i<17;i++)if(positions.includes(i))board[i]=58-i;
+    board[positions[positions.length-1]]=64;
+    result.push({name:"Tested 40k staircase (Tier 58→42, Tier 41 supply, fixed Tier 64)",board});
+  }
   return result;
 }
 function optimizePreparation(positions,maxTier,cap,chainLimit){
@@ -151,7 +161,7 @@ function validateTiming(moves,timeout,secondsPerMerge){
 function showSolver(){
   if(!imported)return;
   const cap=Math.min(64,Math.max(1,Number($("windCap").value)||58));
-  const chain=Math.min(30,Math.max(0,Number($("chainLimit").value)||0));
+  const chain=Math.min(25,Math.max(0,Number($("chainLimit").value)||0));
   const maxTier=Math.min(64,Math.max(1,Number($("seedTier").value)||64));
   const slots=imported.slots.slice(0,120);
   const positions=slots.map((v,i)=>v>=0?i:-1).filter(i=>i>=0);
@@ -167,7 +177,7 @@ function showSolver(){
   $("timingDetails").textContent="Estimated execution: "+timing.totalDuration.toFixed(1)+"s · Per-merge margin: "+(timing.minimumMargin===null?"—":timing.minimumMargin.toFixed(1)+"s")+" · Assumes timer refreshes after each manual merge.";
   $("solverScore").textContent=result.score.toLocaleString();
   $("solverMoves").textContent=result.moves.length;
-  $("solverNote").textContent="Best of 16 prepared-tier patterns: "+solution.name+". This is a bounded heuristic, NOT a proven global maximum. Slot type does not currently change the simulated combo score, so the existing slot layout is equally optimal under this model. Wind chaining and scoring still require in-game verification.";
+  $("solverNote").textContent="Best of 17 prepared-tier patterns (including your tested staircase): "+solution.name+". This is a bounded heuristic, NOT a proven global maximum. Slot type does not currently change the simulated combo score, so the existing slot layout is equally optimal under this model. Heat now affects only the immediate right neighbor. Wind streak limit is applied; scoring still requires in-game verification.";
   const root=$("solverSteps");root.replaceChildren();
   function make(label,values,showTiers){
     const h=document.createElement("h3");h.textContent=label;root.append(h);
