@@ -2,7 +2,7 @@
 // The optimizer chooses its own final copy count and prepared arrangement.
 import {sushiTierIconPath} from "./sushi-reference.mjs";
 import {numberText} from "./lab-model.mjs";
-import {availablePerfectoTargets,getPerfectoPlanner} from "./perfecto-planner.mjs?v=1.15.5";
+import {availablePerfectoTargets,getPerfectoPlanner} from "./perfecto-planner.mjs?v=1.15.7";
 
 const $=id=>document.getElementById(id);
 const node=(tag,css="",value)=>{
@@ -123,7 +123,7 @@ export function initializePerfectoUI(getSave){
   if(!ready){
    text("perfectoNoData",result.reason==="complete"?
     "All discovered sushi are Perfecto. Import an updated save after discovering more.":
-    "Import an Idleon Toolbox JSON on Overview to plan your Perfecto board.");
+    "Import your game save JSON on Overview to plan your Perfecto board.");
    return;
   }
   const p=result.plan;
@@ -175,18 +175,18 @@ export function initializePerfectoUI(getSave){
   for(const milestone of result.milestones)
    text("perfectoConfidence"+Math.round(milestone.confidence*100),
     numAttempts(milestone.attempts));
-  text("perfectoPepperUses",display(result.preparation.pepperAvailable));
-  text("perfectoSaltUses",display(result.preparation.saltAvailable));
-  text("perfectoSaltEstimate","0 in this simulation");
-  text("perfectoFreeShaker",percent(result.freeUse.knownChance)+
-   " known free-use chance (excludes Research bonuses)");
-  text("perfectoExpectedConsumed",result.freeUse.expectedConsumedUpperBound===null?"—":
-   "≤ "+display(result.freeUse.expectedConsumedUpperBound)+" expected consumed Pepper uses");
+  const pepper=result.preparation.pepperAvailable;
+  text("perfectoPepperUses",display(pepper));
+  text("perfectoStoredChance",percent(result.pepperStackChance));
+  text("perfectoStoredChanceHint",
+   pepper===0?"No Pepper available yet.":
+   "Estimated chance across up to "+display(pepper)+
+   " activation"+(pepper===1?"":"s")+
+   " on the optimized board; stop as soon as you succeed.");
   const tip=$("perfectoRecommendation");
   tip.className="perfecto-recommendation perfecto-status-"+result.recommendation.state;
-  tip.textContent=result.recommendation.text;
-  text("perfectoSaltAdvice",
-   "The modeled final board does not require Salt Shaker triggers. Salt and bonus cooking procs may improve your actual preparation, but their random effects aren't counted as guaranteed sushi.");
+  text("perfectoActionTitle",result.recommendation.title);
+  text("perfectoActionText",result.recommendation.text);
   renderBoard(result);
  }
  setPlannerTab("combo");
