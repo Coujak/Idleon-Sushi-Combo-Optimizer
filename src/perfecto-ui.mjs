@@ -141,10 +141,19 @@ export function initializePerfectoUI(getSave){
    p.copies+" target copies · "+p.additionalCopies+" newly produced in the simulation · "+
    p.protected+" protected higher-tier sushi · "+p.unlocked+" unlocked slots");
   text("perfectoProtectedCount",p.protected+" higher-tier sushi preserved");
-  text("perfectoModelNote",
+  const proof=result.search?.certificate;
+  text("perfectoModelNote",proof?
+   "Constructive merge-only recipe: cook T"+proof.startingTier+" (each costs "+
+   display(result.search.sourceCost)+" fuel, "+percent(proof.capacityShare)+" of fuel capacity), "+
+   "then repeatedly merge equal tiers westwards up to T"+proof.targetTier+
+   ". Reserve "+proof.workspaceSlots+" empty positions while producing each target. "+
+   "The recipe needs "+proof.cooksExact+" cooked source sushi and "+
+   proof.mergesExact+" merges total, with no Salt or Wind luck required. "+
+   "This proves the shown target copies can be built, but not that the board is globally optimal.":
    "Best result from "+p.searchAttempts+" starting recipes and search variants, using "+
    display(p.estimatedManualMerges)+" simulated merges and "+
-   display(p.windUpgrades)+" Wind upgrades. The optimizer selects its own ingredient tier and uses a bounded, practical recipe budget—not a time limit or a requested target-copy count. This is a buildable heuristic result, not a proven global maximum.");
+   display(p.windUpgrades)+" Wind upgrades. This bounded Wind recipe is a heuristic candidate, "+
+   "not proof of a global optimum. Higher prepared sushi are charged merge ingredient costs.");
   for(const milestone of result.milestones)
    text("perfectoConfidence"+Math.round(milestone.confidence*100),
     numAttempts(milestone.attempts));
