@@ -86,6 +86,22 @@ This is a preparation convenience change, not a new scoring strategy. Historical
 - Enter action times to estimate combo-time feasibility. **Only merges reset the combo timer** in the timing estimate.
 - Follow each merge or relocation in a larger replay board with highlighted actions, dimmed inactive tiles, and a staggered East Wind animation.
 
+## Combo Meter milestone research (after Experiment 13.0)
+
+The next planned showcase targets are **Experiment 14.0 ≥ 80,000**, **15.0 ≥ 85,000**, **16.0 ≥ 90,000**, then increments of **5,000 points**. The numbers describe verified *score floors*, not algorithm versions. These are proposals until the game-mechanics replay passes the threshold; no unsupported benchmark may be published as a new experiment.
+
+The existing Experiment 13.0 remains the verified simulation benchmark: **76,532 points**, 93 merges, 1,925 Wind upgrades, one protected T64, and 100 contiguous slots. Early research changed individual supply sushi, tested 3,375 three-section start-tier combinations, explored coordinated stage/reserve adjustments, and tried thousands of short supply setup sequences and stochastic variations. **No ≥80,000 candidate has yet passed replay validation**, so Experiment 14.0 has deliberately **not** been inserted into the UI or presented as solved.
+
+The reproducible offline research runner can search the model and only save candidates that pass full replay verification:
+
+```sh
+node scripts/search-combo-milestones.mjs --trials=2000 --seed=421
+```
+
+Once a qualifying board and sequence are found, the runner writes a research candidate to `research/verified-milestones/`. Review the result and buildability before adding it to the displayed experiment list. A validated model replay cannot guarantee an actual player's score, because the game has a Combo timer and can have additional random effects; the player must complete the full action sequence in time.
+
+The proposed future rename is a **Combo Meter score showcase / certified score boards** interface, rather than an optimization claim. Existing experiment names are retained until the milestones are confirmed and the UI can be renamed consistently.
+
 ## Verified model regression
 
 The test suite reconstructs the tier layout implied by the user's 52-step video breakdown (22 descending Tier 30…9 sushi followed by 30 Tier 8 sushi). It validates **all 50 scoring merges**, not just the final score:
