@@ -28,3 +28,18 @@ test("Import precedes dashboard and new collections replace shortcut buttons",()
  assert.ok(!html.includes('class="lab-quick-links"'));
  assert.ok(!html.includes('id="labOverviewInsights"'));
 });
+
+test("Imported IT JSON is not rejected when cached Advisor markup lacks optional projection containers",()=>{
+ const app=readFileSync(new URL("../src/app.js",import.meta.url),"utf8");
+ const ui=readFileSync(new URL("../src/lab-ui.mjs",import.meta.url),"utf8");
+ const html=readFileSync(new URL("../index.html",import.meta.url),"utf8");
+ assert.match(ui,/function ensureAdvisorResultMount\(id,className\)/);
+ assert.match(ui,/ensureAdvisorResultMount\("labAdvisorGoalProjection","lab-advisor-goal-projection"\)/);
+ assert.match(ui,/ensureAdvisorResultMount\("labAdvisorPlanSummary","lab-advisor-plan-summary"\)/);
+ assert.match(ui,/panel\.insertBefore\(node,before\|\|null\)/);
+ assert.match(app,/try\{sushiLab\.refresh\(\);\}/);
+ assert.match(app,/JSON imported · dashboard incomplete/);
+ assert.match(app,/Your JSON loaded successfully, but the dashboard could not finish updating/);
+ assert.match(html,/src\/app\.js\?v=1\.16\.4/);
+ assert.match(app,/lab-ui\.mjs\?v=1\.16\.4/);
+});
