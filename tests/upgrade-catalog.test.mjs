@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import {readFileSync} from "node:fs";
 import {SUSHI_UPGRADES} from "../src/sushi-reference.mjs";
 import {getUpgradeRows,getSushiDoublerCounts} from "../src/lab-model.mjs";
-import {CATALOG_SORT_OPTIONS,CATALOG_STATUS_OPTIONS,upgradeSummary,readableUpgradeDescription,upgradeDescriptionSegments,catalogHasVariableValues,filterSortCatalog} from "../src/upgrade-catalog.mjs";
+import {CATALOG_SORT_OPTIONS,CATALOG_STATUS_OPTIONS,upgradeSummary,readableUpgradeDescription,upgradeDescriptionSegments,catalogHasVariableValues,filterSortCatalog,upgradeCatalogDollarValue} from "../src/upgrade-catalog.mjs";
 
 const upgrades=getUpgradeRows(null);
 test("All 46 upgrades have readable short summaries",()=>{
@@ -16,8 +16,8 @@ test("Full descriptions remove raw game placeholder tokens",()=>{
  const raw=SUSHI_UPGRADES.find(u=>u.name==="Fastburn Fuel II").description;
  const cleaned=readableUpgradeDescription(raw);
  assert.equal(catalogHasVariableValues(raw),true);
- assert.ok(cleaned.includes("[variable]%"));
- assert.ok(cleaned.includes("[in-game value]×"));
+ assert.ok(cleaned.includes("—"));
+ assert.ok(!cleaned.includes("[in-game value]"));
  assert.ok(!/[{}@$]/.test(cleaned));
  assert.equal(catalogHasVariableValues(SUSHI_UPGRADES.find(u=>u.name==="Sushi Slot").description),false);
 });
@@ -82,7 +82,7 @@ test("Account levels replace supported upgrade bonus placeholders, including Dou
  const description=readableUpgradeDescription(hourly.description,hourly,true);
  assert.match(description,/\+1,240% total Bucks/);
  assert.equal(catalogHasVariableValues(hourly.description,hourly,true),false);
- assert.match(readableUpgradeDescription(hourly.description,hourly,false),/\+\[variable\]%/);
+ assert.match(readableUpgradeDescription(hourly.description,hourly,false),/—/);
 
  save.spelunk[52]=[41];
  const doubled=getUpgradeRows(save).find(u=>u.shop===1);
@@ -105,7 +105,7 @@ test("Descriptions preserve unknown non-linear game values instead of guessing",
  const fuel= getUpgradeRows(save).find(u=>u.name==="Fastburn Fuel II");
  const text=readableUpgradeDescription(fuel.description,fuel,true);
  assert.match(text,/\+1,000% faster Fuel/);
- assert.match(text,/\[in-game value\]× Fuel Generation/);
+ assert.match(text,/— Fuel Generation/);
  assert.ok(catalogHasVariableValues(fuel.description,fuel,true));
 });
 
@@ -118,7 +118,7 @@ test("Calculated amounts are identified separately from unknown game values",()=
  assert.ok(!parts.some(p=>p.kind==="unresolved"));
  const fuel=getUpgradeRows(save).find(u=>u.name==="Fastburn Fuel II");
  const fuelParts=upgradeDescriptionSegments(fuel.description,fuel,true);
- assert.ok(fuelParts.some(p=>p.kind==="unresolved"&&p.text==="[in-game value]×"));
+ assert.ok(fuelParts.some(p=>p.kind==="unresolved"&&p.text==="—"));
  const noTax=getUpgradeRows(save).find(u=>u.name==="No Tax on Tips");
  assert.match(readableUpgradeDescription(noTax.description,noTax,true),/1×/);
  assert.equal(catalogHasVariableValues(noTax.description,noTax,true),false);
@@ -158,7 +158,7 @@ test("Catalog references transparent Doubler art and account discounts",()=>{
  const ui=readFileSync(new URL("../src/lab-ui.mjs",import.meta.url),"utf8");
  assert.ok(ui.includes("assets/upgrade_doubler.png"));
  assert.ok(ui.includes("estimatedNextCost"));
- assert.ok(ui.includes("sushiUpgradeExtraText(u,s)"));
+ assert.ok(ui.includes("upgradeCatalogDollarValue(u,s)"));
  assert.match(html,/Current Bucks \/ Next cost/);
  const model=readFileSync(new URL("../src/lab-model.mjs",import.meta.url),"utf8");
  assert.ok(model.includes("Jelly Operator obstruction bonus"));
@@ -236,4 +236,62 @@ test("Official Sushi Doubler art is transparent PNG at native 64 by 44 size",()=
  const css=readFileSync(new URL("../styles.css",import.meta.url),"utf8");
  assert.match(ui,/upgrade_doubler\.png\?v=1\.12\.4/);
  assert.ok(css.includes("aspect-ratio:16 / 11"));
+});
+
+test("Account export resolves every upgrade description dollar placeholder",()=>{
+ const levels=Array(50).fill(1);
+ levels[8]=1006;levels[9]=825;levels[10]=601;
+ const save={
+  sushi:[Array(120).fill(-1),Array(120).fill(0),levels,Array(15).fill(0),
+   [5e12,5e7,1e4,1e36,0,3,4,5,9000],Array(100).fill(0),
+   Array(100).fill(0),Array(100).fill(3)],
+  tiles:Array(120).fill(-1),fires:Array(15).fill(0),
+  spelunk:Array.from({length:53},()=>[]),bundleBonV:true
+ };
+ save.tiles[0]=30;
+ const all=getUpgradeRows(save);
+ let totalDollarDescriptions=0;
+ for(const u of all){
+  if(!u.description.includes("$"))continue;
+  totalDollarDescriptions++;
+  const value=upgradeCatalogDollarValue(u,save);
+  assert.ok(value!==null,"Could not calculate "+u.name);
+  assert.ok(value.text.length>0,"Empty calculation for "+u.name);
+  const segments=upgradeDescriptionSegments(u.description,u,true,value);
+  assert.ok(segments.every(p=>p.kind!=="unresolved"),u.name+" still unresolved");
+  const shown=readableUpgradeDescription(u.description,u,true,value);
+  assert.ok(!shown.includes("$"),u.name+" contains $ token");
+  assert.ok(!shown.includes("[in-game value]"),u.name+" contains placeholder");
+  assert.ok(!shown.includes("[variable]"),u.name+" contains variable placeholder");
+ }
+ assert.ok(totalDollarDescriptions>=14,"Check all upgrade dollar descriptions");
+ const fastburn=all.find(u=>u.name==="Fastburn Fuel I");
+ const estimate=upgradeCatalogDollarValue(fastburn,save);
+ assert.equal(estimate.estimated,true);
+ assert.match(estimate.text,/Fuel\/hr\. Max Cap is/);
+ assert.ok(estimate.text.includes("T")||estimate.text.includes("B"));
+ const segments=upgradeDescriptionSegments(fastburn.description,fastburn,true,estimate);
+ assert.ok(segments.some(p=>p.kind==="estimated"));
+});
+test("Dollar multipliers, percentages, fireplace bonuses, and resources use correct units",()=>{
+ const levels=Array(50).fill(0),tracking=Array(100).fill(0),kn=Array(100).fill(0);
+ levels[9]=825;levels[2]=950;levels[36]=440;levels[6]=45;
+ levels[29]=1;levels[25]=1;levels[28]=1;
+ const save={
+  sushi:[[],[],levels,[],[1e11,9e10,50000,2e28],tracking,[],kn],
+  spelunk:Array.from({length:53},()=>[]),fires:[],tiles:[]
+ };
+ const byId=id=>getUpgradeRows(save).find(u=>u.id===id);
+ for(const [id,expected] of [[9,"9.25×"],[2,"10.5×"],[6,"46"],
+  [36,"81.481%"],[29,"58"]]){
+  const info=upgradeCatalogDollarValue(byId(id),save);
+  assert.ok(info,"Missing "+id);
+  assert.ok(info.text.includes(expected),"Wrong value for "+id+": "+info.text);
+ }
+ const spark=readableUpgradeDescription(byId(25).description,byId(25),true,
+  upgradeCatalogDollarValue(byId(25),save));
+ const overtuned=readableUpgradeDescription(byId(28).description,byId(28),true,
+  upgradeCatalogDollarValue(byId(28),save));
+ assert.match(spark,/1Spark\/sec/);
+ assert.match(overtuned,/1 Overtuned Fuel/);
 });
