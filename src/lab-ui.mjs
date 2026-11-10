@@ -126,6 +126,19 @@ export function initializeSushiLab(getSave){
   customInput.value=String(n);
   if(purchasesInput.value==="custom")renderAdvisor();
  });
+ // An older cached HTML shell may not contain the newer result panel.
+ // Restore optional advisor mounts instead of treating a valid import as bad JSON.
+ function ensureAdvisorResultMount(id,className){
+  const existing=$(id);
+  if(existing)return existing;
+  const panel=$("lab-upgrade-advisor");
+  if(!panel)throw new Error("Progression Advisor panel is missing");
+  const node=el("div",className);
+  node.id=id;
+  const before=$("labAdvisorRoadmap")||$("labAdvisorResults");
+  panel.insertBefore(node,before||null);
+  return node;
+ }
  const viewCardsButton=$("labAdvisorViewCards"),viewListButton=$("labAdvisorViewList");
  function setPurchaseView(view){
   purchaseView=view;
@@ -134,8 +147,11 @@ export function initializeSushiLab(getSave){
    button.classList.toggle("selected",selected);
    button.setAttribute("aria-pressed",String(selected));
   }
-  $("labAdvisorPurchaseSteps").classList.toggle("lab-advisor-view-cards",view==="cards");
-  $("labAdvisorPurchaseSteps").classList.toggle("lab-advisor-view-list",view==="list");
+  const steps=$("labAdvisorPurchaseSteps");
+  if(steps){
+   steps.classList.toggle("lab-advisor-view-cards",view==="cards");
+   steps.classList.toggle("lab-advisor-view-list",view==="list");
+  }
  }
  viewCardsButton.addEventListener("click",()=>setPurchaseView("cards"));
  viewListButton.addEventListener("click",()=>setPurchaseView("list"));
@@ -530,9 +546,17 @@ export function initializeSushiLab(getSave){
    active.length?"Using measured "+active.join(", ")+" baseline(s) for matching goals.":
    "No readings entered. Estimates use the imported save's modeled values.";
   const plan=buildProgressionPurchasePlan(save(),goal,requested,{readings});
-  const planSummary=$("labAdvisorPlanSummary");
+  const planSummary=ensureAdvisorResultMount("labAdvisorPlanSummary","lab-advisor-plan-summary");
   const purchaseList=$("labAdvisorPurchaseSteps");
-  planSummary.replaceChildren();purchaseList.replaceChildren();
+  planSummary.replaceChildren();
+  if(!purchaseList){
+   // A stale page shell may lack the newer list while the JSON is valid.
+   const place=ensureAdvisorResultMount("labAdvisorRoadmap","lab-advisor-purchase-scroll");
+   place.replaceChildren(el("p","hint",
+    "Purchase list is unavailable in this cached page. Reload to view the latest layout."));
+   return;
+  }
+  purchaseList.replaceChildren();
   const summaryParts=[
    [String(plan.steps.length)+" / "+plan.requestedCount,"PURCHASES PLANNED"],
    [String(plan.initiallyFunded),"COVERED BY CURRENT BUCKS"],
@@ -545,7 +569,7 @@ export function initializeSushiLab(getSave){
    stat.append(el("strong","",value),el("small","",label));
    planSummary.append(stat);
   }
-  const projection=$("labAdvisorGoalProjection");
+  const projection=ensureAdvisorResultMount("labAdvisorGoalProjection","lab-advisor-goal-projection");
   projection.replaceChildren();
   if(plan.initialGoal&&plan.finalGoal){
    const header=el("div","lab-advisor-goal-label");
