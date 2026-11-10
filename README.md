@@ -5,12 +5,18 @@ Browser-based Sushi Station account dashboard, reference guides and Combo Meter 
 **Site:** https://coujak.github.io/Idleon-Sushi-Combo-Optimizer/
 
 ## Sections (v1.10.0)
-- **Overview:** Import your Idleon Toolbox JSON above the dashboard; view shaker counters with game artwork, missing Perfectos and undiscovered tiers with renamed sushi icons, account statistics and the original board. Dashboard shortcut buttons and Perfecto progress tally have been removed.
+- **Overview:** Import your game save JSON above the dashboard; view shaker counters with game artwork, missing Perfectos and undiscovered tiers with renamed sushi icons, account statistics and the original board. Dashboard shortcut buttons and Perfecto progress tally have been removed.
 - **Planners:** The original Combo Meter optimizer remains unchanged. The Perfecto Planner automatically chooses the lowest discovered sushi tier missing Perfecto, or accepts a manual target. It preserves higher-tier sushi and now **chooses its own recommended final board**: it searches several realistically buildable, tier-costed ingredient recipes and applies valid 2→1 merges plus Heat of the East Wind cascades, rather than painting 99 imaginary copies. Fuel affordability is an internal constraint on directly cooked starting tiers, while users are free to prepare higher tiers through merges. No user-facing preparation horizon, cooking pace, strategy, fuel settings, or target-copy slider. Shows the best target-copy count found, independent-roll estimated Perfecto chance as a percentage and **1 in X**, expected Pepper attempts and confidence milestones, and Tier 50/54 Knowledge bonuses. The fixed recipe complexity bound prevents unbounded hypothetical production; this heuristic does not prove a global optimum and excludes Salt and random cooking-tier bonuses.
 - **Upgrades:** An illustrated 46-entry catalog with account-calculated bonuses, expanded descriptions, filters, sorting, next-level total-effect hints and highlighted Menagerie Doublers using a transparent \`assets/upgrade_doubler.png\` icon. Upgrade-price estimates now apply known Wholesale Pricing, Sushi discovery, Knowledge and Jelly Operator discounts, with a per-upgrade breakdown, explicit partial-data labels, and centered, color-coded current Bucks / next-cost affordability feedback, plus a Hide maxed upgrades toggle. Assigned Sushi Doublers come from Spelunk[52]; availability uses an exact supplied Menagerie summary or a clearly labeled minimum from Menagerie[3][10]. Includes separate progression and Doubler advisors.
 - **Knowledge:** 64 sushi tiers, names, knowledge levels, EXP progress, known bonus categories and Perfecto states. Tiers without category metadata are explicitly marked unavailable rather than assigned fictitious effects.
 
-The advisors are informational and never modify the imported save. Price estimates use account discounts when their source data is available. Reference metadata is derived from the public Idleon Toolbox Sushi Station parser and tables, and can change as the game updates.
+The advisors are informational and never modify the imported save. Price estimates use account discounts when their source data is available. Reference metadata is derived from the public Sushi Station game rules, and can change as the game updates.
+
+## Perfecto Pepper plan (v1.15.7)
+
+The Perfecto Planner gives an explicit **Save Pepper — prepare the board first** or **Use Pepper now — one activation at a time** decision. Stockpiling Pepper does not change the odds of an individual activation: the quantity of target sushi on the board does. After building the recommended board, use Pepper individually and stop after the first successful Perfecto; the planner shows estimated cumulative odds across the number of activations currently available. "Current Board Chances" compares the current imported target-sushi copies with the optimized board's per-use chance. Confidence milestones are optional details, not a minimum stockpile target. Existing higher-tier sushi are automatically protected, without a manual checkbox. Salt-use information is omitted from the Pepper plan.
+
+The Combo Meter replay also makes moving sushi slightly transparent while it is picked up, dragged across the board, and dropped into the destination.
 
 ## Combo Meter interactive replay (v1.15.6)
 
@@ -57,7 +63,7 @@ Exp 1's layered and tuned preparations already have a descending high-tier suppl
 This is a preparation convenience change, not a new scoring strategy. Historical research still uses Tier 64, Wind 58, 25 chain targets and 100 unlocked slots.
 
 ## Features
-- Load Idleon Toolbox JSON locally (your save is processed in your browser).
+- Load game save JSON locally (your save is processed in your browser).
 - Reconstruct the complete **8×15 board (120 positions)**, supporting **up to 100 unlocked slots in any positions**, with plate types, fireplaces and Perfecto indicators.
 - Compare prepared layouts; edit individual sushi tiers using the custom board editor.
 - Choose **Balanced Planner** (Default) or one of thirteen named Experimental strategies, from **Wind Foundations** to **Cascade Resonance**. The interface labels their estimated manual execution difficulty and simulated benchmark. Original strategy IDs and algorithms remain unchanged.
