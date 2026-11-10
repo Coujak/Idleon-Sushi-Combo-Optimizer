@@ -31,7 +31,7 @@ function exampleSave(){
  return {sushi,slots,tiles,spelunk:Array.from({length:53},()=>[])};
 }
 
-test("IT/Corgan single-copy odds use the zero-based tier and Knowledge category 10",()=>{
+test("Single-copy Perfecto odds use the zero-based tier and Knowledge category 10",()=>{
  assert.equal(perfectoSingleChance(1),.6);
  const t10=.6*Math.pow(.81,9)/(1+9/8);
  assert.ok(Math.abs(perfectoSingleChance(10)-t10)<1e-15);
@@ -79,17 +79,18 @@ test("One automatically chosen final board preserves higher and target sushi",()
  const same=getPerfectoPlanner(save,{tier:2});
  assert.equal(same.search,result.search); // unchanged save uses cached solution
  assert.deepEqual(same.plan.board,result.plan.board);
- const noProtection=perfectoBoardPlan(save,2,{protectHigher:false});
- assert.equal(noProtection.protected,0);
- assert.equal(noProtection.eligible,12);
+ const cannotDisable=getPerfectoPlanner(save,{tier:2,protectHigher:false});
+ assert.equal(cannotDisable.plan.protected,1,
+  "higher-tier sushi always remain protected");
 });
 test("Perfecto odds and shaker data come from the imported account, not controls",()=>{
  const save=exampleSave();
  const p=getPerfectoPlanner(save);
  assert.equal(p.target,2);
- assert.equal(p.preparation.saltAvailable,8);
  assert.equal(p.preparation.pepperAvailable,4);
- assert.equal(p.preparation.saltEstimate,0);
+ assert.equal(p.pepperStackChance,perfectoBoardChance(p.planChance,4));
+ assert.equal(p.recommendation.state,"save");
+ assert.match(p.recommendation.title,/SAVE PEPPER/);
  const sources=getKnowledgeRows(save).filter(k=>k.category===10);
  assert.ok(Math.abs(p.bonus.knowledgeBonus-
    sources.reduce((sum,k)=>sum+(k.bonus??0),0))<1e-10);
@@ -158,12 +159,15 @@ test("Only automatic target and protection controls remain in Perfecto",()=>{
  const required=["perfectoPlanner","perfectoTarget","perfectoProtectHigher",
    "perfectoBoard","perfectoSingleChance","perfectoCurrentChance","perfectoPlanChance",
    "perfectoPlanOddsRatio","perfectoExpectedActivations","perfectoConfidence50",
-   "perfectoConfidence90","perfectoConfidence99","perfectoSaltAdvice","perfectoBonusCards"];
+   "perfectoConfidence90","perfectoConfidence99","perfectoActionTitle",
+   "perfectoStoredChance","perfectoBonusCards"];
  for(const id of required)assert.ok(html.includes('id="'+id+'"'),id);
  const removed=["perfectoPlanHours","perfectoCookingPace","perfectoFuelMode",
    "perfectoFuelCapacity","perfectoFuelGeneration","perfectoSourceTier",
    "perfectoSourceCost","perfectoCapOverride","perfectoGenOverride","perfectoCopies",
-   "perfectoFuelEstimate"];
+   "perfectoFuelEstimate","perfectoProtectHigher","perfectoSaltUses",
+   "perfectoSaltEstimate","perfectoSaltAdvice","perfectoFreeShaker",
+   "perfectoExpectedConsumed"];
  for(const id of removed){
   assert.ok(!html.includes('id="'+id+'"'),"old control "+id);
   assert.ok(!ui.includes('$("'+id+'")'),"old control reference "+id);
@@ -408,4 +412,45 @@ test("Perfecto role indicators and real plate colors are not overridden by sushi
  assert.ok(styles.includes(".perfecto-board .perfecto-tile.perfecto-target"));
  assert.ok(styles.includes(".perfecto-board .perfecto-tile.perfecto-protected"));
  assert.ok(html.includes("Regular plate"));
+});
+
+test("Pepper guidance saves until prepared and never imposes a stockpile threshold",()=>{
+ const pending=getPerfectoPlanner(exampleSave(),{tier:2});
+ assert.equal(pending.recommendation.state,"save");
+ assert.ok(pending.plan.copies>pending.plan.currentCopies);
+ assert.match(pending.recommendation.title,/SAVE PEPPER/);
+ assert.ok(Math.abs(pending.pepperStackChance-
+   perfectoBoardChance(pending.planChance,pending.preparation.pepperAvailable))<1e-12);
+ const completeBoard=exampleSave();
+ for(let i=1;i<12;i++)completeBoard.tiles[i]=1;
+ const ready=getPerfectoPlanner(completeBoard,{tier:2});
+ assert.equal(ready.plan.currentCopies,11);
+ assert.equal(ready.plan.copies,11);
+ assert.equal(ready.recommendation.state,"ready");
+ assert.match(ready.recommendation.title,/USE PEPPER NOW/);
+ const noPepperBoard=exampleSave();
+ for(let i=1;i<12;i++)noPepperBoard.tiles[i]=1;
+ noPepperBoard.sushi[4][6]=0;
+ const noPepper=getPerfectoPlanner(noPepperBoard,{tier:2});
+ assert.equal(noPepper.recommendation.state,"empty");
+ assert.match(noPepper.recommendation.title,/COLLECT PEPPER/);
+ assert.equal(noPepper.pepperStackChance,0);
+});
+test("Public HTML removes technical source names, Salt controls, and protection toggle",()=>{
+ const html=readFileSync(new URL("../index.html",import.meta.url),"utf8");
+ const ui=readFileSync(new URL("../src/perfecto-ui.mjs",import.meta.url),"utf8");
+ for(const str of ["Idleon Toolbox","Corgan","perfectoProtectHigher",
+   "perfectoSaltUses","perfectoSaltEstimate","perfectoSaltAdvice"]){
+  assert.ok(!html.includes(str),"old public-facing content: "+str);
+ }
+ assert.ok(html.includes("Current Board Chances"));
+ assert.ok(html.includes("What should I do with my Pepper Shakers?"));
+ assert.ok(ui.includes('text("perfectoActionTitle"'));
+ assert.ok(!ui.includes("protect.checked"));
+ const css=readFileSync(new URL("../styles.css",import.meta.url),"utf8");
+ const app=readFileSync(new URL("../src/app.js",import.meta.url),"utf8");
+ assert.ok(css.includes(".tile.merge-landed"));
+ assert.ok(css.includes(".tile.merge-flying-sushi"));
+ assert.ok(app.includes("opacity:.78"));
+ assert.ok(app.includes("opacity:.66"));
 });
