@@ -179,3 +179,36 @@ test("The catalog displays current balance / next price with accessible affordab
   assert.ok(styles.includes("."+cls));
  }
 });
+
+test("Hide maxed upgrades works independently of category, status and sort",()=>{
+ const save={sushi:[[],[],Array(46).fill(0),[],[],[],[],[]],spelunk:Array.from({length:53},()=>[])};
+ save.sushi[2][0]=50; // Maxed Sushi Slot.
+ save.sushi[2][41]=7; // Hourly Wage Meter is not maxed.
+ const full=getUpgradeRows(save);
+ const visible=filterSortCatalog(full,{hasSave:true,hideMaxed:true});
+ assert.ok(!visible.some(u=>u.maxLevel>0&&u.atMax));
+ assert.ok(visible.some(u=>u.shop===1));
+ assert.ok(visible.some(u=>u.maxLevel===0)); // Unavailable Rift is not "maxed".
+ assert.ok(filterSortCatalog(full,{hasSave:true,hideMaxed:false}).some(u=>u.name==="Sushi Slot"));
+ assert.equal(filterSortCatalog(full,{hasSave:true,hideMaxed:true,status:"maxed"}).length,0);
+ assert.ok(!filterSortCatalog(full,{hasSave:true,hideMaxed:true,sort:"level-desc",category:"other"})
+   .some(u=>u.maxLevel>0&&u.atMax));
+ assert.equal(filterSortCatalog(upgrades,{hideMaxed:true,hasSave:false}).length,46);
+});
+test("UI centers cells, emphasizes doubled values and keeps the Doubler icon only in its column",()=>{
+ const html=readFileSync(new URL("../index.html",import.meta.url),"utf8");
+ const ui=readFileSync(new URL("../src/lab-ui.mjs",import.meta.url),"utf8");
+ const css=readFileSync(new URL("../styles.css",import.meta.url),"utf8");
+ assert.match(html,/id="labHideMaxed" type="checkbox"/);
+ assert.ok(ui.includes("hideMaxed:hideMaxedInput.checked"));
+ assert.ok(ui.includes('hideMaxedInput.addEventListener("change",renderCatalog)'));
+ assert.ok(!ui.includes("lab-catalog-doubled-tag"));
+ assert.ok(ui.includes('if(hasSave&&u.doubled)badge.prepend(doublerIcon())'));
+ assert.ok(css.includes('tr.lab-catalog-doubled .lab-catalog-known-value'));
+ assert.ok(css.includes('.lab-catalog-table th,.lab-catalog-table td{text-align:center'));
+ assert.ok(!ui.includes("costCell.append(ratio,badge)"));
+ assert.ok(!ui.includes("All discounts included"));
+ assert.ok(!ui.includes("lab-catalog-cost-hint"));
+ assert.ok(ui.includes('costCell.classList.add("lab-cost-"+status)'));
+ assert.ok(ui.includes('costCell.setAttribute("aria-label"'));
+});

@@ -104,10 +104,11 @@ export function readableUpgradeDescription(raw,upgrade=null,hasSave=false){
 export function catalogHasVariableValues(raw,upgrade=null,hasSave=false){
  return upgradeDescriptionSegments(raw,upgrade,hasSave).some(part=>part.kind==="unresolved");
 }
-export function filterSortCatalog(upgrades,{query="",category="all",status="all",sort="shop",hasSave=false}={}){
+export function filterSortCatalog(upgrades,{query="",category="all",status="all",sort="shop",hasSave=false,hideMaxed=false}={}){
  const search=String(query).trim().toLocaleLowerCase();
  if(["maxed","not-maxed","doubled"].includes(status)&&!hasSave)return [];
  const rows=upgrades.filter(upgrade=>{
+  if(hideMaxed&&hasSave&&upgrade.maxLevel>0&&upgrade.atMax)return false;
   const goals=upgrade.goals??[];
   if(category==="other"&&goals.length!==0)return false;
   if(category!=="other"&&category!=="all"&&!goals.includes(category))return false;

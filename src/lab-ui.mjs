@@ -1,7 +1,7 @@
 // Sushi Station Lab: lightweight, accessible navigation and account-aware
 // information panels. All imported JSON stays in memory on the user's device.
 import {sushiUpgradeIconPath,sushiTierIconPath} from "./sushi-reference.mjs?v=1.10.2";
-import {CATALOG_SORT_OPTIONS,CATALOG_STATUS_OPTIONS,upgradeSummary,readableUpgradeDescription,upgradeDescriptionSegments,catalogHasVariableValues,filterSortCatalog} from "./upgrade-catalog.mjs?v=1.12.0";
+import {CATALOG_SORT_OPTIONS,CATALOG_STATUS_OPTIONS,upgradeSummary,readableUpgradeDescription,upgradeDescriptionSegments,catalogHasVariableValues,filterSortCatalog} from "./upgrade-catalog.mjs?v=1.12.2";
 import {ADVISOR_GOALS,numberText,getSushiSnapshot,getUpgradeRows,
  getKnowledgeRows,advisorUpgrades,doublerUpgrades,getSushiDoublerCounts,sushiUpgradeExtraText,upgradeAffordability} from "./lab-model.mjs?v=1.12.1";
 
@@ -100,6 +100,7 @@ export function initializeSushiLab(getSave){
  const categoryInput=$("labUpgradeCategory");
  const statusInput=$("labUpgradeStatus");
  const sortInput=$("labUpgradeSort");
+ const hideMaxedInput=$("labHideMaxed");
  for(const entry of [...ADVISOR_GOALS,{id:"other",name:"Other / utility"}]){
   categoryInput.append(new Option(entry.name,entry.id));
  }
@@ -117,6 +118,7 @@ export function initializeSushiLab(getSave){
  categoryInput.addEventListener("change",()=>{catalogCategory=categoryInput.value;renderCatalog();});
  statusInput.addEventListener("change",()=>{catalogStatus=statusInput.value;renderCatalog();});
  sortInput.addEventListener("change",()=>{catalogSort=sortInput.value;renderCatalog();});
+ hideMaxedInput.addEventListener("change",renderCatalog);
  for(const button of document.querySelectorAll("[data-catalog-sort]")){
   button.addEventListener("click",()=>{
    const first=button.dataset.catalogSort,second=button.dataset.catalogSortReverse||"shop";
@@ -218,6 +220,7 @@ export function initializeSushiLab(getSave){
  function renderCatalog(){
   const s=save(),hasSave=!!s;
   const balance=hasSave?getSushiSnapshot(s).bucks:null;
+  hideMaxedInput.disabled=!hasSave;
   for(const select of [statusInput,sortInput]){
    for(const option of select.options)option.disabled=option.dataset.requiresSave==="true"&&!hasSave;
   }
@@ -227,7 +230,8 @@ export function initializeSushiLab(getSave){
    statusInput.value=catalogStatus;sortInput.value=catalogSort;
   }
   const rows=filterSortCatalog(getUpgradeRows(s),{
-   query:$("labUpgradeSearch").value,category:catalogCategory,status:catalogStatus,sort:catalogSort,hasSave
+   query:$("labUpgradeSearch").value,category:catalogCategory,status:catalogStatus,sort:catalogSort,hasSave,
+   hideMaxed:hideMaxedInput.checked
   });
   const body=$("labUpgradeRows");body.replaceChildren();
   $("labUpgradeCount").textContent=rows.length+" / 46 upgrades";
@@ -278,12 +282,6 @@ export function initializeSushiLab(getSave){
    const copy=el("span","lab-upgrade-copy");
    copy.append(el("strong","",upgradeLabel(u)),
     el("span","lab-upgrade-summary",upgradeSummary(u)));
-   if(hasSave&&u.doubled){
-    const doubledTag=el("span","lab-catalog-doubled-tag","×2 active");
-    doubledTag.title="Menagerie Sushi Doubler is assigned to this upgrade";
-    doubledTag.prepend(doublerIcon());
-    copy.append(doubledTag);
-   }
    identity.append(upgradeArtwork(u),copy);
    summary.append(identity,el("span","lab-catalog-more","Details"));
    const full=el("p","lab-catalog-description");
@@ -314,12 +312,9 @@ export function initializeSushiLab(getSave){
     const label=status==="affordable"?"Enough Bucks":
       status==="unaffordable"?"Not enough Bucks":
       status==="uncertain"?"Price may be lower":"Price unavailable";
-    const badge=el("span","lab-catalog-affordability lab-affordability-"+status,label);
     costCell.classList.add("lab-cost-"+status);
-    costCell.append(ratio,badge);
+    costCell.append(ratio);
     const detail=u.costBreakdown;
-    costCell.append(el("span","lab-catalog-cost-hint",detail.complete?"All discounts included":
-      "Partial estimate · "+detail.known+"/"+detail.total+" sources"));
     const precise=value=>Number.isFinite(value)?value.toExponential(12):"Unavailable";
     costCell.title="Current Sushi Bucks: "+precise(balance)+"\nNext cost: "+precise(cost)+"\n"+
       "Base cost: "+precise(u.baseNextCost)+"\n"+

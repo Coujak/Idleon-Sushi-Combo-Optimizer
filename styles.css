@@ -679,3 +679,33 @@ details summary{cursor:pointer;font-size:12px;font-weight:700;color:#9eb7c9}
 .lab-cost-unknown .lab-catalog-cost-ratio{background:#3a3526;border-color:#a68d4f}
 .lab-affordability-uncertain,.lab-affordability-unknown{color:#ffe7af;background:#5b4e2f;border:1px solid #a68d4f}
 .lab-cost-unknown .lab-catalog-next-price{color:#ffe7af}
+
+/* v1.12.2: uncluttered, centered upgrade catalog. */
+.lab-hide-maxed-toggle{
+ display:inline-flex;align-items:center;gap:9px;cursor:pointer;
+ margin:0 0 13px;padding:8px 11px;border:1px solid #375264;
+ background:#192e3d;color:#d9f0e6;border-radius:9px;font-size:12px;font-weight:650
+}
+.lab-hide-maxed-toggle input{width:16px;height:16px;accent-color:#72ddb1;cursor:pointer}
+.lab-hide-maxed-toggle:has(input:disabled){opacity:.55;cursor:not-allowed}
+.lab-hide-maxed-toggle input:disabled{cursor:not-allowed}
+.lab-hide-maxed-toggle:focus-within{outline:2px solid #a4f5cd;outline-offset:2px}
+.lab-catalog-table th,.lab-catalog-table td{text-align:center;vertical-align:middle}
+.lab-catalog-table .lab-sort-header{text-align:center}
+.lab-catalog-table .lab-catalog-summary{
+ flex-direction:column;align-items:center;justify-content:center;gap:8px;text-align:center
+}
+.lab-catalog-table .lab-upgrade-identity{justify-content:center}
+.lab-catalog-table .lab-upgrade-copy{align-items:center;text-align:center}
+.lab-catalog-table .lab-catalog-more{align-self:center}
+.lab-catalog-table .lab-catalog-description,
+.lab-catalog-table .lab-catalog-variable-note{
+ text-align:center;padding-left:0;margin-left:auto;margin-right:auto;max-width:420px
+}
+.lab-catalog-table .lab-catalog-cost-ratio{justify-content:center;text-align:center}
+.lab-catalog-table .lab-catalog-gain-hint{text-align:center}
+.lab-catalog-table .lab-catalog-doubler-cell{text-align:center}
+.lab-catalog-table tr.lab-catalog-doubled .lab-catalog-known-value{
+ color:#f1d6ff;background:#573a72;box-shadow:inset 0 0 0 1px #b08bd77a
+}
+.lab-catalog-table tr.lab-catalog-doubled .lab-catalog-gain-hint strong{color:#ebc4ff}
