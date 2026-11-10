@@ -47,7 +47,7 @@ function openButton(name,target){
 let setTab=()=>{};
 export function initializeSushiLab(getSave){
  let mainTab="overview",upgradeTab="catalog",goal="bucks",doublerGoal="all";
- let advisorSort="recommended",advisorFilter="all";
+ let advisorSort="recommended",advisorFilter="all",purchaseView="cards";
  let catalogSort="shop",catalogCategory="all",catalogStatus="all";
  const expandedUpgradeDetails=new Set();
  const save=()=>getSave();
@@ -125,6 +125,20 @@ export function initializeSushiLab(getSave){
   customInput.value=String(n);
   if(purchasesInput.value==="custom")renderAdvisor();
  });
+ const viewCardsButton=$("labAdvisorViewCards"),viewListButton=$("labAdvisorViewList");
+ function setPurchaseView(view){
+  purchaseView=view;
+  for(const [name,button] of [["cards",viewCardsButton],["list",viewListButton]]){
+   const selected=name===view;
+   button.classList.toggle("selected",selected);
+   button.setAttribute("aria-pressed",String(selected));
+  }
+  $("labAdvisorPurchaseSteps").classList.toggle("lab-advisor-view-cards",view==="cards");
+  $("labAdvisorPurchaseSteps").classList.toggle("lab-advisor-view-list",view==="list");
+ }
+ viewCardsButton.addEventListener("click",()=>setPurchaseView("cards"));
+ viewListButton.addEventListener("click",()=>setPurchaseView("list"));
+ setPurchaseView("cards");
  const categoryInput=$("labUpgradeCategory");
  const statusInput=$("labUpgradeStatus");
  const sortInput=$("labUpgradeSort");
@@ -513,6 +527,24 @@ export function initializeSushiLab(getSave){
    stat.append(el("strong","",value),el("small","",label));
    planSummary.append(stat);
   }
+  const projection=$("labAdvisorGoalProjection");
+  projection.replaceChildren();
+  if(plan.initialGoal&&plan.finalGoal){
+   const header=el("div","lab-advisor-goal-label");
+   header.append(el("strong","",plan.initialGoal.label),
+    el("span","",plan.initialGoal.estimated||plan.finalGoal.estimated?
+     "ESTIMATED / PARTIAL":"MODELED"));
+   projection.append(header);
+   const compare=el("div","lab-advisor-goal-comparison");
+   const initial=el("div","lab-advisor-goal-number");
+   initial.append(el("small","","FROM YOUR IMPORTED ACCOUNT"),
+    el("strong","",plan.initialGoal.display));
+   const projected=el("div","lab-advisor-goal-number lab-advisor-goal-projected");
+   projected.append(el("small","","AFTER "+plan.steps.length+" PLANNED PURCHASES"),
+    el("strong","",plan.finalGoal.display));
+   compare.append(initial,el("span","lab-advisor-goal-arrow","→"),projected);
+   projection.append(compare,el("p","lab-advisor-goal-note",plan.finalGoal.note));
+  }
   for(const step of plan.steps){
    const item=el("li","lab-advisor-purchase-step");
    const number=el("span","lab-advisor-purchase-number",String(step.number));
@@ -534,8 +566,17 @@ export function initializeSushiLab(getSave){
    if(!step.fundedByImport)action.append(el("small","",
     step.missingBucks>0?"Additional Bucks required before this step":
     "Projected after earlier savings"));
-   item.append(number,identity,price,action);
-   item.title=step.nextLevelEffect;
+   const goalResult=el("div","lab-advisor-step-result");
+   goalResult.append(el("span","lab-advisor-step-result-label",step.goalResult.label));
+   const diff=el("div","lab-advisor-step-result-values");
+   diff.append(el("span","",step.goalResult.current),
+    el("span","lab-advisor-step-result-arrow","→"),
+    el("strong","",step.goalResult.projected));
+   goalResult.append(diff);
+   if(!step.goalResult.changed)goalResult.append(el("small","",
+    "No modeled change to this total; "+step.nextLevelEffect));
+   item.append(number,identity,goalResult,price,action);
+   item.title=step.goalResult.note;
    purchaseList.append(item);
   }
   if(plan.stopReason){
