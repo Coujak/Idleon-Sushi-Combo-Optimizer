@@ -11,3 +11,7 @@ Place the five original Idleon PNGs in this folder, using these exact filenames:
 | `SushiUpg25.png` | Potassium Firelighter | Purple |
 
 This folder is intended for the campfire art used beneath Sushi Station board columns.
+
+## Related artwork
+
+The original `SushiUpg23.png`–`SushiUpg27.png` filenames stay here because the board renderer expects them. Identical copies are also available under descriptive, shop-numbered filenames in [`../upgrades/`](../upgrades/). The fireplace column mapping is **Charcoal → Barium → Copper → Lithium → Potassium**.

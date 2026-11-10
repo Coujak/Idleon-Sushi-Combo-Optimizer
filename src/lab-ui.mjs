@@ -1,6 +1,6 @@
 // Sushi Station Lab: lightweight, accessible navigation and account-aware
 // information panels. All imported JSON stays in memory on the user's device.
-import {SUSHI_REFERENCE_SOURCE} from "./sushi-reference.mjs";
+import {SUSHI_REFERENCE_SOURCE,sushiUpgradeIconPath,sushiTierIconPath} from "./sushi-reference.mjs?v=1.10.2";
 import {ADVISOR_GOALS,numberText,getSushiSnapshot,getUpgradeRows,
  getKnowledgeRows,advisorUpgrades,doublerUpgrades} from "./lab-model.mjs";
 
@@ -98,7 +98,7 @@ export function initializeSushiLab(getSave){
   frame.append(el("span","lab-sushi-fallback","T"+tier));
   if(Number.isInteger(tier)&&tier>=1&&tier<=64){
    const img=el("img","lab-sushi-icon");
-   img.src="assets/sushi/Sushi_Station_Sushi_"+tier+".png";
+   img.src=sushiTierIconPath(tier);
    img.alt="";
    img.loading="lazy";
    img.onerror=()=>img.remove();
@@ -121,15 +121,20 @@ export function initializeSushiLab(getSave){
  function renderShakerCards(stats){
   const box=$("labShakerCards");box.replaceChildren();
   const list=[
-   {name:"Salt Shaker",emoji:"🧂",desc:"Tier-up shaker"},
-   {name:"Pepper Shaker",emoji:"🌶️",desc:"Perfecto shaker"},
-   {name:"Saffron Shaker",emoji:"🌼",desc:"Bucks shaker"}
+   {name:"Salt Shaker",initial:"S",desc:"Tier-up shaker"},
+   {name:"Pepper Shaker",initial:"P",desc:"Perfecto shaker"},
+   {name:"Saffron Shaker",initial:"F",desc:"Bucks shaker"}
   ];
   for(let i=0;i<list.length;i++){
    const info=list[i],card=el("div","lab-shaker-card");
-   // Temporary icon placeholders until the user provides shaker artwork.
-   const icon=el("span","lab-shaker-icon",info.emoji);
+   const icon=el("span","lab-shaker-icon");
    icon.setAttribute("aria-hidden","true");
+   const art=el("img","lab-shaker-image");
+   art.src="assets/shakers/"+encodeURIComponent(info.name+".png");
+   art.alt="";
+   art.loading="lazy";
+   art.onerror=()=>{art.remove();icon.textContent=info.initial;};
+   icon.append(art);
    const label=el("span","lab-shaker-copy");
    label.append(el("strong","",info.name),el("span","",info.desc));
    const count=el("span","lab-shaker-count");
@@ -165,6 +170,16 @@ export function initializeSushiLab(getSave){
   renderMissingCards("labMissingTiers",entries.filter(x=>!x.discovered),
    "Every sushi tier has been discovered.");
  }
+ function upgradeArtwork(u){
+  const img=el("img","lab-upgrade-icon");
+  img.alt="";
+  img.loading="lazy";
+  img.decoding="async";
+  const path=sushiUpgradeIconPath(u.id);
+  if(path)img.src=path;
+  img.onerror=()=>img.remove();
+  return img;
+ }
  function renderCatalog(){
   const q=$("labUpgradeSearch").value.trim().toLowerCase(),s=save();
   const rows=getUpgradeRows(s).filter(u=>
@@ -173,7 +188,9 @@ export function initializeSushiLab(getSave){
   $("labUpgradeCount").textContent=rows.length+" / 46 upgrades";
   for(const u of rows){
    const tr=el("tr"),name=el("td","lab-upgrade-name");
-   name.append(el("strong","",upgradeLabel(u)));
+   const identity=el("span","lab-upgrade-identity");
+   identity.append(upgradeArtwork(u),el("strong","",upgradeLabel(u)));
+   name.append(identity);
    const details=el("details","lab-row-detail");
    const summary=el("summary","", "Effect details");
    details.append(summary,el("p","",u.description||"No effect details available in the reference."));
@@ -189,7 +206,9 @@ export function initializeSushiLab(getSave){
  function resultCard(u,mode){
   const item=el("article","lab-result-card");
   const header=el("div","lab-result-head");
-  header.append(el("strong","",upgradeLabel(u)),
+  const identity=el("span","lab-upgrade-identity");
+  identity.append(upgradeArtwork(u),el("strong","",upgradeLabel(u)));
+  header.append(identity,
     el("span","lab-mini-badge",u.atMax?"Maxed":u.doubled?"Doubled":"Lv "+fmt(u.level)));
   item.append(header,el("p","lab-result-desc",u.description||"No effect details available."));
   if(mode==="advisor"){

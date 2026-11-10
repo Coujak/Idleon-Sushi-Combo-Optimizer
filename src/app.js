@@ -10,7 +10,8 @@ import {MODE_CATALOG,getModeInfo,modeOptionLabel,modeDisplayLabel} from "./mode-
 const $=id=>document.getElementById(id);
 import {BOARD_COLUMNS,BOARD_CELLS,normalizeBoardData,layoutOptions} from "./board-geometry.mjs?v=1.8.4";
 import {windTierMaximum,clampWindTier,windTierAfterPreparedChange} from "./wind-limit.mjs?v=1.9.10";
-import {initializeSushiLab} from "./lab-ui.mjs?v=1.10.1";
+import {initializeSushiLab} from "./lab-ui.mjs?v=1.10.2";
+import {sushiTierIconPath} from "./sushi-reference.mjs?v=1.10.2";
 const COLUMNS=BOARD_COLUMNS;
 let imported=null;
 const sushiLab=initializeSushiLab(()=>imported);
@@ -94,14 +95,13 @@ function applyImportedLimits(){
   syncWindTierLimit({normalize:true});
 }
 const SLOT_NAMES=["Regular","Hot","Cold","Milktoast"];
-const SUSHI_IMAGE_DIR="assets/sushi/";
 function addSushiVisual(cell,tier){
   if(!Number.isSafeInteger(tier)||tier<1)return;
   // Artwork currently ends at Tier 64. Display higher tiers as numbers.
   if(tier<=64){
     const img=document.createElement("img");
     img.className="sushi-art";
-    img.src=SUSHI_IMAGE_DIR+"Sushi_Station_Sushi_"+tier+".png";
+    img.src=sushiTierIconPath(tier);
     img.alt="";
     img.loading="lazy";
     img.decoding="async";

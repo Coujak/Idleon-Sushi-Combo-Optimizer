@@ -1014,3 +1014,14 @@ export const SUSHI_KNOWLEDGE=[
 export const KNOWLEDGE_CATEGORIES=["Bucks earned","Knowledge XP","Cooking +1 tier chance","Fuel capacity","Fuel generation","Free Shaker chance","Upgrade discounts","Fuel generation multiplier","Slot strength","Fireplace strength","Perfecto chance"];
 export const ELIGIBLE_DOUBLERS=[1,2,3,4,5,8,9,10,11,12,20,21,22,30,31,32,33,34,35,36,37,38,40,41,43];
 export const SUSHI_REFERENCE_SOURCE="https://github.com/Morta1/IdleonToolbox";
+// Shop number appears in the filename, but save array indexing uses the internal ID.
+export function sushiUpgradeIconPath(internalId){
+ const upgrade=SUSHI_UPGRADES.find(u=>u.id===Number(internalId));
+ return upgrade?"assets/upgrades/"+encodeURIComponent(upgrade.name+" (Upgrade "+upgrade.shop+").png"):null;
+}
+// Tier numbers use the displayed 1-based tier, not the game's zero-based tile ID.
+export function sushiTierIconPath(tier){
+ const sushi=SUSHI_KNOWLEDGE.find(s=>s.tier===Number(tier));
+ return sushi?"assets/sushi/"+encodeURIComponent(sushi.name+" (Tier "+sushi.tier+").png"):null;
+}
+

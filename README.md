@@ -5,12 +5,23 @@ Browser-based Sushi Station account dashboard, reference guides and Combo Meter 
 **Site:** https://coujak.github.io/Idleon-Sushi-Combo-Optimizer/
 
 ## Sections (v1.10.0)
-- **Overview:** Import your Idleon Toolbox JSON above the dashboard; view shaker counters (with placeholder icons), missing Perfectos and undiscovered tiers with sushi art, account statistics and the original board. Dashboard shortcut buttons and Perfecto progress tally have been removed.
+- **Overview:** Import your Idleon Toolbox JSON above the dashboard; view shaker counters with game artwork, missing Perfectos and undiscovered tiers with renamed sushi icons, account statistics and the original board. Dashboard shortcut buttons and Perfecto progress tally have been removed.
 - **Planners:** The full existing Combo Meter optimizer and replay. No Bucks or Knowledge board optimizers yet.
-- **Upgrades:** An upgrade catalog with game order/IDs, levels, description, next-level effect and **pre-discount base cost estimates**; a goal-filtered progression advisor; and a Menagerie Doubler advisor reading Spelunk[52].
+- **Upgrades:** An illustrated 46-entry upgrade catalog with game order/IDs, levels, next-level effect and **pre-discount base cost estimates**; a goal-filtered progression advisor; and a Menagerie Doubler advisor reading Spelunk[52].
 - **Knowledge:** 64 sushi tiers, names, knowledge levels, EXP progress, known bonus categories and Perfecto states. Tiers without category metadata are explicitly marked unavailable rather than assigned fictitious effects.
 
 The advisor is informational: it does not yet compute global ROI across all game systems or modify the save. Price estimates omit account discounts and other account-dependent modifiers. Reference metadata is derived from the public Idleon Toolbox Sushi Station parser and tables, and can change as the game updates.
+
+## Game artwork and naming
+
+See [`assets/README.md`](assets/README.md) for the complete artwork inventory and links to each folder.
+
+- **Upgrades (46/46):** `Upgrade Name (Upgrade X).png`, where X is the **1-based shop list position**, not the internal ID saved in `Sushi[2]`.
+- **Sushi (64/64):** `Sushi Name (Tier X).png`, where X is the displayed tier (1–64).
+- **Shakers:** Copies of the Salt, Pepper and Saffron icons under `assets/shakers/`.
+- **Campfires:** Five legacy `SushiUpg23–27.png` assets retained so fireplace graphics keep working.
+
+The `sushiUpgradeIconPath(id)` and `sushiTierIconPath(tier)` helpers resolve renamed assets without confusing internal IDs, shop position, or displayed tiers.
 
 ## Features
 - Load Idleon Toolbox JSON locally (your save is processed in your browser).
