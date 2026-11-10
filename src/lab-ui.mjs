@@ -6,7 +6,8 @@ import {CATALOG_SORT_OPTIONS,CATALOG_STATUS_OPTIONS,upgradeSummary,readableUpgra
 import {ADVISOR_GOALS,numberText,getSushiSnapshot,getUpgradeRows,
  getKnowledgeRows,advisorUpgrades,doublerUpgrades,getSushiDoublerCounts,sushiUpgradeExtraText,upgradeAffordability} from "./lab-model.mjs?v=1.12.1";
 import {getProgressionAdvice,PROGRESSION_SORT_OPTIONS,PROGRESSION_FILTER_OPTIONS} from "./progression-advisor.mjs?v=1.16.0";
-import {buildProgressionPurchasePlan} from "./progression-roadmap.mjs?v=1.16.1";
+import {buildProgressionPurchasePlan} from "./progression-roadmap.mjs?v=1.16.3";
+import {parseGameQuantity} from "./progression-calibration.mjs?v=1.16.3";
 
 const $=id=>document.getElementById(id);
 const el=(tag,css="",value)=>{
@@ -139,6 +140,13 @@ export function initializeSushiLab(getSave){
  viewCardsButton.addEventListener("click",()=>setPurchaseView("cards"));
  viewListButton.addEventListener("click",()=>setPurchaseView("list"));
  setPurchaseView("cards");
+ const measuredInputs={
+  bucks:$("labAdvisorMeasuredBucks"),fuel:$("labAdvisorMeasuredFuel"),
+  capacity:$("labAdvisorMeasuredCapacity")
+ };
+ for(const input of Object.values(measuredInputs))
+  input.addEventListener("change",renderAdvisor);
+
  const categoryInput=$("labUpgradeCategory");
  const statusInput=$("labUpgradeStatus");
  const sortInput=$("labUpgradeSort");
@@ -511,7 +519,17 @@ export function initializeSushiLab(getSave){
   }
   const requested=purchasesInput.value==="custom"?
    (customInput.value===""?5:customInput.value):purchasesInput.value;
-  const plan=buildProgressionPurchasePlan(save(),goal,requested);
+  const readings=Object.fromEntries(Object.entries(measuredInputs).map(([key,input])=>
+   [key,input.value.trim()]));
+  const invalid=Object.entries(readings).filter(([,value])=>value&&parseGameQuantity(value)===null)
+   .map(([name])=>name);
+  const active=Object.entries(readings).filter(([,value])=>parseGameQuantity(value)!==null)
+   .map(([name])=>name);
+  $("labAdvisorCalibrationStatus").textContent=invalid.length?
+   "Invalid "+invalid.join(", ")+" reading(s). Use values such as 2.5T or 1.2E30.":
+   active.length?"Using measured "+active.join(", ")+" baseline(s) for matching goals.":
+   "No readings entered. Estimates use the imported save's modeled values.";
+  const plan=buildProgressionPurchasePlan(save(),goal,requested,{readings});
   const planSummary=$("labAdvisorPlanSummary");
   const purchaseList=$("labAdvisorPurchaseSteps");
   planSummary.replaceChildren();purchaseList.replaceChildren();
