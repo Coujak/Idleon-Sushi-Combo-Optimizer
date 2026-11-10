@@ -956,3 +956,36 @@ details summary{cursor:pointer;font-size:12px;font-weight:700;color:#9eb7c9}
  border:1px solid #658b88
 }
 .perfecto-tile.perfecto-ingredient .perfecto-tile-tier{color:#c5dcde}
+
+/* v1.15.5: The complete plate is colored like its actual Overview plate.
+   Sushi role uses an inner ring, never a replacement background color. */
+.perfecto-board .perfecto-tile:not(.locked){background-image:none;opacity:1}
+.perfecto-board .perfecto-tile.slot-0{background:#1e3121;border-color:#35513b}
+.perfecto-board .perfecto-tile.slot-1{background:#6a1421;border-color:#94372f}
+.perfecto-board .perfecto-tile.slot-2{background:#092f68;border-color:#21619c}
+.perfecto-board .perfecto-tile.slot-3{background:#684a27;border-color:#967026}
+.perfecto-board .perfecto-tile.slot-1::before,
+.perfecto-board .perfecto-tile.slot-2::before,
+.perfecto-board .perfecto-tile.slot-3::before{display:none}
+.perfecto-board .perfecto-tile.perfecto-target{
+ border-width:1px;box-shadow:inset 0 0 0 2px #a5ecae
+}
+.perfecto-board .perfecto-tile.perfecto-protected{
+ border-width:1px;box-shadow:inset 0 0 0 2px #c6b2ff
+}
+.perfecto-board .perfecto-tile.perfecto-ingredient{
+ border-width:1px;box-shadow:inset 0 0 0 1px #8faca8
+}
+.perfecto-board .perfecto-tile.perfecto-new-copy{
+ outline:2px dashed #f4d26d;outline-offset:-5px
+}
+.perfecto-board .perfecto-tile .perfecto-tile-tier{
+ color:#f4f8f8;text-shadow:0 1px 3px #000b
+}
+.perfecto-legend-regular{background:#1e3121;border:1px solid #35513b}
+.perfecto-legend-hot{background:#6a1421;border:1px solid #94372f}
+.perfecto-legend-cold{background:#092f68;border:1px solid #21619c}
+.perfecto-legend-milk{background:#684a27;border:1px solid #967026}
+.perfecto-legend-target{background:transparent;border:2px solid #a5ecae}
+.perfecto-legend-protected{background:transparent;border:2px solid #c6b2ff}
+.perfecto-legend-ingredient{background:transparent;border:1px solid #8faca8}
