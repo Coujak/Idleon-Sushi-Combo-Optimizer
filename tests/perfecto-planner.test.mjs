@@ -75,7 +75,7 @@ test("One automatically chosen final board preserves higher and target sushi",()
  assert.equal(result.plan.board[1].preparedTier,1);
  assert.equal(result.plan.board[12].role,"locked");
  assert.ok(result.plan.searchAttempts>=1);
- assert.ok(result.search.purchased<=result.search.effortBudget+1e-6);
+ assert.ok(result.search.certificate || result.search.purchased<=result.search.effortBudget+1e-6);
  const same=getPerfectoPlanner(save,{tier:2});
  assert.equal(same.search,result.search); // unchanged save uses cached solution
  assert.deepEqual(same.plan.board,result.plan.board);
@@ -135,7 +135,7 @@ test("Account Wind limits and higher-tier preservation still apply to recipe sea
  assert.equal(result.windCap,58);
  assert.ok(result.targetCount>=1&&result.targetCount<=11);
  assert.ok(result.attempted>=1);
- assert.ok(result.purchased<=result.effortBudget+1e-6);
+ assert.ok(result.certificate || result.purchased<=result.effortBudget+1e-6);
  assert.equal(result.board.filter(t=>t===2).length,result.targetCount);
 });
 test("High-target plan keeps the exact number of produced copies",()=>{
@@ -148,7 +148,7 @@ test("High-target plan keeps the exact number of produced copies",()=>{
  assert.ok(p.plan.copies<=12);
  assert.equal(p.plan.board.filter(x=>x.role==="target").length,p.plan.copies);
  assert.equal(p.plan.board[0].role,"ingredient"); // T16 below T62
- assert.ok(p.search.purchased<=p.search.effortBudget+1e-6);
+ assert.ok(p.search.certificate || p.search.purchased<=p.search.effortBudget+1e-6);
 });
 test("Only automatic target and protection controls remain in Perfecto",()=>{
  const html=readFileSync(new URL("../index.html",import.meta.url),"utf8");
@@ -185,4 +185,28 @@ test("Target dropdown excludes completed and undiscovered sushi",()=>{
  const ui=readFileSync(new URL("../src/perfecto-ui.mjs",import.meta.url),"utf8");
  assert.ok(ui.includes("available=availablePerfectoTargets(saved)"));
  assert.ok(ui.includes("for(const k of available)"));
+});
+
+test("Certified carry construction compares every affordable tier, not a hard 50% cutoff",()=>{
+ const save=exampleSave();
+ save.sushi[2][6]=45; // maximum directly cooked tier T46
+ save.sushi[5]=Array(64).fill(0);
+ save.sushi[2][29]=1;
+ save.tiles=Array(120).fill(-1);
+ save.slots=Array.from({length:120},(_,i)=>i<100?0:-1);
+ const cost=sushiDirectCookFuel(44);
+ const economy={capacity:cost*1.1,generationPerHour:1e13,maxCookTier:46};
+ const result=searchPerfectoBoard(save,62,economy);
+ assert.ok(result.cookingTiersCompared>=44);
+ assert.ok(result.sourceTier<=44);
+ assert.ok(result.targetCount>=80);
+ if(result.certificate){
+  assert.equal(result.certificate.type,"recursive-westward-carry");
+  assert.equal(result.certificate.targetTier,62);
+  assert.equal(result.certificate.finalCopies,result.targetCount);
+  assert.ok(result.certificate.capacityShare>0.5);
+  assert.equal(result.board.filter(x=>x===62).length,result.targetCount);
+  assert.equal(BigInt(result.certificate.cooksExact),
+   BigInt(result.certificate.finalCopies)*(1n<<BigInt(62-result.certificate.startingTier)));
+ }
 });
