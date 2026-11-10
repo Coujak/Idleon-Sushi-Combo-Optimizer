@@ -1002,11 +1002,42 @@ details summary{cursor:pointer;font-size:12px;font-weight:700;color:#9eb7c9}
 }
 .merge-layout .merge-board .tile.merge-source-lifted .sushi-art,
 .merge-layout .merge-board .tile.merge-source-lifted .tier{
- opacity:.15
+ opacity:.38
 }
 .merge-layout .merge-board .tile.merge-source-lifted{
  box-shadow:inset 0 0 0 2px #7ecaff99
 }
 @media(prefers-reduced-motion:reduce){
  .merge-layout .merge-board .tile.merge-flying-sushi{animation:none;transition:none}
+}
+
+/* v1.15.7 — Clear Pepper decisions and translucent Combo replay motion. */
+.perfecto-recommendation{display:flex;flex-direction:column;gap:7px;padding:16px 18px}
+.perfecto-recommendation>strong{display:block;font-size:16px;font-weight:900;letter-spacing:.015em;line-height:1.4}
+.perfecto-recommendation>p{margin:0;font-size:13px;line-height:1.6}
+.perfecto-status-save,.perfecto-status-prepare,.perfecto-status-empty{background:#403825;border-color:#a88d50;color:#ffedb9}
+.perfecto-status-ready{background:#1d443a;border-color:#539b7c;color:#d6ffe4}
+.perfecto-plan-rule{margin:12px 0;padding:13px 15px;border-left:3px solid #709ab0;background:#142c38;color:#d0e4e7;border-radius:7px;line-height:1.7;font-size:12px}
+.perfecto-pepper-stats{grid-template-columns:repeat(2,minmax(0,1fr));margin-bottom:12px}
+.perfecto-pepper-stats small{font-size:11px;color:#a4bfca;line-height:1.6}
+.perfecto-odds-details{padding:10px 14px;margin-top:14px;border:1px solid #365464;border-radius:10px;background:#112532}
+.perfecto-odds-details>summary{font-weight:750;color:#d9f3ed;cursor:pointer}
+.perfecto-odds-details>.hint{line-height:1.65;font-size:11px}
+.merge-layout .merge-board .tile.merge-flying-sushi{
+ opacity:.7;filter:brightness(1.16);outline:1px solid #ffffff73;
+ box-shadow:0 7px 15px #0008,0 0 14px #78cfff55
+}
+.merge-layout .merge-board .tile.merge-source-lifted{opacity:.68}
+.merge-layout .merge-board .tile.merge-landed{
+ animation:merge-drop-fade .35s ease-out both
+}
+@keyframes merge-drop-fade{
+ 0%{opacity:.65;filter:brightness(1.32)}
+ 100%{opacity:1;filter:brightness(1)}
+}
+@media(prefers-reduced-motion:reduce){
+ .merge-layout .merge-board .tile.merge-landed{animation:none}
+}
+@media(max-width:650px){
+ .perfecto-pepper-stats{grid-template-columns:1fr}
 }
