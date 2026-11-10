@@ -4,6 +4,7 @@
 // only the extra Bucks required for the next suggested purchase.
 import {getProgressionAdvice} from "./progression-advisor.mjs";
 import {progressionGoalMetric} from "./progression-goal-impact.mjs";
+import {calibratedProgressionMetric} from "./progression-calibration.mjs";
 
 export const PURCHASE_PRESETS=[5,10,25,50,100];
 export const MAX_CUSTOM_PURCHASES=500;
@@ -14,7 +15,7 @@ export function normalizePurchaseCount(value){
 }
 const finite=n=>typeof n==="number"&&Number.isFinite(n);
 
-export function buildProgressionPurchasePlan(save,goal,requestedCount=5){
+export function buildProgressionPurchasePlan(save,goal,requestedCount=5,{readings={}}={}){
  const count=normalizePurchaseCount(requestedCount);
  const blank={goal,requestedCount:count,steps:[],initialBucks:null,
   finalProjectedBucks:null,initiallyFunded:0,additionalBucksNeeded:0,
@@ -30,7 +31,10 @@ export function buildProgressionPurchasePlan(save,goal,requestedCount=5){
  if(!finite(initial)||initial<0)return {...blank,stopReason:"Sushi Bucks balance is unavailable."};
  let balance=initial,totalEstimatedCost=0,additionalBucksNeeded=0,initiallyFunded=0;
  const steps=[];
- const initialGoal=progressionGoalMetric(projected,goal);
+ const referenceMetric=progressionGoalMetric(projected,goal);
+ const metricFor=state=>calibratedProgressionMetric(
+  progressionGoalMetric(state,goal),referenceMetric,readings[goal],goal);
+ const initialGoal=metricFor(projected);
  let goalBefore=initialGoal;
  let stopReason="";
  for(let i=0;i<count;i++){
@@ -59,7 +63,7 @@ export function buildProgressionPurchasePlan(save,goal,requestedCount=5){
   if(fundedByImport)initiallyFunded++;
   const nextLevel=Number(previousLevel)+1;
   projected.sushi[2][candidate.id]=nextLevel;
-  const goalAfter=progressionGoalMetric(projected,goal);
+  const goalAfter=metricFor(projected);
   const goalResult={
    label:goalBefore.label,current:goalBefore.display,
    projected:goalAfter.display,changed:goalBefore.display!==goalAfter.display,
