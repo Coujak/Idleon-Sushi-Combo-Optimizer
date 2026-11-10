@@ -143,12 +143,12 @@ test("Wind chain always stops after 25 upgrades even if the caller requests more
  assert.equal(effectiveWindChainLimit(-5),0);
  assert.equal(merged.events.filter(e=>e.kind==="wind").length,25);
  assert.equal(merged.events.length,26,"Initial merge is distinct from the 25 Wind upgrades");
- assert.equal(merged.board[26],33,"25th downstream sushi upgraded");
+ assert.equal(merged.board[26],34,"25th downstream sushi upgraded from T33 to T34");
  assert.equal(merged.board[27],32,"26th downstream sushi must not upgrade");
  assert.equal(validateComboReplay(start,[merged],58,999,Array(start.length).fill(0)).score,merged.score);
  const lowered=simulateMerge(start,0,1,58,24);
  assert.equal(lowered.events.filter(e=>e.kind==="wind").length,24);
- assert.equal(lowered.board[26],32,"The 25th downstream sushi is untouched at limit 24");
+ assert.equal(lowered.board[26],33,"The 25th downstream sushi remains at T33 with limit 24");
 });
 test("Replay validation rejects injected Wind events beyond the legal chain",()=>{
  const start=[58,58,...Array.from({length:30},(_,i)=>57-i)];
