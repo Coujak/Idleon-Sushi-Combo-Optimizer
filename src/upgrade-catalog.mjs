@@ -119,8 +119,8 @@ export function filterSortCatalog(upgrades,{query="",category="all",status="all"
    upgradeSummary(upgrade),...goals].join(" ").toLocaleLowerCase();
   return !search||haystack.includes(search);
  });
- const cost=upgrade=>!upgrade.atMax&&Number.isFinite(upgrade.baseNextCost)
-  ?upgrade.baseNextCost:null;
+ const cost=upgrade=>!upgrade.atMax&&Number.isFinite(upgrade.estimatedNextCost)
+  ?upgrade.estimatedNextCost:null;
  const comparePrice=(a,b,descending)=>{
   const ac=cost(a),bc=cost(b);
   if(ac===null)return bc===null?0:1;

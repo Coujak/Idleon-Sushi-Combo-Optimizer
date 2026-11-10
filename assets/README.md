@@ -13,3 +13,7 @@ All art is filed by the part of the site using it. Each icon folder includes a d
 **Naming:** Upgrade numbers are shop list positions, distinct from their internal IDs. Sushi tier numbers are displayed tiers, distinct from zero-based sushi IDs. The site uses mapping helpers to avoid filename mistakes.
 
 Artwork originates from *Legends of Idleon*. Game metadata is cross-checked against public community references.
+
+## Doubler UI artwork
+
+- `upgrade_doubler.png` — transparent 64 × 64 pixel-art Sushi Doubler icon, used for available/assigned Doubler counts and doubled upgrade badges in the Upgrades tab.

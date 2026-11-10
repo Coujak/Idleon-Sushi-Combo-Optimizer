@@ -152,3 +152,13 @@ test("Catalog shows value emphasis, Doubler row highlights and next-total hints"
  assert.ok(css.includes('.lab-catalog-known-value'));
  assert.ok(css.includes('.lab-catalog-gain-hint'));
 });
+
+test("Catalog references transparent Doubler art and account discounts",()=>{
+ const html=readFileSync(new URL("../index.html",import.meta.url),"utf8");
+ const ui=readFileSync(new URL("../src/lab-ui.mjs",import.meta.url),"utf8");
+ assert.ok(ui.includes("assets/upgrade_doubler.png"));
+ assert.ok(ui.includes("estimatedNextCost"));
+ assert.ok(ui.includes("sushiUpgradeExtraText(u,s)"));
+ assert.match(html,/Next cost \(estimated\)/);
+ assert.ok(html.includes("Jelly Operator"));
+});

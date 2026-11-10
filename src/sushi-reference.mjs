@@ -983,32 +983,32 @@ export const SUSHI_KNOWLEDGE=[
  {
   "tier": 60,
   "name": "Wasomber Nigiri",
-  "category": null,
-  "perLevel": 0
+  "category": 3,
+  "perLevel": 10
  },
  {
   "tier": 61,
   "name": "Leek Nigiri",
-  "category": null,
-  "perLevel": 0
+  "category": 5,
+  "perLevel": 0.05
  },
  {
   "tier": 62,
   "name": "Atomiroll",
-  "category": null,
-  "perLevel": 0
+  "category": 8,
+  "perLevel": 0.2
  },
  {
   "tier": 63,
   "name": "Octolingo",
-  "category": null,
-  "perLevel": 0
+  "category": 7,
+  "perLevel": 2
  },
  {
   "tier": 64,
   "name": "Chromatic Nigiri",
-  "category": null,
-  "perLevel": 0
+  "category": 5,
+  "perLevel": 0.05
  }
 ];
 export const KNOWLEDGE_CATEGORIES=["Bucks earned","Knowledge XP","Cooking +1 tier chance","Fuel capacity","Fuel generation","Free Shaker chance","Upgrade discounts","Fuel generation multiplier","Slot strength","Fireplace strength","Perfecto chance"];

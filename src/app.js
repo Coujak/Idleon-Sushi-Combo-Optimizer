@@ -10,7 +10,7 @@ import {MODE_CATALOG,getModeInfo,modeOptionLabel,modeDisplayLabel} from "./mode-
 const $=id=>document.getElementById(id);
 import {BOARD_COLUMNS,BOARD_CELLS,normalizeBoardData,layoutOptions} from "./board-geometry.mjs?v=1.8.4";
 import {windTierMaximum,clampWindTier,windTierAfterPreparedChange} from "./wind-limit.mjs?v=1.9.10";
-import {initializeSushiLab} from "./lab-ui.mjs?v=1.11.2";
+import {initializeSushiLab} from "./lab-ui.mjs?v=1.12.0";
 import {sushiTierIconPath} from "./sushi-reference.mjs?v=1.10.2";
 import {getPreparedBoardSections,hasSlotLayoutChanges,preparedSectionOutlinePath,preparedOutlineCoordinates} from "./prepared-sections.mjs?v=1.10.7";
 const COLUMNS=BOARD_COLUMNS;
@@ -44,10 +44,15 @@ function decodeSave(input){
     try{menagerie=JSON.parse(menagerie);}catch{menagerie=null;}
   }
   if(!Array.isArray(menagerie))menagerie=null;
+  let research=input.data?.Research??input.Research??null;
+  if(typeof research==="string"){
+    try{research=JSON.parse(research);}catch{research=null;}
+  }
+  if(!Array.isArray(research))research=null;
   // Processed account exports may carry the authoritative total.
   const sushiDoublerInfo=input.account?.menagerie?.doublers?.sushi
     ??input.data?.menagerie?.doublers?.sushi??null;
-  return {sushi,spelunk,menagerie,sushiDoublerInfo,tiles,perfecto:Array.isArray(sushi[5])?sushi[5].map(Number):null,slots,fires:Array.isArray(sushi[3])?sushi[3].slice(0,15).map(Number):[],source:input.data?.Sushi!=null?"Idleon Toolbox":"Raw game data"};
+  return {sushi,spelunk,menagerie,research,sushiDoublerInfo,tiles,perfecto:Array.isArray(sushi[5])?sushi[5].map(Number):null,slots,fires:Array.isArray(sushi[3])?sushi[3].slice(0,15).map(Number):[],source:input.data?.Sushi!=null?"Idleon Toolbox":"Raw game data"};
 }
 function detectSushiProgress(save){
   // Sushi[0] stores tier IDs on the board (zero-based). Do not mistake

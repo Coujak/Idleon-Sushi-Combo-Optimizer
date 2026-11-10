@@ -40,16 +40,85 @@ export function baseUpgradeCost(entry,level){
    Math.pow(1.3,Math.max(0,pos-20))*
    Math.pow(entry.costGrowth,n);
 }
+// Pinned from Idleon Toolbox's SushiStuff.UpgCost: all four discounts stack.
+export function sushiUpgradeDiscounts(save){
+ if(!save)return {sources:[],known:0,total:4,complete:false,factor:1};
+ const sources=[],levels=save.sushi?.[2],tracking=save.sushi?.[5];
+ if(Array.isArray(levels)){
+  const qty=(Number(levels[36])||0)*(save.spelunk?.[52]?.some(id=>Number(id)===36)?2:1);
+  sources.push({name:"Wholesale Pricing",percent:qty,factor:1/(1+qty/100),known:true});
+ }else sources.push({name:"Wholesale Pricing",known:false});
+ if(Array.isArray(tracking)&&tracking.length>=64){
+  let unique=0;for(const value of tracking){if(Number(value)<0)break;unique++;}
+  const pct=unique>44?50:unique>26?25:0;
+  sources.push({name:"Sushi discovery bonuses",percent:pct,factor:Math.max(.1,1-pct/100),known:true});
+ }else sources.push({name:"Sushi discovery bonuses",known:false});
+ if(Array.isArray(save.sushi?.[7])&&save.sushi[7].length>=64&&Array.isArray(tracking)&&tracking.length>=64){
+  const pct=getKnowledgeRows(save).filter(x=>x.discovered&&x.category===6)
+    .reduce((total,x)=>total+x.bonus,0);
+  sources.push({name:"Sushi Knowledge discount",percent:pct,factor:1/(1+pct/100),known:true});
+ }else sources.push({name:"Sushi Knowledge discount",known:false});
+ const n=save.research?.[7]?.[9];
+ if(n!==undefined&&n!==null&&Number.isFinite(Number(n))){
+  const pct=Number(n)>18?25:0;
+  sources.push({name:"Jelly Operator obstruction bonus",percent:pct,factor:1/(1+pct/100),known:true});
+ }else sources.push({name:"Jelly Operator obstruction bonus",known:false});
+ const known=sources.filter(x=>x.known).length;
+ return {sources,known,total:4,complete:known===4,
+  factor:sources.reduce((acc,x)=>acc*(x.known?x.factor:1),1)};
+}
+export function sushiUpgradeExtraText(upgrade,save){
+ if(!save||!upgrade)return null;
+ const idx=upgrade.id,qty=upgrade.rawBonus,raw=save.sushi??[],levels=raw[2]??[];
+ const fmt=numberText,multi=pct=>fmt(1+pct/100)+"×";
+ if([2,3,4,5,9,10,11,12].includes(idx))
+  return Number.isFinite(Number(levels[idx]))?multi(Number(levels[idx])):null;
+ if(idx===6)return fmt(Math.round(qty)+1);
+ if(idx===22)return fmt(Math.round(1+qty));
+ if(idx===29){
+  const track=raw[5];if(!Array.isArray(track))return null;
+  let unique=0;for(const v of track){if(Number(v)<0)break;unique++;}
+  return fmt(Math.max(0,unique-6));
+ }
+ if(idx===36)return fmt(100*(1-1/(1+qty/100)))+"%";
+ if(idx===37)return fmt(1+qty/10);
+ const knowledge=Array.isArray(raw[5])&&raw[5].length>=64&&
+  Array.isArray(raw[7])&&raw[7].length>=64?getKnowledgeRows(save):null;
+ const slot=knowledge?1+knowledge.filter(x=>x.discovered&&x.category===8)
+  .reduce((a,x)=>a+x.bonus,0)/100:null;
+ const sparks=raw[4]?.[2],spark=Number(sparks);
+ const sparkMulti=Number.isFinite(spark)&&spark>0?
+  .2*Math.log2(spark)+Math.log10(spark):0;
+ const fireplace=knowledge&&sparks!==undefined&&Number.isFinite(spark)?
+  (1+knowledge.filter(x=>x.discovered&&x.category===9).reduce((a,x)=>a+x.bonus,0)/100)
+  *(1+sparkMulti/100):null;
+ if(idx===14)return slot===null?null:multi(50*slot);
+ if(idx===15)return slot===null?null:fmt(.2*slot);
+ if(idx===16)return slot===null?null:fmt(slot);
+ if(idx===26)return fireplace===null?null:multi(100*fireplace);
+ if(idx===27)return fireplace===null?null:multi(150*fireplace);
+ if(idx===25)return sparks===undefined||!Number.isFinite(spark)?null:
+  fmt(spark)+" Sparks. This boosts all Fireplace bonuses by "+multi(sparkMulti);
+ if(idx===28){
+  const v=Number(raw[4]?.[1]);
+  if(raw[4]?.[1]===undefined||!Number.isFinite(v))return null;
+  const pct=v>1e6?5*Math.log2(v/1e6)+10*Math.log10(v/1e6):0;
+  return fmt(v)+" Overtuned Fuel. This boosts all Bucks gained by "+multi(pct);
+ }
+ return null;
+}
 export function getUpgradeRows(save){
  const s=getSushiSnapshot(save);
+ const discounts=sushiUpgradeDiscounts(save);
  return SUSHI_UPGRADES.map(entry=>{
   const level=num(s.levels[entry.id]);
   const doubled=s.doubled.includes(entry.id);
   const atMax=entry.maxLevel===0||level>=entry.maxLevel;
   const rawBonus=level*entry.perLevel*(doubled?2:1);
   const increment=entry.perLevel*(doubled?2:1);
-  return {...entry,level,doubled,atMax,rawBonus,increment,
-   baseNextCost:atMax?null:baseUpgradeCost(entry,level)};
+  const baseNextCost=atMax?null:baseUpgradeCost(entry,level);
+  return {...entry,level,doubled,atMax,rawBonus,increment,baseNextCost,
+   estimatedNextCost:atMax?null:baseNextCost*discounts.factor,costBreakdown:discounts};
  });
 }
 export function getKnowledgeRows(save){

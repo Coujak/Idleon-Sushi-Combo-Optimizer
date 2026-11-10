@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {SUSHI_UPGRADES,SUSHI_KNOWLEDGE,ELIGIBLE_DOUBLERS} from "../src/sushi-reference.mjs";
 import {baseUpgradeCost,getUpgradeRows,getKnowledgeRows,getSushiSnapshot,
- advisorUpgrades,doublerUpgrades} from "../src/lab-model.mjs";
+ advisorUpgrades,doublerUpgrades,sushiUpgradeDiscounts,sushiUpgradeExtraText} from "../src/lab-model.mjs";
 test("reference data follows current Sushi shop order and 64 knowledge tiers",()=>{
  assert.equal(SUSHI_UPGRADES.length,46);
  assert.equal(new Set(SUSHI_UPGRADES.map(x=>x.id)).size,46);
@@ -39,16 +39,59 @@ test("advisor goals and doubler eligibility use actual upgrade ids",()=>{
  assert.ok(doublerUpgrades(s,"all").every(x=>x.doublerEligible));
 });
 
-test("knowledge tiers lacking reference bonus metadata are labelled unknown, not zero",()=>{
+test("latest Sushi knowledge tiers use pinned category and effect data",()=>{
  const s={sushi:[[],[],[],[],[],Array(64).fill(0),Array(64).fill(0),Array(64).fill(5)]};
  const k=getKnowledgeRows(s);
  assert.equal(k[63].name,"Chromatic Nigiri");
- assert.equal(k[63].mapped,false);
- assert.equal(k[63].bonus,null);
+ assert.equal(k[63].mapped,true);
+ assert.equal(k[63].category,5);
+ assert.ok(k[63].bonus>0);
  assert.equal(k[49].mapped,true);
 });
 
 test("Sushi shaker uses are read from Sushi[4] fields 5 through 7",()=>{
  const snap=getSushiSnapshot({sushi:[[],[],[],[],[0,0,0,0,0,2,4,6]]});
  assert.deepEqual(snap.shakers,[2,4,6]);
+});
+
+test("Sushi upgrade discounts match the Toolbox's four multiplicative sources",()=>{
+ const levels=Array(46).fill(0),tracking=Array(64).fill(0),knowledge=Array(64).fill(0);
+ levels[36]=100;
+ knowledge[18]=10; // Tier 19: Knowledge upgrade discount
+ const research=Array.from({length:18},()=>[]);
+ research[7]=Array(20).fill(0);research[7][9]=19; // Jelly obstruction 19 cleared
+ const save={sushi:[[],[],levels,[],[],tracking,[],knowledge],spelunk:Array.from({length:53},()=>[]),research};
+ const factors=sushiUpgradeDiscounts(save);
+ assert.equal(factors.complete,true);
+ assert.equal(factors.known,4);
+ assert.equal(factors.sources[0].percent,100);
+ assert.equal(factors.sources[1].percent,50);
+ assert.equal(factors.sources[2].percent,16);
+ assert.equal(factors.sources[3].percent,25);
+ const expected=.5*.5/(1+.16)/(1+.25);
+ assert.ok(Math.abs(factors.factor-expected)<1e-12);
+ const wage=getUpgradeRows(save).find(u=>u.shop===1);
+ assert.ok(Math.abs(wage.estimatedNextCost/wage.baseNextCost-expected)<1e-12);
+ save.spelunk[52]=[36]; // Doubled Wholesale
+ assert.equal(sushiUpgradeDiscounts(save).sources[0].percent,200);
+});
+test("Discount calculator distinguishes partial save data from full estimates",()=>{
+ const raw={sushi:[[],[],Array(46).fill(0),[],[],Array(64).fill(0),[],Array(64).fill(0)]};
+ const summary=sushiUpgradeDiscounts(raw);
+ assert.equal(summary.complete,false);
+ assert.equal(summary.known,3);
+ assert.equal(summary.sources[3].known,false);
+ assert.equal(sushiUpgradeDiscounts(null).known,0);
+});
+test("Additional Sushi display values resolve only when their inputs exist",()=>{
+ const levels=Array(46).fill(0),tracking=Array(64).fill(0),knowledge=Array(64).fill(0);
+ levels[29]=10;levels[36]=100;levels[6]=8;
+ const save={sushi:[[],[],levels,[],[0,1e8,128],tracking,[],knowledge],spelunk:[]};
+ const rows=getUpgradeRows(save);
+ assert.equal(sushiUpgradeExtraText(rows.find(u=>u.id===29),save),"58");
+ assert.equal(sushiUpgradeExtraText(rows.find(u=>u.id===6),save),"9");
+ assert.equal(sushiUpgradeExtraText(rows.find(u=>u.id===36),save),"50%");
+ assert.match(sushiUpgradeExtraText(rows.find(u=>u.id===28),save),/Overtuned Fuel/);
+ assert.match(sushiUpgradeExtraText(rows.find(u=>u.id===25),save),/Sparks/);
+ assert.equal(sushiUpgradeExtraText(rows.find(u=>u.id===8),save),null);
 });
