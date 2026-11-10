@@ -989,3 +989,24 @@ details summary{cursor:pointer;font-size:12px;font-weight:700;color:#9eb7c9}
 .perfecto-legend-target{background:transparent;border:2px solid #a5ecae}
 .perfecto-legend-protected{background:transparent;border:2px solid #c6b2ff}
 .perfecto-legend-ingredient{background:transparent;border:1px solid #8faca8}
+
+/* v1.15.6: Animate the picked sushi over the real replay board.
+   This clone is not a grid cell and never changes the merge simulation. */
+.merge-layout .merge-board{position:relative;isolation:isolate}
+.merge-layout .merge-board .tile.merge-flying-sushi{
+ position:absolute;z-index:25;pointer-events:none;
+ margin:0;min-width:0;min-height:0;box-sizing:border-box;
+ border:2px solid #98dfff;outline:1px solid #ffffffa0;
+ box-shadow:0 8px 20px #000b,0 0 18px #78cfff88;
+ filter:brightness(1.25);transform-origin:center;
+}
+.merge-layout .merge-board .tile.merge-source-lifted .sushi-art,
+.merge-layout .merge-board .tile.merge-source-lifted .tier{
+ opacity:.15
+}
+.merge-layout .merge-board .tile.merge-source-lifted{
+ box-shadow:inset 0 0 0 2px #7ecaff99
+}
+@media(prefers-reduced-motion:reduce){
+ .merge-layout .merge-board .tile.merge-flying-sushi{animation:none;transition:none}
+}
