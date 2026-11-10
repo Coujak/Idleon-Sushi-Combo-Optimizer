@@ -2,7 +2,7 @@ import {simulateMerge,validateComboReplay,searchStaircaseCombos} from "./optimiz
 import {searchTacticalCombos} from "./tactical-search.mjs?v=1.9.9";
 import {createReplayController} from "./replay-controller.mjs?v=1.7.4";
 import {buildCandidates} from "./preparation-core.mjs?v=1.9.9";
-import {getModeCandidates} from "./optimizer-modes.mjs?v=1.9.11";
+import {getModeCandidates} from "./optimizer-modes.mjs?v=1.10.4";
 import {searchLookaheadCombos} from "./lookahead-search.mjs?v=1.9.9";
 import {throwIfCancelled,yieldToUI} from "./optimizer-run.mjs?v=1.8.1";
 import {searchCombos} from "./merge-search.mjs?v=1.9.9";

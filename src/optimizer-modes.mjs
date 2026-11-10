@@ -3,18 +3,18 @@
 import {buildCandidates} from "./preparation-core.mjs";
 import {buildLayeredCandidates} from "./layered-preparation.mjs";
 import {buildTuned100Candidates} from "./tuned-preparation.mjs";
-import {buildExperimental2Candidates} from "./experimental2-preparation.mjs";
-import {buildExperimental3Candidates} from "./experimental3-preparation.mjs";
-import {buildExperimental4Candidates} from "./experimental4-preparation.mjs";
-import {buildExperimental5Candidates} from "./experimental5-preparation.mjs";
-import {buildExperimental6Candidates} from "./experimental6-preparation.mjs";
-import {buildExperimental7Candidates} from "./experimental7-preparation.mjs";
-import {buildExperimental8Candidates} from "./experimental8-preparation.mjs";
-import {buildExperimental9Candidates} from "./experimental9-preparation.mjs";
-import {buildExperimental10Candidates} from "./experimental10-preparation.mjs";
-import {buildExperimental11Candidates} from "./experimental11-preparation.mjs";
-import {buildExperimental12Candidates} from "./experimental12-preparation.mjs";
-import {buildExperimental13Candidates} from "./experimental13-preparation.mjs";
+import {buildExperimental2Candidates} from "./experimental2-preparation.mjs?v=1.10.4";
+import {buildExperimental3Candidates} from "./experimental3-preparation.mjs?v=1.10.4";
+import {buildExperimental4Candidates} from "./experimental4-preparation.mjs?v=1.10.4";
+import {buildExperimental5Candidates} from "./experimental5-preparation.mjs?v=1.10.4";
+import {buildExperimental6Candidates} from "./experimental6-preparation.mjs?v=1.10.4";
+import {buildExperimental7Candidates} from "./experimental7-preparation.mjs?v=1.10.4";
+import {buildExperimental8Candidates} from "./experimental8-preparation.mjs?v=1.10.4";
+import {buildExperimental9Candidates} from "./experimental9-preparation.mjs?v=1.10.4";
+import {buildExperimental10Candidates} from "./experimental10-preparation.mjs?v=1.10.4";
+import {buildExperimental11Candidates} from "./experimental11-preparation.mjs?v=1.10.4";
+import {buildExperimental12Candidates} from "./experimental12-preparation.mjs?v=1.10.4";
+import {buildExperimental13Candidates} from "./experimental13-preparation.mjs?v=1.10.4";
 
 export function getModeCandidates(positions,maxTier,cap,selectedBase,chainLimit,protectTier64,mode="default"){
   const candidates=buildCandidates(positions,maxTier,cap,selectedBase,chainLimit,protectTier64);

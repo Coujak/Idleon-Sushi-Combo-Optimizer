@@ -23,6 +23,29 @@ See [`assets/README.md`](assets/README.md) for the complete artwork inventory an
 
 The `sushiUpgradeIconPath(id)` and `sushiTierIconPath(tier)` helpers resolve renamed assets without confusing internal IDs, shop position, or displayed tiers.
 
+## Easier Experimental preparations (v1.10.4)
+
+The single-use merge-supply sushi now appear in **descending tier order**, making the 100-slot boards faster to arrange manually. The protected Tier 64 stays first. The trigger anchors and all downstream Wind chains retain their original positions.
+
+Exp 1's layered and tuned preparations already have a descending high-tier supply. For Experiments 2–13, the safe supply-only prefixes end at the following positions (1-based, relative to the start of the prepared layout):
+
+| Experiment | High-to-low supply cells | First fixed engine/trigger cell |
+| --- | --- | --- |
+| Exp 2 | 2–30 | 31 |
+| Exp 3 | 2–30 | 31 |
+| Exp 4 | 2–30 | 31 |
+| Exp 5 | 2–30 | 31 |
+| Exp 6 | 2–33 | 34 |
+| Exp 7 | 2–31 | 32 |
+| Exp 8 | 2–31 | 32 |
+| Exp 9 | 2–29 | 30 |
+| Exp 10 | 2–26 | 27 |
+| Exp 11 | 2–24 | 25 |
+| Exp 12 | 2–24 | 25 |
+| Exp 13 | 2–24 | 25 |
+
+This is a preparation convenience change, not a new scoring strategy. Historical research still uses Tier 64, Wind 58, 25 chain targets and 100 unlocked slots.
+
 ## Features
 - Load Idleon Toolbox JSON locally (your save is processed in your browser).
 - Reconstruct the complete **8×15 board (120 positions)**, supporting **up to 100 unlocked slots in any positions**, with plate types, fireplaces and Perfecto indicators.
