@@ -44,7 +44,12 @@ test("latest Sushi knowledge tiers use pinned category and effect data",()=>{
  const k=getKnowledgeRows(s);
  assert.equal(k[63].name,"Chromatic Nigiri");
  assert.equal(k[63].mapped,true);
- assert.equal(k[63].category,5);
+ assert.equal(k[63].category,0);
+ assert.equal(k[63].perLevel,20);
+ for(let i=59;i<64;i++){
+  assert.equal(k[i].category,0,"Tier "+(i+1)+" must use the game-data default category");
+  assert.equal(k[i].perLevel,20);
+ }
  assert.ok(k[63].bonus>0);
  assert.equal(k[49].mapped,true);
 });
