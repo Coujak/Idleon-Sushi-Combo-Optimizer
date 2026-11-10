@@ -891,6 +891,16 @@ details summary{cursor:pointer;font-size:12px;font-weight:700;color:#9eb7c9}
 .perfecto-tile.perfecto-target{background:linear-gradient(145deg,#3c7957,#21583f);border:2px solid #a2e7a0}
 .perfecto-tile.perfecto-new-copy{outline:2px dashed #f2d36d;outline-offset:-5px}
 .perfecto-tile.perfecto-protected{background:linear-gradient(145deg,#304f74,#1b365d);border:2px solid #85b5ef}
+.perfecto-tile.slot-1::before,.perfecto-tile.slot-2::before,.perfecto-tile.slot-3::before{
+ content:"";position:absolute;top:2px;left:8px;right:8px;height:3px;
+ border-radius:3px;pointer-events:none
+}
+.perfecto-tile.slot-1::before{background:#ea7777}
+.perfecto-tile.slot-2::before{background:#71b9ff}
+.perfecto-tile.slot-3::before{background:#ebc768}
+.perfecto-legend-hot{background:#ea7777;border:1px solid #f6a3a3}
+.perfecto-legend-cold{background:#71b9ff;border:1px solid #a6d4ff}
+.perfecto-legend-milk{background:#ebc768;border:1px solid #ffdda0}
 .perfecto-tile.perfecto-unchanged{opacity:.62}
 .perfecto-tile-icon{max-width:34px;max-height:34px;object-fit:contain;image-rendering:pixelated}
 .perfecto-tile-tier{font-size:10px;font-weight:850;line-height:1.2}
