@@ -338,40 +338,39 @@ export function finishCertifiedCarryBoard(best,geom,target,windCap){
  best.merges+=Number(extraMerges);
  return best;
 }
-// The recipe search optimizes target count, then this presentation pass puts
-// completed target sushi on special plates before ordinary plates. It does not
-// move protected higher-tier sushi or previously owned target copies, and
-// does not change the number or tier of any sushi in the recipe.
+// Final placement does not change the recipe or any sushi tier/count.
+// All owned high-tier sushi remain protected during construction; afterwards
+// they can be relocated to beneficial plate types. Tier rank, not Perfecto
+// target status, decides who gets a Hot, Cold or Milktoast plate.
+// When there are no special plates, retain the recipe's original positions.
 const isBonusSushiSlot=slot=>slot===1||slot===2||slot===3;
 export function prioritizePerfectoBonusSlots(board,geom,target,certificate=null){
  if(!Array.isArray(board))return board;
- const flex=geom.flex;
- const targets=flex.reduce((n,pos)=>n+(board[pos]===target?1:0),0);
- const others=flex.map(pos=>board[pos]).filter(tier=>tier!==target&&tier>0)
-   .sort((a,b)=>b-a);
- const ranked=flex.slice().sort((a,b)=>{
-  const ap=isBonusSushiSlot(geom.slots[a])?0:1;
-  const bp=isBonusSushiSlot(geom.slots[b])?0:1;
-  return ap-bp||a-b;
- });
+ const unlocked=geom.slots.map((slot,pos)=>slot>=0?pos:-1).filter(pos=>pos>=0);
+ const specials=unlocked.filter(pos=>isBonusSushiSlot(geom.slots[pos]));
+ if(specials.length===0)return board.slice();
+ const regular=unlocked.filter(pos=>!isBonusSushiSlot(geom.slots[pos]));
+ const positions=[...specials,...regular];
+ // Highest tier claims the most valuable location first. Plate types 1/2/3
+ // are currently treated as equivalent; ties use ascending board position.
+ const sushi=unlocked.map(pos=>board[pos]).filter(tier=>tier>0)
+  .sort((a,b)=>b-a);
  const result=board.slice();
- for(const pos of flex)result[pos]=0;
- for(let i=0;i<targets;i++)result[ranked[i]]=target;
- const leftover=flex.filter(pos=>result[pos]===0);
- // Support sushi stay descending in physical board order wherever possible.
- let slots=leftover.slice().sort((a,b)=>a-b);
- for(let i=0;i<others.length;i++)result[slots[i]]=others[i];
+ for(const pos of unlocked)result[pos]=0;
+ for(let i=0;i<sushi.length;i++)result[positions[i]]=sushi[i];
  if(certificate?.supportingSushi){
-  // The certificate records user-reproducible final locations, not only tiers.
+  // A physical rearrangement changes where the prepared lower sushi sit.
+  // Update each supporting recipe step's final position accordingly.
   const byTier=new Map();
-  for(let i=0;i<others.length;i++){
-   const tier=others[i];
+  for(const pos of unlocked){
+   const tier=result[pos];
    if(!byTier.has(tier))byTier.set(tier,[]);
-   byTier.get(tier).push(slots[i]+1);
+   byTier.get(tier).push(pos+1);
   }
   for(const item of certificate.supportingSushi){
    const positions=byTier.get(item.tier);
-   if(positions?.length)item.position=positions.shift();
+   if(!positions?.length)throw Error("Perfecto placement lost a supporting ingredient");
+   item.position=positions.shift();
   }
  }
  return result;
