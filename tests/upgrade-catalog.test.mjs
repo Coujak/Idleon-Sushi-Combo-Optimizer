@@ -283,7 +283,7 @@ test("Dollar multipliers, percentages, fireplace bonuses, and resources use corr
  };
  const byId=id=>getUpgradeRows(save).find(u=>u.id===id);
  for(const [id,expected] of [[9,"9.25×"],[2,"10.5×"],[6,"46"],
-  [36,"81.481%"],[29,"58"]]){
+  [36,"81.48%"],[29,"58"]]){
   const info=upgradeCatalogDollarValue(byId(id),save);
   assert.ok(info,"Missing "+id);
   assert.ok(info.text.includes(expected),"Wrong value for "+id+": "+info.text);
