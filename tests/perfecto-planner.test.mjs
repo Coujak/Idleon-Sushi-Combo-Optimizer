@@ -154,7 +154,7 @@ test("Target selector offers only discovered and not-yet-Perfecto sushi",()=>{
  save.sushi[5][2]=1;
  assert.deepEqual(availablePerfectoTargets(save).map(row=>row.tier),[2,50,54]);
  const ui=readFileSync(new URL("../src/perfecto-ui.mjs",import.meta.url),"utf8");
- assert.ok(ui.includes("const available=availablePerfectoTargets(saved)"));
+ assert.ok(ui.includes("available=availablePerfectoTargets(saved)"));
  assert.ok(ui.includes("for(const item of available)"));
  assert.ok(ui.includes('tierChoice="auto";'));
  assert.ok(!ui.includes("for(const item of SUSHI_KNOWLEDGE)"));
