@@ -6,6 +6,7 @@ import {CATALOG_SORT_OPTIONS,CATALOG_STATUS_OPTIONS,upgradeSummary,readableUpgra
 import {ADVISOR_GOALS,numberText,getSushiSnapshot,getUpgradeRows,
  getKnowledgeRows,advisorUpgrades,doublerUpgrades,getSushiDoublerCounts,sushiUpgradeExtraText,upgradeAffordability} from "./lab-model.mjs?v=1.12.1";
 import {getProgressionAdvice,PROGRESSION_SORT_OPTIONS,PROGRESSION_FILTER_OPTIONS} from "./progression-advisor.mjs?v=1.16.0";
+import {buildProgressionPurchasePlan} from "./progression-roadmap.mjs?v=1.16.1";
 
 const $=id=>document.getElementById(id);
 const el=(tag,css="",value)=>{
@@ -108,6 +109,22 @@ export function initializeSushiLab(getSave){
  advisorSortInput.addEventListener("change",()=>{advisorSort=advisorSortInput.value;renderAdvisor();});
  advisorFilterInput.addEventListener("change",()=>{advisorFilter=advisorFilterInput.value;renderAdvisor();});
  advisorMaxedInput.addEventListener("change",renderAdvisor);
+ const purchasesInput=$("labAdvisorPurchaseCount");
+ const customInput=$("labAdvisorCustomPurchases");
+ const customLabel=$("labAdvisorCustomCountLabel");
+ const updatePurchaseOptions=()=>{
+  customLabel.classList.toggle("hidden",purchasesInput.value!=="custom");
+  renderAdvisor();
+ };
+ purchasesInput.addEventListener("change",updatePurchaseOptions);
+ customInput.addEventListener("input",()=>{
+  if(purchasesInput.value==="custom"&&customInput.value!=="")renderAdvisor();
+ });
+ customInput.addEventListener("change",()=>{
+  const n=Math.max(1,Math.min(500,Math.trunc(Number(customInput.value)||1)));
+  customInput.value=String(n);
+  if(purchasesInput.value==="custom")renderAdvisor();
+ });
  const categoryInput=$("labUpgradeCategory");
  const statusInput=$("labUpgradeStatus");
  const sortInput=$("labUpgradeSort");
@@ -478,17 +495,55 @@ export function initializeSushiLab(getSave){
     feature.append(el("p","lab-advisor-feature-footnote",
      "No upgrades for this goal are currently confirmed affordable. The suggestion above is a savings target, not an instruction to buy immediately."));
   }
-  for(const [i,u] of advice.roadmap.entries()){
-   const step=el("article","lab-advisor-roadmap-step");
-   const head=el("div","lab-advisor-roadmap-top");
-   head.append(el("span","lab-advisor-roadmap-index",String(i+1)),
-    el("strong","",u.name));
-   step.append(head,el("span","lab-advisor-roadmap-status",
-    (u.affordability==="affordable"?"Affordable":"Save for")+
-    " · "+(u.costKnown?numberDisplay(u.estimatedNextCost)+" Bucks":"Cost unknown")));
-   roadmap.append(step);
+  const requested=purchasesInput.value==="custom"?
+   (customInput.value===""?5:customInput.value):purchasesInput.value;
+  const plan=buildProgressionPurchasePlan(save(),goal,requested);
+  const planSummary=$("labAdvisorPlanSummary");
+  const purchaseList=$("labAdvisorPurchaseSteps");
+  planSummary.replaceChildren();purchaseList.replaceChildren();
+  const summaryParts=[
+   [String(plan.steps.length)+" / "+plan.requestedCount,"PURCHASES PLANNED"],
+   [String(plan.initiallyFunded),"COVERED BY CURRENT BUCKS"],
+   [numberDisplay(plan.totalEstimatedCost),"ESTIMATED TOTAL COST"],
+   [numberDisplay(plan.additionalBucksNeeded),
+    plan.partialPrices?"FUTURE BUCKS TO SAVE (EST.)":"FUTURE BUCKS TO SAVE"]
+  ];
+  for(const [value,label] of summaryParts){
+   const stat=el("div","lab-advisor-plan-stat");
+   stat.append(el("strong","",value),el("small","",label));
+   planSummary.append(stat);
   }
-  if(!advice.roadmap.length)roadmap.append(el("p","hint","No remaining purchases for this goal."));
+  for(const step of plan.steps){
+   const item=el("li","lab-advisor-purchase-step");
+   const number=el("span","lab-advisor-purchase-number",String(step.number));
+   const identity=el("div","lab-advisor-purchase-identity");
+   const iconUpgrade=advice.all.find(u=>u.id===step.id);
+   if(iconUpgrade)identity.append(upgradeArtwork(iconUpgrade));
+   const copy=el("div","lab-advisor-purchase-copy");
+   copy.append(el("strong","",step.name),
+    el("small","","Level "+fmt(step.fromLevel)+" → "+fmt(step.toLevel)+
+      (step.doubled?" · Doubled":""));
+   identity.append(copy);
+   const price=el("div","lab-advisor-purchase-price");
+   price.append(el("strong","",numberDisplay(step.price)+" Bucks"),
+    el("small","",step.exactPrice?"Estimated discounted cost":"Upper price estimate"));
+   const action=el("div","lab-advisor-purchase-status "+(step.fundedByImport?
+    "lab-advisor-purchase-ready":"lab-advisor-purchase-save"));
+   action.append(el("strong","",step.fundedByImport?"FROM CURRENT BUCKS":
+    "SAVE "+numberDisplay(step.missingBucks)+" BUCKS"));
+   if(!step.fundedByImport)action.append(el("small","",
+    step.missingBucks>0?"Additional Bucks required before this step":
+    "Projected after earlier savings"));
+   item.append(number,identity,price,action);
+   item.title=step.nextLevelEffect;
+   purchaseList.append(item);
+  }
+  if(plan.stopReason){
+   roadmap.append(el("p","lab-advisor-plan-end",plan.stopReason));
+  }
+  if(!plan.steps.length&&save()){
+   roadmap.append(el("p","hint","No valid future purchases are available for this goal."));
+  }
   // The recommended purchase is already featured. List other candidates
   // under the requested filters without repeating the same upgrade.
   const alternatives=advice.rows.filter(u=>u.id!==advice.best?.id);
