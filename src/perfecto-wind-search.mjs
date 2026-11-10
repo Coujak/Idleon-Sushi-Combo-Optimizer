@@ -4,7 +4,7 @@
 // Starting sushi > cooked tier must be prepared normally; their exponentially
 // larger ingredient cost is charged against the shared recipe budget.
 import {simulateMerge} from "./optimizer-core.mjs";
-import {sushiDirectCookFuel} from "./perfecto-fuel.mjs?v=1.15.0";
+import {sushiDirectCookFuel,affordableSushiCookingTiers} from "./perfecto-fuel.mjs?v=1.15.1";
 
 const N=120;
 const clamp=(v,lo,hi)=>Math.max(lo,Math.min(hi,v));
@@ -257,6 +257,39 @@ function runRecipe(geom,target,reference,seed,recipe,mode,windCap,budget,stepLim
   board:finalBoard(best,geom,target)
  };
 }
+// Exact constructive lower bound, not a painted/invented board:
+// Cook source-tier sushi into free positions, recursively merge pairs
+// westwards (to avoid unintended Wind), and retain each completed target.
+// One active construction requires only (target-source+1) free slots.
+// The recursion is a compact certificate, not an infeasible 2^depth replay.
+export function certifiedCarryBoard(geom,target,economy){
+ let best=null;
+ const fuelPerHour=Number(economy?.generationPerHour)||0;
+ for(const source of affordableSushiCookingTiers(economy,target)){
+  const depth=target-source.tier;
+  const workspace=depth+1;
+  const copies=depth===0?geom.flex.length:Math.max(0,geom.flex.length-depth);
+  if(copies<1)continue;
+  const cooks=BigInt(copies)*(1n<<BigInt(depth));
+  const merges=cooks-BigInt(copies);
+  const estimatedFuel=Number(cooks)*source.cost;
+  const fuelHours=fuelPerHour>0?estimatedFuel/fuelPerHour:Infinity;
+  const candidate={
+   metric:{target:geom.fixedTargets+copies,spent:estimatedFuel,merges:Number(merges),wind:0},
+   target:copies,sourceTier:source.tier,recipe:"certified-carry",mode:"exact",
+   board:geom.tiles.map((value,i)=>geom.frozen.has(i)?value:geom.slots[i]>=0?0:value),
+   spent:estimatedFuel,merges:Number(merges),wind:0,
+   certificate:{type:"recursive-westward-carry",startingTier:source.tier,targetTier:target,
+    finalCopies:copies,workspaceSlots:workspace,cooksExact:cooks.toString(),
+    mergesExact:merges.toString(),estimatedFuel,
+    generationHours: fuelHours,capacityShare:source.share,
+    proof:"Use the free workspace to cook two equal-tier sushi recursively, merge east to west, and repeat until the target is made. Store each completed target outside the workspace. No Wind or Salt trigger is required."}
+  };
+  for(let i=0;i<copies;i++)candidate.board[geom.flex[i]]=target;
+  if(!best||better(best.metric,candidate.metric))best=candidate;
+ }
+ return best;
+}
 export function searchPerfectoBoard(save,target,economy,{protectHigher=true,effortMultiplier=16}={}){
  if(!save||!Number.isInteger(target)||target<1||target>64)return null;
  const geom=geometry(save,target,protectHigher);
@@ -290,7 +323,7 @@ export function searchPerfectoBoard(save,target,economy,{protectHigher=true,effo
  const budget=Math.max(geom.flex.length*effortMultiplier,geom.flex.length*3);
  const stepLimit=Math.min(3000,Math.max(120,Math.ceil(budget*4)));
  const recipes=["uniform","ladder","double-ladder","high-pair","apex","existing"];
- let best=null,attempted=0;
+ let best=certifiedCarryBoard(geom,target,economy),attempted=0;
  for(const seed of sources){
   for(const recipe of recipes){
    for(let mode=0;mode<3;mode++){
@@ -308,10 +341,12 @@ export function searchPerfectoBoard(save,target,economy,{protectHigher=true,effo
   sourceTier:best?.sourceTier??cookTier,
   sourceCost:sushiDirectCookFuel(best?.sourceTier??cookTier),
   cookedSourceTier:cookTier,
-  purchased:best?.seedEquivalentUsed??0,
+  purchased:best?.certificate?Number(best.certificate.cooksExact):best?.seedEquivalentUsed??0,
   mergers:best?.merges??0,windUpgrades:best?.wind??0,
   attempted,recipe:best?.recipe??null,
-  effortBudget:budget,effortBasisTier:reference,
+  certificate:best?.certificate??null,
+  cookingTiersCompared:affordableSushiCookingTiers(economy,target).length,
+  effortBudget:best?.certificate?null:budget,effortBasisTier:reference,
   reason:targetCount>currentCopies?"simulated":"no-improvement",
   heuristic:true,searchLimitReached:false
  };
