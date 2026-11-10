@@ -12,6 +12,14 @@ Browser-based Sushi Station account dashboard, reference guides and Combo Meter 
 
 The advisors are informational and never modify the imported save. Price estimates use account discounts when their source data is available. Reference metadata is derived from the public Sushi Station game rules, and can change as the game updates.
 
+## Personalized Progression Advisor (v1.16.0)
+
+The **Upgrades → Progression advisor** now uses the imported account's actual Sushi Bucks balance, upgrade levels, assigned Doublers, and estimated **discounted** next purchase prices. Choose a goal (Bucks, Fuel generation, Fuel capacity, Knowledge EXP, Perfecto, or cheaper upgrades). It highlights the next recommended affordable upgrade—or a savings target if none can be confirmed affordable—with the upgrade icon, current → next level, estimated price, Bucks shortfall, marginal raw upgrade effect, and a reason for its placement.
+
+A short three-upgrade **priority snapshot** shows the current order, and a comparison list supports **Recommended priority / Value / Largest next-level improvement / Lowest estimated cost**, **All / Affordable / Needs more Bucks / Already maxed** filters, plus a show-maxed option. Purchases and future Bucks are not simulated: reimport after buying to refresh the ranking.
+
+This recommendation score is a **transparent heuristic**, not a rigorous cross-upgrade ROI. Upgrades can have incomparable effects (one-time unlocks, additive boosts, and nonlinear multipliers). The model emphasizes currently affordable options, relative next-level raw contribution, cost relative to the available Bucks, and one-time unlocks. Incomplete discount data is identified as a possible upper price estimate; missing affordability is not treated as an exact shortage.
+
 ## Perfecto Pepper plan (v1.15.7)
 
 The Perfecto Planner gives an explicit **Save Pepper — prepare the board first** or **Use Pepper now — one activation at a time** decision. Stockpiling Pepper does not change the odds of an individual activation: the quantity of target sushi on the board does. After building the recommended board, use Pepper individually and stop after the first successful Perfecto; the planner shows estimated cumulative odds across the number of activations currently available. "Current Board Chances" compares the current imported target-sushi copies with the optimized board's per-use chance. Confidence milestones are optional details, not a minimum stockpile target. Existing higher-tier sushi are automatically protected, without a manual checkbox. Salt-use information is omitted from the Pepper plan.
