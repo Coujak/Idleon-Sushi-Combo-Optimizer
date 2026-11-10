@@ -210,3 +210,58 @@ test("Certified carry construction compares every affordable tier, not a hard 50
    BigInt(result.certificate.finalCopies)*(1n<<BigInt(62-result.certificate.startingTier)));
  }
 });
+
+
+test("Unused Perfecto construction workspace becomes a buildable 17-tile Wind staircase",()=>{
+ const save=exampleSave();
+ save.sushi[2][6]=45;
+ save.sushi[2][29]=1;
+ save.sushi[5]=Array(64).fill(0);
+ save.tiles=Array(120).fill(-1);
+ save.tiles[0]=63; // protected T64
+ save.slots=Array.from({length:120},(_,i)=>i<100?0:-1);
+ const cost=sushiDirectCookFuel(45);
+ const economy={capacity:cost*1.1,generationPerHour:1e13,maxCookTier:46};
+ const result=searchPerfectoBoard(save,62,economy);
+ const expected=Array.from({length:17},(_,i)=>58-i);
+ assert.equal(result.sourceTier,45);
+ assert.equal(result.targetCount,82);
+ assert.equal(result.board[0],64);
+ assert.ok(result.board.slice(1,83).every(tier=>tier===62));
+ assert.deepEqual(result.board.slice(83,100),expected);
+ assert.ok(result.board.slice(0,100).every(tier=>tier>0));
+ assert.ok(result.board.slice(100).every(tier=>tier===0));
+ assert.equal(result.certificate?.supportingCount,17);
+ assert.deepEqual(result.certificate.supportingSushi.map(x=>x.position),
+  Array.from({length:17},(_,i)=>84+i));
+ assert.deepEqual(result.certificate.supportingSushi.map(x=>x.tier),expected);
+ for(let i=0;i<result.certificate.supportingSushi.length;i++){
+  const item=result.certificate.supportingSushi[i];
+  assert.ok(item.requiredWorkspace<=17-i,
+   "Position "+item.position+" must fit remaining construction workspace");
+  assert.ok(sushiDirectCookFuel(item.sourceTier)<=economy.capacity);
+ }
+ const c=result.certificate;
+ assert.equal(BigInt(c.totalCooksExact),
+  BigInt(c.cooksExact)+BigInt(c.supportingCooksExact));
+ assert.equal(BigInt(c.totalMergesExact),
+  BigInt(c.mergesExact)+BigInt(c.supportingMergesExact));
+});
+
+test("Filler ingredients never replace protected tiles or invent targets when Wind is absent",()=>{
+ const save=exampleSave();
+ save.sushi[5]=Array(64).fill(0);
+ save.sushi[2][6]=45;
+ save.tiles=Array(120).fill(-1);
+ save.tiles[26]=63;
+ save.slots=Array.from({length:120},(_,i)=>i<100?0:-1);
+ const economy={capacity:sushiDirectCookFuel(45)*1.1,generationPerHour:1e13,maxCookTier:46};
+ const result=searchPerfectoBoard(save,62,economy);
+ assert.equal(result.board[26],64);
+ assert.equal(result.targetCount,82);
+ assert.equal(result.board.filter(tier=>tier===62).length,82);
+ assert.equal(result.certificate?.supportingCount,17);
+ assert.ok(result.board.slice(0,100).every(tier=>tier>0));
+ assert.ok(result.certificate.supportingSushi[0].tier<=61);
+ assert.equal(result.windCap,0);
+});
