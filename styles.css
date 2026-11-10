@@ -709,3 +709,108 @@ details summary{cursor:pointer;font-size:12px;font-weight:700;color:#9eb7c9}
  color:#f1d6ff;background:#573a72;box-shadow:inset 0 0 0 1px #b08bd77a
 }
 .lab-catalog-table tr.lab-catalog-doubled .lab-catalog-gain-hint strong{color:#ebc4ff}
+
+/* v1.12.3 — compact Upgrade Catalog. Reset generic <details> chrome that
+   accidentally added a divider + large top margin to every upgrade. */
+.lab-catalog-table{table-layout:fixed;min-width:920px;border-spacing:0;font-size:12px}
+.lab-catalog-table th:nth-child(1){width:37%}
+.lab-catalog-table th:nth-child(2){width:12%}
+.lab-catalog-table th:nth-child(3){width:24%}
+.lab-catalog-table th:nth-child(4){width:18%}
+.lab-catalog-table th:nth-child(5){width:9%}
+.lab-catalog-table td:first-child{width:auto;min-width:0}
+.lab-catalog-table thead th{
+ padding:13px 9px;font-size:11px;font-weight:750;color:#bad7dc;
+ background:#203648;border-bottom:1px solid #3a5664;letter-spacing:.012em
+}
+.lab-catalog-table .lab-sort-header{font-size:inherit;font-weight:inherit;line-height:1.45}
+.lab-catalog-table .lab-sort-indicator{opacity:.55;font-size:12px}
+.lab-catalog-table th[aria-sort]:not([aria-sort="none"]) .lab-sort-indicator{opacity:1;color:#9ef0bf}
+.lab-catalog-table tbody td{
+ padding:13px 10px;border-top:1px solid #2b4454;
+ vertical-align:middle;line-height:1.45
+}
+.lab-catalog-table tbody tr:not(.lab-catalog-doubled):nth-child(odd) td{background:#192d3b}
+.lab-catalog-table tbody tr:not(.lab-catalog-doubled):nth-child(even) td{background:#152635}
+.lab-catalog-table tbody tr:not(.lab-catalog-doubled):hover td{background:#233d4b}
+.lab-catalog-table tbody tr td+td{border-left:1px solid #ffffff09}
+.lab-catalog-table .lab-catalog-detail{margin:0;padding:0;border:0;color:inherit}
+.lab-catalog-table .lab-catalog-summary{
+ margin:0;padding:0;display:flex;flex-direction:column;align-items:center;
+ justify-content:center;gap:0;cursor:pointer;line-height:1.4
+}
+.lab-catalog-table .lab-upgrade-identity{
+ display:flex;flex-direction:row;align-items:center;justify-content:center;
+ gap:12px;width:100%;max-width:355px;margin-inline:auto
+}
+.lab-catalog-table .lab-upgrade-icon{
+ width:43px;height:43px;flex:0 0 43px;padding:4px;
+ border-radius:10px;background:#24404b;object-fit:contain
+}
+.lab-catalog-table .lab-upgrade-copy{
+ display:flex;flex-direction:column;align-items:center;justify-content:center;
+ gap:4px;min-width:0;flex:1 1 auto;text-align:center
+}
+.lab-catalog-table .lab-catalog-upgrade-title{
+ font-size:13px;line-height:1.4;letter-spacing:.003em;color:#f3fbf6
+}
+.lab-catalog-table .lab-upgrade-summary{
+ font-size:11px;font-weight:450;line-height:1.43;color:#b2c5d2;max-width:275px
+}
+.lab-catalog-table .lab-catalog-more{
+ align-self:center;display:inline-flex;align-items:center;justify-content:center;
+ min-height:23px;padding:3px 9px;margin-top:3px;
+ border:1px solid #365f5b;border-radius:999px;
+ background:#1b3a3a;color:#a7ebcb;font-size:11px;
+ font-weight:750;line-height:1.1;white-space:nowrap
+}
+.lab-catalog-table .lab-catalog-summary:hover .lab-catalog-more,
+.lab-catalog-table .lab-catalog-summary:focus-visible .lab-catalog-more{
+ border-color:#64b69a;background:#254f49;color:#d0ffe2
+}
+.lab-catalog-table .lab-catalog-more::after{content:" +";margin-left:3px;font-size:13px}
+.lab-catalog-table .lab-catalog-detail[open] .lab-catalog-more::after{content:" −"}
+.lab-catalog-table .lab-catalog-detail[open] .lab-catalog-more{
+ background:#245449;border-color:#65a88e
+}
+.lab-catalog-table .lab-catalog-description{
+ max-width:340px;margin:13px auto 0;padding:10px 12px;
+ background:#112c37;border:1px solid #355768;border-radius:9px;
+ line-height:1.6;color:#d3e8e5;font-size:11.5px;text-align:center
+}
+.lab-catalog-table .lab-catalog-variable-note{
+ max-width:340px;margin:8px auto 0;font-size:10.5px;
+ line-height:1.5;color:#8faabb;text-align:center
+}
+.lab-catalog-table .lab-level-value{
+ display:inline-flex;align-items:baseline;justify-content:center;
+ gap:3px;white-space:nowrap;font-variant-numeric:tabular-nums
+}
+.lab-catalog-table .lab-level-value strong{color:#f1f9f5;font-size:12px}
+.lab-catalog-table .lab-level-value span{color:#a6bbc9;font-size:11px}
+.lab-catalog-table .lab-catalog-cost{min-width:0}
+.lab-catalog-table .lab-catalog-cost-ratio{
+ display:inline-flex;align-items:baseline;justify-content:center;
+ gap:5px;flex-wrap:nowrap;white-space:nowrap;
+ width:max-content;max-width:100%;min-height:35px;
+ padding:8px 10px;border-radius:9px;margin:auto;font-size:11px;
+ line-height:1.35;font-variant-numeric:tabular-nums
+}
+.lab-catalog-table .lab-catalog-wallet{color:#d9e6e8}
+.lab-catalog-table .lab-catalog-slash{opacity:.6}
+.lab-catalog-table .lab-catalog-next-price{font-size:11.5px}
+.lab-catalog-table .lab-catalog-gain-main{
+ display:block;font-size:12px;font-weight:700;color:#edf8f4;line-height:1.4
+}
+.lab-catalog-table .lab-catalog-gain-hint{
+ margin-top:7px;font-size:10.5px;line-height:1.45;color:#9bbac9
+}
+.lab-catalog-table .lab-doubler-eligible{font-size:11px;color:#a4b9c7}
+.lab-catalog-table .lab-doubler-on{padding:5px 7px;font-size:10.5px}
+.lab-catalog-table tr.lab-catalog-doubled .lab-catalog-description{
+ background:#241f37;border-color:#524267
+}
+@media(max-width:720px){
+ .lab-catalog-table{min-width:920px}
+ .lab-catalog-table tbody td{padding:12px 9px}
+}

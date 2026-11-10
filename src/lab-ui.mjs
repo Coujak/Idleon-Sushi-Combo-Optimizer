@@ -280,10 +280,11 @@ export function initializeSushiLab(getSave){
    });
    const identity=el("span","lab-upgrade-identity");
    const copy=el("span","lab-upgrade-copy");
-   copy.append(el("strong","",upgradeLabel(u)),
-    el("span","lab-upgrade-summary",upgradeSummary(u)));
+   copy.append(el("strong","lab-catalog-upgrade-title",upgradeLabel(u)),
+    el("span","lab-upgrade-summary",upgradeSummary(u)),
+    el("span","lab-catalog-more","Details"));
    identity.append(upgradeArtwork(u),copy);
-   summary.append(identity,el("span","lab-catalog-more","Details"));
+   summary.append(identity);
    const full=el("p","lab-catalog-description");
    const extra=sushiUpgradeExtraText(u,s);
    for(const part of upgradeDescriptionSegments(u.description,u,hasSave,extra)){
@@ -297,7 +298,14 @@ export function initializeSushiLab(getSave){
      "Import your save to calculate level-based bonuses; some in-game values may remain unavailable."));
    }
    name.append(details);
-   const level=u.maxLevel===0?"Unavailable":hasSave?fmt(u.level)+(u.maxLevel>0?" / "+fmt(u.maxLevel):""):"Import save";
+   const levelCell=el("td","lab-catalog-level");
+   if(u.maxLevel===0)levelCell.textContent="Unavailable";
+   else if(!hasSave)levelCell.textContent="Import save";
+   else{
+    const levelDisplay=el("span","lab-level-value");
+    levelDisplay.append(el("strong","",fmt(u.level)),el("span",""," / "+fmt(u.maxLevel)));
+    levelCell.append(levelDisplay);
+   }
    const costCell=el("td","lab-catalog-cost");
    if(!hasSave||u.maxLevel===0||u.atMax){
     costCell.textContent=!hasSave?"Import save":u.maxLevel===0?"Unavailable":"Maxed";
@@ -325,7 +333,8 @@ export function initializeSushiLab(getSave){
       ", next upgrade cost "+numberDisplay(cost)+", "+label);
    }
    const effect=u.maxLevel===0?"—":hasSave?effectText(u):"Per-level "+fmt(u.perLevel)+" (base)";
-   const gainCell=el("td","lab-catalog-gain",effect);
+   const gainCell=el("td","lab-catalog-gain");
+   gainCell.append(el("span","lab-catalog-gain-main",effect));
    // For percentage/flat boosts the current total is rawBonus. A one-time
    // unlock has no meaningful scalar total to show.
    const hasPct=u.description.includes("{%");
@@ -346,7 +355,7 @@ export function initializeSushiLab(getSave){
    const badge=el("span",u.doubled?"lab-doubler-on":u.doublerEligible?"lab-doubler-eligible":"",label);
    if(hasSave&&u.doubled)badge.prepend(doublerIcon());
    doublerCell.append(badge);
-   for(const c of [name,el("td","",level),costCell,gainCell,doublerCell])tr.append(c);
+   for(const c of [name,levelCell,costCell,gainCell,doublerCell])tr.append(c);
    body.append(tr);
   }
  }

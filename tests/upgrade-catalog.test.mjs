@@ -212,3 +212,16 @@ test("UI centers cells, emphasizes doubled values and keeps the Doubler icon onl
  assert.ok(ui.includes('costCell.classList.add("lab-cost-"+status)'));
  assert.ok(ui.includes('costCell.setAttribute("aria-label"'));
 });
+
+test("Catalog rows reset generic details spacing and keep identity, icon, and action together",()=>{
+ const ui=readFileSync(new URL("../src/lab-ui.mjs",import.meta.url),"utf8");
+ const css=readFileSync(new URL("../styles.css",import.meta.url),"utf8");
+ assert.ok(ui.includes('el("strong","lab-catalog-upgrade-title",upgradeLabel(u))'));
+ assert.ok(ui.includes('el("span","lab-catalog-more","Details")'));
+ assert.ok(ui.includes('summary.append(identity);'));
+ assert.ok(ui.includes('el("td","lab-catalog-level")'));
+ assert.ok(ui.includes('el("span","lab-catalog-gain-main",effect)'));
+ assert.match(css,/\.lab-catalog-table \.lab-catalog-detail\{[\s\S]*?margin:0;[\s\S]*?padding:0;[\s\S]*?border:0;/);
+ assert.ok(css.includes('table-layout:fixed'));
+ assert.ok(css.includes('tr.lab-catalog-doubled .lab-catalog-description'));
+});
