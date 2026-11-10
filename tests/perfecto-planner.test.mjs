@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import {readFileSync} from "node:fs";
 import {
  perfectoSingleChance,perfectoBoardChance,perfectoAttemptsForConfidence,
- sushiDirectCookFuel,chooseNextPerfectoTier,perfectoBoardPlan,getPerfectoPlanner
+ sushiDirectCookFuel,chooseNextPerfectoTier,availablePerfectoTargets,perfectoBoardPlan,getPerfectoPlanner
 } from "../src/perfecto-planner.mjs";
 import {getKnowledgeRows} from "../src/lab-model.mjs";
 
@@ -146,4 +146,18 @@ test("Perfecto UI is separate from Combo and connected to imported save refresh"
  assert.ok(ui.includes("getPerfectoPlanner(saved"));
  assert.ok(lab.includes("perfectoUI.refresh()"));
  assert.ok(css.includes(".perfecto-tile.perfecto-target"));
+});
+
+test("Target selector offers only discovered and not-yet-Perfecto sushi",()=>{
+ const save=exampleSave();
+ assert.deepEqual(availablePerfectoTargets(save).map(row=>row.tier),[2,3,50,54]);
+ assert.equal(availablePerfectoTargets(save).some(row=>row.tier===1),false);
+ assert.deepEqual(availablePerfectoTargets(null),[]);
+ save.sushi[5][2]=1;
+ assert.deepEqual(availablePerfectoTargets(save).map(row=>row.tier),[2,50,54]);
+ const ui=readFileSync(new URL("../src/perfecto-ui.mjs",import.meta.url),"utf8");
+ assert.ok(ui.includes("const available=availablePerfectoTargets(saved)"));
+ assert.ok(ui.includes("for(const item of available)"));
+ assert.ok(ui.includes('tierChoice="auto";'));
+ assert.ok(!ui.includes("for(const item of SUSHI_KNOWLEDGE)"));
 });

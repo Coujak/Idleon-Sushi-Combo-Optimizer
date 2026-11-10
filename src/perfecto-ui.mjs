@@ -1,9 +1,9 @@
 // Interactive Perfecto Planner. The imported save never leaves the browser.
 // Per-copy odds are grounded in the IT/Corgan formula. Multi-copy success is
 // explicitly labelled as an independent-roll projection, not game-confirmed.
-import {SUSHI_KNOWLEDGE,sushiTierIconPath} from "./sushi-reference.mjs";
+import {sushiTierIconPath} from "./sushi-reference.mjs";
 import {numberText} from "./lab-model.mjs";
-import {getPerfectoPlanner} from "./perfecto-planner.mjs";
+import {availablePerfectoTargets,getPerfectoPlanner} from "./perfecto-planner.mjs";
 const $=id=>document.getElementById(id);
 const elem=(tag,cls="",value)=>{
  const e=document.createElement(tag);if(cls)e.className=cls;
@@ -89,24 +89,23 @@ export function initializePerfectoUI(getSave){
   text("perfectoBonusTotal",display(result.bonus.knowledgeMultiplier)+"×");
  }
  function render(){
-  const saved=getSave(),current=getPerfectoPlanner(saved,{tier:tierChoice,copies:requestedCopies,
+  const saved=getSave(),current=getPerfectoPlanner(saved,{tier:"auto",copies:requestedCopies,
    protectHigher:protect.checked});
   const autoOption=targetSelect.querySelector('option[value="auto"]');
   autoOption.textContent=current.next?"Auto · next missing tier (T"+current.next+")":"Auto · no missing discovered tiers";
-  const earlier=targetSelect.value;
-  for(const o of [...targetSelect.options].slice(1))o.remove();
-  const knowledge= current.target?null:getPerfectoPlanner(saved,{tier:current.next}).bonus;
-  // All tiers stay visible for reference; undiscovered tiers cannot be targeted.
-  const discovered=new Set(saved?(saved.sushi?.[5]??[]).map((x,i)=>Number(x)>=0?i+1:null).filter(Boolean):[]);
-  const perfected=new Set(saved?(saved.sushi?.[5]??[]).map((x,i)=>Number(x)>=1?i+1:null).filter(Boolean):[]);
-  for(const item of SUSHI_KNOWLEDGE){
+  for(const option of [...targetSelect.options].slice(1))option.remove();
+  // Show only actionable targets; completed and undiscovered tiers are hidden.
+  const available=availablePerfectoTargets(saved);
+  for(const item of available){
    const option=document.createElement("option");
    option.value=String(item.tier);
-   option.textContent="T"+item.tier+" · "+item.name+(perfected.has(item.tier)?" · Perfecto":!discovered.has(item.tier)?" · Undiscovered":"");
-   option.disabled=!saved||!discovered.has(item.tier);
+   option.textContent="T"+item.tier+" · "+item.name;
    targetSelect.append(option);
   }
-  if(tierChoice!=="auto"&&!discovered.has(Number(tierChoice)))tierChoice="auto";
+  if(tierChoice!=="auto"&&!available.some(item=>item.tier===Number(tierChoice))){
+   tierChoice="auto";
+   requestedCopies=null;
+  }
   targetSelect.value=tierChoice;
   const result=tierChoice==="auto"?current:
    getPerfectoPlanner(saved,{tier:tierChoice,copies:requestedCopies,protectHigher:protect.checked});

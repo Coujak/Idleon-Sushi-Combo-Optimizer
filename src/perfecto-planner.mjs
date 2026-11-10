@@ -41,10 +41,12 @@ const normalizeSlots=(save)=>Array.from({length:BOARD_CELLS},(_,i)=>{
  return {index:i,slot:save?.slots?.[i]===undefined?-1:(Number.isInteger(slot)?slot:-1),
   tile:save?.tiles?.[i]===undefined?-1:(Number.isInteger(tile)?tile:-1)};
 });
+export function availablePerfectoTargets(save){
+ if(!save)return [];
+ return getKnowledgeRows(save).filter(x=>x.discovered&&!x.perfecto);
+}
 export function chooseNextPerfectoTier(save){
- if(!save)return null;
- const row=getKnowledgeRows(save).find(x=>x.discovered&&!x.perfecto);
- return row?.tier??null;
+ return availablePerfectoTargets(save)[0]?.tier??null;
 }
 export function perfectoBoardPlan(save,tier,{protectHigher=true,copies=null}={}){
  const id=Number(tier)-1;
