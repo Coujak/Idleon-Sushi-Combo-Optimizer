@@ -69,10 +69,10 @@ test("One automatically chosen final board preserves higher and target sushi",()
  assert.ok(result.plan.copies>=1&&result.plan.copies<=11);
  assert.equal(result.plan.copies,result.search.targetCount);
  assert.equal(result.plan.board.length,120);
- assert.equal(result.plan.board[0].role,"protected");
- assert.equal(result.plan.board[0].preparedTier,15);
- assert.equal(result.plan.board[1].role,"target");
- assert.equal(result.plan.board[1].preparedTier,1);
+ assert.equal(result.plan.board[11].role,"protected");
+ assert.equal(result.plan.board[11].preparedTier,15);
+ assert.equal(result.plan.board.filter(cell=>cell.role==="target").length,result.plan.copies);
+ assert.ok(result.plan.board.some(cell=>cell.role==="target"&&cell.preparedTier===1));
  assert.equal(result.plan.board[12].role,"locked");
  assert.ok(result.plan.searchAttempts>=1);
  assert.ok(result.search.certificate || result.search.purchased<=result.search.effortBudget+1e-6);
@@ -131,7 +131,7 @@ test("Account Wind limits and higher-tier preservation still apply to recipe sea
  assert.equal(getSushiWindCap(save),58);
  const economy=estimateSushiFuelEconomy(save);
  const result=searchPerfectoBoard(save,2,economy);
- assert.equal(result.board[0],64);
+ assert.equal(result.board[11],64); // highest protected tier goes to the last regular slot
  assert.equal(result.windCap,58);
  assert.ok(result.targetCount>=1&&result.targetCount<=11);
  assert.ok(result.attempted>=1);
@@ -226,14 +226,14 @@ test("Unused Perfecto construction workspace becomes a buildable 17-tile Wind st
  const expected=Array.from({length:17},(_,i)=>58-i);
  assert.equal(result.sourceTier,45);
  assert.equal(result.targetCount,82);
- assert.equal(result.board[0],64);
- assert.ok(result.board.slice(1,83).every(tier=>tier===62));
- assert.deepEqual(result.board.slice(83,100),expected);
+ assert.deepEqual(result.board.slice(0,17),expected);
+ assert.ok(result.board.slice(17,99).every(tier=>tier===62));
+ assert.equal(result.board[99],64);
  assert.ok(result.board.slice(0,100).every(tier=>tier>0));
  assert.ok(result.board.slice(100).every(tier=>tier===0));
  assert.equal(result.certificate?.supportingCount,17);
  assert.deepEqual(result.certificate.supportingSushi.map(x=>x.position),
-  Array.from({length:17},(_,i)=>84+i));
+  Array.from({length:17},(_,i)=>1+i));
  assert.deepEqual(result.certificate.supportingSushi.map(x=>x.tier),expected);
  for(let i=0;i<result.certificate.supportingSushi.length;i++){
   const item=result.certificate.supportingSushi[i];
@@ -257,7 +257,7 @@ test("Filler ingredients never replace protected tiles or invent targets when Wi
  save.slots=Array.from({length:120},(_,i)=>i<100?0:-1);
  const economy={capacity:sushiDirectCookFuel(45)*1.1,generationPerHour:1e13,maxCookTier:46};
  const result=searchPerfectoBoard(save,62,economy);
- assert.equal(result.board[26],64);
+ assert.equal(result.board[99],64); // higher tier moves to final regular plate
  assert.equal(result.targetCount,82);
  assert.equal(result.board.filter(tier=>tier===62).length,82);
  assert.equal(result.certificate?.supportingCount,17);
@@ -361,4 +361,51 @@ test("Among supporting sushi, the highest tiers get remaining bonus plates",()=>
  assert.ok(result.board.slice(1,83).every(t=>t===62));
  assert.deepEqual(result.board.slice(83,85),[58,57]);
  assert.deepEqual(result.board.slice(85,100),Array.from({length:15},(_,i)=>56-i));
+});
+
+test("Regular Perfecto boards put the support ladder first and protected T64 bottom-right",()=>{
+ const save=exampleSave();
+ save.sushi[2][6]=45;
+ save.sushi[2][29]=1;
+ save.sushi[5]=Array(64).fill(0);
+ save.tiles=Array(120).fill(-1);
+ save.tiles[0]=63;
+ save.slots=Array.from({length:120},(_,i)=>i<100?0:-1);
+ const economy={capacity:sushiDirectCookFuel(45)*1.1,generationPerHour:1e13,maxCookTier:46};
+ const result=searchPerfectoBoard(save,62,economy);
+ assert.deepEqual(result.board.slice(0,17),Array.from({length:17},(_,i)=>58-i));
+ assert.ok(result.board.slice(17,99).every(tier=>tier===62));
+ assert.equal(result.board[99],64);
+ assert.equal(result.board.filter(tier=>tier===62).length,82);
+ for(const item of result.certificate.supportingSushi){
+  assert.equal(result.board[item.position-1],item.tier);
+ }
+});
+test("Last unlocked special plate can host the top tier at the far right",()=>{
+ const save=exampleSave();
+ save.sushi[2][6]=45;
+ save.sushi[2][29]=1;
+ save.sushi[5]=Array(64).fill(0);
+ save.tiles=Array(120).fill(-1);
+ save.tiles[0]=63;
+ save.slots=Array.from({length:120},(_,i)=>i<100?0:-1);
+ save.slots[20]=1;save.slots[30]=2;save.slots[99]=3;
+ const economy={capacity:sushiDirectCookFuel(45)*1.1,generationPerHour:1e13,maxCookTier:46};
+ const result=searchPerfectoBoard(save,62,economy);
+ assert.equal(result.board[99],64);
+ assert.equal(result.board[20],62);
+ assert.equal(result.board[30],62);
+ assert.deepEqual(result.board.filter(tier=>tier>0).length,100);
+ assert.deepEqual(result.board.filter(tier=>tier===62).length,82);
+ const support=result.certificate.supportingSushi;
+ assert.deepEqual(support.map(x=>x.tier),Array.from({length:17},(_,i)=>58-i));
+ assert.ok(support.every(x=>result.board[x.position-1]===x.tier));
+});
+test("Perfecto role indicators and real plate colors are not overridden by sushi backgrounds",()=>{
+ const styles=readFileSync(new URL("../styles.css",import.meta.url),"utf8");
+ const html=readFileSync(new URL("../index.html",import.meta.url),"utf8");
+ for(const id of [0,1,2,3])assert.ok(styles.includes(".perfecto-board .perfecto-tile.slot-"+id));
+ assert.ok(styles.includes(".perfecto-board .perfecto-tile.perfecto-target"));
+ assert.ok(styles.includes(".perfecto-board .perfecto-tile.perfecto-protected"));
+ assert.ok(html.includes("Regular plate"));
 });
