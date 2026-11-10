@@ -338,26 +338,35 @@ export function finishCertifiedCarryBoard(best,geom,target,windCap){
  best.merges+=Number(extraMerges);
  return best;
 }
-// Final placement does not change the recipe or any sushi tier/count.
-// All owned high-tier sushi remain protected during construction; afterwards
-// they can be relocated to beneficial plate types. Tier rank, not Perfecto
-// target status, decides who gets a Hot, Cold or Milktoast plate.
-// When there are no special plates, retain the recipe's original positions.
+// Rearrangement is cosmetic: it does not create, destroy or upgrade sushi.
+// Highest tiers always get the Hot/Cold/Milktoast plates first. Then place
+// remaining lower-tier support sushi in descending order at the beginning of
+// the regular slots, the target sushi as a block, and protected higher tiers
+// at the end (bottom-right when that position is an available regular plate).
+// When the last unlocked position is itself special, reserve that special
+// plate for the highest tier, matching the visual bottom-right preference.
 const isBonusSushiSlot=slot=>slot===1||slot===2||slot===3;
 export function prioritizePerfectoBonusSlots(board,geom,target,certificate=null){
  if(!Array.isArray(board))return board;
  const unlocked=geom.slots.map((slot,pos)=>slot>=0?pos:-1).filter(pos=>pos>=0);
  const specials=unlocked.filter(pos=>isBonusSushiSlot(geom.slots[pos]));
- if(specials.length===0)return board.slice();
  const regular=unlocked.filter(pos=>!isBonusSushiSlot(geom.slots[pos]));
- const positions=[...specials,...regular];
- // Highest tier claims the most valuable location first. Plate types 1/2/3
- // are currently treated as equivalent; ties use ascending board position.
- const sushi=unlocked.map(pos=>board[pos]).filter(tier=>tier>0)
+ const bottomRight=unlocked.at(-1);
+ // Special plate types are treated equally; their locations are not interchangeable.
+ // Assign the last unlocked special first only if it is also the last unlocked cell.
+ if(specials.at(-1)===bottomRight)specials.unshift(specials.pop());
+ const ranked=unlocked.map(pos=>board[pos]).filter(tier=>tier>0)
   .sort((a,b)=>b-a);
  const result=board.slice();
  for(const pos of unlocked)result[pos]=0;
- for(let i=0;i<sushi.length;i++)result[positions[i]]=sushi[i];
+ for(const pos of specials)result[pos]=ranked.shift()??0;
+ // The regular section is optimized for manual setup: an uninterrupted
+ // highest-to-lowest support ladder where plate geometry allows it.
+ const support=ranked.filter(tier=>tier<target).sort((a,b)=>b-a);
+ const targets=ranked.filter(tier=>tier===target);
+ const protectedHigher=ranked.filter(tier=>tier>target).sort((a,b)=>a-b);
+ const ordered=[...support,...targets,...protectedHigher];
+ for(let i=0;i<regular.length;i++)result[regular[i]]=ordered[i]??0;
  if(certificate?.supportingSushi){
   // A physical rearrangement changes where the prepared lower sushi sit.
   // Update each supporting recipe step's final position accordingly.
