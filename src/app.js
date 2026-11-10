@@ -50,10 +50,20 @@ function decodeSave(input){
     try{research=JSON.parse(research);}catch{research=null;}
   }
   if(!Array.isArray(research))research=null;
+  // The game export carries bundle ownership separately from Sushi.
+  // Extract only the relevant flag, never keep full purchases in the UI model.
+  let bundles=input.data?.BundlesReceived??input.BundlesReceived??null;
+  if(typeof bundles==="string"){
+    try{bundles=JSON.parse(bundles);}catch{bundles=null;}
+  }
+  const bundleBonV=bundles&&typeof bundles==="object"&&
+    Object.prototype.hasOwnProperty.call(bundles,"bon_v")?
+    Number(bundles.bon_v)>0:
+    typeof input.bundleBonV==="boolean"?input.bundleBonV:undefined;
   // Processed account exports may carry the authoritative total.
   const sushiDoublerInfo=input.account?.menagerie?.doublers?.sushi
     ??input.data?.menagerie?.doublers?.sushi??null;
-  return {sushi,spelunk,menagerie,research,sushiDoublerInfo,tiles,perfecto:Array.isArray(sushi[5])?sushi[5].map(Number):null,slots,fires:Array.isArray(sushi[3])?sushi[3].slice(0,15).map(Number):[],source:input.data?.Sushi!=null?"Game save export":"Raw game data"};
+  return {sushi,spelunk,menagerie,research,bundleBonV,sushiDoublerInfo,tiles,perfecto:Array.isArray(sushi[5])?sushi[5].map(Number):null,slots,fires:Array.isArray(sushi[3])?sushi[3].slice(0,15).map(Number):[],source:input.data?.Sushi!=null?"Game save export":"Raw game data"};
 }
 function detectSushiProgress(save){
   // Sushi[0] stores tier IDs on the board (zero-based). Do not mistake
