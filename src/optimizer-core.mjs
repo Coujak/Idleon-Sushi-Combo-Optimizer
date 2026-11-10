@@ -1,5 +1,12 @@
 // Pure sushi-combo mechanics and a deterministic, multi-pass East Wind planner.
 // Kept separate from the DOM so real gameplay sequences can be regression-tested.
+export const MAX_SUSHI_WIND_CHAIN=25;
+export function effectiveWindChainLimit(requested){
+  // The game never upgrades more than 25 additional sushi from one merge.
+  // Even callers bypassing the UI cannot simulate a longer cascade.
+  const n=Number(requested);
+  return Number.isFinite(n)?Math.max(0,Math.min(MAX_SUSHI_WIND_CHAIN,Math.floor(n))):0;
+}
 export function simulateMerge(board,src,dst,cap,chainLimit,maximumTier=64){
   if(!Number.isInteger(src)||!Number.isInteger(dst)||src<0||dst<0||
     src>=board.length||dst>=board.length||src===dst||
@@ -8,9 +15,10 @@ export function simulateMerge(board,src,dst,cap,chainLimit,maximumTier=64){
   next[src]=0;next[dst]=before+1;
   let score=next[dst];
   const events=[{at:dst,tier:next[dst],kind:"merge"}];
-  if(src<dst&&before<=cap){
+  const windLimit=effectiveWindChainLimit(chainLimit);
+  if(src<dst&&before<=cap&&windLimit>0){
     let previous=before;
-    for(let q=dst+1;q<next.length&&events.length-1<chainLimit;q++){
+    for(let q=dst+1;q<next.length&&events.length-1<windLimit;q++){
       const tier=next[q];
       // First target must be lower than the merged sushi; subsequent ones
       // must form a strictly descending staircase.
@@ -41,7 +49,10 @@ export function validateComboReplay(start,moves,cap,chainLimit,slots,maximumTier
       simulateMerge(board,expected.src,expected.dst,cap,chainLimit,maximumTier);
     if(!actual||actual.score!==expected.score||
       actual.board.length!==expected.board.length||
-      !actual.board.every((t,p)=>t===expected.board[p])){
+      !actual.board.every((t,p)=>t===expected.board[p])||
+      actual.events.length!==(expected.events?.length??-1)||
+      !actual.events.every((event,j)=>event.kind===expected.events[j]?.kind&&
+        event.at===expected.events[j]?.at&&event.tier===expected.events[j]?.tier)){
       throw Error("Replay failed at action "+(i+1));
     }
     board=actual.board;score+=actual.score;
