@@ -111,29 +111,34 @@ export function getPerfectoPlanner(save,{tier=null,protectHigher=true}={}){
  const freeKnowledge=knowledge.filter(k=>k.category===5&&k.discovered)
    .reduce((a,k)=>a+(k.bonus??0),0);
  const freeKnown=clamp((bottomless+freeKnowledge)/100,0,.6);
+ const pepperAvailable=Math.max(0,Math.floor(snapshot.shakers[1]??0));
+ // Holding more Pepper enables more attempts; it never increases the odds
+ // of a single activation. For best per-use efficiency, prepare the board
+ // before spending any Pepper whenever the target-copy count can improve.
+ const pepperStackChance=perfectoBoardChance(planChance,pepperAvailable);
  let recommendation;
- if(current.perfecto)recommendation={state:"completed",text:"This sushi is already Perfecto."};
- else if(!plan?.eligible)recommendation={state:"blocked",
-  text:"There are no replaceable slots. Keep the higher-tier protection enabled, or choose to replace those tiles."};
- else if(plan.copies===0)recommendation={state:"prepare",
-  text:"The recipe search did not produce this tier. The planner leaves the board as attainable lower-tier sushi rather than inventing target copies."};
- else if(snapshot.shakers[1]<=0)recommendation={state:"save",
-  text:"No Pepper Shakers are available. Prepare the recommended board and save your next Pepper use for it."};
- else if(plan.currentCopies===0||currentChance<planChance*.9)
-  recommendation={state:"prepare",
-   text:"Aim for the final board before using Pepper. Its larger target-sushi group improves your estimated success chance."};
- else recommendation={state:"ready",
-  text:"Your current board is close to the best simulated result. Using Pepper now is reasonable."};
+ if(current.perfecto)recommendation={state:"completed",title:"ALREADY PERFECTO — STOP",
+  text:"This tier is already Perfecto. Save your Pepper for a different unfinished tier."};
+ else if(!plan?.eligible)recommendation={state:"blocked",title:"NO AVAILABLE SLOTS — REVIEW YOUR BOARD",
+  text:"All positions are protected. Change the higher-tier protection setting or choose another unfinished tier."};
+ else if(!plan?.copies)recommendation={state:"prepare",title:"SAVE PEPPER — BUILD TARGET SUSHI FIRST",
+  text:"The planner could not construct a target copy. Do not use Pepper for this tier until at least one target sushi is placed."};
+ else if(plan.currentCopies<plan.copies)recommendation={state:"save",title:"SAVE PEPPER — PREPARE THE BOARD FIRST",
+  text:"You have "+plan.currentCopies+" target copies now. The recommended board has "+plan.copies+
+   ". Build the recommended copies before spending Pepper to improve the chance per use."};
+ else if(pepperAvailable===0)recommendation={state:"empty",title:"BOARD READY — COLLECT PEPPER",
+  text:"The current board already has the recommended number of target copies. Collect Pepper and use it one activation at a time."};
+ else recommendation={state:"ready",title:"USE PEPPER NOW — ONE AT A TIME",
+  text:"Your current board already has "+plan.currentCopies+" target copies, as many as the recommendation. Use Pepper now and stop as soon as this tier becomes Perfecto."};
  return {
   target,current,bonus,next,plan,snapshot,economy,search:run,
-  singleChance,currentChance,planChance,expectedActivations,
+  singleChance,currentChance,planChance,expectedActivations,pepperStackChance,
   milestones:[.5,.9,.99].map(confidence=>({
    confidence,attempts:perfectoAttemptsForConfidence(planChance,confidence)})),
   freeUse:{knownChance:freeKnown,knownFrom:["Bottomless Shakers","Sushi Knowledge"],
    researchNotIncluded:true,
    expectedConsumedUpperBound:expectedActivations===null?null:expectedActivations*(1-freeKnown)},
-  preparation:{saltAvailable:snapshot.shakers[0]??0,pepperAvailable:snapshot.shakers[1]??0,
-   saltEstimate:0,saltVerified:false},
+  preparation:{pepperAvailable},
   recommendation,independenceAssumption:true,simulatedWind:true,
   ignoresSaltAndCookTierProcs:true
  };
