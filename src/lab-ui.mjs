@@ -2,7 +2,7 @@
 // information panels. All imported JSON stays in memory on the user's device.
 import {sushiUpgradeIconPath,sushiTierIconPath} from "./sushi-reference.mjs?v=1.10.2";
 import {initializePerfectoUI} from "./perfecto-ui.mjs?v=1.15.8";
-import {CATALOG_SORT_OPTIONS,CATALOG_STATUS_OPTIONS,upgradeSummary,readableUpgradeDescription,upgradeDescriptionSegments,catalogHasVariableValues,filterSortCatalog} from "./upgrade-catalog.mjs?v=1.12.2";
+import {CATALOG_SORT_OPTIONS,CATALOG_STATUS_OPTIONS,upgradeSummary,readableUpgradeDescription,upgradeDescriptionSegments,catalogHasVariableValues,filterSortCatalog,upgradeCatalogDollarValue} from "./upgrade-catalog.mjs?v=1.16.5";
 import {ADVISOR_GOALS,numberText,getSushiSnapshot,getUpgradeRows,
  getKnowledgeRows,advisorUpgrades,doublerUpgrades,getSushiDoublerCounts,sushiUpgradeExtraText,upgradeAffordability} from "./lab-model.mjs?v=1.12.1";
 import {getProgressionAdvice,PROGRESSION_SORT_OPTIONS,PROGRESSION_FILTER_OPTIONS} from "./progression-advisor.mjs?v=1.16.0";
@@ -352,15 +352,18 @@ export function initializeSushiLab(getSave){
    identity.append(upgradeArtwork(u),copy);
    summary.append(identity);
    const full=el("p","lab-catalog-description");
-   const extra=sushiUpgradeExtraText(u,s);
+   const extra=upgradeCatalogDollarValue(u,s);
    for(const part of upgradeDescriptionSegments(u.description,u,hasSave,extra)){
     if(part.kind==="text")full.append(document.createTextNode(part.text));
-    else full.append(el("span",part.kind==="calculated"?"lab-catalog-known-value":"lab-catalog-unknown-value",part.text));
+    else full.append(el("span",part.kind==="calculated"?"lab-catalog-known-value":
+     part.kind==="estimated"?"lab-catalog-estimated-value":"lab-catalog-unknown-value",part.text));
    }
    details.append(summary,full);
+   if(extra?.estimated)details.append(el("p","lab-catalog-variable-note",
+    "Modeled from available game data; external bonuses can change the exact rate or capacity."));
    if(catalogHasVariableValues(u.description,u,hasSave,extra)){
     details.append(el("p","lab-catalog-variable-note",hasSave?
-     "Muted [in-game value] labels need extra game formulas. Highlighted values come from your imported upgrade levels.":
+     "This effect could not be verified from the imported data. Other highlighted values come from your account levels.":
      "Import your save to calculate level-based bonuses; some in-game values may remain unavailable."));
    }
    name.append(details);
