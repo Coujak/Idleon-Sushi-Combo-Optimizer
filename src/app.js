@@ -11,7 +11,7 @@ import {MODE_CATALOG,getModeInfo,modeOptionLabel,modeDisplayLabel} from "./mode-
 const $=id=>document.getElementById(id);
 import {BOARD_COLUMNS,BOARD_CELLS,normalizeBoardData,layoutOptions} from "./board-geometry.mjs?v=1.8.4";
 import {windTierMaximum,clampWindTier,windTierAfterPreparedChange} from "./wind-limit.mjs?v=1.9.10";
-import {initializeSushiLab} from "./lab-ui.mjs?v=1.16.3";
+import {initializeSushiLab} from "./lab-ui.mjs?v=1.16.4";
 import {sushiTierIconPath} from "./sushi-reference.mjs?v=1.10.2";
 import {getPreparedBoardSections,hasSlotLayoutChanges,preparedSectionOutlinePath,preparedOutlineCoordinates} from "./prepared-sections.mjs?v=1.10.7";
 const COLUMNS=BOARD_COLUMNS;
@@ -178,8 +178,19 @@ function importSave(data,label){
   const tierProgress=detectSushiProgress(parsed);
   $("importSummary").textContent=label+" · "+parsed.source+" · "+parsed.tiles.filter(n=>n>=0).length+" occupied sushi slots decoded · Tier "+tierProgress.highest+" detected ("+tierProgress.source+") · Wind limit "+tierProgress.windCap+". If the player has unlocked higher tiers not present on the board, correct the Maximum prepared tier field.";
   $("importSummary").classList.remove("hidden");
-  sushiLab.refresh();
+  // Parsing and dashboard rendering are separate: a stale UI module must
+  // never misreport successfully decoded game data as an invalid JSON file.
+  let dashboardError=null;
+  try{sushiLab.refresh();}
+  catch(e){dashboardError=e;console.error("Sushi Lab dashboard rendering failed",e);}
   $("jsonPreview").textContent=JSON.stringify({source:parsed.source,sushiArrayLengths:parsed.sushi.map(x=>Array.isArray(x)?x.length:null),firstTiles:parsed.tiles.slice(0,30),slotTypes:parsed.slots,fireTypes:parsed.fires,perfectoFlags:parsed.perfecto?.slice(0,70)??null},null,2);
+  if(dashboardError){
+    $("importStatus").textContent="JSON imported · dashboard incomplete";
+    $("importError").textContent="Your JSON loaded successfully, but the dashboard could not finish updating: "+
+      String(dashboardError.message??dashboardError)+
+      ". Refresh the page to load the latest interface.";
+    $("importError").classList.remove("hidden");
+  }
 }
 function error(e){$("importStatus").textContent="Import failed";$("importStatus").classList.remove("success");$("jsonPreview").textContent=String(e.message??e);$("importSummary").classList.add("hidden");$("importError").textContent="JSON import error: "+String(e.message??e);$("importError").classList.remove("hidden");}
 $("pasteToggle").addEventListener("click",()=>{const open=$("pasteArea").classList.toggle("hidden")===false;$("pasteToggle").setAttribute("aria-expanded",String(open));if(open)$("jsonInput").focus();});
