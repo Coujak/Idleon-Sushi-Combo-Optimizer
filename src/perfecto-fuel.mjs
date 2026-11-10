@@ -53,23 +53,20 @@ export function estimateSushiFuelEconomy(save,{capacityOverride=null,generationO
   note:"Fuel capacity excludes unparsed Event Shop capacity bonuses; generation/capacity are estimates when external ownership data is missing. The planner accepts the displayed in-game figures as overrides."
  };
 }
-// The Perfecto planner has no preparation deadline: regeneration affects how
-// long cooking takes, not which tier can eventually be prepared. Avoid a cook
-// that consumes more than half the account's estimated maximum fuel in one go.
-export const PERFECTO_MAX_COOK_CAPACITY_SHARE=0.5;
-export function chooseSafeSushiCookingTier(economy,targetTier){
+// Enumerate all affordable tiers, rather than enforcing a 50% cutoff.
+// Half-capacity is a reference point only. A plan can benefit from more
+// expensive tiers if they save sufficient merges and regeneration time.
+export function affordableSushiCookingTiers(economy,targetTier){
  const cap=Number(economy?.capacity),maximum=Number(economy?.maxCookTier);
  const target=Number(targetTier);
- if(!(cap>0)||!Number.isFinite(maximum)||!Number.isInteger(target)||target<1)return null;
- const upper=Math.min(64,target,Math.floor(maximum));
- for(let tier=upper;tier>=1;tier--){
+ if(!(cap>0)||!Number.isFinite(maximum)||!Number.isInteger(target)||target<1)return [];
+ const upper=Math.min(64,target,Math.floor(maximum)),result=[];
+ for(let tier=1;tier<=upper;tier++){
   const cost=sushiDirectCookFuel(tier);
-  if(cost!==null&&Number.isFinite(cost)&&cost<=cap*PERFECTO_MAX_COOK_CAPACITY_SHARE){
-   return {tier,cost,capacity:cap,share:cost/cap,
-    maximumShare:PERFECTO_MAX_COOK_CAPACITY_SHARE};
-  }
+  if(cost!==null&&Number.isFinite(cost)&&cost<=cap)
+   result.push({tier,cost,capacity:cap,share:cost/cap,nearHalfCapacity:Math.abs(cost/cap-0.5)});
  }
- return null;
+ return result;
 }
 export function chooseFuelCookingTier(economy,targetTier,{hours=24,secondsPerCook=20,mode="yield"}={}){
  if(!economy||!(hours>0)||!(secondsPerCook>0))return null;
