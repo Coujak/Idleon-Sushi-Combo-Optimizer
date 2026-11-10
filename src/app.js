@@ -11,7 +11,7 @@ import {MODE_CATALOG,getModeInfo,modeOptionLabel,modeDisplayLabel} from "./mode-
 const $=id=>document.getElementById(id);
 import {BOARD_COLUMNS,BOARD_CELLS,normalizeBoardData,layoutOptions} from "./board-geometry.mjs?v=1.8.4";
 import {windTierMaximum,clampWindTier,windTierAfterPreparedChange} from "./wind-limit.mjs?v=1.9.10";
-import {initializeSushiLab} from "./lab-ui.mjs?v=1.15.5";
+import {initializeSushiLab} from "./lab-ui.mjs?v=1.15.7";
 import {sushiTierIconPath} from "./sushi-reference.mjs?v=1.10.2";
 import {getPreparedBoardSections,hasSlotLayoutChanges,preparedSectionOutlinePath,preparedOutlineCoordinates} from "./prepared-sections.mjs?v=1.10.7";
 const COLUMNS=BOARD_COLUMNS;
@@ -26,7 +26,7 @@ function disposeReplay(){replayCleanup();replayCleanup=()=>{};}
 function decodeSave(input){
   if(!input||typeof input!=="object")throw Error("Expected a JSON object.");
   const raw=input.data?.Sushi??input.Sushi;
-  if(raw==null)throw Error("No Sushi data found. Expected data.Sushi (Idleon Toolbox) or Sushi (raw game data).");
+  if(raw==null)throw Error("No Sushi data found. Expected an exported game save with Sushi data.");
   let sushi=typeof raw==="string"?JSON.parse(raw):raw;
   if(!Array.isArray(sushi)||!Array.isArray(sushi[0]))throw Error("Sushi data does not contain the expected tile array.");
   if(!sushi[0].every(x=>Number.isInteger(Number(x))))throw Error("Sushi tile array contains non-numeric entries.");
@@ -53,7 +53,7 @@ function decodeSave(input){
   // Processed account exports may carry the authoritative total.
   const sushiDoublerInfo=input.account?.menagerie?.doublers?.sushi
     ??input.data?.menagerie?.doublers?.sushi??null;
-  return {sushi,spelunk,menagerie,research,sushiDoublerInfo,tiles,perfecto:Array.isArray(sushi[5])?sushi[5].map(Number):null,slots,fires:Array.isArray(sushi[3])?sushi[3].slice(0,15).map(Number):[],source:input.data?.Sushi!=null?"Idleon Toolbox":"Raw game data"};
+  return {sushi,spelunk,menagerie,research,sushiDoublerInfo,tiles,perfecto:Array.isArray(sushi[5])?sushi[5].map(Number):null,slots,fires:Array.isArray(sushi[3])?sushi[3].slice(0,15).map(Number):[],source:input.data?.Sushi!=null?"Game save export":"Raw game data"};
 }
 function detectSushiProgress(save){
   // Sushi[0] stores tier IDs on the board (zero-based). Do not mistake
@@ -623,6 +623,8 @@ async function showSolver(signal){
         }else tile.classList.add("dim-tile");
       }
       if(type>=0&&tier>0)addSushiVisual(tile,tier);
+      if(resolved&&move&&i===move.dst&&type>=0&&!prefersReducedMotion())
+        tile.classList.add("merge-landed");
       tile.title="Position "+(i+1)+" · "+(SLOT_NAMES[type]??"Locked")+
         (tier?" · Tier "+tier:" · Empty")+
         (changes.has(i)?" · "+changes.get(i):"");
@@ -690,8 +692,8 @@ async function showSolver(signal){
         const epoch=flightEpoch;
         if(typeof flightGhost.animate==="function"){
           flightAnimation=flightGhost.animate([
-            {transform:"translate(0px,0px) scale(1)",opacity:1},
-            {transform:"translate("+dx+"px,"+dy+"px) scale(.94)",opacity:.94}
+            {transform:"translate(0px,0px) scale(1)",opacity:.78},
+            {transform:"translate("+dx+"px,"+dy+"px) scale(.94)",opacity:.66}
           ],{duration:timing.travelMs,easing:"cubic-bezier(.25,.72,.22,1)",
             fill:"forwards"});
         }else flightGhost.style.transform="translate("+dx+"px,"+dy+"px)";
@@ -801,7 +803,7 @@ $("cancelSolver").addEventListener("click",()=>{
   $("optimizerProgressText").textContent="Stopping after the current calculation…";
 });
 $("runSolver").addEventListener("click",async()=>{
-  if(!imported){$("solverNote").textContent="Import a valid Idleon Toolbox JSON first.";return;}
+  if(!imported){$("solverNote").textContent="Import a valid game save JSON first.";return;}
   if(activeSearch)return;
   disposeReplay();
   const controller=new AbortController();
