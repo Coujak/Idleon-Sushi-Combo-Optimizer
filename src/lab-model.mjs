@@ -87,7 +87,7 @@ export function sushiUpgradeExtraText(upgrade,save){
  if(idx===22)return fmt(Math.round(1+qty));
  if(idx===29){
   const track=raw[5];if(!Array.isArray(track))return null;
-  let unique=0;for(const v of track){if(Number(v)<0)break;unique++;}
+  let unique=0;for(const v of track.slice(0,64)){if(Number(v)<0)break;unique++;}
   return fmt(Math.max(0,unique-6));
  }
  if(idx===36)return fmt(100*(1-1/(1+qty/100)))+"%";
