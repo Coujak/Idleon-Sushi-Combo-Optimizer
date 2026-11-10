@@ -74,7 +74,9 @@ export function initializePerfectoUI(getSave){
    }else if(cell.slot>=0)div.append(node("span","perfecto-tile-empty","·"));
    const before=cell.tile>=0?"T"+(cell.tile+1):"Empty";
    const after=cell.preparedTier>=0?"T"+(cell.preparedTier+1):"Empty";
-   div.title="Position "+(cell.index+1)+" · "+before+" → "+after+" · "+cell.role;
+   const slotLabel=["Regular","Hot","Cold","Milktoast"][cell.slot]??"Locked";
+   div.title="Position "+(cell.index+1)+" · "+slotLabel+" slot · "+
+    before+" → "+after+" · "+cell.role;
    if(cell.newCopy)div.classList.add("perfecto-new-copy");
    box.append(div);
   }
@@ -138,10 +140,14 @@ export function initializePerfectoUI(getSave){
   text("perfectoExpectedActivations",numAttempts(result.expectedActivations));
   text("perfectoCopyCount",p.copies+" target copies found");
   const proof=result.search?.certificate;
+  const bonusEligible=p.board.filter(cell=>cell.slot>=1&&cell.slot<=3&&cell.role!=="protected");
+  const bonusTargets=bonusEligible.filter(cell=>cell.role==="target").length;
   text("perfectoPreparationSummary",
    p.copies+" target copies · "+p.additionalCopies+" newly produced in the simulation · "+
    (proof?.supportingCount?proof.supportingCount+" supporting sushi · ":"")+
-   p.protected+" protected higher-tier sushi · "+p.unlocked+" unlocked slots");
+   p.protected+" protected higher-tier sushi · "+p.unlocked+" unlocked slots"+
+   (bonusEligible.length?" · "+bonusTargets+"/"+bonusEligible.length+
+    " Hot / Cold / Milktoast slots hold target sushi":""));
   text("perfectoProtectedCount",p.protected+" higher-tier sushi preserved");
   text("perfectoModelNote",proof?
    "Cook T"+proof.startingTier+" (each costs "+display(result.search.sourceCost)+
@@ -152,8 +158,10 @@ export function initializePerfectoUI(getSave){
    " cooks and "+proof.mergesExact+" merges. "+
    (proof.supportingCount?
     "After the targets are complete, fill the remaining "+proof.supportingCount+
-    " positions with a descending T"+proof.supportingHighest+"–T"+
-    proof.supportingLowest+" staircase, built highest first. This adds "+
+    " positions with descending support tiers T"+proof.supportingHighest+"–T"+
+    proof.supportingLowest+", built highest first. Target sushi take priority "+
+    "on Hot, Cold and Milktoast plates; supporting sushi use regular plates "+
+    "where possible. This adds "+
     proof.supportingCooksExact+" cooks and "+proof.supportingMergesExact+
     " merges. These supporting sushi do not increase the immediate Perfecto chance. ":"")+
    "This proves a reproducible merge-only layout without Salt or Wind luck, "+
