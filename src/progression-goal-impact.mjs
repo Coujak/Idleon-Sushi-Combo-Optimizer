@@ -8,7 +8,7 @@ const finite=value=>typeof value==="number"&&Number.isFinite(value);
 const format=(n,digits=3)=>{
  if(!finite(n))return "Unavailable";
  if(n===0)return "0";
- if(Math.abs(n)>=1e9||Math.abs(n)<.001)return n.toExponential(3);
+ if(Math.abs(n)>=1e9||Math.abs(n)<.001)return n.toExponential(3).replace(/e\+?/i,"E");
  return n.toLocaleString("en-US",{maximumFractionDigits:digits});
 };
 const levels=save=>save?.sushi?.[2]??[];
