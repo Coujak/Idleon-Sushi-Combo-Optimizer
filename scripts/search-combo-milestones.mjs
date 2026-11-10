@@ -3,7 +3,7 @@
 // write a score showcase only once its threshold has actually been reached.
 // Usage: node scripts/search-combo-milestones.mjs --trials=2000 --seed=421
 // No background jobs, no silent publishing, no fabricated benchmark scores.
-import {mkdirSync,writeFileSync} from "node:fs";
+import {existsSync,mkdirSync,readFileSync,writeFileSync} from "node:fs";
 import {resolve} from "node:path";
 import {fileURLToPath} from "node:url";
 import {searchCombos} from "../src/merge-search.mjs";
@@ -21,11 +21,9 @@ function options(){
  };
  const trials=parse("trials",300);
  const seed=parse("seed",421);
- const firstExp=parse("first-experiment",14);
  if(!Number.isSafeInteger(trials)||trials<1||trials>1e7)throw Error("trials must be 1..10000000");
  if(!Number.isSafeInteger(seed)||seed<0)throw Error("seed must be a nonnegative integer");
- targetForExperiment(firstExp);
- return {trials,seed,firstExp};
+ return {trials,seed};
 }
 function rng(seed){
  let state=(seed>>>0)||0x9e3779b9;
@@ -70,15 +68,27 @@ function evaluate(board,deep=false){
  }):result;
 }
 function run(){
- const {trials,seed,firstExp}=options();
+ const {trials,seed}=options();
  const random=rng(seed);
- let nextExp=firstExp,lastPublishedScore=0,found=0;
+ let nextExp=14,lastPublishedScore=0,found=0;
  let best={board:template,result:evaluate(template)};
  if(best.result.score!==EXPERIMENTAL_13_BENCHMARK)
   throw Error("Historical Experiment 13.0 benchmark no longer replays correctly");
  const archive=[best];
  let attempted=0;
  const outDir=resolve("research","verified-milestones");
+ // Resume a prior verified series. Never overwrite or skip a milestone, and
+ // never accept a cached candidate merely because its JSON says validated.
+ while(true){
+  const file=resolve(outDir,"experiment-"+nextExp+"-candidate.json");
+  if(!existsSync(file))break;
+  const archived=JSON.parse(readFileSync(file,"utf8"));
+  const verified=certifyComboMilestone(archived.board,archived.moves,nextExp);
+  if(verified.score<=lastPublishedScore)
+   throw Error("Saved Experiment "+nextExp+" does not improve the prior score");
+  lastPublishedScore=verified.score;
+  nextExp++;
+ }
  console.log("Exp 13.0 verified:",best.result.score,
   "| next goal: Exp "+nextExp+".0 ≥"+targetForExperiment(nextExp));
  for(let i=0;i<trials;i++){
