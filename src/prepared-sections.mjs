@@ -77,3 +77,22 @@ export function preparedSectionOutlinePath(roles,role,x,y,columns=15){
   }
   return paths.join(" ");
 }
+
+// Measure section boundaries from real rendered tile edges, in the SVG's own
+// coordinate system. Inner borders sit in the gaps; outer borders hug the tiles.
+export function preparedOutlineCoordinates(bounds,svgBounds,columns=15,padding=2){
+  if(!Array.isArray(bounds)||!bounds.length||bounds.length%columns!==0||
+    !svgBounds||!Number.isInteger(columns)||columns<1||!Number.isFinite(padding))return null;
+  const rows=bounds.length/columns;
+  const xs=[bounds[0].left-svgBounds.left-padding];
+  for(let c=1;c<columns;c++){
+    xs.push((bounds[c-1].right+bounds[c].left)/2-svgBounds.left);
+  }
+  xs.push(bounds[columns-1].right-svgBounds.left+padding);
+  const ys=[bounds[0].top-svgBounds.top-padding];
+  for(let r=1;r<rows;r++){
+    ys.push((bounds[(r-1)*columns].bottom+bounds[r*columns].top)/2-svgBounds.top);
+  }
+  ys.push(bounds[(rows-1)*columns].bottom-svgBounds.top+padding);
+  return {xs,ys};
+}
