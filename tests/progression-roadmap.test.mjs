@@ -74,7 +74,7 @@ test("Goal-specific models don't pretend partial Bucks, Knowledge and Perfecto e
  const save=fixture();
  const bucks=progressionGoalMetric(save,"bucks");
  assert.match(bucks.label,/Modeled passive Bucks multiplier/);
- assert.match(bucks.note,/Partial model/);
+ assert.match(bucks.note,/Board earnings could not be reconstructed/);
  assert.ok(!bucks.label.includes("Bucks\/hr"));
  const knowledge=progressionGoalMetric(save,"knowledge");
  assert.match(knowledge.label,/Knowledge EXP multiplier/);
@@ -111,4 +111,45 @@ test("Progression Advisor exposes custom count, cards/list toggle and per-step g
  assert.match(css,/\.lab-advisor-view-list/);
  assert.match(css,/\.lab-advisor-view-cards/);
  assert.match(css,/\.lab-advisor-goal-projection/);
+});
+
+test("Player-entered values calibrate the selected goal without modifying the save",()=>{
+ const save=fixture(1e17);
+ const raw=JSON.stringify(save);
+ const fuel=buildProgressionPurchasePlan(save,"fuel",5,{readings:{fuel:"12T"}});
+ assert.equal(fuel.initialGoal.value,12e12);
+ assert.match(fuel.initialGoal.display,/12T Fuel\/hr/);
+ assert.ok(fuel.finalGoal.value>fuel.initialGoal.value);
+ const capacity=buildProgressionPurchasePlan(save,"capacity",5,{readings:{capacity:"4T"}});
+ assert.equal(capacity.initialGoal.value,4e12);
+ const bucks=buildProgressionPurchasePlan(save,"bucks",5,{readings:{bucks:"1.25E30"}});
+ assert.equal(bucks.initialGoal.value,1.25e30);
+ assert.match(bucks.initialGoal.display,/Bucks\/hr/);
+ assert.equal(JSON.stringify(save),raw,"Entered rates cannot modify save data");
+});
+test("Bucks/hr is modeled from tiers and slot multipliers, not fabricated from other accounts",()=>{
+ const save=fixture(1e10);
+ save.tiles[0]=16;save.tiles[1]=17;
+ save.slots=Array(120).fill(0);
+ save.fires[0]=0;save.fires[1]=1; // green fireplace boosts second column
+ const raw=progressionGoalMetric(save,"bucks");
+ assert.match(raw.label,/Modeled Sushi Bucks generation \/ hour/);
+ assert.ok(raw.value>0);
+ const withBonus=fixture(1e10);
+ withBonus.tiles[0]=16;withBonus.tiles[1]=17;
+ withBonus.slots=Array(120).fill(0);
+ withBonus.fires[0]=0;withBonus.fires[1]=1;
+ withBonus.sushi[2][30]=100;
+ const enhanced=progressionGoalMetric(withBonus,"bucks");
+ assert.ok(enhanced.value>raw.value);
+});
+test("Calibration parser accepts scientific and game-unit notation but rejects invalid rates",async()=>{
+ const {parseGameQuantity,formatGameQuantity}=await import("../src/progression-calibration.mjs");
+ assert.equal(parseGameQuantity("1.25E30"),1.25e30);
+ assert.equal(parseGameQuantity("12T"),12e12);
+ assert.equal(parseGameQuantity("4T Fuel/hr"),4e12);
+ assert.equal(parseGameQuantity("10,000"),10000);
+ assert.equal(parseGameQuantity("-5T"),null);
+ assert.equal(parseGameQuantity("invalid"),null);
+ assert.equal(formatGameQuantity(12e12),"12T");
 });
