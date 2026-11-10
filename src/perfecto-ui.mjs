@@ -185,6 +185,18 @@ export function initializePerfectoUI(getSave){
   tip.className="perfecto-recommendation perfecto-status-"+result.recommendation.state;
   text("perfectoActionTitle",result.recommendation.title);
   text("perfectoActionText",result.recommendation.text);
+  const currentCopies=result.plan?.currentCopies??0;
+  const targetCopies=result.plan?.copies??0;
+  const state=result.recommendation.state;
+  text("perfectoActionProgress",
+    state==="completed"?"Perfecto achieved":
+    "BOARD PROGRESS · "+display(currentCopies)+" / "+display(targetCopies)+" target copies");
+  text("perfectoActionNext",
+    state==="ready"?"NEXT: ACTIVATE PEPPER":
+    state==="empty"?"NEXT: COLLECT PEPPER":
+    state==="completed"?"NEXT: CHOOSE ANOTHER TARGET":
+    state==="blocked"?"NEXT: REVIEW AVAILABLE SLOTS":
+    "NEXT: BUILD THE OPTIMIZED BOARD");
   renderBoard(result);
  }
  setPlannerTab("combo");
