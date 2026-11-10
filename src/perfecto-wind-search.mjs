@@ -290,6 +290,54 @@ export function certifiedCarryBoard(geom,target,economy){
  }
  return best;
 }
+// The empty cells left by the certified carry construction are temporary
+// working space. Once the target copies have been completed, fill those cells
+// from highest to lowest with a buildable staircase. Build each ingredient
+// before the next one, so the available workspace shrinks in step with the
+// required merge depth. Prefer starting at the Wind cap when it exists.
+export function finishCertifiedCarryBoard(best,geom,target,windCap){
+ if(!best?.certificate)return best;
+ const slots=geom.flex.filter(pos=>best.board[pos]===0);
+ const sourceTier=best.sourceTier;
+ const highest=Math.min(target-1,windCap>0?windCap:target-1,
+  sourceTier+slots.length-1);
+ const supporting=[];
+ let extraCooks=0n,extraMerges=0n,extraFuel=0;
+ for(let i=0;i<slots.length;i++){
+  const tier=Math.max(1,highest-i);
+  const free=slots.length-i;
+  const aboveSource=Math.max(0,tier-sourceTier);
+  const requiredWorkspace=aboveSource+1;
+  if(requiredWorkspace>free)throw Error("Unbuildable Perfecto staircase ingredient");
+  const direct=tier<=sourceTier;
+  const cooks=direct?1n:1n<<BigInt(aboveSource);
+  const merges=direct?0n:cooks-1n;
+  const cost=sushiDirectCookFuel(direct?tier:sourceTier);
+  const fuel=Number(cooks)*cost;
+  if(!Number.isFinite(fuel))throw Error("Non-finite Perfecto staircase fuel cost");
+  best.board[slots[i]]=tier;
+  extraCooks+=cooks;
+  extraMerges+=merges;
+  extraFuel+=fuel;
+  supporting.push({position:slots[i]+1,tier,requiredWorkspace,
+   sourceTier:direct?tier:sourceTier,cooksExact:cooks.toString(),
+   mergesExact:merges.toString()});
+ }
+ const proof=best.certificate;
+ proof.supportingSushi=supporting;
+ proof.supportingCount=supporting.length;
+ proof.supportingHighest=supporting[0]?.tier??null;
+ proof.supportingLowest=supporting.at(-1)?.tier??null;
+ proof.supportingFuel=extraFuel;
+ proof.supportingCooksExact=extraCooks.toString();
+ proof.supportingMergesExact=extraMerges.toString();
+ proof.totalCooksExact=(BigInt(proof.cooksExact)+extraCooks).toString();
+ proof.totalMergesExact=(BigInt(proof.mergesExact)+extraMerges).toString();
+ proof.proof+=" After producing all target copies, use the released workspace to build supporting sushi one at a time, highest first, preserving previous copies. Each next ingredient requires no more than the remaining free cells.";
+ best.spent+=extraFuel;
+ best.merges+=Number(extraMerges);
+ return best;
+}
 export function searchPerfectoBoard(save,target,economy,{protectHigher=true,effortMultiplier=16}={}){
  if(!save||!Number.isInteger(target)||target<1||target>64)return null;
  const geom=geometry(save,target,protectHigher);
@@ -333,6 +381,7 @@ export function searchPerfectoBoard(save,target,economy,{protectHigher=true,effo
    }
   }
  }
+ if(best?.certificate)finishCertifiedCarryBoard(best,geom,target,windCap);
  const targetCount=best?.metric.target??currentCopies;
  return {
   board:best?.board??geom.tiles,
