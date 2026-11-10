@@ -105,11 +105,11 @@ export function upgradeDescriptionSegments(raw,upgrade=null,hasSave=false,extra=
   const id=match[0];let text,kind="unresolved";
   if(id.includes("{")){
    const percent=id.endsWith("%");
-   text=(id.startsWith("+")?"+":"")+(known?qty:"[variable]")+(percent?"%":"");
+   text=(id.startsWith("+")?"+":"")+(known?qty:"—")+(percent?"%":"");
    if(known)kind="calculated";
   }else if(id==="}x"){
    // The game's multiplier information formatter uses 1 + quantity / 100.
-   text=known?multi+"×":"[in-game value]×";
+   text=known?multi+"×":"—";
    if(known)kind="calculated";
   }else if(moneyText!==null){
    text=moneyText;
@@ -117,9 +117,9 @@ export function upgradeDescriptionSegments(raw,upgrade=null,hasSave=false,extra=
    // The account-specific dollar result already includes its ×/% suffix.
    if(id==="$x"&&!/[×x]$/.test(text))text+="×";
    if(id==="$%"&&!/%$/.test(text))text+="%";
-  }else if(id==="$x")text="[in-game value]×";
-  else if(id==="$%")text="[in-game value]%";
-  else text="[in-game value]";
+  }else if(id==="$x")text="—";
+  else if(id==="$%")text="—";
+  else text="—";
   parts.push({text,kind});
   from=token.lastIndex;
  }
