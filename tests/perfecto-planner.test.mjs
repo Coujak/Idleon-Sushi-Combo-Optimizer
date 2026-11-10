@@ -265,3 +265,51 @@ test("Filler ingredients never replace protected tiles or invent targets when Wi
  assert.ok(result.certificate.supportingSushi[0].tier<=61);
  assert.equal(result.windCap,0);
 });
+
+
+test("Perfecto targets take Hot, Cold and Milktoast plates before ordinary ones",()=>{
+ const save=exampleSave();
+ save.sushi[2][6]=45;
+ save.sushi[2][29]=1;
+ save.sushi[5]=Array(64).fill(0);
+ save.tiles=Array(120).fill(-1);
+ save.tiles[0]=63; // Preserve the higher T64 on a special plate.
+ save.slots=Array.from({length:120},(_,i)=>i<100?0:-1);
+ save.slots[0]=2;
+ save.slots[90]=1; // Hot, formerly leftover workspace
+ save.slots[93]=2; // Cold
+ save.slots[95]=3; // Milktoast
+ const economy={capacity:sushiDirectCookFuel(45)*1.1,
+  generationPerHour:1e13,maxCookTier:46};
+ const result=searchPerfectoBoard(save,62,economy);
+ assert.equal(result.targetCount,82);
+ assert.equal(result.board[0],64);
+ for(const pos of [90,93,95])assert.equal(result.board[pos],62,
+  "Position "+(pos+1)+" should prioritize T62 on its bonus plate");
+ assert.equal(result.board.filter(x=>x===62).length,82);
+ assert.ok(result.board.slice(1,100).every(tier=>tier>0));
+ assert.equal(result.certificate.supportingCount,17);
+ const supporting=result.certificate.supportingSushi;
+ assert.deepEqual(supporting.map(x=>x.tier),Array.from({length:17},(_,i)=>58-i));
+ for(const item of supporting)assert.equal(result.board[item.position-1],item.tier);
+ assert.ok(supporting.every(item=>save.slots[item.position-1]===0),
+  "All lower supporting sushi fit on ordinary plates");
+});
+
+test("Special slots are used by T62 even when lower-tier ingredients are more numerous",()=>{
+ const save=exampleSave();
+ save.sushi[2][6]=45;
+ save.sushi[5]=Array(64).fill(0);
+ save.sushi[2][29]=1;
+ save.tiles=Array(120).fill(-1);
+ save.slots=Array.from({length:120},(_,i)=>i<35?0:-1);
+ save.slots[28]=1;
+ save.slots[29]=2;
+ save.slots[30]=3;
+ const economy={capacity:sushiDirectCookFuel(45)*1.1,
+  generationPerHour:1e13,maxCookTier:46};
+ const result=searchPerfectoBoard(save,62,economy);
+ assert.ok(result.targetCount>0);
+ for(const pos of [28,29,30])assert.equal(result.board[pos],62);
+ assert.equal(result.board.filter(x=>x===62).length,result.targetCount);
+});
