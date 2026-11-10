@@ -3,6 +3,7 @@
 // Future income is NOT predicted: when Bucks run out we simulate saving
 // only the extra Bucks required for the next suggested purchase.
 import {getProgressionAdvice} from "./progression-advisor.mjs";
+import {progressionGoalMetric} from "./progression-goal-impact.mjs";
 
 export const PURCHASE_PRESETS=[5,10,25,50,100];
 export const MAX_CUSTOM_PURCHASES=500;
@@ -17,7 +18,8 @@ export function buildProgressionPurchasePlan(save,goal,requestedCount=5){
  const count=normalizePurchaseCount(requestedCount);
  const blank={goal,requestedCount:count,steps:[],initialBucks:null,
   finalProjectedBucks:null,initiallyFunded:0,additionalBucksNeeded:0,
-  totalEstimatedCost:0,partialPrices:false,stopReason:""};
+  totalEstimatedCost:0,partialPrices:false,stopReason:"",
+  initialGoal:null,finalGoal:null};
  if(!save?.sushi||!Array.isArray(save.sushi[2]))return {...blank,stopReason:"Import a game save first."};
  // Never alter imported account state. Projected level changes update the
  // original cost model (including discounted Wholesale Pricing).
@@ -28,6 +30,8 @@ export function buildProgressionPurchasePlan(save,goal,requestedCount=5){
  if(!finite(initial)||initial<0)return {...blank,stopReason:"Sushi Bucks balance is unavailable."};
  let balance=initial,totalEstimatedCost=0,additionalBucksNeeded=0,initiallyFunded=0;
  const steps=[];
+ const initialGoal=progressionGoalMetric(projected,goal);
+ let goalBefore=initialGoal;
  let stopReason="";
  for(let i=0;i<count;i++){
   projected.sushi[4][3]=balance;
@@ -55,6 +59,12 @@ export function buildProgressionPurchasePlan(save,goal,requestedCount=5){
   if(fundedByImport)initiallyFunded++;
   const nextLevel=Number(previousLevel)+1;
   projected.sushi[2][candidate.id]=nextLevel;
+  const goalAfter=progressionGoalMetric(projected,goal);
+  const goalResult={
+   label:goalBefore.label,current:goalBefore.display,
+   projected:goalAfter.display,changed:goalBefore.display!==goalAfter.display,
+   note:goalAfter.note,estimated:goalBefore.estimated||goalAfter.estimated
+  };
   steps.push({
    number:i+1,id:candidate.id,shop:candidate.shop,name:candidate.name,
    fromLevel:Number(previousLevel),toLevel:nextLevel,
@@ -62,14 +72,16 @@ export function buildProgressionPurchasePlan(save,goal,requestedCount=5){
    fundedByImport,remainingProjectedBucks:balance,
    cumulativeExtraBucks:additionalBucksNeeded,
    nextLevelEffect:candidate.effect.label,
-   doubled:candidate.doubled
+   goalResult,doubled:candidate.doubled
   });
+  goalBefore=goalAfter;
  }
  return {
   goal,requestedCount:count,steps,initialBucks:initial,
   finalProjectedBucks:balance,initiallyFunded,
   additionalBucksNeeded,totalEstimatedCost,
   partialPrices:steps.some(x=>!x.exactPrice),
+  initialGoal,finalGoal:goalBefore,
   stopReason
  };
 }
