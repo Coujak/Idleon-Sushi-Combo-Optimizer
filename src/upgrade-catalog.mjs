@@ -1,4 +1,7 @@
 // Upgrade Catalog presentation helpers. Game data is unchanged.
+import {estimateSushiFuelEconomy} from "./perfecto-fuel.mjs";
+import {sushiUpgradeExtraText} from "./lab-model.mjs";
+import {formatGameQuantity} from "./progression-calibration.mjs";
 const SHORT_DESCRIPTIONS=[
   "Shows hourly Bucks earnings and increases overall sushi Bucks production.",
   "Increases how quickly Sushi Station generates fuel.",
@@ -67,14 +70,33 @@ export const CATALOG_STATUS_OPTIONS=Object.freeze([
 export function upgradeSummary(upgrade){
  return SHORT_DESCRIPTIONS[upgrade.shop-1]??"See the full upgrade details.";
 }
-// Keep description strings and their provenance together, so only values
-// supported by an imported save are visually emphasized.
-export function upgradeDescriptionSegments(raw,upgrade=null,hasSave=false){
+// Game's $ symbol is a *different* per-upgrade value than the { level
+// placeholder. Keep the dollar calculation separate and source-supported.
+export function upgradeCatalogDollarValue(upgrade,save){
+ if(!upgrade||!save?.sushi)return null;
+ if(upgrade.id===8){ // Fastburn Fuel I: current Fuel/hr and maximum Fuel.
+  const economy=estimateSushiFuelEconomy(save);
+  if(!(economy?.generationPerHour>0)||!(economy?.capacity>0))return null;
+  const text=formatGameQuantity(economy.generationPerHour)+" Fuel/hr. "+
+    "Max Cap is "+formatGameQuantity(economy.capacity)+" Fuel";
+  // Game export doesn't consistently expose Event Shop capacity bonuses.
+  // These are *modeled* values, not necessarily the exact UI displays.
+  return {text,estimated:true};
+ }
+ const value=sushiUpgradeExtraText(upgrade,save);
+ return value===null||value===undefined?null:{text:String(value),estimated:false};
+}
+// Keep description values and their provenance so estimated account-wide
+// totals remain distinguishable from exact upgrade-level arithmetic.
+export function upgradeDescriptionSegments(raw,upgrade=null,hasSave=false,extra=null){
  if(!raw)return [{text:"No effect description is available.",kind:"text"}];
  const known=hasSave&&upgrade&&Number.isFinite(upgrade.rawBonus);
  const qty=known?upgrade.rawBonus.toLocaleString("en-US",{maximumFractionDigits:3}):null;
  const multi=known?(1+upgrade.rawBonus/100).toLocaleString("en-US",{maximumFractionDigits:3}):null;
- const source=raw.trim().replace(/\s*@\s*/g," ").replace(/\[resource\]/gi,"resource");
+ const dollar=hasSave&&extra?(typeof extra==="string"?{text:extra,estimated:false}:extra):null;
+ const moneyText=typeof dollar?.text==="string"&&dollar.text.length>0?dollar.text:null;
+ const source=raw.trim().replace(/\s*@\s*/g," ").replace(/\[resource\]/gi,
+  upgrade?.id===25?"Spark":upgrade?.id===28?"Overtuned Fuel":"resource");
  const token=/\+\{%|\{%|\+\{|{|\$x|\$%|}x|\$/g;
  const parts=[];
  let from=0,match;
@@ -89,6 +111,12 @@ export function upgradeDescriptionSegments(raw,upgrade=null,hasSave=false){
    // The game's multiplier information formatter uses 1 + quantity / 100.
    text=known?multi+"×":"[in-game value]×";
    if(known)kind="calculated";
+  }else if(moneyText!==null){
+   text=moneyText;
+   kind=dollar.estimated?"estimated":"calculated";
+   // The account-specific dollar result already includes its ×/% suffix.
+   if(id==="$x"&&!/[×x]$/.test(text))text+="×";
+   if(id==="$%"&&!/%$/.test(text))text+="%";
   }else if(id==="$x")text="[in-game value]×";
   else if(id==="$%")text="[in-game value]%";
   else text="[in-game value]";
@@ -98,11 +126,12 @@ export function upgradeDescriptionSegments(raw,upgrade=null,hasSave=false){
  if(from<source.length)parts.push({text:source.slice(from),kind:"text"});
  return parts;
 }
-export function readableUpgradeDescription(raw,upgrade=null,hasSave=false){
- return upgradeDescriptionSegments(raw,upgrade,hasSave).map(part=>part.text).join("").replace(/\s+/g," ").trim();
+export function readableUpgradeDescription(raw,upgrade=null,hasSave=false,extra=null){
+ return upgradeDescriptionSegments(raw,upgrade,hasSave,extra).map(part=>part.text).join("")
+  .replace(/\s+/g," ").trim();
 }
-export function catalogHasVariableValues(raw,upgrade=null,hasSave=false){
- return upgradeDescriptionSegments(raw,upgrade,hasSave).some(part=>part.kind==="unresolved");
+export function catalogHasVariableValues(raw,upgrade=null,hasSave=false,extra=null){
+ return upgradeDescriptionSegments(raw,upgrade,hasSave,extra).some(part=>part.kind==="unresolved");
 }
 export function filterSortCatalog(upgrades,{query="",category="all",status="all",sort="shop",hasSave=false,hideMaxed=false}={}){
  const search=String(query).trim().toLocaleLowerCase();
