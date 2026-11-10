@@ -37,3 +37,43 @@ export function getPreparedBoardSections(candidate,slots){
     chainCount:positions.length-firstEngineIndex
   };
 }
+
+
+// Trace the outside of an irregular set of board cells as a continuous line.
+// Each edge is kept only when its neighboring cell belongs to another section.
+// Coordinates follow actual tile boundaries, so the overlay can scale with the grid.
+export function preparedSectionOutlinePath(roles,role,x,y,columns=15){
+  if(!Array.isArray(roles)||!Array.isArray(x)||!Array.isArray(y)||
+      !Number.isInteger(columns)||columns<1||x.length!==columns+1||
+      y.length!==Math.ceil(roles.length/columns)+1)return "";
+  const edges=[];
+  const add=(ax,ay,bx,by)=>edges.push([[ax,ay],[bx,by]]);
+  for(let i=0;i<roles.length;i++){
+    if(roles[i]!==role)continue;
+    const row=Math.floor(i/columns),col=i%columns;
+    if(row===0||roles[i-columns]!==role)add(col,row,col+1,row);
+    if(col===columns-1||roles[i+1]!==role)add(col+1,row,col+1,row+1);
+    if(i+columns>=roles.length||roles[i+columns]!==role)add(col+1,row+1,col,row+1);
+    if(col===0||roles[i-1]!==role)add(col,row+1,col,row);
+  }
+  const outgoing=new Map();
+  for(const [a,b] of edges)outgoing.set(a.join(","),b);
+  const points=pos=>x[pos[0]].toFixed(1)+" "+y[pos[1]].toFixed(1);
+  const paths=[];
+  while(outgoing.size){
+    const first=outgoing.keys().next().value;
+    const start=first.split(",").map(Number);
+    let current=start,key=first;
+    const commands=["M "+points(start)];
+    let steps=0;
+    while(outgoing.has(key)&&steps++<=edges.length){
+      const next=outgoing.get(key);
+      outgoing.delete(key);
+      commands.push("L "+points(next));
+      current=next;key=current.join(",");
+      if(key===first){commands.push("Z");break;}
+    }
+    paths.push(commands.join(" "));
+  }
+  return paths.join(" ");
+}
