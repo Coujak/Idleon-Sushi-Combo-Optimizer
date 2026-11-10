@@ -3,7 +3,7 @@
 import {sushiUpgradeIconPath,sushiTierIconPath} from "./sushi-reference.mjs?v=1.10.2";
 import {CATALOG_SORT_OPTIONS,CATALOG_STATUS_OPTIONS,upgradeSummary,readableUpgradeDescription,upgradeDescriptionSegments,catalogHasVariableValues,filterSortCatalog} from "./upgrade-catalog.mjs?v=1.12.0";
 import {ADVISOR_GOALS,numberText,getSushiSnapshot,getUpgradeRows,
- getKnowledgeRows,advisorUpgrades,doublerUpgrades,getSushiDoublerCounts,sushiUpgradeExtraText} from "./lab-model.mjs";
+ getKnowledgeRows,advisorUpgrades,doublerUpgrades,getSushiDoublerCounts,sushiUpgradeExtraText,upgradeAffordability} from "./lab-model.mjs?v=1.12.1";
 
 const $=id=>document.getElementById(id);
 const el=(tag,css="",value)=>{
@@ -217,6 +217,7 @@ export function initializeSushiLab(getSave){
  }
  function renderCatalog(){
   const s=save(),hasSave=!!s;
+  const balance=hasSave?getSushiSnapshot(s).bucks:null;
   for(const select of [statusInput,sortInput]){
    for(const option of select.options)option.disabled=option.dataset.requiresSave==="true"&&!hasSave;
   }
@@ -299,17 +300,34 @@ export function initializeSushiLab(getSave){
    }
    name.append(details);
    const level=u.maxLevel===0?"Unavailable":hasSave?fmt(u.level)+(u.maxLevel>0?" / "+fmt(u.maxLevel):""):"Import save";
-   const price=u.maxLevel===0?"Unavailable":hasSave?(u.atMax?"Maxed":numberDisplay(u.estimatedNextCost)):"Import save";
-   const costCell=el("td","lab-catalog-cost",price);
-   if(hasSave&&!u.atMax&&u.maxLevel>0){
+   const costCell=el("td","lab-catalog-cost");
+   if(!hasSave||u.maxLevel===0||u.atMax){
+    costCell.textContent=!hasSave?"Import save":u.maxLevel===0?"Unavailable":"Maxed";
+   }else{
+    const cost=u.estimatedNextCost;
+    const status=upgradeAffordability(u,balance);
+    const ratio=el("div","lab-catalog-cost-ratio");
+    ratio.append(el("span","lab-catalog-wallet",numberDisplay(balance)),
+      el("span","lab-catalog-slash","/"),
+      el("strong","lab-catalog-next-price",numberDisplay(cost)));
+    ratio.title="Current Sushi Bucks / Next upgrade cost";
+    const label=status==="affordable"?"Enough Bucks":
+      status==="unaffordable"?"Not enough Bucks":
+      status==="uncertain"?"Price may be lower":"Price unavailable";
+    const badge=el("span","lab-catalog-affordability lab-affordability-"+status,label);
+    costCell.classList.add("lab-cost-"+status);
+    costCell.append(ratio,badge);
     const detail=u.costBreakdown;
-    const label=el("span","lab-catalog-cost-hint",detail.complete?"All discounts included":
-      "Partial estimate · "+detail.known+"/"+detail.total+" sources");
-    costCell.append(label);
-    costCell.title="Base cost: "+numberDisplay(u.baseNextCost)+"\n"+
-     detail.sources.map(source=>source.name+": "+(source.known?
-       numberDisplay(source.percent)+"% bonus":"Not available in imported save")).join("\n")+
-      (detail.complete?"\nAll four price factors applied.":"\nUnknown factors may reduce the price further.");
+    costCell.append(el("span","lab-catalog-cost-hint",detail.complete?"All discounts included":
+      "Partial estimate · "+detail.known+"/"+detail.total+" sources"));
+    const precise=value=>Number.isFinite(value)?value.toExponential(12):"Unavailable";
+    costCell.title="Current Sushi Bucks: "+precise(balance)+"\nNext cost: "+precise(cost)+"\n"+
+      "Base cost: "+precise(u.baseNextCost)+"\n"+
+      detail.sources.map(source=>source.name+": "+(source.known?
+        numberDisplay(source.percent)+"% bonus ("+numberDisplay(source.factor)+"× cost)":"Not available in imported save")).join("\n")+
+      (detail.complete?"\nAll four price factors included.":"\nMissing factors may reduce the price further.");
+    costCell.setAttribute("aria-label","Current Bucks "+numberDisplay(balance)+
+      ", next upgrade cost "+numberDisplay(cost)+", "+label);
    }
    const effect=u.maxLevel===0?"—":hasSave?effectText(u):"Per-level "+fmt(u.perLevel)+" (base)";
    const gainCell=el("td","lab-catalog-gain",effect);

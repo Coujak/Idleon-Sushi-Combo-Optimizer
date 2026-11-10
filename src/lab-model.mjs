@@ -40,6 +40,16 @@ export function baseUpgradeCost(entry,level){
    Math.pow(1.3,Math.max(0,pos-20))*
    Math.pow(entry.costGrowth,n);
 }
+// Compare a Sushi upgrade's next discounted cost with the imported Bucks balance.
+// Missing discount sources can only lower the quoted price: a positive
+// affordability result remains safe, but a negative one is uncertain.
+export function upgradeAffordability(upgrade,bucks){
+ if(!upgrade||upgrade.atMax||upgrade.maxLevel===0)return "unavailable";
+ if(!Number.isFinite(bucks)||bucks<0||
+    !Number.isFinite(upgrade.estimatedNextCost)||upgrade.estimatedNextCost<0)return "unknown";
+ if(bucks>=upgrade.estimatedNextCost)return "affordable";
+ return upgrade.costBreakdown?.complete?"unaffordable":"uncertain";
+}
 // Pinned from Idleon Toolbox's SushiStuff.UpgCost: all four discounts stack.
 export function sushiUpgradeDiscounts(save){
  if(!save)return {sources:[],known:0,total:4,complete:false,factor:1};

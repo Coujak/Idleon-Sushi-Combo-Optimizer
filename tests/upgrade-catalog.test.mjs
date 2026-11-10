@@ -159,6 +159,22 @@ test("Catalog references transparent Doubler art and account discounts",()=>{
  assert.ok(ui.includes("assets/upgrade_doubler.png"));
  assert.ok(ui.includes("estimatedNextCost"));
  assert.ok(ui.includes("sushiUpgradeExtraText(u,s)"));
- assert.match(html,/Next cost \(estimated\)/);
+ assert.match(html,/Current Bucks \/ Next cost/);
  assert.ok(html.includes("Jelly Operator"));
+});
+
+test("The catalog displays current balance / next price with accessible affordability labels",()=>{
+ const html=readFileSync(new URL("../index.html",import.meta.url),"utf8");
+ const ui=readFileSync(new URL("../src/lab-ui.mjs",import.meta.url),"utf8");
+ const styles=readFileSync(new URL("../styles.css",import.meta.url),"utf8");
+ assert.match(html,/Current Bucks \/ Next cost/);
+ assert.ok(ui.includes("getSushiSnapshot(s).bucks"));
+ assert.ok(ui.includes("upgradeAffordability(u,balance)"));
+ assert.ok(ui.includes("lab-catalog-cost-ratio"));
+ assert.ok(ui.includes("lab-catalog-wallet"));
+ assert.ok(ui.includes("lab-catalog-next-price"));
+ assert.ok(ui.includes('costCell.setAttribute("aria-label"'));
+ for(const cls of ["lab-cost-affordable","lab-cost-unaffordable","lab-cost-uncertain"]){
+  assert.ok(styles.includes("."+cls));
+ }
 });

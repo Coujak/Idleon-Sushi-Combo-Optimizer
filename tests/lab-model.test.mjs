@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {SUSHI_UPGRADES,SUSHI_KNOWLEDGE,ELIGIBLE_DOUBLERS} from "../src/sushi-reference.mjs";
 import {baseUpgradeCost,getUpgradeRows,getKnowledgeRows,getSushiSnapshot,
- advisorUpgrades,doublerUpgrades,sushiUpgradeDiscounts,sushiUpgradeExtraText} from "../src/lab-model.mjs";
+ advisorUpgrades,doublerUpgrades,sushiUpgradeDiscounts,sushiUpgradeExtraText,upgradeAffordability} from "../src/lab-model.mjs";
 test("reference data follows current Sushi shop order and 64 knowledge tiers",()=>{
  assert.equal(SUSHI_UPGRADES.length,46);
  assert.equal(new Set(SUSHI_UPGRADES.map(x=>x.id)).size,46);
@@ -94,4 +94,27 @@ test("Additional Sushi display values resolve only when their inputs exist",()=>
  assert.match(sushiUpgradeExtraText(rows.find(u=>u.id===28),save),/Overtuned Fuel/);
  assert.match(sushiUpgradeExtraText(rows.find(u=>u.id===25),save),/Sparks/);
  assert.equal(sushiUpgradeExtraText(rows.find(u=>u.id===8),save),null);
+});
+
+test("Bucks affordability uses the discounted next cost, not the base cost",()=>{
+ const info={maxLevel:9999,atMax:false,baseNextCost:1000,estimatedNextCost:100,
+  costBreakdown:{complete:true}};
+ assert.equal(upgradeAffordability(info,100),"affordable");
+ assert.equal(upgradeAffordability(info,99.999),"unaffordable");
+ assert.equal(upgradeAffordability(info,0),"unaffordable");
+ assert.equal(upgradeAffordability({...info,costBreakdown:{complete:false}},99),"uncertain");
+ // Missing discounts only ever reduce costs, so sufficient Bucks is a safe conclusion.
+ assert.equal(upgradeAffordability({...info,costBreakdown:{complete:false}},100),"affordable");
+ assert.equal(upgradeAffordability({...info,atMax:true},1000),"unavailable");
+ assert.equal(upgradeAffordability({...info,estimatedNextCost:Infinity},1e50),"unknown");
+ assert.equal(upgradeAffordability(info,NaN),"unknown");
+});
+test("The imported Sushi[4][3] balance is used for affordability",()=>{
+ const raw=[[],[],Array(46).fill(0),[],[0,0,0,5e40],Array(64).fill(0),[],Array(64).fill(0)];
+ const save={sushi:raw,spelunk:Array.from({length:53},()=>[])};
+ const balance=getSushiSnapshot(save).bucks;
+ assert.equal(balance,5e40);
+ const prices=getUpgradeRows(save);
+ const candidate=prices.find(u=>u.shop===1);
+ assert.equal(upgradeAffordability(candidate,balance),"affordable");
 });
