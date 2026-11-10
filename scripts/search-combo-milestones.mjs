@@ -21,9 +21,12 @@ function options(){
  };
  const trials=parse("trials",300);
  const seed=parse("seed",421);
+ const deepEvery=parse("deep-every",40);
+ if(!Number.isSafeInteger(deepEvery)||deepEvery<1||deepEvery>1000000)
+  throw Error("deep-every must be 1..1000000");
  if(!Number.isSafeInteger(trials)||trials<1||trials>1e7)throw Error("trials must be 1..10000000");
  if(!Number.isSafeInteger(seed)||seed<0)throw Error("seed must be a nonnegative integer");
- return {trials,seed};
+ return {trials,seed,deepEvery};
 }
 function rng(seed){
  let state=(seed>>>0)||0x9e3779b9;
@@ -68,12 +71,19 @@ function evaluate(board,deep=false){
  }):result;
 }
 function run(){
- const {trials,seed}=options();
+ const {trials,seed,deepEvery}=options();
  const random=rng(seed);
  let nextExp=14,lastPublishedScore=0,found=0;
  let best={board:template,result:evaluate(template)};
  if(best.result.score!==EXPERIMENTAL_13_BENCHMARK)
   throw Error("Historical Experiment 13.0 benchmark no longer replays correctly");
+ // The historical greedy score is not necessarily the strongest move ordering.
+ // Evaluate it once with deeper lookahead, then retain the strongest replay.
+ const historicalDeep=evaluate(template,true);
+ if(historicalDeep.score>best.result.score){
+  best={board:template,result:historicalDeep};
+  console.log("Improved historical board by lookahead:",best.result.score);
+ }
  const archive=[best];
  let attempted=0;
  const outDir=resolve("research","verified-milestones");
@@ -95,7 +105,15 @@ function run(){
   const ancestor=i%9===0?best:i%13===0?{board:template}:
    archive[sample(random,0,Math.min(archive.length-1,11))];
   const board=mutate(ancestor.board,random);
-  const result=evaluate(board);
+  const greedy=evaluate(board);
+  // The original runner only ran lookahead within 250 points of the
+  // milestone. This misses boards whose greedy score is mediocre but whose
+  // merge ordering has significant upside. Sample lookahead periodically
+  // on the strongest candidates and always on a new greedy leader.
+  const promising=greedy.score>=best.result.score-1800;
+  const deep=promising&&((i+1)%deepEvery===0||greedy.score>best.result.score)
+   ?evaluate(board,true):null;
+  const result=deep&&deep.score>greedy.score?deep:greedy;
   attempted++;
   const entry={board,result};
   archive.push(entry);
@@ -107,12 +125,9 @@ function run(){
   }
   // Lookahead is costly; reserve it for promising candidates that might
   // pass a milestone. Never accept a raw heuristic score as a certificate.
-  if(result.score>=targetForExperiment(nextExp)-250){
-   const deep=evaluate(board,true);
-   const winner=deep.score>result.score?deep:result;
-   if(winner.score>best.result.score)best={board,result:winner};
-   if(winner.score>=targetForExperiment(nextExp)&&winner.score>lastPublishedScore){
-    const verified=certifyComboMilestone(board,winner.moves,nextExp);
+  if(result.score>=targetForExperiment(nextExp)){
+   const verified=certifyComboMilestone(board,result.moves,nextExp);
+   if(verified.score>lastPublishedScore){
     mkdirSync(outDir,{recursive:true});
     const output=resolve(outDir,"experiment-"+nextExp+"-candidate.json");
     writeFileSync(output,JSON.stringify({
@@ -129,7 +144,7 @@ function run(){
   }
  }
  console.log(JSON.stringify({trials:attempted,seed,startingScore:EXPERIMENTAL_13_BENCHMARK,
-  bestCandidate:best.result.score,verifiedNewMilestones:found,
+  bestCandidate:best.result.score,deepEvery,verifiedNewMilestones:found,
   nextExperiment:nextExp,nextTarget:targetForExperiment(nextExp),
   note:found===0?"No new numbered Experiment: threshold not achieved":"Review output JSON before integrating it into the website."},null,2));
 }
