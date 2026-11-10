@@ -11,8 +11,8 @@ import {MODE_CATALOG,getModeInfo,modeOptionLabel,modeDisplayLabel} from "./mode-
 const $=id=>document.getElementById(id);
 import {BOARD_COLUMNS,BOARD_CELLS,normalizeBoardData,layoutOptions} from "./board-geometry.mjs?v=1.8.4";
 import {windTierMaximum,clampWindTier,windTierAfterPreparedChange} from "./wind-limit.mjs?v=1.9.10";
-import {initializeSushiLab} from "./lab-ui.mjs?v=1.16.5";
-import {sushiTierIconPath} from "./sushi-reference.mjs?v=1.10.2";
+import {initializeSushiLab} from "./lab-ui.mjs?v=1.16.6";
+import {sushiTierIconPath} from "./sushi-reference.mjs?v=1.16.6";
 import {getPreparedBoardSections,hasSlotLayoutChanges,preparedSectionOutlinePath,preparedOutlineCoordinates} from "./prepared-sections.mjs?v=1.10.7";
 const COLUMNS=BOARD_COLUMNS;
 let imported=null;
