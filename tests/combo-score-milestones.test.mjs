@@ -55,8 +55,8 @@ test("Offline searches keep the protected tier and cannot change benchmark board
  assert.ok(next.slice(100).every(t=>t===0));
  assert.deepEqual(mutate(board,rng(421)),mutate(board,rng(421)));
  const runner=readFileSync(new URL("../scripts/search-combo-milestones.mjs",import.meta.url),"utf8");
- assert.match(runner,/certifyComboMilestone\(board,winner.moves,nextExp\)/);
- assert.match(runner,/if\(winner.score>=targetForExperiment\(nextExp\)/);
+ assert.match(runner,/certifyComboMilestone\(board,result.moves,nextExp\)/);
+ assert.match(runner,/if\(result.score>=targetForExperiment\(nextExp\)/);
  assert.match(runner,/No new numbered Experiment: threshold not achieved/);
 });
 
