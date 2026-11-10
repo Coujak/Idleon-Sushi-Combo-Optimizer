@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Idleon Sushi Station Lab</title><link rel="stylesheet" href="styles.css?v=1.15.6"></head>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Idleon Sushi Station Lab</title><link rel="stylesheet" href="styles.css?v=1.15.7"></head>
 <body><main class="shell"><header class="hero"><div class="hero-copy"><div class="eyebrow hero-eyebrow"><span class="eyebrow-dot"></span> IDLEON · SUSHI STATION TOOLKIT</div><h1>Sushi Station <span>Lab</span></h1><p>Your Sushi Station companion: explore your account, plan the next upgrade, study knowledge tiers, and optimize your Combo Meter.</p><div class="hero-chips"><span>✦ Account overview</span><span>↗ Combo Meter planner</span><span>◈ Upgrade & Knowledge guides</span></div></div><div class="hero-visual" aria-hidden="true"><div class="hero-orbit"></div><img src="assets/sushi/Leviathan%20Roll%20(Tier%2058).png" alt=""><div class="hero-visual-label">TIER 58</div></div></header>
 <nav class="lab-navigation" aria-label="Sushi Station sections" role="tablist">
 <button type="button" class="lab-nav-button" role="tab" data-lab-target="overview" aria-controls="lab-overview" aria-selected="true">Overview</button>
@@ -11,7 +11,7 @@
 <div id="lab-overview" class="lab-tab-content" role="tabpanel" aria-label="Overview">
 <section class="panel" id="importPanel"><div class="heading"><div><div class="eyebrow">01 · YOUR SAVE</div><h2>Import game data</h2></div><span id="importStatus" class="status" role="status">Waiting for data</span></div>
 <div class="actions"><label class="button secondary" for="jsonFile">Choose JSON file</label><input id="jsonFile" type="file" accept=".json,.txt,application/json,text/plain"><button id="pasteToggle" class="button secondary" type="button" aria-expanded="false">Paste JSON</button><button id="clearImport" class="button quiet" type="button">Clear</button></div>
-<div id="pasteArea" class="paste-area hidden"><textarea id="jsonInput" spellcheck="false" placeholder="Paste your Idleon Toolbox / raw game JSON here…"></textarea><button id="parseJson" class="button primary" type="button">Import JSON</button></div>
+<div id="pasteArea" class="paste-area hidden"><textarea id="jsonInput" spellcheck="false" placeholder="Paste your game save / raw game JSON here…"></textarea><button id="parseJson" class="button primary" type="button">Import JSON</button></div>
 <p id="importError" class="timing-bad hidden" role="alert"></p><div id="importSummary" class="summary hidden"></div><p class="privacy">🔒 JSON imports are processed locally in your browser. Your save is not uploaded.</p><details><summary>Raw data / parser diagnostics</summary><pre id="jsonPreview">No JSON imported yet.</pre></details></section>
 <section class="panel lab-welcome-panel"><div class="heading"><div><div class="eyebrow">SUSHI STATION · OVERVIEW</div><h2>Account dashboard</h2></div><span class="status">Home</span></div>
 <p class="hint">See your Sushi Station progress from a local save import. Your Combo Meter research and the new guides live in separate tabs.</p>
@@ -47,40 +47,43 @@
   <button id="perfectoResetTarget" type="button" class="button quiet">Reset to next missing</button>
   <label class="perfecto-checkbox"><input id="perfectoProtectHigher" type="checkbox" checked> Protect higher-tier sushi already on the board</label>
  </div>
- <div id="perfectoNoData" class="lab-empty-state" role="status">Import your Idleon Toolbox JSON on Overview to start.</div>
+ <div id="perfectoNoData" class="lab-empty-state" role="status">Import your game save JSON on Overview to start.</div>
  <div id="perfectoCalculator" class="hidden">
   <div class="perfecto-section-head"><h3>1 · Target and Perfecto probabilities</h3><span id="perfectoTargetSummary" class="perfecto-target-summary"></span></div>
   <div class="perfecto-probability-grid">
-   <div class="perfecto-stat"><span>Single sushi</span><strong id="perfectoSingleChance">—</strong><small>One Pepper Shaker activation</small></div>
-   <div class="perfecto-stat"><span>Current board</span><strong id="perfectoCurrentChance">—</strong><small id="perfectoCurrentCopies">—</small></div>
-   <div class="perfecto-stat perfecto-stat-primary"><span>Prepared board (estimated)</span><strong id="perfectoPlanChance">—</strong><small id="perfectoPlanOddsRatio" class="perfecto-odds-ratio">1 in —</small><small id="perfectoPlanCopies">—</small></div>
-   <div class="perfecto-stat"><span>Average activations</span><strong id="perfectoExpectedActivations">—</strong><small>Until at least one success</small></div>
+   <div class="perfecto-stat"><span>Single Target Sushi</span><strong id="perfectoSingleChance">—</strong><small>Chance for one target sushi to become Perfecto in a single Pepper use</small></div>
+   <div class="perfecto-stat"><span>Current Board Chances</span><strong id="perfectoCurrentChance">—</strong><small id="perfectoCurrentCopies">—</small><small>Chance per Pepper use with the target sushi already on your imported board</small></div>
+   <div class="perfecto-stat perfecto-stat-primary"><span>Optimized Board Chances</span><strong id="perfectoPlanChance">—</strong><small id="perfectoPlanOddsRatio" class="perfecto-odds-ratio">1 in —</small><small id="perfectoPlanCopies">—</small><small>Chance per Pepper use after preparing the recommended board</small></div>
+   <div class="perfecto-stat"><span>Average Pepper Attempts</span><strong id="perfectoExpectedActivations">—</strong><small>Expected activations on the optimized board before success (not guaranteed)</small></div>
   </div>
-  <p class="hint perfecto-caveat">Single-copy odds follow the Idleon Toolbox / Corgan formula. The board-wide odds and activation counts assume independent rolls for each target copy; that behavior still needs in-game confirmation. Slot and plate position do not appear in the published Perfecto odds formula.</p>
+  <p class="hint perfecto-caveat">Your current board comes from your imported game data. The optimized board uses the recommended layout below. More copies of the target sushi can improve the chance <strong>per Pepper use</strong>. These estimates assume independent Perfecto rolls and may differ from the game.</p>
   <div class="perfecto-section-head"><h3>2 · Optimized final board</h3><span class="perfecto-count-label" id="perfectoCopyCount">—</span></div>
   <p class="hint">The planner automatically compares buildable starting arrangements and valid merges and Heat of the East Wind cascades. It protects your higher-tier sushi, finds the strongest final board in its search, and shows only that arrangement for you to recreate in-game.</p>
   <div class="perfecto-board-note" id="perfectoPreparationSummary"></div>
   <div class="perfecto-legend"><span><i class="perfecto-legend-target"></i> Target copies</span><span><i class="perfecto-legend-new"></i> Needs preparation</span><span><i class="perfecto-legend-ingredient"></i> Other sushi</span><span><i class="perfecto-legend-protected"></i> Protected</span><span><i class="perfecto-legend-locked"></i> Locked</span><span><i class="perfecto-legend-regular"></i> Regular plate</span><span><i class="perfecto-legend-hot"></i> Hot plate</span><span><i class="perfecto-legend-cold"></i> Cold plate</span><span><i class="perfecto-legend-milk"></i> Milktoast plate</span></div>
   <div class="board-scroll perfecto-board-scroll"><div id="perfectoBoard" class="perfecto-board" aria-label="Recommended Perfecto target sushi board"></div></div>
   <p class="hint" id="perfectoProtectedCount">—</p>
-  <p class="hint" id="perfectoModelNote">The optimizer tests prepared starting boards and valid Wind cascades. It uses a fixed practical ingredient budget internally, not a player time limit. The result is the best found by a bounded search, not a proof of the absolute optimum.</p>
-  <div class="perfecto-section-head"><h3>3 · Pepper Shaker plan</h3></div>
-  <div id="perfectoRecommendation" class="perfecto-recommendation" role="status"></div>
-  <div class="perfecto-attempt-grid">
-   <div class="perfecto-attempt"><small>50% cumulative confidence</small><strong id="perfectoConfidence50">—</strong><span>activations</span></div>
-   <div class="perfecto-attempt"><small>90% cumulative confidence</small><strong id="perfectoConfidence90">—</strong><span>activations</span></div>
-   <div class="perfecto-attempt"><small>99% cumulative confidence</small><strong id="perfectoConfidence99">—</strong><span>activations</span></div>
+  <p class="hint" id="perfectoModelNote">The optimizer compares buildable boards and valid Wind cascades. This is the best result found in its search, not a proven global maximum.</p>
+  <div class="perfecto-section-head"><h3>3 · What should I do with my Pepper Shakers?</h3></div>
+  <div id="perfectoRecommendation" class="perfecto-recommendation" role="status">
+   <strong id="perfectoActionTitle">—</strong>
+   <p id="perfectoActionText">—</p>
   </div>
-  <div class="perfecto-resource-grid">
-   <div><span>Current Pepper uses</span><strong id="perfectoPepperUses">—</strong></div>
-   <div><span>Current Salt uses</span><strong id="perfectoSaltUses">—</strong></div>
-   <div><span>Estimated Salt needed for setup</span><strong id="perfectoSaltEstimate">—</strong></div>
-   
-   <div><span>Known free-Shaker chance</span><strong id="perfectoFreeShaker">—</strong></div>
-   <div><span>Estimated spent Pepper uses</span><strong id="perfectoExpectedConsumed">—</strong></div>
+  <p class="perfecto-plan-rule"><strong>How to use Pepper:</strong> Save your Pepper while preparing the recommended board. Once ready, use it <strong>one activation at a time until you get Perfecto, then stop.</strong> You don't need to save a specific number first: having more Pepper gives you more tries, not higher odds on each try.</p>
+  <div class="perfecto-resource-grid perfecto-pepper-stats">
+   <div><span>Available Pepper Shaker uses</span><strong id="perfectoPepperUses">—</strong></div>
+   <div><span>Chance with your Pepper after preparing the board</span><strong id="perfectoStoredChance">—</strong><small id="perfectoStoredChanceHint">—</small></div>
   </div>
-  <p id="perfectoSaltAdvice" class="perfecto-advice"></p>
-  <p class="hint">Salt is for optional tier-up preparation, not Perfecto rolls. This baseline assumes no Salt effects and therefore does not estimate the number of Salt activations needed for an improved board. Free-use estimates exclude any unverified Research-grid bonuses.</p>
+  <details class="perfecto-odds-details">
+   <summary>How many Pepper attempts might I need?</summary>
+   <p class="hint">The numbers below are estimated activations on the optimized board, <strong>not</strong> amounts you need to save before beginning. Stop using Pepper as soon as your target becomes Perfecto.</p>
+   <div class="perfecto-attempt-grid">
+    <div class="perfecto-attempt"><small>50% cumulative chance</small><strong id="perfectoConfidence50">—</strong><span>activations</span></div>
+    <div class="perfecto-attempt"><small>90% cumulative chance</small><strong id="perfectoConfidence90">—</strong><span>activations</span></div>
+    <div class="perfecto-attempt"><small>99% cumulative chance</small><strong id="perfectoConfidence99">—</strong><span>activations</span></div>
+   </div>
+   <p class="hint">These probabilities assume independent activations. Occasional free-use bonuses may allow additional attempts.</p>
+  </details>
   <div class="perfecto-section-head"><h3>Additional info · Perfecto chance Knowledge</h3><span class="perfecto-count-label">Combined <strong id="perfectoBonusTotal">—</strong></span></div>
   <div class="perfecto-bonus-grid" id="perfectoBonusCards"></div>
   <p class="hint">Tier 50 and Tier 54 boost the chance to Perfecto sushi. Their existing Knowledge levels and Perfecto status are included automatically. Knowledge leveling recommendations belong to the future Knowledge Leveling Planner.</p>
@@ -125,8 +128,8 @@
 <p class="hint lab-disclaimer">Values reflect the imported save. Perfecto doubles the relevant knowledge bonus; EXP and bonuses may differ from the game if the rules change in an update.</p>
 </section></div>
 <section class="panel changelog-panel">
-<div class="heading"><div><div class="eyebrow">LATEST UPDATES</div><h2>Patch notes</h2></div><span class="status">v1.15.6</span></div>
-<div class="changelog-content"><div class="changelog-item"><strong>v1.15.6 · Animated Combo Meter merges</strong><p>Replays now show the selected sushi flying from its source slot to the destination before applying the merge and East Wind cascade. Both Play and manual steps use speed-aware travel, support relocations, and respect reduced-motion settings. Seeking or resizing safely cancels in-flight animations.</p></div><div class="changelog-item"><strong>v1.15.5 · Clear Perfecto board layout</strong><p>Matched the full plate colors to Overview, grouped descending supporting sushi at the top of regular plates, kept target sushi together, and placed protected higher-tier sushi at the last regular slot where possible. Special plates still prioritize the highest tiers.</p></div><div class="changelog-item"><strong>v1.15.4 · Tier-priority bonus plates</strong><p>Perfecto final boards now prioritize sushi by tier on Hot, Cold and Milktoast plates, including protected sushi above the target. Highest-tier sushi occupy bonus plates first, followed by the target and then supporting ingredients; original tiers and counts are preserved.</p></div><div class="changelog-item"><strong>v1.15.3 · Complete Perfecto boards</strong><p>Final certified target boards now use their temporary construction workspace for a descending, buildable supporting sushi staircase. The plan shows the extra ingredients and the required preparation without reducing protected or target copies.</p></div>
+<div class="heading"><div><div class="eyebrow">LATEST UPDATES</div><h2>Patch notes</h2></div><span class="status">v1.15.7</span></div>
+<div class="changelog-content"><div class="changelog-item"><strong>v1.15.7 · Better Pepper guidance and replay animation</strong><p>The Perfecto Planner gives a direct Save or Use Now recommendation and explains that the number of target sushi — not saved Pepper quantity — determines chance per use. Clarified Current Board Chances, removed Salt counts and simplified odds; Combo replays show a semi-transparent sushi during pickup, travel and landing.</p></div><div class="changelog-item"><strong>v1.15.6 · Animated Combo Meter merges</strong><p>Replays now show the selected sushi flying from its source slot to the destination before applying the merge and East Wind cascade. Both Play and manual steps use speed-aware travel, support relocations, and respect reduced-motion settings. Seeking or resizing safely cancels in-flight animations.</p></div><div class="changelog-item"><strong>v1.15.5 · Clear Perfecto board layout</strong><p>Matched the full plate colors to Overview, grouped descending supporting sushi at the top of regular plates, kept target sushi together, and placed protected higher-tier sushi at the last regular slot where possible. Special plates still prioritize the highest tiers.</p></div><div class="changelog-item"><strong>v1.15.4 · Tier-priority bonus plates</strong><p>Perfecto final boards now prioritize sushi by tier on Hot, Cold and Milktoast plates, including protected sushi above the target. Highest-tier sushi occupy bonus plates first, followed by the target and then supporting ingredients; original tiers and counts are preserved.</p></div><div class="changelog-item"><strong>v1.15.3 · Complete Perfecto boards</strong><p>Final certified target boards now use their temporary construction workspace for a descending, buildable supporting sushi staircase. The plan shows the extra ingredients and the required preparation without reducing protected or target copies.</p></div>
 <div class="changelog-item"><strong>v1.15.0 · Automatic Perfecto board search</strong><p>Removed preparation-time, cooking-pace, strategy, fuel-stat and target-copy controls. The planner now chooses one final board automatically from buildable starting recipes and validated Wind/merge simulations while preserving higher sushi and Perfecto odds.</p></div>
 <div class="changelog-item"><strong>v1.14.0 · Buildable Perfecto boards</strong><p>Replaced imaginary high-tier target copies with a bounded board search using real 2→1 merges, Heat of the East Wind, imported fuel capacity and regeneration, and protected higher-tier sushi. Added cooking-budget controls and a 1 in X success ratio.</p></div>
 <div class="changelog-item"><strong>v1.13.0 · Perfecto Planner</strong><p>Added a new planner with automatic or manual tier targeting, per-copy and estimated board-wide Perfecto odds, preservation-aware prepared boards, Pepper confidence milestones, Shaker guidance, and Tier 50 / 54 Knowledge chance bonuses.</p></div>
@@ -178,4 +181,4 @@
 <p><strong>v1.6</strong> — Better Wind chains that can reuse sushi to earn more points.</p>
 <p><strong>v1.5</strong> — More board layouts and merge routes to choose from.</p>
 <p><strong>v1.4</strong> — A cleaner look and easier step-by-step replay.</p>
-<p><strong>Earlier</strong> — Added custom boards, sushi artwork, and save imports.</p></div></details></section></main><script type="module" src="src/app.js?v=1.15.6"></script></body></html>
+<p><strong>Earlier</strong> — Added custom boards, sushi artwork, and save imports.</p></div></details></section></main><script type="module" src="src/app.js?v=1.15.7"></script></body></html>
