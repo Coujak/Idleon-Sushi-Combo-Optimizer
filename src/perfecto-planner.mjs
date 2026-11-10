@@ -2,7 +2,7 @@
 // This planner does not depend on the user's time, pace, or desired copy count.
 import {getKnowledgeRows,getSushiSnapshot,getUpgradeRows} from "./lab-model.mjs";
 import {estimateSushiFuelEconomy} from "./perfecto-fuel.mjs?v=1.15.1";
-import {searchPerfectoBoard} from "./perfecto-wind-search.mjs?v=1.15.5";
+import {searchPerfectoBoard} from "./perfecto-wind-search.mjs?v=1.15.7";
 export {sushiDirectCookFuel} from "./perfecto-fuel.mjs?v=1.15.1";
 
 const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
