@@ -1,8 +1,16 @@
-# Idleon Sushi Combo Optimizer
+# Idleon Sushi Station Lab
 
-Browser-based Sushi Station preparation and Combo Meter optimizer for Legends of Idleon.
+Browser-based Sushi Station account dashboard, reference guides and Combo Meter optimizer for Legends of Idleon.
 
 **Site:** https://coujak.github.io/Idleon-Sushi-Combo-Optimizer/
+
+## Sections (v1.10.0)
+- **Overview:** The default landing page, with local Idleon Toolbox JSON import, live account statistics and the original sushi board.
+- **Planners:** The full existing Combo Meter optimizer and replay. No Bucks or Knowledge board optimizers yet.
+- **Upgrades:** An upgrade catalog with game order/IDs, levels, description, next-level effect and **pre-discount base cost estimates**; a goal-filtered progression advisor; and a Menagerie Doubler advisor reading Spelunk[52].
+- **Knowledge:** 64 sushi tiers, names, knowledge levels, EXP progress, bonus categories and Perfecto states.
+
+The advisor is informational: it does not yet compute global ROI across all game systems or modify the save. Price estimates omit account discounts and other account-dependent modifiers. Reference metadata is derived from the public Idleon Toolbox Sushi Station parser and tables, and can change as the game updates.
 
 ## Features
 - Load Idleon Toolbox JSON locally (your save is processed in your browser).
