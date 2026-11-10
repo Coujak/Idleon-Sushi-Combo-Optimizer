@@ -140,14 +140,15 @@ export function initializePerfectoUI(getSave){
   text("perfectoExpectedActivations",numAttempts(result.expectedActivations));
   text("perfectoCopyCount",p.copies+" target copies found");
   const proof=result.search?.certificate;
-  const bonusEligible=p.board.filter(cell=>cell.slot>=1&&cell.slot<=3&&cell.role!=="protected");
-  const bonusTargets=bonusEligible.filter(cell=>cell.role==="target").length;
+  const bonusSlots=p.board.filter(cell=>cell.slot>=1&&cell.slot<=3);
+  const bonusTargets=bonusSlots.filter(cell=>cell.role==="target").length;
+  const bonusProtected=bonusSlots.filter(cell=>cell.role==="protected").length;
   text("perfectoPreparationSummary",
    p.copies+" target copies · "+p.additionalCopies+" newly produced in the simulation · "+
    (proof?.supportingCount?proof.supportingCount+" supporting sushi · ":"")+
    p.protected+" protected higher-tier sushi · "+p.unlocked+" unlocked slots"+
-   (bonusEligible.length?" · "+bonusTargets+"/"+bonusEligible.length+
-    " Hot / Cold / Milktoast slots hold target sushi":""));
+   (bonusSlots.length?" · Special plates: "+bonusProtected+
+    " protected high-tier, "+bonusTargets+" target sushi":""));
   text("perfectoProtectedCount",p.protected+" higher-tier sushi preserved");
   text("perfectoModelNote",proof?
    "Cook T"+proof.startingTier+" (each costs "+display(result.search.sourceCost)+
@@ -159,9 +160,10 @@ export function initializePerfectoUI(getSave){
    (proof.supportingCount?
     "After the targets are complete, fill the remaining "+proof.supportingCount+
     " positions with descending support tiers T"+proof.supportingHighest+"–T"+
-    proof.supportingLowest+", built highest first. Target sushi take priority "+
-    "on Hot, Cold and Milktoast plates; supporting sushi use regular plates "+
-    "where possible. This adds "+
+    proof.supportingLowest+", built highest first. The final board assigns "+
+    "Hot, Cold and Milktoast plates to the highest tiers first, even above "+
+    "the Perfecto target; supporting sushi use regular plates where possible. "+
+    "Rearrange existing sushi after construction if needed. This adds "+
     proof.supportingCooksExact+" cooks and "+proof.supportingMergesExact+
     " merges. These supporting sushi do not increase the immediate Perfecto chance. ":"")+
    "This proves a reproducible merge-only layout without Salt or Wind luck, "+
