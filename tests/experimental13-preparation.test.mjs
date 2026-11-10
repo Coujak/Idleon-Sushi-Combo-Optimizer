@@ -25,6 +25,24 @@ for(const offset of [0,20]){
   assert.equal(checked.merges,93);
   assert.equal(checked.repositions,0);
   assert.equal(result.moves.reduce((n,m)=>n+m.events.filter(e=>e.kind==="wind").length,0),1925);
+  for(const [index,move] of result.moves.entries())
+    assert.ok(move.events.filter(e=>e.kind==="wind").length<=25,
+      "Step "+(index+1)+" exceeded the 25-upgrade Wind limit");
+  // Reported problem step: T37 from position 23 to position 75 at offset 0.
+  // The initial merge at position 75 is separate from the 25 Wind procs.
+  const fortyFour=result.moves[43];
+  assert.equal(fortyFour.src,offset+22);
+  assert.equal(fortyFour.dst,offset+74);
+  assert.equal(fortyFour.score,588);
+  assert.equal(fortyFour.events[0].kind,"merge");
+  assert.equal(fortyFour.events[0].at,offset+74);
+  const wind=fortyFour.events.filter(e=>e.kind==="wind");
+  assert.equal(wind.length,25);
+  assert.deepEqual(wind.map(e=>e.at),
+    Array.from({length:25},(_,i)=>offset+75+i));
+  assert.equal(fortyFour.events.length,26);
+  assert.equal(fortyFour.board[offset+99],10);
+  assert.equal(fortyFour.board[offset+100]??0,0);
  });
 }
 test("Exp13 is gated on full-upgrade 100 contiguous slots at Tier 64",()=>{
