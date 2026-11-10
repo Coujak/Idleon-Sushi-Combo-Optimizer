@@ -548,3 +548,31 @@ details summary{cursor:pointer;font-size:12px;font-weight:700;color:#9eb7c9}
 .prepared-section-board .tile.prepared-protected{outline-width:3px}
 .prepared-section-board .tile.prepared-engine-start{outline-width:3px}
 @media(max-width:650px){.prepared-section-guide{grid-template-columns:1fr}}
+
+/* v1.10.6 — connected section contours and interactive spotlight. */
+.prepared-section-board{position:relative}
+.prepared-section-board .tile.prepared-supply,
+.prepared-section-board .tile.prepared-chain,
+.prepared-section-board .tile.prepared-protected,
+.prepared-section-board .tile.prepared-engine-start{outline:none}
+.prepared-outline{position:absolute;inset:0;width:100%;height:100%;overflow:visible;pointer-events:none;z-index:4}
+.prepared-outline path{fill:none;stroke-width:5;stroke-linecap:round;stroke-linejoin:round;vector-effect:non-scaling-stroke;transition:opacity .18s,stroke-width .18s;filter:drop-shadow(0 1px 2px #000a)}
+.prepared-outline-supply{stroke:#f48b9e}
+.prepared-outline-chain{stroke:#80e9a9}
+.prepared-section-guide-item[role="button"]{cursor:pointer;transition:background .18s,border-color .18s,box-shadow .18s}
+.prepared-section-guide-item[role="button"]:hover,
+.prepared-section-guide-item[role="button"]:focus-visible,
+.prepared-section-guide-item.is-active{background:#203748;box-shadow:0 0 0 1px #ffffff22}
+.prepared-guide-supply.is-active{border-color:#f48b9e}
+.prepared-guide-chain.is-active{border-color:#80e9a9}
+.prepared-section-guide-item:focus-visible{outline:2px solid #d9f5ee;outline-offset:3px}
+.prepared-section-board .tile{transition:opacity .18s,filter .18s,transform .15s}
+.prepared-section-board.highlight-supply .tile.prepared-chain,
+.prepared-section-board.highlight-chain .tile.prepared-supply{opacity:.16;filter:grayscale(.65) brightness(.55)}
+.prepared-section-board.highlight-supply .prepared-outline-chain,
+.prepared-section-board.highlight-chain .prepared-outline-supply{opacity:.18}
+.prepared-section-board.highlight-supply .prepared-outline-supply,
+.prepared-section-board.highlight-chain .prepared-outline-chain{stroke-width:7}
+@media(prefers-reduced-motion:reduce){
+  .prepared-section-board .tile,.prepared-outline path,.prepared-section-guide-item[role="button"]{transition:none}
+}
