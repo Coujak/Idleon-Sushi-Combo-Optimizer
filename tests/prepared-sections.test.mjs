@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {readFileSync} from "node:fs";
-import {getPreparedBoardSections,hasSlotLayoutChanges,FIRST_ENGINE_INDEX} from "../src/prepared-sections.mjs";
+import {getPreparedBoardSections,hasSlotLayoutChanges,FIRST_ENGINE_INDEX,preparedSectionOutlinePath} from "../src/prepared-sections.mjs";
 import {buildExperimental13Candidates} from "../src/experimental13-preparation.mjs";
 import {buildExperimental2Candidates} from "../src/experimental2-preparation.mjs";
 
@@ -48,4 +48,34 @@ test("Planner omits current board and numbers sections dynamically",()=>{
  assert.match(code,/if\(showSlotRecommendation\)make\(/);
  assert.match(code,/heading\.textContent=sectionNumber\+" · Interactive merge sequence"/);
  assert.match(code,/getPreparedBoardSections\(solution,recommendedSlots\)/);
+});
+
+test("Connected boundary follows a stepped supply/chain split",()=>{
+  const roles=Array.from({length:120},(_,i)=>i<24?"supply":"chain");
+  const x=Array.from({length:16},(_,i)=>i*10);
+  const y=Array.from({length:9},(_,i)=>i*10);
+  const supply=preparedSectionOutlinePath(roles,"supply",x,y);
+  const chain=preparedSectionOutlinePath(roles,"chain",x,y);
+  assert.match(supply,/M /);
+  assert.match(supply,/Z/);
+  assert.match(chain,/Z/);
+  // At the break after the ninth tile on row two the contour
+  // returns to the left edge before closing the supply shape.
+  assert.match(supply,/L 90\.0 20\.0/);
+  assert.match(chain,/L 90\.0 20\.0/);
+  assert.equal(preparedSectionOutlinePath(roles,"missing",x,y),"");
+});
+
+test("Prepared board spotlight supports hover, focus, click and cleanup",()=>{
+  const code=readFileSync(new URL("../src/app.js",import.meta.url),"utf8");
+  const css=readFileSync(new URL("../styles.css",import.meta.url),"utf8");
+  assert.match(code,/preparedSectionOutlinePath\(sectionInfo\.roles,role,xs,ys,COLUMNS\)/);
+  assert.match(code,/addEventListener\("pointerenter"/);
+  assert.match(code,/addEventListener\("focus"/);
+  assert.match(code,/addEventListener\("keydown"/);
+  assert.match(code,/observer\?\.disconnect\(\)/);
+  assert.match(css,/\.prepared-outline-supply\{stroke:/);
+  assert.match(css,/\.prepared-outline-chain\{stroke:/);
+  assert.match(css,/highlight-supply \.tile\.prepared-chain/);
+  assert.match(css,/highlight-chain \.tile\.prepared-supply/);
 });
