@@ -99,7 +99,7 @@ function run(){
   lastPublishedScore=verified.score;
   nextExp++;
  }
- console.log("Exp 13.0 verified:",best.result.score,
+ console.log("Exp 13.0 verified:",EXPERIMENTAL_13_BENCHMARK,
   "| next goal: Exp "+nextExp+".0 ≥"+targetForExperiment(nextExp));
  for(let i=0;i<trials;i++){
   const ancestor=i%9===0?best:i%13===0?{board:template}:
