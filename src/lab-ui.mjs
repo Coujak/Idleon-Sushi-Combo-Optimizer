@@ -29,8 +29,8 @@ function effectText(upgrade){
 function upgradeLabel(u){return "#"+u.shop+" · "+u.name;}
 function doublerIcon(className="lab-catalog-doubler-icon"){
  const img=el("img",className);
- img.src="assets/upgrade_doubler.png";img.alt="";img.loading="lazy";
- img.width=22;img.height=22;return img;
+ img.src="assets/upgrade_doubler.png?v=1.12.4";img.alt="";img.loading="lazy";
+ img.width=24;img.height=17;return img;
 }
 
 function addText(container,className,text){

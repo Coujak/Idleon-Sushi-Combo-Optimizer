@@ -16,4 +16,4 @@ Artwork originates from *Legends of Idleon*. Game metadata is cross-checked agai
 
 ## Doubler UI artwork
 
-- `upgrade_doubler.png` — transparent 64 × 64 pixel-art Sushi Doubler icon, used for available/assigned Doubler counts and doubled upgrade badges in the Upgrades tab.
+- `upgrade_doubler.png` — original transparent 64 × 44 Sushi Doubler icon supplied by the user, used for available/assigned Doubler counts and doubled upgrade badges in the Upgrades tab.

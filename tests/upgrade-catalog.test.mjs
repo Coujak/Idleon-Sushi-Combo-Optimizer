@@ -225,3 +225,15 @@ test("Catalog rows reset generic details spacing and keep identity, icon, and ac
  assert.ok(css.includes('table-layout:fixed'));
  assert.ok(css.includes('tr.lab-catalog-doubled .lab-catalog-description'));
 });
+
+test("Official Sushi Doubler art is transparent PNG at native 64 by 44 size",()=>{
+ const buffer=readFileSync(new URL("../assets/upgrade_doubler.png",import.meta.url));
+ assert.equal(buffer.subarray(0,8).toString("hex"),"89504e470d0a1a0a");
+ assert.equal(buffer.readUInt32BE(16),64);
+ assert.equal(buffer.readUInt32BE(20),44);
+ assert.equal(buffer.readUInt8(25),6); // PNG RGBA supports transparency.
+ const ui=readFileSync(new URL("../src/lab-ui.mjs",import.meta.url),"utf8");
+ const css=readFileSync(new URL("../styles.css",import.meta.url),"utf8");
+ assert.match(ui,/upgrade_doubler\.png\?v=1\.12\.4/);
+ assert.ok(css.includes("aspect-ratio:16 / 11"));
+});

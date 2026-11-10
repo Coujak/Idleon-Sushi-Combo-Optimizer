@@ -648,10 +648,10 @@ details summary{cursor:pointer;font-size:12px;font-weight:700;color:#9eb7c9}
 .lab-catalog-gain-hint strong{color:#aaf6cc;font-weight:800}
 
 /* v1.12.0 Doubler icon: transparent pixel art, without an image background. */
-.lab-catalog-doubler-icon{width:22px;height:22px;flex:0 0 22px;
+.lab-catalog-doubler-icon{width:24px;height:auto;aspect-ratio:16 / 11;flex:0 0 24px;
   object-fit:contain;image-rendering:pixelated;vertical-align:middle}
-.lab-doubler-overview .lab-catalog-doubler-icon{width:30px;height:30px;flex-basis:30px}
-.lab-doubler-on .lab-catalog-doubler-icon{width:17px;height:17px;flex-basis:17px}
+.lab-doubler-overview .lab-catalog-doubler-icon{width:34px;height:auto;flex-basis:34px}
+.lab-doubler-on .lab-catalog-doubler-icon{width:20px;height:auto;flex-basis:20px}
 .lab-catalog-doubled-tag,.lab-doubler-on{display:inline-flex;align-items:center;gap:5px}
 .lab-catalog-cost-hint{display:block;font-size:10px;color:#9cb7b8;line-height:1.4;margin-top:4px}
 
