@@ -1,7 +1,7 @@
 // Goal-based purchase guidance. All calculations are advisory heuristics:
 // game-wide upgrades with different units cannot be compared as true ROI.
 // Keep the ranking deterministic, budget-aware, and honest about missing data.
-import {getSushiSnapshot,getUpgradeRows,upgradeAffordability} from "./lab-model.mjs";
+import {getSushiSnapshot,getUpgradeRows,upgradeAffordability} from "./lab-model.mjs?v=1.16.6";
 
 export const PROGRESSION_SORT_OPTIONS=[
  {value:"recommended",label:"Recommended priority"},
