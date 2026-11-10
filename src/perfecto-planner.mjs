@@ -52,7 +52,7 @@ function getSearch(save,target,protectHigher){
 function visualBoard(save,tier,run,{protectHigher=true}={}){
  if(!run)return null;
  const oldTiles=save.tiles??[],oldSlots=save.slots??[];
- let copies=0,newCount=0,replaced=0;
+ let copies=0,replaced=0;
  const board=run.board.map((value,i)=>{
   const slot=Number(oldSlots[i]??-1);
   const tile=Number(oldTiles[i]??-1);
@@ -61,7 +61,6 @@ function visualBoard(save,tier,run,{protectHigher=true}={}){
   let role="empty";
   if(value===tier){
    role="target";copies++;
-   if(tile!==tier-1)newCount++;
   }else if(value>tier&&protectHigher)role="protected";
   else if(value>0)role="ingredient";
   if(preparedTier!==tile&&tile>=0)replaced++;
@@ -74,7 +73,9 @@ function visualBoard(save,tier,run,{protectHigher=true}={}){
   protected:board.filter(x=>x.role==="protected").length,
   currentCopies:run.currentCopies??0,copies,
   maxCopies:copies,minCopies:run.currentCopies??0,
-  additionalCopies:newCount,replaced,
+  // A protected existing copy may be relocated to a bonus plate. Only
+  // actual increases in target inventory are newly produced sushi.
+  additionalCopies:Math.max(0,copies-(run.currentCopies??0)),replaced,
   purchasedCopies:run.purchased??0,estimatedManualMerges:run.mergers??0,
   windUpgrades:run.windUpgrades??0,
   scenario:run.recipe??null,searchAttempts:run.attempted??0,
