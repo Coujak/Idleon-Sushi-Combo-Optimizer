@@ -76,3 +76,26 @@ export function doublerUpgrades(save,goal){
  return getUpgradeRows(save).filter(u=>ELIGIBLE_DOUBLERS.includes(u.id)&&u.maxLevel>0&&
   (goal==="all"||u.goals.includes(goal))).sort((a,b)=>Number(b.doubled)-Number(a.doubled)||b.level-a.level);
 }
+
+// Menagerie[3][10] grants one Sushi Doubler per boost level (research[58][10]=1).
+// Bundle and companion grants are outside this minimal raw Sushi/Spelunk model.
+// Distinguish verified totals from guaranteed base-only lower bounds.
+export function getSushiDoublerCounts(save){
+ if(!save)return {used:null,owned:null,available:null,exact:false,baseOwned:null};
+ const assignments=save.spelunk?.[52];
+ const used=Array.isArray(assignments)?assignments.length:null;
+ const official=save.sushiDoublerInfo;
+ const exactOwned=Number(official?.owned);
+ if(official&&official.owned!=null&&Number.isFinite(exactOwned)&&exactOwned>=0){
+  const owned=Math.round(exactOwned);
+  const count=used??(Number.isFinite(Number(official?.left))
+   ?Math.max(0,owned-Number(official.left)):null);
+  return {used:count,owned,available:count===null?null:Math.max(0,owned-count),exact:true,baseOwned:null};
+ }
+ const boost=save.menagerie?.[3]?.[10];
+ const baseOwned=boost===undefined||boost===null?null:Number(boost);
+ if(!Number.isFinite(baseOwned)||baseOwned<0)
+  return {used,owned:null,available:null,exact:false,baseOwned:null};
+ const base=Math.round(baseOwned);
+ return {used,owned:null,available:used===null?null:Math.max(0,base-used),exact:false,baseOwned:base};
+}

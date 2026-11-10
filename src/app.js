@@ -10,7 +10,7 @@ import {MODE_CATALOG,getModeInfo,modeOptionLabel,modeDisplayLabel} from "./mode-
 const $=id=>document.getElementById(id);
 import {BOARD_COLUMNS,BOARD_CELLS,normalizeBoardData,layoutOptions} from "./board-geometry.mjs?v=1.8.4";
 import {windTierMaximum,clampWindTier,windTierAfterPreparedChange} from "./wind-limit.mjs?v=1.9.10";
-import {initializeSushiLab} from "./lab-ui.mjs?v=1.11.1";
+import {initializeSushiLab} from "./lab-ui.mjs?v=1.11.2";
 import {sushiTierIconPath} from "./sushi-reference.mjs?v=1.10.2";
 import {getPreparedBoardSections,hasSlotLayoutChanges,preparedSectionOutlinePath,preparedOutlineCoordinates} from "./prepared-sections.mjs?v=1.10.7";
 const COLUMNS=BOARD_COLUMNS;
@@ -37,7 +37,17 @@ function decodeSave(input){
     try{spelunk=JSON.parse(spelunk);}catch{spelunk=[];}
   }
   if(!Array.isArray(spelunk))spelunk=[];
-  return {sushi,spelunk,tiles,perfecto:Array.isArray(sushi[5])?sushi[5].map(Number):null,slots,fires:Array.isArray(sushi[3])?sushi[3].slice(0,15).map(Number):[],source:input.data?.Sushi!=null?"Idleon Toolbox":"Raw game data"};
+  // Menagerie boost index 10 grants 1 Sushi Doubler per level.
+  // Other ownership bonuses (bundles / companions) must be counted separately.
+  let menagerie=input.data?.Menagerie??input.Menagerie??null;
+  if(typeof menagerie==="string"){
+    try{menagerie=JSON.parse(menagerie);}catch{menagerie=null;}
+  }
+  if(!Array.isArray(menagerie))menagerie=null;
+  // Processed account exports may carry the authoritative total.
+  const sushiDoublerInfo=input.account?.menagerie?.doublers?.sushi
+    ??input.data?.menagerie?.doublers?.sushi??null;
+  return {sushi,spelunk,menagerie,sushiDoublerInfo,tiles,perfecto:Array.isArray(sushi[5])?sushi[5].map(Number):null,slots,fires:Array.isArray(sushi[3])?sushi[3].slice(0,15).map(Number):[],source:input.data?.Sushi!=null?"Idleon Toolbox":"Raw game data"};
 }
 function detectSushiProgress(save){
   // Sushi[0] stores tier IDs on the board (zero-based). Do not mistake

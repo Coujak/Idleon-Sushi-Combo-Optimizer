@@ -2,8 +2,8 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {readFileSync} from "node:fs";
 import {SUSHI_UPGRADES} from "../src/sushi-reference.mjs";
-import {getUpgradeRows} from "../src/lab-model.mjs";
-import {CATALOG_SORT_OPTIONS,CATALOG_STATUS_OPTIONS,upgradeSummary,readableUpgradeDescription,catalogHasVariableValues,filterSortCatalog} from "../src/upgrade-catalog.mjs";
+import {getUpgradeRows,getSushiDoublerCounts} from "../src/lab-model.mjs";
+import {CATALOG_SORT_OPTIONS,CATALOG_STATUS_OPTIONS,upgradeSummary,readableUpgradeDescription,upgradeDescriptionSegments,catalogHasVariableValues,filterSortCatalog} from "../src/upgrade-catalog.mjs";
 
 const upgrades=getUpgradeRows(null);
 test("All 46 upgrades have readable short summaries",()=>{
@@ -107,4 +107,48 @@ test("Descriptions preserve unknown non-linear game values instead of guessing",
  assert.match(text,/\+1,000% faster Fuel/);
  assert.match(text,/\[in-game value\]× Fuel Generation/);
  assert.ok(catalogHasVariableValues(fuel.description,fuel,true));
+});
+
+test("Calculated amounts are identified separately from unknown game values",()=>{
+ const save={sushi:[[],[],Array(46).fill(0),[],[],[],[],[]],spelunk:[]};
+ save.sushi[2][41]=1240;
+ const hourly=getUpgradeRows(save).find(u=>u.shop===1);
+ const parts=upgradeDescriptionSegments(hourly.description,hourly,true);
+ assert.ok(parts.some(p=>p.kind==="calculated"&&p.text==="+1,240%"));
+ assert.ok(!parts.some(p=>p.kind==="unresolved"));
+ const fuel=getUpgradeRows(save).find(u=>u.name==="Fastburn Fuel II");
+ const fuelParts=upgradeDescriptionSegments(fuel.description,fuel,true);
+ assert.ok(fuelParts.some(p=>p.kind==="unresolved"&&p.text==="[in-game value]×"));
+ const noTax=getUpgradeRows(save).find(u=>u.name==="No Tax on Tips");
+ assert.match(readableUpgradeDescription(noTax.description,noTax,true),/1×/);
+ assert.equal(catalogHasVariableValues(noTax.description,noTax,true),false);
+});
+test("Sushi Doubler count is exact only when total ownership is known",()=>{
+ const save={spelunk:Array.from({length:54},()=>[])};
+ save.spelunk[52]=[41,8];
+ assert.deepEqual(getSushiDoublerCounts(save),{
+  used:2,owned:null,available:null,exact:false,baseOwned:null
+ });
+ save.menagerie=[[],[],[],Array(13).fill(0)];
+ save.menagerie[3][10]=5;
+ assert.deepEqual(getSushiDoublerCounts(save),{
+  used:2,owned:null,available:3,exact:false,baseOwned:5
+ });
+ save.sushiDoublerInfo={owned:8,left:6};
+ assert.deepEqual(getSushiDoublerCounts(save),{
+  used:2,owned:8,available:6,exact:true,baseOwned:null
+ });
+});
+test("Catalog shows value emphasis, Doubler row highlights and next-total hints",()=>{
+ const ui=readFileSync(new URL("../src/lab-ui.mjs",import.meta.url),"utf8");
+ const html=readFileSync(new URL("../index.html",import.meta.url),"utf8");
+ const css=readFileSync(new URL("../styles.css",import.meta.url),"utf8");
+ assert.ok(html.includes('id="labDoublerCount"'));
+ assert.ok(ui.includes("upgradeDescriptionSegments(u.description,u,hasSave)"));
+ assert.ok(ui.includes('lab-catalog-known-value'));
+ assert.ok(ui.includes('lab-catalog-doubled'));
+ assert.ok(ui.includes('lab-catalog-gain-hint'));
+ assert.ok(css.includes('.lab-catalog-table tr.lab-catalog-doubled td'));
+ assert.ok(css.includes('.lab-catalog-known-value'));
+ assert.ok(css.includes('.lab-catalog-gain-hint'));
 });

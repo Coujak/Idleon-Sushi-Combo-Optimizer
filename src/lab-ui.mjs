@@ -1,9 +1,9 @@
 // Sushi Station Lab: lightweight, accessible navigation and account-aware
 // information panels. All imported JSON stays in memory on the user's device.
 import {sushiUpgradeIconPath,sushiTierIconPath} from "./sushi-reference.mjs?v=1.10.2";
-import {CATALOG_SORT_OPTIONS,CATALOG_STATUS_OPTIONS,upgradeSummary,readableUpgradeDescription,catalogHasVariableValues,filterSortCatalog} from "./upgrade-catalog.mjs?v=1.11.1";
+import {CATALOG_SORT_OPTIONS,CATALOG_STATUS_OPTIONS,upgradeSummary,readableUpgradeDescription,upgradeDescriptionSegments,catalogHasVariableValues,filterSortCatalog} from "./upgrade-catalog.mjs?v=1.11.2";
 import {ADVISOR_GOALS,numberText,getSushiSnapshot,getUpgradeRows,
- getKnowledgeRows,advisorUpgrades,doublerUpgrades} from "./lab-model.mjs";
+ getKnowledgeRows,advisorUpgrades,doublerUpgrades,getSushiDoublerCounts} from "./lab-model.mjs";
 
 const $=id=>document.getElementById(id);
 const el=(tag,css="",value)=>{
@@ -224,6 +224,25 @@ export function initializeSushiLab(getSave){
   });
   const body=$("labUpgradeRows");body.replaceChildren();
   $("labUpgradeCount").textContent=rows.length+" / 46 upgrades";
+  const doublerCounts=getSushiDoublerCounts(s);
+  const doublerHost=$("labDoublerCount");
+  doublerHost.replaceChildren();
+  if(!s){
+   doublerHost.textContent="Import a save to track your Sushi Doublers";
+   doublerHost.title="";
+  }else{
+   const assigned=doublerCounts.used===null?"Unknown":fmt(doublerCounts.used);
+   const available=doublerCounts.available===null?"Unknown":
+    (doublerCounts.exact?fmt(doublerCounts.available):"≥"+fmt(doublerCounts.available));
+   const countLabel=el("strong","","Sushi Doublers");
+   const parts=el("span","","Assigned: "+assigned+" · Available: "+available);
+   doublerHost.append(countLabel,parts);
+   doublerHost.title=doublerCounts.exact?
+    "Exact owned and available Sushi Doublers from imported account summary.":
+    doublerCounts.baseOwned===null?
+     "Assigned placements come from Spelunk[52]. Owned and free counts require Menagerie data.":
+     "Available is a guaranteed minimum based on Menagerie boost levels only. Bundles or companions can add more.";
+  }
   for(const header of [
    {key:"name",sorts:["name-asc","name-desc"]},
    {key:"level",sorts:["level-asc","level-desc"]},
@@ -240,6 +259,7 @@ export function initializeSushiLab(getSave){
   $("labUpgradeEmpty").classList.toggle("hidden",rows.length!==0);
   for(const u of rows){
    const tr=el("tr"),name=el("td","lab-upgrade-name");
+   if(hasSave&&u.doubled)tr.classList.add("lab-catalog-doubled");
    const details=el("details","lab-catalog-detail");
    details.open=expandedUpgradeDetails.has(u.id);
    const summary=el("summary","lab-catalog-summary");
@@ -251,20 +271,49 @@ export function initializeSushiLab(getSave){
    const copy=el("span","lab-upgrade-copy");
    copy.append(el("strong","",upgradeLabel(u)),
     el("span","lab-upgrade-summary",upgradeSummary(u)));
+   if(hasSave&&u.doubled){
+    const doubledTag=el("span","lab-catalog-doubled-tag","×2 active");
+    doubledTag.title="Menagerie Sushi Doubler is assigned to this upgrade";
+    copy.append(doubledTag);
+   }
    identity.append(upgradeArtwork(u),copy);
    summary.append(identity,el("span","lab-catalog-more","Details"));
-   details.append(summary,el("p","lab-catalog-description",readableUpgradeDescription(u.description,u,hasSave)));
+   const full=el("p","lab-catalog-description");
+   for(const part of upgradeDescriptionSegments(u.description,u,hasSave)){
+    if(part.kind==="text")full.append(document.createTextNode(part.text));
+    else full.append(el("span",part.kind==="calculated"?"lab-catalog-known-value":"lab-catalog-unknown-value",part.text));
+   }
+   details.append(summary,full);
    if(catalogHasVariableValues(u.description,u,hasSave)){
     details.append(el("p","lab-catalog-variable-note",hasSave?
-     "Remaining [in-game value] amounts require additional game calculations not yet available here.":
+     "Muted [in-game value] labels need extra game formulas. Highlighted values come from your imported upgrade levels.":
      "Import your save to calculate level-based bonuses; some in-game values may remain unavailable."));
    }
    name.append(details);
    const level=u.maxLevel===0?"Unavailable":hasSave?fmt(u.level)+(u.maxLevel>0?" / "+fmt(u.maxLevel):""):"Import save";
    const price=u.maxLevel===0?"Unavailable":hasSave?(u.atMax?"Maxed":numberDisplay(u.baseNextCost)):"Import save";
    const effect=u.maxLevel===0?"—":hasSave?effectText(u):"Per-level "+fmt(u.perLevel)+" (base)";
-   for(const c of [name,el("td","",level),el("td","",price),
-      el("td","",effect),el("td","",u.doubled?"Active ×2":u.doublerEligible?"Eligible":"—")])tr.append(c);
+   const gainCell=el("td","lab-catalog-gain",effect);
+   // For percentage/flat boosts the current total is rawBonus. A one-time
+   // unlock has no meaningful scalar total to show.
+   const hasPct=u.description.includes("{%");
+   const hasFlat=u.description.includes("{")&&!hasPct;
+   const hasMultiplier=u.description.includes("}x");
+   if(hasSave&&!u.atMax&&u.maxLevel>1&&Number.isFinite(u.rawBonus)&&Number.isFinite(u.increment)&&
+      (hasPct||hasFlat||hasMultiplier)){
+    const formatValue=value=>hasMultiplier?fmt(1+value/100)+"×":
+      (hasPct?"+":"")+fmt(value)+(hasPct?"%":"");
+    const hint=el("span","lab-catalog-gain-hint");
+    hint.append(el("span","","Total: "+formatValue(u.rawBonus)+" → "),
+      el("strong","",formatValue(u.rawBonus+u.increment)));
+    hint.title="Current total upgrade effect compared with buying one more level. Unrelated game multipliers are not included.";
+    gainCell.append(hint);
+   }
+   const doublerCell=el("td","lab-catalog-doubler-cell");
+   const label=u.doubled?"×2 Active":u.doublerEligible?"Eligible":"—";
+   const badge=el("span",u.doubled?"lab-doubler-on":u.doublerEligible?"lab-doubler-eligible":"",label);
+   doublerCell.append(badge);
+   for(const c of [name,el("td","",level),el("td","",price),gainCell,doublerCell])tr.append(c);
    body.append(tr);
   }
  }

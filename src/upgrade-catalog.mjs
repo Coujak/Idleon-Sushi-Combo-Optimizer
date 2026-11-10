@@ -67,28 +67,42 @@ export const CATALOG_STATUS_OPTIONS=Object.freeze([
 export function upgradeSummary(upgrade){
  return SHORT_DESCRIPTIONS[upgrade.shop-1]??"See the full upgrade details.";
 }
-// Only the { placeholders follow the direct per-level effect already modeled
-// in getUpgradeRows. Other placeholders may involve distinct game formulas.
-export function readableUpgradeDescription(raw,upgrade=null,hasSave=false){
- if(!raw)return "No effect description is available.";
+// Keep description strings and their provenance together, so only values
+// supported by an imported save are visually emphasized.
+export function upgradeDescriptionSegments(raw,upgrade=null,hasSave=false){
+ if(!raw)return [{text:"No effect description is available.",kind:"text"}];
  const known=hasSave&&upgrade&&Number.isFinite(upgrade.rawBonus);
- const bonus=known?upgrade.rawBonus.toLocaleString("en-US",{maximumFractionDigits:3}):"[variable]";
- return raw.trim()
-  .replace(/\s*@\s*/g," ")
-  .replace(/\+\{%/g,"+"+bonus+"%")
-  .replace(/\{%/g,bonus+"%")
-  .replace(/\+\{/g,"+"+bonus)
-  .replace(/\{/g,bonus)
-  .replace(/\$x/g,"[in-game value]×")
-  .replace(/\$%/g,"[in-game value]%")
-  .replace(/\}x/g,"[in-game value]×")
-  .replace(/\$/g,"[in-game value]")
-  .replace(/\[resource\]/gi,"resource")
-  .replace(/\s+/g," ");
+ const qty=known?upgrade.rawBonus.toLocaleString("en-US",{maximumFractionDigits:3}):null;
+ const multi=known?(1+upgrade.rawBonus/100).toLocaleString("en-US",{maximumFractionDigits:3}):null;
+ const source=raw.trim().replace(/\s*@\s*/g," ").replace(/\[resource\]/gi,"resource");
+ const token=/\+\{%|\{%|\+\{|{|\$x|\$%|}x|\$/g;
+ const parts=[];
+ let from=0,match;
+ while((match=token.exec(source))){
+  if(match.index>from)parts.push({text:source.slice(from,match.index),kind:"text"});
+  const id=match[0];let text,kind="unresolved";
+  if(id.includes("{")){
+   const percent=id.endsWith("%");
+   text=(id.startsWith("+")?"+":"")+(known?qty:"[variable]")+(percent?"%":"");
+   if(known)kind="calculated";
+  }else if(id==="}x"){
+   // The game's multiplier information formatter uses 1 + quantity / 100.
+   text=known?multi+"×":"[in-game value]×";
+   if(known)kind="calculated";
+  }else if(id==="$x")text="[in-game value]×";
+  else if(id==="$%")text="[in-game value]%";
+  else text="[in-game value]";
+  parts.push({text,kind});
+  from=token.lastIndex;
+ }
+ if(from<source.length)parts.push({text:source.slice(from),kind:"text"});
+ return parts;
+}
+export function readableUpgradeDescription(raw,upgrade=null,hasSave=false){
+ return upgradeDescriptionSegments(raw,upgrade,hasSave).map(part=>part.text).join("").replace(/\s+/g," ").trim();
 }
 export function catalogHasVariableValues(raw,upgrade=null,hasSave=false){
- const text=readableUpgradeDescription(raw,upgrade,hasSave);
- return text.includes("[variable]")||text.includes("[in-game value]");
+ return upgradeDescriptionSegments(raw,upgrade,hasSave).some(part=>part.kind==="unresolved");
 }
 export function filterSortCatalog(upgrades,{query="",category="all",status="all",sort="shop",hasSave=false}={}){
  const search=String(query).trim().toLocaleLowerCase();
