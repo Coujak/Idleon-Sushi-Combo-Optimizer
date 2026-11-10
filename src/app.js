@@ -1,6 +1,7 @@
 import {simulateMerge,validateComboReplay,searchStaircaseCombos} from "./optimizer-core.mjs?v=1.9.9";
 import {searchTacticalCombos} from "./tactical-search.mjs?v=1.9.9";
 import {createReplayController} from "./replay-controller.mjs?v=1.7.4";
+import {replayMotionTiming} from "./merge-motion.mjs?v=1.15.6";
 import {buildCandidates} from "./preparation-core.mjs?v=1.9.9";
 import {getModeCandidates} from "./optimizer-modes.mjs?v=1.10.4";
 import {searchLookaheadCombos} from "./lookahead-search.mjs?v=1.9.9";
@@ -547,7 +548,7 @@ async function showSolver(signal){
   if(showSlotRecommendation)make("Recommended slot layout ("+(solution.layoutName??"current")+")",[],false,null,true);
   make(custom?"Your custom starting board":"Recommended prepared sushi tiers (not your current inventory)",solution.board,true,sections);
   const heading=document.createElement("h3");heading.textContent=sectionNumber+" · Interactive merge sequence";root.append(heading);
-  const intro=document.createElement("p");intro.className="hint";intro.textContent="Watch the combo with Play, or jump between steps yourself. Blue is the source, green the destination, and purple is Heat of the East Wind. Step 0 shows the full board.";root.append(intro);
+  const intro=document.createElement("p");intro.className="hint";intro.textContent="Watch the picked sushi slide into the destination before the merge and East Wind resolve. Blue marks the source, green the destination, and purple marks Wind. Use Play or select a step; Step 0 shows the full board.";root.append(intro);
   const layout=document.createElement("div");layout.className="merge-layout";
   const left=document.createElement("div");left.className="merge-board-panel";
   const controls=document.createElement("div");controls.className="merge-controls";
@@ -581,31 +582,32 @@ async function showSolver(signal){
 
   let selected=0;
   const stepButtons=[];
-  function displayStep(step){
-    selected=Math.max(0,Math.min(result.moves.length,step));
-    indicator.textContent="Step "+selected+" / "+result.moves.length;
-    seek.value=String(selected);
-    seek.setAttribute("aria-valuetext","Step "+selected+" of "+result.moves.length);
-    first.disabled=selected===0;previous.disabled=selected===0;
-    next.disabled=selected===result.moves.length;
-    lastStep.disabled=selected===result.moves.length;
-    const current=selected===0?solution.board:result.moves[selected-1].board;
-    const move=selected>0?result.moves[selected-1]:null;
+  let flightTimer=null,flightAnimation=null,flightGhost=null,flightEpoch=0;
+  const prefersReducedMotion=()=>window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  function cancelFlight(){
+    flightEpoch++;
+    if(flightTimer!==null){window.clearTimeout(flightTimer);flightTimer=null;}
+    if(flightAnimation){flightAnimation.cancel();flightAnimation=null;}
+    if(flightGhost){flightGhost.remove();flightGhost=null;}
+  }
+  function drawFrame(board,move,{resolved=false,timing=null}={}){
     const changes=new Map(),windOrder=new Map();
     if(move){
       changes.set(move.src,"source");
       changes.set(move.dst,"destination");
-      let order=0;
-      for(const event of move.events){
-        if(event.kind==="wind"){
-          changes.set(event.at,"wind");
-          windOrder.set(event.at,order++);
+      if(resolved){
+        let order=0;
+        for(const event of move.events??[]){
+          if(event.kind==="wind"){
+            changes.set(event.at,"wind");
+            windOrder.set(event.at,order++);
+          }
         }
       }
     }
     boardGrid.replaceChildren();
     for(let i=0;i<BOARD_CELLS;i++){
-      const type=recommendedSlots[i]??-1,tier=current[i]??0;
+      const type=recommendedSlots[i]??-1,tier=board[i]??0;
       const tile=document.createElement("div");
       tile.className="tile"+(type>=0?" slot-"+type:" locked")+(tier<1?" empty":"");
       if(move&&type>=0){
@@ -614,21 +616,97 @@ async function showSolver(signal){
           tile.classList.add("focus-tile","merge-"+change);
           if(change==="wind"){
             tile.classList.add("wind-active");
-            const rate=Number(speedSelect.value)||1;
-            tile.style.setProperty("--wind-delay",(windOrder.get(i)*65/rate)+"ms");
-            tile.style.setProperty("--wind-duration",(650/rate)+"ms");
+            tile.style.setProperty("--wind-delay",
+              (windOrder.get(i)*(timing?.windStaggerMs??65))+"ms");
+            tile.style.setProperty("--wind-duration",(timing?.windTileMs??650)+"ms");
           }
-        }else{
-          tile.classList.add("dim-tile");
-        }
+        }else tile.classList.add("dim-tile");
       }
       if(type>=0&&tier>0)addSushiVisual(tile,tier);
       tile.title="Position "+(i+1)+" · "+(SLOT_NAMES[type]??"Locked")+
-        (tier?" · Tier "+tier:" · Empty")+(changes.has(i)?" · "+changes.get(i):"");
+        (tier?" · Tier "+tier:" · Empty")+
+        (changes.has(i)?" · "+changes.get(i):"");
       boardGrid.append(tile);
     }
-    scoreLine.textContent="Combo Meter: "+cumulative[selected].toLocaleString()+" points"+(move?(move.kind==="move"?" · Reposition · +0":" · This merge: +"+move.score):" · Ready to begin");
-    stepButtons.forEach((b,i)=>{b.classList.toggle("selected",i===selected);b.setAttribute("aria-current",i===selected?"step":"false");});
+  }
+  function completedScore(move){
+    scoreLine.textContent="Combo Meter: "+cumulative[selected].toLocaleString()+" points"+
+      (move?(move.kind==="move"?" · Reposition · +0":" · This merge: +"+move.score):
+       " · Ready to begin");
+  }
+  function finishFlight(){
+    if(flightTimer===null)return;
+    window.clearTimeout(flightTimer);flightTimer=null;
+    if(flightAnimation){flightAnimation.cancel();flightAnimation=null;}
+    if(flightGhost){flightGhost.remove();flightGhost=null;}
+    const move=result.moves[selected-1];
+    if(!move)return;
+    const timing=replayMotionTiming(move,Number(speedSelect.value),
+      {reducedMotion:prefersReducedMotion()});
+    drawFrame(move.board,move,{resolved:true,timing});
+    completedScore(move);
+  }
+  function displayStep(step){
+    cancelFlight();
+    selected=Math.max(0,Math.min(result.moves.length,step));
+    indicator.textContent="Step "+selected+" / "+result.moves.length;
+    seek.value=String(selected);
+    seek.setAttribute("aria-valuetext","Step "+selected+" of "+result.moves.length);
+    first.disabled=selected===0;previous.disabled=selected===0;
+    next.disabled=selected===result.moves.length;
+    lastStep.disabled=selected===result.moves.length;
+    const move=selected>0?result.moves[selected-1]:null;
+    if(!move){
+      drawFrame(solution.board,null);
+      completedScore(null);
+    }else{
+      const timing=replayMotionTiming(move,Number(speedSelect.value),
+        {reducedMotion:prefersReducedMotion()});
+      const before=selected===1?solution.board:result.moves[selected-2].board;
+      const canAnimate=timing.travelMs>0&&move.src!==move.dst&&
+        recommendedSlots[move.src]>=0&&recommendedSlots[move.dst]>=0&&before[move.src]>0;
+      if(!canAnimate){
+        drawFrame(move.board,move,{resolved:true,timing});
+        completedScore(move);
+      }else{
+        // Leave the pre-action board in place until the animated source lands.
+        drawFrame(before,move);
+        const sourceTile=boardGrid.children[move.src],destTile=boardGrid.children[move.dst];
+        const sourceRect=sourceTile.getBoundingClientRect();
+        const destRect=destTile.getBoundingClientRect();
+        const gridRect=boardGrid.getBoundingClientRect();
+        const dx=destRect.left-sourceRect.left,dy=destRect.top-sourceRect.top;
+        flightGhost=sourceTile.cloneNode(true);
+        flightGhost.classList.remove("focus-tile","merge-source","dim-tile","wind-active");
+        flightGhost.classList.add("merge-flying-sushi");
+        flightGhost.removeAttribute("title");
+        flightGhost.setAttribute("aria-hidden","true");
+        flightGhost.style.left=(sourceRect.left-gridRect.left)+"px";
+        flightGhost.style.top=(sourceRect.top-gridRect.top)+"px";
+        flightGhost.style.width=sourceRect.width+"px";
+        flightGhost.style.height=sourceRect.height+"px";
+        sourceTile.classList.add("merge-source-lifted");
+        boardGrid.append(flightGhost);
+        const epoch=flightEpoch;
+        if(typeof flightGhost.animate==="function"){
+          flightAnimation=flightGhost.animate([
+            {transform:"translate(0px,0px) scale(1)",opacity:1},
+            {transform:"translate("+dx+"px,"+dy+"px) scale(.94)",opacity:.94}
+          ],{duration:timing.travelMs,easing:"cubic-bezier(.25,.72,.22,1)",
+            fill:"forwards"});
+        }else flightGhost.style.transform="translate("+dx+"px,"+dy+"px)";
+        scoreLine.textContent="Picking up Tier "+before[move.src]+" · "+
+          "position "+(move.src+1)+" → "+(move.dst+1)+
+          (move.kind==="move"?" · Relocating":" · Merging");
+        flightTimer=window.setTimeout(()=>{
+          if(epoch===flightEpoch)finishFlight();
+        },timing.travelMs);
+      }
+    }
+    stepButtons.forEach((button,i)=>{
+      button.classList.toggle("selected",i===selected);
+      button.setAttribute("aria-current",i===selected?"step":"false");
+    });
     stepButtons[selected]?.scrollIntoView({block:"nearest",behavior:"auto"});
   }
   function addStep(title,detail,index){
@@ -655,10 +733,9 @@ async function showSolver(signal){
     onStep:displayStep,
     onPlayStateChange:showPlaybackState,
     getDelay(step){
-      const rate=Number(speedSelect.value)||1;
-      const windCount=step>0?result.moves[step-1].events.filter(e=>e.kind==="wind").length:0;
-      const windDuration=windCount?((windCount-1)*65+650)/rate:0;
-      return Math.max(500,1650/rate,windDuration+240/rate);
+      const move=step>0?result.moves[step-1]:null;
+      return replayMotionTiming(move,Number(speedSelect.value),
+        {reducedMotion:prefersReducedMotion()}).delayMs;
     }
   });
   first.addEventListener("click",()=>player.goTo(0));
@@ -667,12 +744,21 @@ async function showSolver(signal){
   lastStep.addEventListener("click",()=>player.goTo(result.moves.length));
   playButton.addEventListener("click",()=>player.toggle());
   seek.addEventListener("input",()=>player.goTo(Number(seek.value)));
-  speedSelect.addEventListener("change",()=>player.reschedule());
-  const pauseWhenHidden=()=>{if(document.hidden)player.pause();};
+  speedSelect.addEventListener("change",()=>{
+    finishFlight();
+    player.reschedule();
+  });
+  const pauseWhenHidden=()=>{
+    if(document.hidden){player.pause();finishFlight();}
+  };
+  const finishWhenResized=()=>finishFlight();
   document.addEventListener("visibilitychange",pauseWhenHidden);
+  window.addEventListener("resize",finishWhenResized);
   replayCleanup=()=>{
     player.dispose();
+    cancelFlight();
     document.removeEventListener("visibilitychange",pauseWhenHidden);
+    window.removeEventListener("resize",finishWhenResized);
   };
   showPlaybackState(false);
   displayStep(0);
