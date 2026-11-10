@@ -392,7 +392,7 @@ export function initializeSushiLab(getSave){
     costCell.classList.add("lab-cost-"+status);
     costCell.append(ratio);
     const detail=u.costBreakdown;
-    const precise=value=>Number.isFinite(value)?value.toExponential(12):"Unavailable";
+    const precise=value=>Number.isFinite(value)?value.toExponential(12).replace(/e\+?/i,"E"):"Unavailable";
     costCell.title="Current Sushi Bucks: "+precise(balance)+"\nNext cost: "+precise(cost)+"\n"+
       "Base cost: "+precise(u.baseNextCost)+"\n"+
       detail.sources.map(source=>source.name+": "+(source.known?
