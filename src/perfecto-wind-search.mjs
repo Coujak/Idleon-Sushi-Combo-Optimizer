@@ -18,13 +18,13 @@ export function getSushiWindCap(save){
  for(const v of tracking){if(Number(v)<0)break;discovered++;}
  return clamp(discovered-6,0,58);
 }
-function geometry(save,target,protectHigher){
+function geometry(save,target){
  const slots=Array.from({length:N},(_,i)=>read(save?.slots,i,-1));
  const tiles=Array.from({length:N},(_,i)=>slots[i]<0?0:read(save?.tiles,i,-1)+1);
  const frozen=new Set(),flex=[];
  for(let i=0;i<N;i++){
   if(slots[i]<0)continue;
-  if(tiles[i]===target||protectHigher&&tiles[i]>target)frozen.add(i);
+  if(tiles[i]>=target)frozen.add(i);
   else flex.push(i);
  }
  const fixedTargets=tiles.filter((t,i)=>slots[i]>=0&&t===target).length;
@@ -384,9 +384,9 @@ export function prioritizePerfectoBonusSlots(board,geom,target,certificate=null)
  }
  return result;
 }
-export function searchPerfectoBoard(save,target,economy,{protectHigher=true,effortMultiplier=16}={}){
+export function searchPerfectoBoard(save,target,economy,{effortMultiplier=16}={}){
  if(!save||!Number.isInteger(target)||target<1||target>64)return null;
- const geom=geometry(save,target,protectHigher);
+ const geom=geometry(save,target);
  const currentCopies=geom.fixedTargets;
  const windCap=getSushiWindCap(save);
  const cookTier=maxCookableTier(economy,target);
