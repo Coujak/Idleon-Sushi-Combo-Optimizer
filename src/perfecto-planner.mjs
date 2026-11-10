@@ -35,21 +35,21 @@ export function availablePerfectoTargets(save){
 export function chooseNextPerfectoTier(save){
  return availablePerfectoTargets(save)[0]?.tier??null;
 }
-function getSearch(save,target,protectHigher){
+function getSearch(save,target){
  let byTarget=cache.get(save);
  if(!byTarget){byTarget=new Map();cache.set(save,byTarget);}
- const key=String(target)+"-"+String(protectHigher);
+ const key=String(target);
  if(byTarget.has(key))return byTarget.get(key);
  // Fuel cap determines which sushi the player can cook directly. It never
  // imposes a preparation deadline or a user-controlled rate.
  const economy=estimateSushiFuelEconomy(save);
- const run=searchPerfectoBoard(save,target,economy,{protectHigher});
+ const run=searchPerfectoBoard(save,target,economy);
  const result={economy,run};
  byTarget.set(key,result);
  if(byTarget.size>30)byTarget.delete(byTarget.keys().next().value);
  return result;
 }
-function visualBoard(save,tier,run,{protectHigher=true}={}){
+function visualBoard(save,tier,run){
  if(!run)return null;
  const oldTiles=save.tiles??[],oldSlots=save.slots??[];
  let copies=0,replaced=0;
@@ -61,7 +61,7 @@ function visualBoard(save,tier,run,{protectHigher=true}={}){
   let role="empty";
   if(value===tier){
    role="target";copies++;
-  }else if(value>tier&&protectHigher)role="protected";
+  }else if(value>tier)role="protected";
   else if(value>0)role="ingredient";
   if(preparedTier!==tile&&tile>=0)replaced++;
   return {index:i,slot,tile,role,preparedTier,
@@ -88,7 +88,7 @@ function visualBoard(save,tier,run,{protectHigher=true}={}){
 export function perfectoBoardPlan(save,tier,options={}){
  return getPerfectoPlanner(save,{...options,tier}).plan??null;
 }
-export function getPerfectoPlanner(save,{tier=null,protectHigher=true}={}){
+export function getPerfectoPlanner(save,{tier=null}={}){
  const knowledge=getKnowledgeRows(save);
  const next=chooseNextPerfectoTier(save);
  const requested=Number(tier);
@@ -99,8 +99,8 @@ export function getPerfectoPlanner(save,{tier=null,protectHigher=true}={}){
  if(!save||!target)return {target:null,next,bonus,reason:save?"complete":"import"};
  const current=knowledge[target-1];
  if(!current?.discovered)return {target:null,next,bonus,reason:"undiscovered"};
- const {economy,run}=getSearch(save,target,protectHigher);
- const plan=visualBoard(save,target,run,{protectHigher});
+ const {economy,run}=getSearch(save,target);
+ const plan=visualBoard(save,target,run);
  const snapshot=getSushiSnapshot(save);
  const singleChance=perfectoSingleChance(target,knownBonus);
  const currentChance=perfectoBoardChance(singleChance,plan?.currentCopies??0);
