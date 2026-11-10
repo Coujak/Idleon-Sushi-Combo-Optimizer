@@ -151,12 +151,12 @@ test("High-target plan keeps the exact number of produced copies",()=>{
  assert.equal(p.plan.board[0].role,"ingredient"); // T16 below T62
  assert.ok(p.search.certificate || p.search.purchased<=p.search.effortBudget+1e-6);
 });
-test("Only automatic target and protection controls remain in Perfecto",()=>{
+test("Only automatic target choice remains in Perfecto",()=>{
  const html=readFileSync(new URL("../index.html",import.meta.url),"utf8");
  const ui=readFileSync(new URL("../src/perfecto-ui.mjs",import.meta.url),"utf8");
  const lab=readFileSync(new URL("../src/lab-ui.mjs",import.meta.url),"utf8");
  const css=readFileSync(new URL("../styles.css",import.meta.url),"utf8");
- const required=["perfectoPlanner","perfectoTarget","perfectoProtectHigher",
+ const required=["perfectoPlanner","perfectoTarget",
    "perfectoBoard","perfectoSingleChance","perfectoCurrentChance","perfectoPlanChance",
    "perfectoPlanOddsRatio","perfectoExpectedActivations","perfectoConfidence50",
    "perfectoConfidence90","perfectoConfidence99","perfectoActionTitle",
