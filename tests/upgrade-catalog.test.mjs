@@ -144,7 +144,7 @@ test("Catalog shows value emphasis, Doubler row highlights and next-total hints"
  const html=readFileSync(new URL("../index.html",import.meta.url),"utf8");
  const css=readFileSync(new URL("../styles.css",import.meta.url),"utf8");
  assert.ok(html.includes('id="labDoublerCount"'));
- assert.ok(ui.includes("upgradeDescriptionSegments(u.description,u,hasSave)"));
+ assert.ok(ui.includes("upgradeDescriptionSegments(u.description,u,hasSave,extra)"));
  assert.ok(ui.includes('lab-catalog-known-value'));
  assert.ok(ui.includes('lab-catalog-doubled'));
  assert.ok(ui.includes('lab-catalog-gain-hint'));
