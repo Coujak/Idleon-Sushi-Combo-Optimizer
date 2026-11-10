@@ -20,7 +20,7 @@ export function getSushiSnapshot(save){
  const spelunk=save?.spelunk??[];
  const doubled=Array.isArray(spelunk[52])?spelunk[52].map(num).filter(Number.isInteger):[];
  return {levels:upgrades,tracking,xp,knowledge,doubled,
-  fuel:num(raw[0]),bucks:num(raw[3]),bestCombo:num(raw[8]),
+  fuel:num(raw[0]),bucks:num(raw[3]),bestCombo:num(raw[8]),shakers:[num(raw[5]),num(raw[6]),num(raw[7])],
   unlocked:save?.slots?.filter(t=>t>=0).length??0,
   occupied:save?.tiles?.filter(t=>t>=0).length??0,
   highest:Math.max(0,...(save?.tiles??[]).filter(t=>t>=0).map(t=>t+1)),

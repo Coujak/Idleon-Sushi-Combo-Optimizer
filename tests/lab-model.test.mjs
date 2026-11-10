@@ -47,3 +47,8 @@ test("knowledge tiers lacking reference bonus metadata are labelled unknown, not
  assert.equal(k[63].bonus,null);
  assert.equal(k[49].mapped,true);
 });
+
+test("Sushi shaker uses are read from Sushi[4] fields 5 through 7",()=>{
+ const snap=getSushiSnapshot({sushi:[[],[],[],[],[0,0,0,0,0,2,4,6]]});
+ assert.deepEqual(snap.shakers,[2,4,6]);
+});

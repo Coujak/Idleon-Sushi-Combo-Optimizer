@@ -497,3 +497,29 @@ details summary{cursor:pointer;font-size:12px;font-weight:700;color:#9eb7c9}
 .lab-source a{color:#83dbc1}
 @media(max-width:800px){.lab-stat-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.lab-result-list{grid-template-columns:1fr}}
 @media(max-width:550px){.lab-navigation{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}.lab-nav-button{text-align:center}.lab-save-status{grid-column:1/-1;margin-left:0;text-align:center}.lab-stat-value{font-size:18px}}
+
+/* v1.10.1: shaker placeholders and illustrated missing-sushi lists */
+.lab-dashboard-section{margin-top:23px}
+.lab-dashboard-section h3{margin:0;color:#dff5ea;font-size:16px}
+.lab-dashboard-section>.hint{margin:4px 0 13px;font-size:12px}
+.lab-shaker-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:11px}
+.lab-shaker-card{display:flex;align-items:center;gap:11px;min-width:0;background:#102c37;border:1px solid #35566a;border-radius:12px;padding:12px}
+.lab-shaker-icon{display:grid;place-items:center;width:49px;height:49px;flex:0 0 49px;background:#20414b;border-radius:11px;font-size:28px}
+.lab-shaker-copy,.lab-shaker-count{display:flex;flex-direction:column;gap:3px}
+.lab-shaker-copy{flex:1 1 auto;min-width:0}
+.lab-shaker-copy strong{font-size:13px;color:#e6f6eb}
+.lab-shaker-copy span{font-size:11px;color:#a1b7c6}
+.lab-shaker-count{align-items:end}
+.lab-shaker-count strong{color:#c7eedb;font-size:23px;font-variant-numeric:tabular-nums}
+.lab-shaker-count span{font-size:10px;color:#97b1c0;white-space:nowrap}
+.lab-dashboard-lists{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}
+.lab-sushi-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:9px}
+.lab-sushi-card{display:flex;align-items:center;gap:10px;background:#162d3a;border:1px solid #355367;border-radius:11px;padding:9px;min-width:0}
+.lab-sushi-art-frame{position:relative;display:grid;place-items:center;flex:0 0 50px;height:50px;border-radius:9px;background:#244347}
+.lab-sushi-icon{position:absolute;inset:0;width:100%;height:100%;object-fit:contain}
+.lab-sushi-fallback{font-size:12px;font-weight:800;color:#b3d0c2}
+.lab-sushi-card-copy{display:flex;flex-direction:column;gap:2px;min-width:0}
+.lab-sushi-card-copy strong{font-size:13px;color:#e6f8ee}
+.lab-sushi-card-copy span{font-size:11px;color:#a5bdca;overflow-wrap:anywhere}
+.lab-empty-state{grid-column:1/-1;background:#102733;border:1px dashed #355867;border-radius:10px;padding:12px}
+@media(max-width:900px){.lab-dashboard-lists,.lab-shaker-grid{grid-template-columns:1fr}}

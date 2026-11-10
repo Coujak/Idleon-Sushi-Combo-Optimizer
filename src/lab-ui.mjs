@@ -93,37 +93,77 @@ export function initializeSushiLab(getSave){
  $("labKnowledgeStatus").addEventListener("change",renderKnowledge);
  $("labReferenceSource").href=SUSHI_REFERENCE_SOURCE;
 
+ function sushiArtwork(tier){
+  const frame=el("span","lab-sushi-art-frame");
+  frame.append(el("span","lab-sushi-fallback","T"+tier));
+  if(Number.isInteger(tier)&&tier>=1&&tier<=64){
+   const img=el("img","lab-sushi-icon");
+   img.src="assets/sushi/Sushi_Station_Sushi_"+tier+".png";
+   img.alt="";
+   img.loading="lazy";
+   img.onerror=()=>img.remove();
+   frame.append(img);
+  }
+  return frame;
+ }
+ function renderMissingCards(id,list,empty){
+  const host=$(id);host.replaceChildren();
+  if(!save()){addText(host,"hint lab-empty-state","Import a save to see these tiers.");return;}
+  if(list.length===0){addText(host,"hint lab-empty-state",empty);return;}
+  for(const k of list){
+   const tile=el("div","lab-sushi-card"),caption=el("span","lab-sushi-card-copy");
+   caption.append(el("strong","","T"+k.tier),el("span","",k.name));
+   tile.append(sushiArtwork(k.tier),caption);
+   tile.title="Tier "+k.tier+" · "+k.name;
+   host.append(tile);
+  }
+ }
+ function renderShakerCards(stats){
+  const box=$("labShakerCards");box.replaceChildren();
+  const list=[
+   {name:"Salt Shaker",emoji:"🧂",desc:"Tier-up shaker"},
+   {name:"Pepper Shaker",emoji:"🌶️",desc:"Perfecto shaker"},
+   {name:"Saffron Shaker",emoji:"🌼",desc:"Bucks shaker"}
+  ];
+  for(let i=0;i<list.length;i++){
+   const info=list[i],card=el("div","lab-shaker-card");
+   // Temporary icon placeholders until the user provides shaker artwork.
+   const icon=el("span","lab-shaker-icon",info.emoji);
+   icon.setAttribute("aria-hidden","true");
+   const label=el("span","lab-shaker-copy");
+   label.append(el("strong","",info.name),el("span","",info.desc));
+   const count=el("span","lab-shaker-count");
+   count.append(el("strong","",stats?fmt(stats.shakers[i]):"—"),
+    el("span","",stats?"uses available":"Import save"));
+   card.append(icon,label,count);
+   box.append(card);
+  }
+ }
  function renderOverview(){
-  const s=save(),stats=$("labOverviewStats"),insights=$("labOverviewInsights");
-  stats.replaceChildren();insights.replaceChildren();
-  const rows=s?getSushiSnapshot(s):null;
-  const values=rows?[
-   ["Unlocked slots",rows.unlocked+" / 100"],
-   ["Sushi on board",rows.occupied],
-   ["Highest on board","T"+rows.highest],
-   ["Perfectos",rows.perfectos+" / 64"],
-   ["Knowledge levels",fmt(rows.totalKnowledge)],
-   ["Upgrade levels",fmt(rows.totalUpgrades)],
-   ["Best in-game combo",fmt(rows.bestCombo)],
-   ["Pepper uses",fmt(Number(s.sushi?.[4]?.[6]??0))]
+  const data=save(),stats=data?getSushiSnapshot(data):null,host=$("labOverviewStats");
+  host.replaceChildren();
+  const values=stats?[
+   ["Unlocked slots",stats.unlocked+" / 100"],
+   ["Sushi on board",stats.occupied],
+   ["Highest on board","T"+stats.highest],
+   ["Knowledge levels",fmt(stats.totalKnowledge)],
+   ["Upgrade levels",fmt(stats.totalUpgrades)],
+   ["Best in-game combo",fmt(stats.bestCombo)]
   ]:[
-   ["Unlocked slots",none],["Sushi on board",none],["Highest on board",none],
-   ["Perfectos",none],["Knowledge levels",none],["Upgrade levels",none],
-   ["Best in-game combo",none],["Pepper uses",none]
+   ["Unlocked slots","—"],["Sushi on board","—"],["Highest on board","—"],
+   ["Knowledge levels","—"],["Upgrade levels","—"],["Best in-game combo","—"]
   ];
   for(const [label,value] of values){
-   const card=el("div","lab-stat"),v=el("strong","lab-stat-value",value);
-   card.append(el("span","lab-stat-label",label),v);stats.append(card);
+   const card=el("div","lab-stat");
+   card.append(el("span","lab-stat-label",label),el("strong","lab-stat-value",value));
+   host.append(card);
   }
-  if(!rows){
-   addText(insights,"hint","Import your Idleon Toolbox JSON above to see account-specific progress, upgrade levels and knowledge. You can still browse the other tabs without importing.");
-  }else{
-   const missing=getKnowledgeRows(s).filter(k=>k.discovered&&!k.perfecto);
-   const pending=missing.slice(-4).map(k=>"T"+k.tier).join(", ");
-   addText(insights,"","Perfecto progress: "+rows.perfectos+" of 64 complete."+
-     (missing.length?" Unfinished discovered tiers include "+pending+".":" All discovered tiers are Perfecto!"));
-   addText(insights,"hint","Sushi Station data is from this import. The 76,532-point Experimental 13 benchmark is a separate Tier 64 simulated result, not your account's score.");
-  }
+  renderShakerCards(stats);
+  const entries=getKnowledgeRows(data);
+  renderMissingCards("labMissingPerfectos",entries.filter(x=>x.discovered&&!x.perfecto),
+   "All discovered sushi have Perfecto.");
+  renderMissingCards("labMissingTiers",entries.filter(x=>!x.discovered),
+   "Every sushi tier has been discovered.");
  }
  function renderCatalog(){
   const q=$("labUpgradeSearch").value.trim().toLowerCase(),s=save();

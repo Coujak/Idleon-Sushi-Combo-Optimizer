@@ -19,3 +19,12 @@ test("Overview is the visible default; planner and reference tabs are present",(
  assert.ok(html.includes('id="solver"'));
  assert.ok(html.includes('id="labKnowledgeRows"'));
 });
+
+test("Import precedes dashboard and new collections replace shortcut buttons",()=>{
+ const html=readFileSync(new URL("../index.html",import.meta.url),"utf8");
+ assert.ok(html.indexOf('id="importPanel"')<html.indexOf('class="panel lab-welcome-panel"'));
+ for(const name of ["labShakerCards","labMissingPerfectos","labMissingTiers"])
+  assert.ok(html.includes('id="'+name+'"'));
+ assert.ok(!html.includes('class="lab-quick-links"'));
+ assert.ok(!html.includes('id="labOverviewInsights"'));
+});

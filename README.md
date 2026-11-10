@@ -5,7 +5,7 @@ Browser-based Sushi Station account dashboard, reference guides and Combo Meter 
 **Site:** https://coujak.github.io/Idleon-Sushi-Combo-Optimizer/
 
 ## Sections (v1.10.0)
-- **Overview:** The default landing page, with local Idleon Toolbox JSON import, live account statistics and the original sushi board.
+- **Overview:** Import your Idleon Toolbox JSON above the dashboard; view shaker counters (with placeholder icons), missing Perfectos and undiscovered tiers with sushi art, account statistics and the original board. Dashboard shortcut buttons and Perfecto progress tally have been removed.
 - **Planners:** The full existing Combo Meter optimizer and replay. No Bucks or Knowledge board optimizers yet.
 - **Upgrades:** An upgrade catalog with game order/IDs, levels, description, next-level effect and **pre-discount base cost estimates**; a goal-filtered progression advisor; and a Menagerie Doubler advisor reading Spelunk[52].
 - **Knowledge:** 64 sushi tiers, names, knowledge levels, EXP progress, known bonus categories and Perfecto states. Tiers without category metadata are explicitly marked unavailable rather than assigned fictitious effects.
