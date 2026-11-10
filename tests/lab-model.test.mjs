@@ -1,7 +1,8 @@
+import {readFileSync} from "node:fs";
 import test from "node:test";
 import assert from "node:assert/strict";
 import {SUSHI_UPGRADES,SUSHI_KNOWLEDGE,ELIGIBLE_DOUBLERS} from "../src/sushi-reference.mjs";
-import {baseUpgradeCost,getUpgradeRows,getKnowledgeRows,getSushiSnapshot,
+import {numberText,baseUpgradeCost,getUpgradeRows,getKnowledgeRows,getSushiSnapshot,
  advisorUpgrades,doublerUpgrades,sushiUpgradeDiscounts,sushiUpgradeExtraText,upgradeAffordability} from "../src/lab-model.mjs";
 test("reference data follows current Sushi shop order and 64 knowledge tiers",()=>{
  assert.equal(SUSHI_UPGRADES.length,46);
@@ -122,4 +123,12 @@ test("The imported Sushi[4][3] balance is used for affordability",()=>{
  const prices=getUpgradeRows(save);
  const candidate=prices.find(u=>u.shop===1);
  assert.equal(upgradeAffordability(candidate,balance),"affordable");
+});
+
+test("Scientific notation omits the positive exponent plus sign across account numbers",()=>{
+ assert.equal(numberText(2.99e37),"2.990E37");
+ assert.equal(numberText(1.2345e12),"1.234E12");
+ assert.equal(numberText(1.234e-5),"1.234E-5");
+ const fmt=readFileSync(new URL("../src/progression-goal-impact.mjs",import.meta.url),"utf8");
+ assert.match(fmt,/toExponential\(3\)\.replace/);
 });
