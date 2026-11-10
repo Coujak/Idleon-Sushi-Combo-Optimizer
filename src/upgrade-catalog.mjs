@@ -77,11 +77,17 @@ export function upgradeCatalogDollarValue(upgrade,save){
  if(upgrade.id===8){ // Fastburn Fuel I: current Fuel/hr and maximum Fuel.
   const economy=estimateSushiFuelEconomy(save);
   if(!(economy?.generationPerHour>0)||!(economy?.capacity>0))return null;
-  const text=formatGameQuantity(economy.generationPerHour)+" Fuel/hr. "+
-    "Max Cap is "+formatGameQuantity(economy.capacity)+" Fuel";
+  const fuelRate=formatGameQuantity(economy.generationPerHour)+" Fuel/hr";
+  const fuelCap=formatGameQuantity(economy.capacity)+" Fuel";
+  // Keep the explanatory words *outside* the highlighted value badges.
+  const segments=[
+   {text:fuelRate,kind:"estimated"},
+   {text:". Max Cap is ",kind:"text"},
+   {text:fuelCap,kind:"estimated"}
+  ];
   // Game export doesn't consistently expose Event Shop capacity bonuses.
   // These are *modeled* values, not necessarily the exact UI displays.
-  return {text,estimated:true};
+  return {text:segments.map(segment=>segment.text).join(""),segments,estimated:true};
  }
  const value=sushiUpgradeExtraText(upgrade,save);
  return value===null||value===undefined?null:{text:String(value),estimated:false};
@@ -102,7 +108,13 @@ export function upgradeDescriptionSegments(raw,upgrade=null,hasSave=false,extra=
  let from=0,match;
  while((match=token.exec(source))){
   if(match.index>from)parts.push({text:source.slice(from,match.index),kind:"text"});
-  const id=match[0];let text,kind="unresolved";
+  const id=match[0];
+  if(id==="$"&&dollar?.segments){
+   parts.push(...dollar.segments);
+   from=token.lastIndex;
+   continue;
+  }
+  let text,kind="unresolved";
   if(id.includes("{")){
    const percent=id.endsWith("%");
    text=(id.startsWith("+")?"+":"")+(known?qty:"—")+(percent?"%":"");
