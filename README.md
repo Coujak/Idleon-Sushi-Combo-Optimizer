@@ -12,6 +12,10 @@ Browser-based Sushi Station account dashboard, reference guides and Combo Meter 
 
 The advisors are informational and never modify the imported save. Price estimates use account discounts when their source data is available. Reference metadata is derived from the public Idleon Toolbox Sushi Station parser and tables, and can change as the game updates.
 
+## Combo Meter interactive replay (v1.15.6)
+
+The interactive step viewer now animates the source sushi, including its artwork and tier, from the picked tile to the destination. Before the slide completes, the board remains in its pre-action state; once the sushi reaches the destination, the merge result and staggered Heat of the East Wind upgrades appear. The same behavior applies to manual Next/Previous navigation and automatic Play. Changing speed, switching steps or hiding the window avoids leaving obsolete moving tiles behind. The replay animation does not alter the optimized move list or computed Combo Meter score.
+
 ## Perfecto final-board preparation (v1.15.5)
 
 For a certified merge-only target board, the remaining unoccupied positions are **temporary construction workspace**, not permanently empty cells. Complete target copies first, then use the released workspace to build the supporting sushi **highest tier first**. Fill leftover positions with the highest descending ladder supported by the account's Heat of the East Wind cap, the target tier, and the space needed to recursively cook/merge the ingredients.
@@ -60,7 +64,7 @@ This is a preparation convenience change, not a new scoring strategy. Historical
 - **Maximum prepared tier has no fixed 64-tier ceiling**: enter 65, 100, or higher for future-update simulation. Wind automatically follows **prepared tier − 6** when already maxed (e.g., 64 → 58, 66 → 60), but lower manual Wind selections are preserved. Tiers above the available art assets appear as numbers.
 - Recommended preparations preserve the configured highest tier at the first unlocked position (Tier 64 for historical benchmarks, higher when configured). Imported and custom boards keep their own positions, including bottom-row slots.
 - Simulate Heat of the East Wind and search using greedy, beam, staircase-recycling, and tactical repositioning strategies.
-- Replay combo sequences at **0.5×**, 0.75×, 1× (default), 1.5×, 2×, or 3× speed; the Wind animation timing scales with playback speed.
+- Replay combo sequences at **0.5×**, 0.75×, 1× (default), 1.5×, 2×, or 3× speed. Every merge or relocation animates the picked sushi traveling into its destination first, then updates the board and plays any Heat of the East Wind cascade. Movement, Wind, and autoplay timing all scale with speed. Seeking, resizing, and hiding the tab handle unfinished animations safely; reduced-motion users see the completed board immediately.
 - Deliberately reuse descending staircases across scoring passes. Search several spare-sushi Wind-tail lengths and test one-tile tactical repositioning before merges on irregular boards. The replay distinguishes zero-point relocations from merges.
 - Enter action times to estimate combo-time feasibility. **Only merges reset the combo timer** in the timing estimate.
 - Follow each merge or relocation in a larger replay board with highlighted actions, dimmed inactive tiles, and a staggered East Wind animation.
