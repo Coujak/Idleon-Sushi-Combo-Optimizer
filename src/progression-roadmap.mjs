@@ -2,8 +2,8 @@
 // Recomputes levels, costs and priority after each simulated purchase.
 // Future income is NOT predicted: when Bucks run out we simulate saving
 // only the extra Bucks required for the next suggested purchase.
-import {getProgressionAdvice} from "./progression-advisor.mjs";
-import {progressionGoalMetric} from "./progression-goal-impact.mjs";
+import {getProgressionAdvice} from "./progression-advisor.mjs?v=1.16.6";
+import {progressionGoalMetric} from "./progression-goal-impact.mjs?v=1.16.6";
 import {calibratedProgressionMetric} from "./progression-calibration.mjs";
 
 export const PURCHASE_PRESETS=[5,10,25,50,100];
