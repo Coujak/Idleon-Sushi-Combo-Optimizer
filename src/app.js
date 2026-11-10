@@ -12,7 +12,7 @@ import {BOARD_COLUMNS,BOARD_CELLS,normalizeBoardData,layoutOptions} from "./boar
 import {windTierMaximum,clampWindTier,windTierAfterPreparedChange} from "./wind-limit.mjs?v=1.9.10";
 import {initializeSushiLab} from "./lab-ui.mjs?v=1.10.2";
 import {sushiTierIconPath} from "./sushi-reference.mjs?v=1.10.2";
-import {getPreparedBoardSections,hasSlotLayoutChanges,preparedSectionOutlinePath} from "./prepared-sections.mjs?v=1.10.6";
+import {getPreparedBoardSections,hasSlotLayoutChanges,preparedSectionOutlinePath,preparedOutlineCoordinates} from "./prepared-sections.mjs?v=1.10.7";
 const COLUMNS=BOARD_COLUMNS;
 let imported=null;
 const sushiLab=initializeSushiLab(()=>imported);
@@ -489,20 +489,13 @@ async function showSolver(signal){
       const refreshOutline=()=>{
         if(!grid.isConnected)return;
         const cells=[...grid.querySelectorAll(".tile")];
-        const gridBox=grid.getBoundingClientRect();
-        if(!gridBox.width||!gridBox.height||cells.length!==BOARD_CELLS)return;
-        const xs=[],ys=[];
+        const svgBox=outline.getBoundingClientRect();
+        if(!svgBox.width||!svgBox.height||cells.length!==BOARD_CELLS)return;
         const bounds=cells.map(cell=>cell.getBoundingClientRect());
-        const gapX=Math.max(0,bounds[1].left-bounds[0].right);
-        const gapY=Math.max(0,bounds[15].top-bounds[0].bottom);
-        xs.push(bounds[0].left-gridBox.left-gapX/2);
-        for(let col=1;col<COLUMNS;col++)xs.push((bounds[col-1].right+bounds[col].left)/2-gridBox.left);
-        xs.push(bounds[COLUMNS-1].right-gridBox.left+gapX/2);
-        ys.push(bounds[0].top-gridBox.top-gapY/2);
-        for(let row=1;row<BOARD_CELLS/COLUMNS;row++)ys.push((bounds[(row-1)*COLUMNS].bottom+bounds[row*COLUMNS].top)/2-gridBox.top);
-        ys.push(bounds[BOARD_CELLS-COLUMNS].bottom-gridBox.top+gapY/2);
-        const width=gridBox.width,height=gridBox.height;
-        outline.setAttribute("viewBox","0 0 "+width+" "+height);
+        const coordinates=preparedOutlineCoordinates(bounds,svgBox,COLUMNS,2);
+        if(!coordinates)return;
+        const {xs,ys}=coordinates;
+        outline.setAttribute("viewBox","0 0 "+svgBox.width+" "+svgBox.height);
         for(const role of ["supply","chain"]){
           outline.querySelector(".prepared-outline-"+role).setAttribute("d",
             preparedSectionOutlinePath(sectionInfo.roles,role,xs,ys,COLUMNS));
