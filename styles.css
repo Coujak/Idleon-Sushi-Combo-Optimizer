@@ -1318,3 +1318,18 @@ details summary{cursor:pointer;font-size:12px;font-weight:700;color:#9eb7c9}
  .lab-advisor-plan-summary{grid-template-columns:1fr 1fr}
  .lab-advisor-purchase-controls select,.lab-advisor-purchase-controls input{max-width:142px}
 }
+
+/* Optional measured rates for selected-goal projections; no per-account defaults. */
+.lab-advisor-calibration{
+ margin:12px 0;border:1px solid #345d64;background:#122b35;
+ border-radius:10px;padding:12px 15px
+}
+.lab-advisor-calibration summary{font-size:12px;font-weight:800;color:#ddf5ed;cursor:pointer}
+.lab-advisor-calibration>p{font-size:11px;line-height:1.6;margin:10px 0}
+.lab-advisor-calibration-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:12px 0}
+.lab-advisor-calibration-grid label{display:flex;flex-direction:column;gap:7px;min-width:0;
+ color:#b8d2d5;font-size:11px;font-weight:750}
+.lab-advisor-calibration-grid input{width:100%;min-width:0;color:#e7fdf4;background:#102631;
+ font:inherit;font-size:12px;border:1px solid #537982;border-radius:8px;padding:9px 10px}
+.lab-advisor-calibration-grid input:focus-visible{outline:2px solid #79e0c1;outline-offset:2px}
+@media(max-width:710px){.lab-advisor-calibration-grid{grid-template-columns:1fr}}
