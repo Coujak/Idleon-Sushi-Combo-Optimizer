@@ -1041,3 +1041,72 @@ details summary{cursor:pointer;font-size:12px;font-weight:700;color:#9eb7c9}
 @media(max-width:650px){
  .perfecto-pepper-stats{grid-template-columns:1fr}
 }
+
+/* v1.15.8 — Pepper recommendation is an action plan, not an alert. */
+.perfecto-recommendation{
+ display:block;position:relative;overflow:hidden;margin:14px 0 18px;
+ padding:0;background:#122f37;color:#f1fffc;
+ border:2px solid #36d3ba;border-radius:15px;
+ box-shadow:0 0 0 4px #31bca711,0 14px 34px #020d1680;
+ font-weight:400;
+}
+.perfecto-recommendation::before{
+ content:"";position:absolute;inset:0 auto 0 0;width:6px;
+ background:linear-gradient(180deg,#8affdb,#28b7e4);pointer-events:none
+}
+.perfecto-action-eyebrow{
+ display:flex;align-items:center;gap:9px;padding:15px 21px 13px 26px;
+ background:#1d5155;color:#b9fff0;
+ font-size:11px;font-weight:900;letter-spacing:.12em
+}
+.perfecto-action-mark{
+ display:grid;place-items:center;width:25px;height:25px;flex:none;
+ background:#b6ffe7;color:#103b37;border-radius:50%;font-size:17px;
+ letter-spacing:0
+}
+.perfecto-action-label{
+ margin-left:auto;padding:6px 9px;border-radius:6px;
+ background:#b6ffe7;color:#0c3d36;font-size:10px;letter-spacing:.065em;
+ white-space:nowrap
+}
+.perfecto-action-main{
+ display:flex;align-items:center;gap:20px;padding:23px 26px 23px 29px
+}
+.perfecto-action-symbol{
+ display:grid;place-items:center;flex:none;width:54px;height:54px;
+ background:#30cfb4;color:#073b35;border-radius:13px;
+ font-size:32px;font-weight:900;box-shadow:0 5px 16px #0004
+}
+.perfecto-action-copy{min-width:0}
+.perfecto-recommendation .perfecto-action-copy h4{
+ margin:0 0 9px;color:#f3fff9;font-size:clamp(20px,2.5vw,28px);
+ font-weight:950;line-height:1.23;letter-spacing:-.025em
+}
+.perfecto-recommendation .perfecto-action-copy p{
+ margin:0;color:#c4e8e4;font-size:13px;line-height:1.7;font-weight:500
+}
+.perfecto-action-footer{
+ display:flex;align-items:center;justify-content:space-between;gap:12px;
+ padding:12px 22px 12px 27px;background:#0d252e;
+ border-top:1px solid #ffffff1c;font-size:11px;font-weight:800;
+ letter-spacing:.025em;color:#b6d7d6
+}
+.perfecto-action-footer span:last-child{color:#8effdb;text-align:right}
+.perfecto-status-ready{border-color:#42e69d}
+.perfecto-status-ready .perfecto-action-eyebrow{background:#205a45}
+.perfecto-status-ready .perfecto-action-symbol{background:#54f0a3}
+.perfecto-status-ready .perfecto-action-label{background:#c0ffdf}
+.perfecto-status-completed{border-color:#80baff}
+.perfecto-status-completed .perfecto-action-eyebrow{background:#274c73}
+.perfecto-status-completed .perfecto-action-symbol{background:#9bc9ff}
+.perfecto-status-blocked{border-color:#7e9eb3}
+.perfecto-status-blocked .perfecto-action-eyebrow{background:#344a5b}
+.perfecto-status-blocked .perfecto-action-symbol{background:#a6c8d6}
+@media(max-width:650px){
+ .perfecto-action-eyebrow{padding:12px 15px 12px 19px;flex-wrap:wrap;letter-spacing:.05em}
+ .perfecto-action-label{margin-left:0}
+ .perfecto-action-main{gap:13px;padding:18px 15px 18px 19px;align-items:flex-start}
+ .perfecto-action-symbol{width:42px;height:42px;font-size:24px}
+ .perfecto-recommendation .perfecto-action-copy h4{font-size:19px}
+ .perfecto-action-footer{padding:12px 15px 12px 19px;flex-wrap:wrap}
+}
