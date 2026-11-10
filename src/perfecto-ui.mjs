@@ -24,6 +24,17 @@ export function initializePerfectoUI(getSave){
  const slider=$("perfectoCopies");
  const protect=$("perfectoProtectHigher");
  const summary=$("perfectoTargetSummary");
+ const horizon=$("perfectoPlanHours"),pace=$("perfectoCookingPace"),fuelMode=$("perfectoFuelMode");
+ const capOverride=$("perfectoCapOverride"),genOverride=$("perfectoGenOverride");
+ const planningOptions=()=>({
+  protectHigher:protect.checked,
+  copies:requestedCopies,
+  hours:Number(horizon.value),
+  secondsPerCook:Number(pace.value),
+  mode:fuelMode.value,
+  capacityOverride:capOverride.value||null,
+  generationOverride:genOverride.value||null
+ });
  function activateTab(tab){
   plannerTab=tab==="perfecto"?"perfecto":"combo";
   $("solver").classList.toggle("hidden",plannerTab!=="combo");
@@ -33,6 +44,7 @@ export function initializePerfectoUI(getSave){
    const active=choice.dataset.plannerTarget===plannerTab;
    choice.setAttribute("aria-selected",String(active));choice.tabIndex=active?0:-1;
   }
+  if(plannerTab==="perfecto")render();
  }
  for(const button of document.querySelectorAll("[data-planner-target]")){
   button.addEventListener("click",()=>{activateTab(button.dataset.plannerTarget);});
@@ -47,6 +59,9 @@ export function initializePerfectoUI(getSave){
  targetSelect.addEventListener("change",()=>{tierChoice=targetSelect.value;requestedCopies=null;render();});
  protect.addEventListener("change",()=>{requestedCopies=null;render();});
  slider.addEventListener("input",()=>{requestedCopies=Number(slider.value);render();});
+ for(const input of [horizon,pace,fuelMode,capOverride,genOverride]){
+  input.addEventListener("change",()=>{requestedCopies=null;render();});
+ }
  $("perfectoResetTarget").addEventListener("click",()=>{
   tierChoice="auto";requestedCopies=null;render();
  });
@@ -89,13 +104,14 @@ export function initializePerfectoUI(getSave){
   text("perfectoBonusTotal",display(result.bonus.knowledgeMultiplier)+"×");
  }
  function render(){
-  const saved=getSave(),current=getPerfectoPlanner(saved,{tier:"auto",copies:requestedCopies,
-   protectHigher:protect.checked});
+  // Avoid expensive bounded simulations until Perfecto is selected.
+  if(plannerTab!=="perfecto")return;
+  const saved=getSave(),available=availablePerfectoTargets(saved);
+  const next=available[0]?.tier??null;
   const autoOption=targetSelect.querySelector('option[value="auto"]');
-  autoOption.textContent=current.next?"Auto · next missing tier (T"+current.next+")":"Auto · no missing discovered tiers";
+  autoOption.textContent=next?"Auto · next missing tier (T"+next+")":"Auto · no missing discovered tiers";
   for(const option of [...targetSelect.options].slice(1))option.remove();
   // Show only actionable targets; completed and undiscovered tiers are hidden.
-  const available=availablePerfectoTargets(saved);
   for(const item of available){
    const option=document.createElement("option");
    option.value=String(item.tier);
@@ -107,8 +123,7 @@ export function initializePerfectoUI(getSave){
    requestedCopies=null;
   }
   targetSelect.value=tierChoice;
-  const result=tierChoice==="auto"?current:
-   getPerfectoPlanner(saved,{tier:tierChoice,copies:requestedCopies,protectHigher:protect.checked});
+  const result=getPerfectoPlanner(saved,{tier:tierChoice,...planningOptions()});
   renderBonus(result);
   const ready=!!result.target&&!!result.plan;
   $("perfectoCalculator").classList.toggle("hidden",!ready);
@@ -120,33 +135,44 @@ export function initializePerfectoUI(getSave){
    return;
   }
   const p=result.plan;
-  slider.disabled=p.eligible<=0;
-  slider.min=String(p.minCopies);slider.max=String(Math.max(p.minCopies,p.eligible));
+  slider.disabled=p.maxCopies<=p.minCopies;
+  slider.min=String(p.minCopies);slider.max=String(Math.max(p.minCopies,p.maxCopies));
   slider.value=String(p.copies);
-  text("perfectoCopyCount",p.copies+" / "+p.eligible+" available slots");
+  text("perfectoCopyCount",p.copies+" / "+p.maxCopies+" best simulated");
+  text("perfectoFuelCapacity",result.economy?display(result.economy.capacity):"—");
+  text("perfectoFuelGeneration",result.economy?display(result.economy.generationPerHour)+"/hr":"—");
+  text("perfectoSourceTier",result.cooking?"Tier "+result.cooking.tier:"No affordable tier");
+  text("perfectoSourceCost",result.cooking?display(result.cooking.cost)+" Fuel":"—");
   const state=result.current.perfecto?" · Already Perfecto":" · Not Perfecto";
   summary.replaceChildren(makeIcon(result.target,"perfecto-target-icon"),
    elem("span","","T"+result.target+" · "+result.current.name+state));
   text("perfectoSingleChance",pct(result.singleChance));
   text("perfectoCurrentChance",pct(result.currentChance));
   text("perfectoPlanChance",pct(result.planChance));
+  text("perfectoPlanOddsRatio",result.planChance>0?
+   "1 in "+display(1/result.planChance):"No target copies yet");
   text("perfectoCurrentCopies",String(p.currentCopies)+" on board");
   text("perfectoPlanCopies",String(p.copies)+" copies");
   text("perfectoExpectedActivations",result.expectedActivations===null?"—":
    display(result.expectedActivations));
   text("perfectoProtectedCount",String(p.protected)+" higher-tier sushi protected");
-  text("perfectoPreparationSummary",p.additionalCopies+" new copies · "+
-   p.replaced+" occupied positions replaced · "+p.unlocked+" unlocked slots");
+  const timespan=Number(horizon.value)>=24?display(Number(horizon.value)/24)+" day(s)":horizon.value+" hours";
+  text("perfectoPreparationSummary",p.copies+" confirmed target copies ("+p.currentCopies+
+   " already present) · "+p.protected+" protected · "+p.unlocked+" unlocked slots · "+
+   timespan+" modeled budget · "+p.searchAttempts+" candidate scenarios");
+  text("perfectoModelNote",p.copies===0?
+   "The bounded simulation found no new target copies using ordinary merges, Heat of the East Wind and the modeled cooking budget. It does not claim the target is impossible: a longer preparation, Salt or bonus cooking procs may produce better results.":
+   "This is a final-board recommendation produced through valid ordinary merges and Heat of the East Wind cascades. The search modeled up to "+
+   display(p.purchasedCopies)+" cooked Tier "+(p.sourceTier??"—")+" sushi, finding "+
+   display(p.windUpgrades)+" Wind upgrades. The search is bounded, so this is the best found—not a mathematical proof of the global optimum.");
   for(const m of result.milestones)text("perfectoConfidence"+Math.round(m.confidence*100),
    confidenceValue(m.attempts));
   text("perfectoPepperUses",display(result.preparation.pepperAvailable));
   text("perfectoSaltUses",display(result.preparation.saltAvailable));
-  text("perfectoSaltEstimate",result.preparation.directCook?
-   "0 Salt needed for direct cooking":"Not reliably estimable");
-  text("perfectoFuelEstimate",result.preparation.directCook?
-   "~"+display(result.preparation.minDirectCookFuel)+" Fuel for "+p.additionalCopies+" new direct cooks":
-   "Above direct-cook T"+result.preparation.maxDirectCookTier+
-    ": merge / Wind preparation required");
+  text("perfectoSaltEstimate","0 used in the simulated board");
+  text("perfectoFuelEstimate",result.cooking?
+   "~"+display(result.preparation.minDirectCookFuel)+" Fuel over the modeled budget":
+   "No sustainable affordable cooking tier found");
   text("perfectoFreeShaker",pct(result.freeUse.knownChance)+
    " known refund chance (excludes Research bonuses)");
   text("perfectoExpectedConsumed",result.freeUse.expectedConsumedUpperBound===null?"—":
@@ -154,9 +180,7 @@ export function initializePerfectoUI(getSave){
   const tip=$("perfectoRecommendation");
   tip.className="perfecto-recommendation perfecto-status-"+result.recommendation.state;
   tip.textContent=result.recommendation.text;
-  text("perfectoSaltAdvice",result.preparation.directCook?
-   "Salt is not needed for this target. Directly cook copies instead; save Salt for future preparation.":
-   "Save Salt for preparing high tiers if useful. Salt tiers sushi up and can overshoot the target; do not use it on your completed Perfecto board.");
+  text("perfectoSaltAdvice","The simulated board does not rely on Salt triggers, so you may save them. Salt might improve the real preparation, but its random tier-up effects are not yet included in this deterministic optimization.");
   renderBoard(result);
  }
  activateTab("combo");

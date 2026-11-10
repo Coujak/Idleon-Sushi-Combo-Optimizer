@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Idleon Sushi Station Lab</title><link rel="stylesheet" href="styles.css?v=1.13.0"></head>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Idleon Sushi Station Lab</title><link rel="stylesheet" href="styles.css?v=1.14.0"></head>
 <body><main class="shell"><header class="hero"><div class="hero-copy"><div class="eyebrow hero-eyebrow"><span class="eyebrow-dot"></span> IDLEON · SUSHI STATION TOOLKIT</div><h1>Sushi Station <span>Lab</span></h1><p>Your Sushi Station companion: explore your account, plan the next upgrade, study knowledge tiers, and optimize your Combo Meter.</p><div class="hero-chips"><span>✦ Account overview</span><span>↗ Combo Meter planner</span><span>◈ Upgrade & Knowledge guides</span></div></div><div class="hero-visual" aria-hidden="true"><div class="hero-orbit"></div><img src="assets/sushi/Leviathan%20Roll%20(Tier%2058).png" alt=""><div class="hero-visual-label">TIER 58</div></div></header>
 <nav class="lab-navigation" aria-label="Sushi Station sections" role="tablist">
 <button type="button" class="lab-nav-button" role="tab" data-lab-target="overview" aria-controls="lab-overview" aria-selected="true">Overview</button>
@@ -53,21 +53,40 @@
   <div class="perfecto-probability-grid">
    <div class="perfecto-stat"><span>Single sushi</span><strong id="perfectoSingleChance">—</strong><small>One Pepper Shaker activation</small></div>
    <div class="perfecto-stat"><span>Current board</span><strong id="perfectoCurrentChance">—</strong><small id="perfectoCurrentCopies">—</small></div>
-   <div class="perfecto-stat perfecto-stat-primary"><span>Prepared board (estimated)</span><strong id="perfectoPlanChance">—</strong><small id="perfectoPlanCopies">—</small></div>
+   <div class="perfecto-stat perfecto-stat-primary"><span>Prepared board (estimated)</span><strong id="perfectoPlanChance">—</strong><small id="perfectoPlanOddsRatio" class="perfecto-odds-ratio">1 in —</small><small id="perfectoPlanCopies">—</small></div>
    <div class="perfecto-stat"><span>Average activations</span><strong id="perfectoExpectedActivations">—</strong><small>Until at least one success</small></div>
   </div>
   <p class="hint perfecto-caveat">Single-copy odds follow the Idleon Toolbox / Corgan formula. The board-wide odds and activation counts assume independent rolls for each target copy; that behavior still needs in-game confirmation. Slot and plate position do not appear in the published Perfecto odds formula.</p>
-  <div class="perfecto-section-head"><h3>2 · Recommended prepared board</h3><span class="perfecto-count-label" id="perfectoCopyCount">—</span></div>
+  <div class="perfecto-section-head"><h3>2 · Buildable Wind-optimized board</h3><span class="perfecto-count-label" id="perfectoCopyCount">—</span></div>
+  <p class="hint">The planner searches real 2→1 merges and Heat of the East Wind cascades across different cooking tiers and layouts. The final board contains only target sushi that those simulated actions produced. It shows the result, not the preparation steps.</p>
+  <div class="perfecto-fuel-controls">
+   <label>Preparation horizon<select id="perfectoPlanHours"><option value="24">1 day</option><option value="168" selected>7 days</option><option value="720">30 days</option><option value="2160">90 days</option></select></label>
+   <label>Average cooking pace<select id="perfectoCookingPace"><option value="5">1 cook every 5 seconds</option><option value="20" selected>1 cook every 20 seconds</option><option value="60">1 cook per minute</option></select></label>
+   <label>Cooking strategy<select id="perfectoFuelMode"><option value="yield">Most target-tier material</option><option value="steady">Only cook when fuel regenerates quickly enough</option></select></label>
+  </div>
+  <div class="perfecto-fuel-economy">
+   <div><span>Estimated maximum Fuel</span><strong id="perfectoFuelCapacity">—</strong></div>
+   <div><span>Estimated Fuel per hour</span><strong id="perfectoFuelGeneration">—</strong></div>
+   <div><span>Recommended cooking tier</span><strong id="perfectoSourceTier">—</strong></div>
+   <div><span>Fuel for one cook</span><strong id="perfectoSourceCost">—</strong></div>
+  </div>
+  <details class="perfecto-fuel-overrides"><summary>Correct fuel numbers using your in-game values (optional)</summary>
+   <div class="perfecto-fuel-override-inputs">
+    <label>In-game maximum Fuel<input id="perfectoCapOverride" type="number" min="0" step="any" placeholder="Use estimated"></label>
+    <label>In-game Fuel generation / hour<input id="perfectoGenOverride" type="number" min="0" step="any" placeholder="Use estimated"></label>
+   </div>
+   <p class="hint">The imported save provides upgrades, Knowledge and fireplaces. Some external bundles or event bonuses can make estimated fuel figures differ from the game. Overrides apply only inside this planner.</p>
+  </details>
   <div class="perfecto-copies-setting">
-   <label for="perfectoCopies">Target copies to prepare</label>
-   <input type="range" id="perfectoCopies" min="1" max="100" value="100">
-   <p class="hint">Defaults to the maximum number of available slots. Move the slider to plan a smaller preparation. Current copies are preserved, and empty Regular slots are used before occupied or special slots.</p>
+   <label for="perfectoCopies">Target sushi copies (limited to estimated attainable copies)</label>
+   <input type="range" id="perfectoCopies" min="0" max="100" value="0">
+   <p class="hint">Defaults to the most target copies found by the bounded Wind simulation. You may display fewer; the planner never invents additional target copies. Salt and bonus-cooking procs are excluded.</p>
   </div>
   <div class="perfecto-board-note" id="perfectoPreparationSummary"></div>
-  <div class="perfecto-legend"><span><i class="perfecto-legend-target"></i> Target copies</span><span><i class="perfecto-legend-new"></i> Needs preparation</span><span><i class="perfecto-legend-protected"></i> Protected</span><span><i class="perfecto-legend-locked"></i> Locked</span></div>
+  <div class="perfecto-legend"><span><i class="perfecto-legend-target"></i> Target copies</span><span><i class="perfecto-legend-new"></i> Needs preparation</span><span><i class="perfecto-legend-ingredient"></i> Other sushi</span><span><i class="perfecto-legend-protected"></i> Protected</span><span><i class="perfecto-legend-locked"></i> Locked</span></div>
   <div class="board-scroll perfecto-board-scroll"><div id="perfectoBoard" class="perfecto-board" aria-label="Recommended Perfecto target sushi board"></div></div>
   <p class="hint" id="perfectoProtectedCount">—</p>
-  <p class="hint">This is a recommended final placement, not a verified merge-by-merge build route. Keeping the existing plate locations avoids unnecessary slot movements; plates and fireplaces may still matter for other production bonuses.</p>
+  <p class="hint" id="perfectoModelNote">This is a simulated final arrangement, not a prescribed preparation route. It uses valid normal merges and Heat of the East Wind, a bounded search budget, and account-based cooking estimates. Salt and bonus-cook procs are excluded.</p>
   <div class="perfecto-section-head"><h3>3 · Pepper Shaker plan</h3></div>
   <div id="perfectoRecommendation" class="perfecto-recommendation" role="status"></div>
   <div class="perfecto-attempt-grid">
@@ -79,12 +98,12 @@
    <div><span>Current Pepper uses</span><strong id="perfectoPepperUses">—</strong></div>
    <div><span>Current Salt uses</span><strong id="perfectoSaltUses">—</strong></div>
    <div><span>Estimated Salt needed for setup</span><strong id="perfectoSaltEstimate">—</strong></div>
-   <div><span>Direct-cook preparation estimate</span><strong id="perfectoFuelEstimate">—</strong></div>
+   <div><span>Fuel spent in simulated cooking</span><strong id="perfectoFuelEstimate">—</strong></div>
    <div><span>Known free-Shaker chance</span><strong id="perfectoFreeShaker">—</strong></div>
    <div><span>Estimated spent Pepper uses</span><strong id="perfectoExpectedConsumed">—</strong></div>
   </div>
   <p id="perfectoSaltAdvice" class="perfecto-advice"></p>
-  <p class="hint">Salt is for tier-up preparation, not Perfecto rolls. A Salt activation count cannot yet be reliably predicted from published game formulas for higher-tier builds. Free-use estimates exclude any unverified Research-grid bonuses.</p>
+  <p class="hint">Salt is for optional tier-up preparation, not Perfecto rolls. This baseline assumes no Salt effects and therefore does not estimate the number of Salt activations needed for an improved board. Free-use estimates exclude any unverified Research-grid bonuses.</p>
   <div class="perfecto-section-head"><h3>Additional info · Perfecto chance Knowledge</h3><span class="perfecto-count-label">Combined <strong id="perfectoBonusTotal">—</strong></span></div>
   <div class="perfecto-bonus-grid" id="perfectoBonusCards"></div>
   <p class="hint">Tier 50 and Tier 54 boost the chance to Perfecto sushi. Their existing Knowledge levels and Perfecto status are included automatically. Knowledge leveling recommendations belong to the future Knowledge Leveling Planner.</p>
@@ -129,8 +148,9 @@
 <p class="hint lab-disclaimer">Values reflect the imported save. Perfecto doubles the relevant knowledge bonus; EXP and bonuses may differ from the game if the rules change in an update.</p>
 </section></div>
 <section class="panel changelog-panel">
-<div class="heading"><div><div class="eyebrow">LATEST UPDATES</div><h2>Patch notes</h2></div><span class="status">v1.13.0</span></div>
+<div class="heading"><div><div class="eyebrow">LATEST UPDATES</div><h2>Patch notes</h2></div><span class="status">v1.14.0</span></div>
 <div class="changelog-content">
+<div class="changelog-item"><strong>v1.14.0 · Buildable Perfecto boards</strong><p>Replaced imaginary high-tier target copies with a bounded board search using real 2→1 merges, Heat of the East Wind, imported fuel capacity and regeneration, and protected higher-tier sushi. Added cooking-budget controls and a 1 in X success ratio.</p></div>
 <div class="changelog-item"><strong>v1.13.0 · Perfecto Planner</strong><p>Added a new planner with automatic or manual tier targeting, per-copy and estimated board-wide Perfecto odds, preservation-aware prepared boards, Pepper confidence milestones, Shaker guidance, and Tier 50 / 54 Knowledge chance bonuses.</p></div>
 <div class="changelog-item"><strong>v1.12.4 · Correct Sushi Doubler artwork</strong><p>Replaced the Doubler icon with the authentic transparent in-game image and preserved its original pixel-art proportions.</p></div>
 <div class="changelog-item"><strong>v1.12.3 · Compact catalog layout</strong><p>Removed unexpected row dividers and excess spacing, grouped upgrade icons with descriptions, balanced the column sizes, and refreshed the catalog typography and controls.</p></div>
@@ -180,4 +200,4 @@
 <p><strong>v1.6</strong> — Better Wind chains that can reuse sushi to earn more points.</p>
 <p><strong>v1.5</strong> — More board layouts and merge routes to choose from.</p>
 <p><strong>v1.4</strong> — A cleaner look and easier step-by-step replay.</p>
-<p><strong>Earlier</strong> — Added custom boards, sushi artwork, and save imports.</p></div></details></section></main><script type="module" src="src/app.js?v=1.13.1"></script></body></html>
+<p><strong>Earlier</strong> — Added custom boards, sushi artwork, and save imports.</p></div></details></section></main><script type="module" src="src/app.js?v=1.14.0"></script></body></html>

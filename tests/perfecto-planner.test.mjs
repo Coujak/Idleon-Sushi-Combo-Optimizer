@@ -6,6 +6,8 @@ import {
  sushiDirectCookFuel,chooseNextPerfectoTier,availablePerfectoTargets,perfectoBoardPlan,getPerfectoPlanner
 } from "../src/perfecto-planner.mjs";
 import {getKnowledgeRows} from "../src/lab-model.mjs";
+import {searchPerfectoBoard,verifyPerfectoSearch,getSushiWindCap} from "../src/perfecto-wind-search.mjs";
+import {estimateSushiFuelEconomy,chooseFuelCookingTier} from "../src/perfecto-fuel.mjs";
 
 function exampleSave(){
  const sushi=Array.from({length:8},()=>[]);
@@ -61,33 +63,27 @@ test("Ascending mode selects the lowest discovered tier not yet Perfecto",()=>{
  assert.equal(chooseNextPerfectoTier(save),null);
  assert.equal(chooseNextPerfectoTier(null),null);
 });
-test("Board planner uses unlocked slots, preserves higher sushi and existing copies",()=>{
+test("Search builds final target sushi through valid merges, not invented placement",()=>{
  const save=exampleSave();
- const plan=perfectoBoardPlan(save,2);
- assert.equal(plan.unlocked,12);
- assert.equal(plan.eligible,11);
- assert.equal(plan.protected,1);
- assert.equal(plan.currentCopies,1);
- assert.equal(plan.copies,11);
- assert.equal(plan.additionalCopies,10);
- assert.equal(plan.board.length,120);
- assert.equal(plan.board[0].role,"protected");
- assert.equal(plan.board[0].preparedTier,15);
- assert.equal(plan.board[1].role,"target");
- assert.equal(plan.board[1].preparedTier,1);
- assert.equal(plan.board[2].role,"target");
- assert.equal(plan.board[2].tile,-1);
- assert.equal(plan.board[12].role,"locked");
- const reduced=perfectoBoardPlan(save,2,{copies:3});
- assert.equal(reduced.copies,3);
- assert.ok(reduced.positions.includes(1));
+ const p=getPerfectoPlanner(save,{tier:2,maxActions:120});
+ assert.equal(p.plan.unlocked,12);
+ assert.equal(p.plan.protected,1);
+ assert.equal(p.plan.currentCopies,1);
+ assert.ok(p.plan.copies>=1&&p.plan.copies<=11);
+ assert.equal(p.plan.board.length,120);
+ assert.equal(p.plan.board[0].role,"protected");
+ assert.equal(p.plan.board[0].preparedTier,15);
+ assert.equal(p.plan.board[1].role,"target");
+ assert.equal(p.plan.board[1].preparedTier,1);
+ assert.equal(p.plan.board[12].role,"locked");
+ assert.equal(p.plan.copies,p.search.targetCount);
+ assert.ok(verifyPerfectoSearch(save,2,p.search,p.search.windCap));
+ const reduced=perfectoBoardPlan(save,2,{copies:Math.min(3,p.plan.copies),maxActions:120});
+ assert.equal(reduced.copies,Math.min(3,p.plan.copies));
  assert.equal(reduced.board[0].role,"protected");
- assert.equal(reduced.additionalCopies,2);
- const unprotected=perfectoBoardPlan(save,2,{protectHigher:false});
- assert.equal(unprotected.eligible,12);
+ const unprotected=perfectoBoardPlan(save,2,{protectHigher:false,maxActions:120});
  assert.equal(unprotected.protected,0);
- assert.equal(unprotected.copies,12);
- assert.equal(unprotected.board[0].role,"target");
+ assert.ok(unprotected.eligible>=11);
 });
 test("Full planner includes knowledge bonuses, odds, Pepper count and no invented Salt rate",()=>{
  const save=exampleSave();
@@ -95,15 +91,16 @@ test("Full planner includes knowledge bonuses, odds, Pepper count and no invente
  assert.equal(p.target,2);
  assert.equal(p.preparation.saltAvailable,8);
  assert.equal(p.preparation.pepperAvailable,4);
- assert.equal(p.preparation.saltEstimate,null); // T2 is above direct-cook T1
+ assert.equal(p.preparation.saltEstimate,0); // the deterministic search uses no Salt
  assert.equal(p.preparation.directCook,false);
- assert.equal(p.plan.copies,11);
+ assert.ok(p.plan.copies>=1&&p.plan.copies<=11);
  assert.equal(p.bonus.rows.length,2);
  const k=getKnowledgeRows(save).filter(x=>x.category===10);
  assert.ok(Math.abs(p.bonus.knowledgeBonus-k.reduce((a,x)=>a+x.bonus,0))<1e-10);
  assert.ok(p.singleChance>0&&p.singleChance<=1);
  assert.ok(p.planChance>=p.currentChance);
  assert.equal(p.independenceAssumption,true);
+ assert.equal(p.simulatedWind,true);
  assert.equal(p.freeUse.researchNotIncluded,true);
  assert.ok(p.milestones.every(x=>x.attempts>=1));
  const completed=getPerfectoPlanner(save,{tier:1});
@@ -111,7 +108,8 @@ test("Full planner includes knowledge bonuses, odds, Pepper count and no invente
  const manual=getPerfectoPlanner(save,{tier:50,copies:2});
  assert.equal(manual.target,50);
  assert.ok(manual.singleChance<1);
- assert.equal(manual.plan.copies,2);
+ assert.ok(manual.plan.copies<=2); // no invented copies for high-tier manual targets
+ assert.equal(manual.plan.copies,Math.min(2,manual.search.targetCount));
  assert.equal(manual.current.name,"Soylent Nigiri");
  assert.equal(getPerfectoPlanner(save,{tier:4}).reason,"undiscovered");
 });
@@ -127,7 +125,7 @@ test("Salt is optional when a tier can be cooked directly; higher tiers need mer
  assert.equal(sushiDirectCookFuel(1),10);
  const high=getPerfectoPlanner(save,{tier:50});
  assert.equal(high.preparation.directCook,false);
- assert.equal(high.preparation.saltEstimate,null);
+ assert.equal(high.preparation.saltEstimate,0); // no Salt effects are assumed by this simulator
 });
 test("Perfecto UI is separate from Combo and connected to imported save refresh",()=>{
  const html=readFileSync(new URL("../index.html",import.meta.url),"utf8");
@@ -160,4 +158,50 @@ test("Target selector offers only discovered and not-yet-Perfecto sushi",()=>{
  assert.ok(ui.includes("for(const item of available)"));
  assert.ok(ui.includes('tierChoice="auto";'));
  assert.ok(!ui.includes("for(const item of SUSHI_KNOWLEDGE)"));
+});
+
+test("Fuel economy selects affordable tiers using capacity and regeneration",()=>{
+ const save=exampleSave();
+ const economy=estimateSushiFuelEconomy(save,{capacityOverride:3000,generationOverride:1800});
+ assert.equal(economy.capacity,3000);
+ assert.equal(economy.generationPerHour,1800);
+ assert.equal(economy.manualCapacity,true);
+ assert.equal(economy.manualGeneration,true);
+ const source=chooseFuelCookingTier(economy,12,{hours:24,secondsPerCook:20});
+ assert.ok(source.tier>=1&&source.tier<=12);
+ assert.ok(source.cost<=3000);
+ assert.ok(source.possibleCooks<=Math.floor(24*3600/20));
+ assert.ok(source.possibleCooks<=Math.floor((economy.currentFuel+1800*24)/source.cost));
+});
+test("Wind cap is account-aware and the search preserves higher-tier sushi",()=>{
+ const save=exampleSave();
+ save.sushi[2][29]=1;
+ save.sushi[5]=Array(64).fill(0);
+ save.tiles[0]=63;
+ assert.equal(getSushiWindCap(save),58);
+ const economy=estimateSushiFuelEconomy(save,{capacityOverride:10000,generationOverride:20000});
+ const result=searchPerfectoBoard(save,2,economy,{hours:24,secondsPerCook:20,maxActions:70});
+ assert.equal(result.board[0],64);
+ assert.equal(result.windCap,58);
+ assert.ok(result.targetCount>=1&&result.targetCount<=11);
+ assert.ok(result.purchased<=result.searchCookLimit);
+ assert.ok(verifyPerfectoSearch(save,2,result,result.windCap));
+});
+test("Unreachable high target is not painted over the whole board",()=>{
+ const save=exampleSave();
+ save.sushi[5][61]=0;
+ const p=getPerfectoPlanner(save,{tier:62,maxActions:65,hours:24});
+ assert.equal(p.target,62);
+ assert.equal(p.plan.currentCopies,0);
+ assert.equal(p.plan.copies,0);
+ assert.ok(p.plan.board.every(x=>x.role!=="target"));
+ assert.equal(p.plan.board[0].role,"ingredient");
+});
+test("Percentage odds and 1 in X label are both rendered",()=>{
+ const ui=readFileSync(new URL("../src/perfecto-ui.mjs",import.meta.url),"utf8");
+ const html=readFileSync(new URL("../index.html",import.meta.url),"utf8");
+ assert.ok(ui.includes('text("perfectoPlanChance",pct(result.planChance))'));
+ assert.ok(ui.includes('text("perfectoPlanOddsRatio",result.planChance>0?'));
+ assert.ok(html.includes('id="perfectoPlanOddsRatio"'));
+ assert.ok(html.includes('id="perfectoPlanChance"'));
 });
