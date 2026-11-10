@@ -272,6 +272,12 @@ test("Account export resolves every upgrade description dollar placeholder",()=>
  assert.match(estimate.text,/^[0-9.,]+(?:[A-Za-z]+)? Fuel\/hr\. Max Cap is [0-9.,]+(?:[A-Za-z]+)? Fuel$/);
  const segments=upgradeDescriptionSegments(fastburn.description,fastburn,true,estimate);
  assert.ok(segments.some(p=>p.kind==="estimated"));
+ assert.deepEqual(segments.filter(p=>p.kind==="estimated").map(p=>p.text),
+  [estimate.segments[0].text,estimate.segments[2].text],
+  "Fuel rate and capacity should be independently highlighted");
+ assert.ok(segments.some(p=>p.kind==="text"&&p.text.includes("Max Cap is ")),
+  "Max Cap is must remain normal prose outside the colored value");
+ assert.ok(segments.every(p=>!(p.kind==="estimated"&&p.text.includes("Max Cap is"))));
 });
 test("Dollar multipliers, percentages, fireplace bonuses, and resources use correct units",()=>{
  const levels=Array(50).fill(0),tracking=Array(100).fill(0),kn=Array(100).fill(0);
