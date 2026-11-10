@@ -160,7 +160,8 @@ test("Catalog references transparent Doubler art and account discounts",()=>{
  assert.ok(ui.includes("estimatedNextCost"));
  assert.ok(ui.includes("sushiUpgradeExtraText(u,s)"));
  assert.match(html,/Current Bucks \/ Next cost/);
- assert.ok(html.includes("Jelly Operator"));
+ const model=readFileSync(new URL("../src/lab-model.mjs",import.meta.url),"utf8");
+ assert.ok(model.includes("Jelly Operator obstruction bonus"));
 });
 
 test("The catalog displays current balance / next price with accessible affordability labels",()=>{
