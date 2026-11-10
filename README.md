@@ -12,6 +12,12 @@ Browser-based Sushi Station account dashboard, reference guides and Combo Meter 
 
 The advisors are informational and never modify the imported save. Price estimates use account discounts when their source data is available. Reference metadata is derived from the public Idleon Toolbox Sushi Station parser and tables, and can change as the game updates.
 
+## Perfecto final-board preparation (v1.15.3)
+
+For a certified merge-only target board, the remaining unoccupied positions are **temporary construction workspace**, not permanently empty cells. Complete target copies first, then use the released workspace to build the supporting sushi **highest tier first**. Fill leftover positions with the highest descending ladder supported by the account's Heat of the East Wind cap, the target tier, and the space needed to recursively cook/merge the ingredients.
+
+For example, with **100 unlocked slots**, **one protected Tier 64**, **82 Tier 62 target copies**, and **Tier 45** as the highest directly affordable source, positions **84–100** become **T58, T57, ..., T42** (one each). Each supporting ingredient can be made without moving the already completed targets: the required working-space depth decreases along with the available slots. The unbroken descending ladder uses **T47**, not a duplicate T48. It does **not** increase immediate Pepper Perfecto odds; it makes use of otherwise wasted slots and leaves a useful future merge supply. The solver still has no preparation-time cap or manual target-copy input, and 82 copies are a constructive lower bound rather than a global optimum proof.
+
 ## Game artwork and naming
 
 See [`assets/README.md`](assets/README.md) for the complete artwork inventory and links to each folder.
