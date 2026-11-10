@@ -67,14 +67,18 @@ export const CATALOG_STATUS_OPTIONS=Object.freeze([
 export function upgradeSummary(upgrade){
  return SHORT_DESCRIPTIONS[upgrade.shop-1]??"See the full upgrade details.";
 }
-export function readableUpgradeDescription(raw){
+// Only the { placeholders follow the direct per-level effect already modeled
+// in getUpgradeRows. Other placeholders may involve distinct game formulas.
+export function readableUpgradeDescription(raw,upgrade=null,hasSave=false){
  if(!raw)return "No effect description is available.";
+ const known=hasSave&&upgrade&&Number.isFinite(upgrade.rawBonus);
+ const bonus=known?upgrade.rawBonus.toLocaleString("en-US",{maximumFractionDigits:3}):"[variable]";
  return raw.trim()
   .replace(/\s*@\s*/g," ")
-  .replace(/\+\{%/g,"+[variable]%")
-  .replace(/\{%/g,"[variable]%")
-  .replace(/\+\{/g,"+[variable]")
-  .replace(/\{/g,"[variable]")
+  .replace(/\+\{%/g,"+"+bonus+"%")
+  .replace(/\{%/g,bonus+"%")
+  .replace(/\+\{/g,"+"+bonus)
+  .replace(/\{/g,bonus)
   .replace(/\$x/g,"[in-game value]×")
   .replace(/\$%/g,"[in-game value]%")
   .replace(/\}x/g,"[in-game value]×")
@@ -82,8 +86,9 @@ export function readableUpgradeDescription(raw){
   .replace(/\[resource\]/gi,"resource")
   .replace(/\s+/g," ");
 }
-export function catalogHasVariableValues(raw){
- return /[\{\}\$]/.test(raw??"");
+export function catalogHasVariableValues(raw,upgrade=null,hasSave=false){
+ const text=readableUpgradeDescription(raw,upgrade,hasSave);
+ return text.includes("[variable]")||text.includes("[in-game value]");
 }
 export function filterSortCatalog(upgrades,{query="",category="all",status="all",sort="shop",hasSave=false}={}){
  const search=String(query).trim().toLocaleLowerCase();

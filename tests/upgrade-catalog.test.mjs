@@ -74,3 +74,37 @@ test("Upgrade Catalog has accessible controls without the reference footer",()=>
  assert.equal(CATALOG_SORT_OPTIONS[0].value,"shop");
  assert.equal(CATALOG_STATUS_OPTIONS[0].value,"all");
 });
+
+test("Account levels replace supported upgrade bonus placeholders, including Doubler",()=>{
+ const save={sushi:[[],[],Array(46).fill(0),[],[],[],[],[]],spelunk:Array.from({length:53},()=>[])};
+ save.sushi[2][41]=1240;
+ const hourly=getUpgradeRows(save).find(u=>u.shop===1);
+ const description=readableUpgradeDescription(hourly.description,hourly,true);
+ assert.match(description,/\+1,240% total Bucks/);
+ assert.equal(catalogHasVariableValues(hourly.description,hourly,true),false);
+ assert.match(readableUpgradeDescription(hourly.description,hourly,false),/\+\[variable\]%/);
+
+ save.spelunk[52]=[41];
+ const doubled=getUpgradeRows(save).find(u=>u.shop===1);
+ assert.match(readableUpgradeDescription(doubled.description,doubled,true),/\+2,480% total Bucks/);
+ assert.equal(doubled.rawBonus,2480);
+});
+test("Other supported per-level percentages and amounts use the imported level",()=>{
+ const save={sushi:[[],[],Array(46).fill(0),[],[],[],[],[]],spelunk:[]};
+ save.sushi[2][30]=9;  // Customer Surcharge I: +2% per level
+ save.sushi[2][35]=5;  // Quickpay Fee: +1 minute per level
+ const rows=getUpgradeRows(save);
+ const surcharge=rows.find(u=>u.name==="Customer Surcharge I");
+ const quickpay=rows.find(u=>u.name==="Quickpay Fee");
+ assert.match(readableUpgradeDescription(surcharge.description,surcharge,true),/\+18%/);
+ assert.match(readableUpgradeDescription(quickpay.description,quickpay,true),/5 minutes/);
+});
+test("Descriptions preserve unknown non-linear game values instead of guessing",()=>{
+ const save={sushi:[[],[],Array(46).fill(0),[],[],[],[],[]],spelunk:[]};
+ save.sushi[2][9]=10;
+ const fuel= getUpgradeRows(save).find(u=>u.name==="Fastburn Fuel II");
+ const text=readableUpgradeDescription(fuel.description,fuel,true);
+ assert.match(text,/\+1,000% faster Fuel/);
+ assert.match(text,/\[in-game value\]× Fuel Generation/);
+ assert.ok(catalogHasVariableValues(fuel.description,fuel,true));
+});

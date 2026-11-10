@@ -1,7 +1,7 @@
 // Sushi Station Lab: lightweight, accessible navigation and account-aware
 // information panels. All imported JSON stays in memory on the user's device.
 import {sushiUpgradeIconPath,sushiTierIconPath} from "./sushi-reference.mjs?v=1.10.2";
-import {CATALOG_SORT_OPTIONS,CATALOG_STATUS_OPTIONS,upgradeSummary,readableUpgradeDescription,catalogHasVariableValues,filterSortCatalog} from "./upgrade-catalog.mjs?v=1.11.0";
+import {CATALOG_SORT_OPTIONS,CATALOG_STATUS_OPTIONS,upgradeSummary,readableUpgradeDescription,catalogHasVariableValues,filterSortCatalog} from "./upgrade-catalog.mjs?v=1.11.1";
 import {ADVISOR_GOALS,numberText,getSushiSnapshot,getUpgradeRows,
  getKnowledgeRows,advisorUpgrades,doublerUpgrades} from "./lab-model.mjs";
 
@@ -253,10 +253,11 @@ export function initializeSushiLab(getSave){
     el("span","lab-upgrade-summary",upgradeSummary(u)));
    identity.append(upgradeArtwork(u),copy);
    summary.append(identity,el("span","lab-catalog-more","Details"));
-   details.append(summary,el("p","lab-catalog-description",readableUpgradeDescription(u.description)));
-   if(catalogHasVariableValues(u.description)){
-    details.append(el("p","lab-catalog-variable-note",
-     "[variable] and [in-game value] indicate amounts calculated by the game, not confirmed account-specific values."));
+   details.append(summary,el("p","lab-catalog-description",readableUpgradeDescription(u.description,u,hasSave)));
+   if(catalogHasVariableValues(u.description,u,hasSave)){
+    details.append(el("p","lab-catalog-variable-note",hasSave?
+     "Remaining [in-game value] amounts require additional game calculations not yet available here.":
+     "Import your save to calculate level-based bonuses; some in-game values may remain unavailable."));
    }
    name.append(details);
    const level=u.maxLevel===0?"Unavailable":hasSave?fmt(u.level)+(u.maxLevel>0?" / "+fmt(u.maxLevel):""):"Import save";
