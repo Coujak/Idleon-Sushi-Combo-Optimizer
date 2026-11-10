@@ -1,4 +1,4 @@
-import {SUSHI_UPGRADES,SUSHI_KNOWLEDGE,KNOWLEDGE_CATEGORIES,ELIGIBLE_DOUBLERS} from "./sushi-reference.mjs";
+import {SUSHI_UPGRADES,SUSHI_KNOWLEDGE,KNOWLEDGE_CATEGORIES,ELIGIBLE_DOUBLERS} from "./sushi-reference.mjs?v=1.16.6";
 export const ADVISOR_GOALS=[
  {id:"bucks",name:"Bucks generation"},
  {id:"capacity",name:"Fuel capacity"},
