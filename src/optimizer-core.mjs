@@ -18,11 +18,16 @@ export function simulateMerge(board,src,dst,cap,chainLimit,maximumTier=64){
   const windLimit=effectiveWindChainLimit(chainLimit);
   if(src<dst&&before<=cap&&windLimit>0){
     let previous=before;
+    // The 25-tier cascade budget starts at the newly merged tier, not
+    // at the first Wind tile. A gap (e.g. T38 followed by T33) spends the
+    // skipped tier levels too: T38 can reach T13 but never T12 or lower.
+    // Also retain the independent 25-affected-sushi safety bound.
+    const lowestEligibleTier=next[dst]-windLimit;
     for(let q=dst+1;q<next.length&&events.length-1<windLimit;q++){
       const tier=next[q];
-      // First target must be lower than the merged sushi; subsequent ones
-      // must form a strictly descending staircase.
-      if(tier<1||tier>=maximumTier||(q===dst+1?tier>before:tier!==previous-1))break;
+      // First target may skip tiers; subsequent targets form a staircase.
+      if(tier<1||tier>=maximumTier||tier<lowestEligibleTier||
+        (q===dst+1?tier>before:tier!==previous-1))break;
       next[q]=tier+1;
       score+=next[q];
       events.push({at:q,tier:next[q],kind:"wind"});
