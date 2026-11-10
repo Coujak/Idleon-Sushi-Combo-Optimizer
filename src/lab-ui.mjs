@@ -554,7 +554,7 @@ export function initializeSushiLab(getSave){
    const copy=el("div","lab-advisor-purchase-copy");
    copy.append(el("strong","",step.name),
     el("small","","Level "+fmt(step.fromLevel)+" → "+fmt(step.toLevel)+
-      (step.doubled?" · Doubled":""));
+      (step.doubled?" · Doubled":"")));
    identity.append(copy);
    const price=el("div","lab-advisor-purchase-price");
    price.append(el("strong","",numberDisplay(step.price)+" Bucks"),
