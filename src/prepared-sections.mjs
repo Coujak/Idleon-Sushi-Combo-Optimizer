@@ -15,7 +15,7 @@ export function hasSlotLayoutChanges(currentSlots,recommendedSlots){
 }
 
 export function getPreparedBoardSections(candidate,slots){
-  const match=/^Experimental (\\d+)\\.0(?:\\s|·)/.exec(candidate?.name??"");
+  const match=/^Experimental (\d+)\.0(?:\s|·)/.exec(candidate?.name??"");
   const experiment=match?Number(match[1]):0;
   const firstEngineIndex=FIRST_ENGINE_INDEX[experiment];
   if(!firstEngineIndex||!Array.isArray(candidate?.board)||candidate.board.length!==120||
