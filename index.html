@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Idleon Sushi Station Lab</title><link rel="stylesheet" href="styles.css?v=1.12.4"></head>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Idleon Sushi Station Lab</title><link rel="stylesheet" href="styles.css?v=1.13.0"></head>
 <body><main class="shell"><header class="hero"><div class="hero-copy"><div class="eyebrow hero-eyebrow"><span class="eyebrow-dot"></span> IDLEON · SUSHI STATION TOOLKIT</div><h1>Sushi Station <span>Lab</span></h1><p>Your Sushi Station companion: explore your account, plan the next upgrade, study knowledge tiers, and optimize your Combo Meter.</p><div class="hero-chips"><span>✦ Account overview</span><span>↗ Combo Meter planner</span><span>◈ Upgrade & Knowledge guides</span></div></div><div class="hero-visual" aria-hidden="true"><div class="hero-orbit"></div><img src="assets/sushi/Leviathan%20Roll%20(Tier%2058).png" alt=""><div class="hero-visual-label">TIER 58</div></div></header>
 <nav class="lab-navigation" aria-label="Sushi Station sections" role="tablist">
 <button type="button" class="lab-nav-button" role="tab" data-lab-target="overview" aria-controls="lab-overview" aria-selected="true">Overview</button>
@@ -25,9 +25,12 @@
 <section class="panel"><div class="heading"><div><div class="eyebrow">02 · SUSHI STATION</div><h2>Your board</h2></div><span id="boardStatus" class="status">Import a save</span></div><p class="hint">Tile numbers show displayed tiers (stored sushi ID + 1). Perfecto symbols indicate Sushi[5] Perfecto flags (positive values). Board layout is an initial reconstruction to verify against the game.</p><div class="legend"><span><i class="normal"></i>Regular</span><span><i class="hot"></i>Hot</span><span><i class="cold"></i>Cold</span><span><i class="milk"></i>Milktoast</span><span class="perfecto-legend"><img src="assets/Perfecto_Symbol.png" alt="" class="perfecto-legend-icon"> = Perfecto</span></div><div class="board-scroll"><div id="board" class="board" aria-label="Sushi Station board"></div><div id="fireplaces" aria-label="Fireplaces below the board"></div></div><p id="boardDetails" class="hint">Your imported tiles will appear here.</p></section>
 </div>
 <div id="lab-planners" class="lab-tab-content hidden" role="tabpanel" aria-label="Planners" aria-hidden="true">
-<section class="panel lab-planner-intro"><div class="heading"><div><div class="eyebrow">SUSHI STATION · PLANNERS</div><h2>Choose a planner</h2></div><span class="status">1 available</span></div>
+<section class="panel lab-planner-intro"><div class="heading"><div><div class="eyebrow">SUSHI STATION · PLANNERS</div><h2>Choose a planner</h2></div><span class="status">2 available</span></div>
+<div class="lab-planner-cards">
 <div class="lab-planner-card"><div><h3>Combo Meter Planner</h3><p class="hint">All existing strategies, custom boards and replay controls are preserved. The Tier 64 research record is 76,532 simulated points.</p></div><span class="lab-mini-badge">Available</span></div>
-<p class="hint">Additional planners can be added later; no Bucks or Knowledge layout optimizers are included yet.</p></section>
+<div class="lab-planner-card"><div><h3>Perfecto Planner</h3><p class="hint">Choose one target sushi tier, prepare copies, compare single versus board-wide Perfecto odds, and plan Pepper Shaker uses.</p></div><span class="lab-mini-badge">New</span></div>
+</div><p class="hint">Knowledge leveling and additional planners will be added separately.</p></section>
+<nav class="lab-subnavigation lab-planner-navigation" role="tablist" aria-label="Choose planner"><button type="button" role="tab" data-planner-target="combo" aria-controls="solver" aria-selected="true">Combo Meter</button><button type="button" role="tab" data-planner-target="perfecto" aria-controls="perfectoPlanner" aria-selected="false">Perfecto</button></nav>
 <section id="solver" class="panel"><div class="heading"><div><div class="eyebrow">03 · COMBO OPTIMIZER</div><h2>Optimized preparation and merge sequence</h2></div><span class="status">Optimizer</span></div><p class="hint">Import JSON to compare different arrangements of your unlocked slots and find a promising sushi layout and merge sequence. Heat cascades through strictly descending tiers to the right, including across row boundaries, up to 25 upgrades per qualifying merge (Wind tier limit follows your selected highest unlocked tier minus six). The optimizer compares prepared layouts and merge strategies, including repeatable East Wind staircases and zero-point sushi repositioning. Predicted scores require in-game confirmation.</p><div class="actions"><label class="optimizer-mode-select">Optimizer strategy <select id="optimizerMode"><option value="default" selected>Default — Balanced Planner</option></select></label><label>Starting base tier <select id="baseTier"><option value="0">Auto (search all)</option><option value="custom">Custom board</option><option value="manual">Enter a tier…</option><option value="31">31</option><option value="32">32</option><option value="33">33</option><option value="34">34</option><option value="35">35</option><option value="36">36</option><option value="37">37</option><option value="38">38</option><option value="39">39</option><option value="40">40</option><option value="41">41</option></select></label><label id="manualBaseTierLabel" class="hidden">Manual starting tier <input id="manualBaseTier" type="number" min="1" step="1" value="31"></label><label>Maximum prepared tier <input id="seedTier" type="number" min="1" step="1" value="64" title="Tier 64 is the current research cap; higher settings preview future sushi tiers"></label><label>Wind tier limit <input id="windCap" type="number" min="0" max="58" step="1" value="58" title="Choose your Heat of the East Wind tier limit"><span id="windCapHint" class="wind-cap-hint">Maximum: 58 (prepared tier − 6)</span></label><label>Maximum wind chain <input id="chainLimit" type="number" min="0" max="25" value="25"></label><label>Combo timeout (s) <input id="comboTimeout" type="number" min="0.1" step="0.1" value="5.5"></label><label>Manual merge time (s) <input id="mergeTime" type="number" min="0.1" step="0.1" value="1.5"></label><label>Reposition time (s) <input id="relocationTime" type="number" min="0.1" step="0.1" value="0.6"></label><div class="optimizer-run-actions"><button id="runSolver" class="button primary" type="button">Run optimizer</button><button id="cancelSolver" class="button secondary hidden" type="button">Cancel</button></div></div><div class="mode-overview" aria-live="polite">
 <div class="mode-overview-head"><strong id="optimizerModeName">Default · Balanced Planner</strong><span id="optimizerDifficulty" class="mode-difficulty">Adaptive</span><span id="optimizerModeBenchmark" class="mode-benchmark">Flexible setups</span></div>
 <p class="hint optimizer-mode-hint" id="optimizerModeHint">Flexible preparation and merge strategies.</p>
@@ -36,6 +39,58 @@
 <div class="mode-comparison-scroll"><table aria-label="Strategy comparison"><thead><tr><th>Strategy</th><th>Difficulty</th><th>Simulated points</th></tr></thead><tbody id="modeComparisonRows"></tbody></table></div>
 <p class="hint mode-comparison-note">Difficulty is an estimated manual setup and execution challenge, not optimizer runtime. Benchmarks require 100 contiguous unlocked slots, Tier 64, Wind limit 58 and chain length 25. Simulation scores are not game-confirmed.</p>
 </details><div id="customEditor" class="custom-editor hidden"><h3>Build your custom sushi board</h3><p class="hint">Choose a tier, then click any unlocked slot to place it. Tier 0 erases a slot. The editor uses your imported slot layout; The configured top tier is preserved by Fill and Clear; lower tiers may be edited.</p><div class="actions"><label>Paint tier <input id="paintTier" type="number" min="0" step="1" value="41"></label><button type="button" id="customFromSave" class="button secondary">Load imported board</button><button type="button" id="customFill" class="button secondary">Fill unlocked slots</button><button type="button" id="customClear" class="button quiet">Clear except top tier</button></div><p id="customStatus" class="hint"></p><div class="board-scroll"><div id="customBoard" class="board custom-board" aria-label="Editable sushi tier board"></div></div><p class="hint">When finished, click Run optimizer above to search this exact board.</p></div><div id="optimizerProgress" class="optimizer-progress hidden" role="status" aria-live="polite"><div class="optimizer-progress-heading"><strong>Optimizing sushi layout…</strong><span id="optimizerProgressText">Preparing search…</span></div><progress id="optimizerProgressBar" max="1" value="0" aria-label="Optimizer progress"></progress></div><div id="solverResults" class="hidden"><p><strong>Estimated combo score:</strong> <span id="solverScore">—</span> · <strong>Manual merges:</strong> <span id="solverMoves">—</span> · <strong>Repositions:</strong> <span id="solverRepositions">—</span></p><p id="solverNote" class="hint">Import JSON to start.</p><p><strong id="timingStatus">Timing not evaluated</strong></p><p id="timingDetails" class="hint"></p><div id="solverSteps"></div></div></section>
+<section id="perfectoPlanner" class="panel lab-perfecto-panel hidden" role="tabpanel" aria-label="Perfecto Planner" aria-hidden="true">
+ <div class="heading"><div><div class="eyebrow">03 · PERFECTO PLANNER</div><h2>Perfecto preparation and Shaker strategy</h2></div><span class="status">One tier at a time</span></div>
+ <p class="hint">Automatically targets the first discovered sushi tier missing Perfecto. Choose any discovered tier to override it. Your imported sushi board is used to suggest preparations without modifying your game save.</p>
+ <div class="perfecto-controls">
+  <label class="perfecto-tier-select">Target sushi tier<select id="perfectoTarget"><option value="auto">Auto · next missing tier</option></select></label>
+  <button id="perfectoResetTarget" type="button" class="button quiet">Reset to next missing</button>
+  <label class="perfecto-checkbox"><input id="perfectoProtectHigher" type="checkbox" checked> Protect higher-tier sushi already on the board</label>
+ </div>
+ <div id="perfectoNoData" class="lab-empty-state" role="status">Import your Idleon Toolbox JSON on Overview to start.</div>
+ <div id="perfectoCalculator" class="hidden">
+  <div class="perfecto-section-head"><h3>1 · Target and Perfecto probabilities</h3><span id="perfectoTargetSummary" class="perfecto-target-summary"></span></div>
+  <div class="perfecto-probability-grid">
+   <div class="perfecto-stat"><span>Single sushi</span><strong id="perfectoSingleChance">—</strong><small>One Pepper Shaker activation</small></div>
+   <div class="perfecto-stat"><span>Current board</span><strong id="perfectoCurrentChance">—</strong><small id="perfectoCurrentCopies">—</small></div>
+   <div class="perfecto-stat perfecto-stat-primary"><span>Prepared board (estimated)</span><strong id="perfectoPlanChance">—</strong><small id="perfectoPlanCopies">—</small></div>
+   <div class="perfecto-stat"><span>Average activations</span><strong id="perfectoExpectedActivations">—</strong><small>Until at least one success</small></div>
+  </div>
+  <p class="hint perfecto-caveat">Single-copy odds follow the Idleon Toolbox / Corgan formula. The board-wide odds and activation counts assume independent rolls for each target copy; that behavior still needs in-game confirmation. Slot and plate position do not appear in the published Perfecto odds formula.</p>
+  <div class="perfecto-section-head"><h3>2 · Recommended prepared board</h3><span class="perfecto-count-label" id="perfectoCopyCount">—</span></div>
+  <div class="perfecto-copies-setting">
+   <label for="perfectoCopies">Target copies to prepare</label>
+   <input type="range" id="perfectoCopies" min="1" max="100" value="100">
+   <p class="hint">Defaults to the maximum number of available slots. Move the slider to plan a smaller preparation. Current copies are preserved, and empty Regular slots are used before occupied or special slots.</p>
+  </div>
+  <div class="perfecto-board-note" id="perfectoPreparationSummary"></div>
+  <div class="perfecto-legend"><span><i class="perfecto-legend-target"></i> Target copies</span><span><i class="perfecto-legend-new"></i> Needs preparation</span><span><i class="perfecto-legend-protected"></i> Protected</span><span><i class="perfecto-legend-locked"></i> Locked</span></div>
+  <div class="board-scroll perfecto-board-scroll"><div id="perfectoBoard" class="perfecto-board" aria-label="Recommended Perfecto target sushi board"></div></div>
+  <p class="hint" id="perfectoProtectedCount">—</p>
+  <p class="hint">This is a recommended final placement, not a verified merge-by-merge build route. Keeping the existing plate locations avoids unnecessary slot movements; plates and fireplaces may still matter for other production bonuses.</p>
+  <div class="perfecto-section-head"><h3>3 · Pepper Shaker plan</h3></div>
+  <div id="perfectoRecommendation" class="perfecto-recommendation" role="status"></div>
+  <div class="perfecto-attempt-grid">
+   <div class="perfecto-attempt"><small>50% cumulative confidence</small><strong id="perfectoConfidence50">—</strong><span>activations</span></div>
+   <div class="perfecto-attempt"><small>90% cumulative confidence</small><strong id="perfectoConfidence90">—</strong><span>activations</span></div>
+   <div class="perfecto-attempt"><small>99% cumulative confidence</small><strong id="perfectoConfidence99">—</strong><span>activations</span></div>
+  </div>
+  <div class="perfecto-resource-grid">
+   <div><span>Current Pepper uses</span><strong id="perfectoPepperUses">—</strong></div>
+   <div><span>Current Salt uses</span><strong id="perfectoSaltUses">—</strong></div>
+   <div><span>Estimated Salt needed for setup</span><strong id="perfectoSaltEstimate">—</strong></div>
+   <div><span>Direct-cook preparation estimate</span><strong id="perfectoFuelEstimate">—</strong></div>
+   <div><span>Known free-Shaker chance</span><strong id="perfectoFreeShaker">—</strong></div>
+   <div><span>Estimated spent Pepper uses</span><strong id="perfectoExpectedConsumed">—</strong></div>
+  </div>
+  <p id="perfectoSaltAdvice" class="perfecto-advice"></p>
+  <p class="hint">Salt is for tier-up preparation, not Perfecto rolls. A Salt activation count cannot yet be reliably predicted from published game formulas for higher-tier builds. Free-use estimates exclude any unverified Research-grid bonuses.</p>
+  <div class="perfecto-section-head"><h3>Additional info · Perfecto chance Knowledge</h3><span class="perfecto-count-label">Combined <strong id="perfectoBonusTotal">—</strong></span></div>
+  <div class="perfecto-bonus-grid" id="perfectoBonusCards"></div>
+  <p class="hint">Tier 50 and Tier 54 boost the chance to Perfecto sushi. Their existing Knowledge levels and Perfecto status are included automatically. Knowledge leveling recommendations belong to the future Knowledge Leveling Planner.</p>
+ </div>
+</section>
+
 </div>
 <div id="lab-upgrades" class="lab-tab-content hidden" role="tabpanel" aria-label="Upgrades" aria-hidden="true">
 <section class="panel"><div class="heading"><div><div class="eyebrow">SUSHI STATION · UPGRADES</div><h2>Upgrade center</h2></div><span class="status">46 upgrades</span></div>
@@ -74,8 +129,9 @@
 <p class="hint lab-disclaimer">Values reflect the imported save. Perfecto doubles the relevant knowledge bonus; EXP and bonuses may differ from the game if the rules change in an update.</p>
 </section></div>
 <section class="panel changelog-panel">
-<div class="heading"><div><div class="eyebrow">LATEST UPDATES</div><h2>Patch notes</h2></div><span class="status">v1.12.4</span></div>
+<div class="heading"><div><div class="eyebrow">LATEST UPDATES</div><h2>Patch notes</h2></div><span class="status">v1.13.0</span></div>
 <div class="changelog-content">
+<div class="changelog-item"><strong>v1.13.0 · Perfecto Planner</strong><p>Added a new planner with automatic or manual tier targeting, per-copy and estimated board-wide Perfecto odds, preservation-aware prepared boards, Pepper confidence milestones, Shaker guidance, and Tier 50 / 54 Knowledge chance bonuses.</p></div>
 <div class="changelog-item"><strong>v1.12.4 · Correct Sushi Doubler artwork</strong><p>Replaced the Doubler icon with the authentic transparent in-game image and preserved its original pixel-art proportions.</p></div>
 <div class="changelog-item"><strong>v1.12.3 · Compact catalog layout</strong><p>Removed unexpected row dividers and excess spacing, grouped upgrade icons with descriptions, balanced the column sizes, and refreshed the catalog typography and controls.</p></div>
 <div class="changelog-item"><strong>v1.12.2 · Cleaner Upgrade Catalog</strong><p>Centered table content, removed redundant cost and Doubler labels, made doubled-effect highlights purple, and added a Hide maxed upgrades checkbox.</p></div>
@@ -124,4 +180,4 @@
 <p><strong>v1.6</strong> — Better Wind chains that can reuse sushi to earn more points.</p>
 <p><strong>v1.5</strong> — More board layouts and merge routes to choose from.</p>
 <p><strong>v1.4</strong> — A cleaner look and easier step-by-step replay.</p>
-<p><strong>Earlier</strong> — Added custom boards, sushi artwork, and save imports.</p></div></details></section></main><script type="module" src="src/app.js?v=1.12.4"></script></body></html>
+<p><strong>Earlier</strong> — Added custom boards, sushi artwork, and save imports.</p></div></details></section></main><script type="module" src="src/app.js?v=1.13.0"></script></body></html>
