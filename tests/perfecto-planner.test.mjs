@@ -313,3 +313,52 @@ test("Special slots are used by T62 even when lower-tier ingredients are more nu
  for(const pos of [28,29,30])assert.equal(result.board[pos],62);
  assert.equal(result.board.filter(x=>x===62).length,result.targetCount);
 });
+
+test("Higher protected sushi outrank Perfecto targets for bonus slots, even if moved",()=>{
+ const save=exampleSave();
+ save.sushi[2][6]=45;
+ save.sushi[2][29]=1;
+ save.sushi[5]=Array(64).fill(0);
+ save.tiles=Array(120).fill(-1);
+ save.tiles[0]=63; // T64 starts on an ordinary slot
+ save.slots=Array.from({length:120},(_,i)=>i<100?0:-1);
+ save.slots[90]=1; // Hot
+ save.slots[93]=2; // Cold
+ save.slots[95]=3; // Milktoast
+ const economy={capacity:sushiDirectCookFuel(45)*1.1,
+  generationPerHour:1e13,maxCookTier:46};
+ const result=searchPerfectoBoard(save,62,economy);
+ assert.equal(result.targetCount,82);
+ assert.equal(result.board[90],64); // The T64 outranks T62
+ assert.equal(result.board[93],62);
+ assert.equal(result.board[95],62);
+ assert.equal(result.board.filter(t=>t===64).length,1);
+ assert.equal(result.board.filter(t=>t===62).length,82);
+ assert.ok(result.board.slice(0,100).every(t=>t>0));
+ assert.ok(result.board.slice(100).every(t=>t===0));
+ assert.ok(result.certificate);
+ assert.deepEqual(result.certificate.supportingSushi.map(x=>x.tier),
+  Array.from({length:17},(_,i)=>58-i));
+ for(const item of result.certificate.supportingSushi){
+  assert.equal(result.board[item.position-1],item.tier);
+  assert.equal(save.slots[item.position-1],0);
+ }
+});
+
+test("Among supporting sushi, the highest tiers get remaining bonus plates",()=>{
+ const save=exampleSave();
+ save.sushi[2][6]=45;
+ save.sushi[2][29]=1;
+ save.sushi[5]=Array(64).fill(0);
+ save.tiles=Array(120).fill(-1);
+ save.tiles[0]=63;
+ save.slots=Array.from({length:120},(_,i)=>i<100?i<85?1:0:-1);
+ const economy={capacity:sushiDirectCookFuel(45)*1.1,
+  generationPerHour:1e13,maxCookTier:46};
+ const result=searchPerfectoBoard(save,62,economy);
+ assert.equal(result.targetCount,82);
+ assert.equal(result.board[0],64);
+ assert.ok(result.board.slice(1,83).every(t=>t===62));
+ assert.deepEqual(result.board.slice(83,85),[58,57]);
+ assert.deepEqual(result.board.slice(85,100),Array.from({length:15},(_,i)=>56-i));
+});
