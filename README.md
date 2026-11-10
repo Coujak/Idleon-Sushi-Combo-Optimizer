@@ -8,7 +8,7 @@ Browser-based Sushi Station account dashboard, reference guides and Combo Meter 
 - **Overview:** The default landing page, with local Idleon Toolbox JSON import, live account statistics and the original sushi board.
 - **Planners:** The full existing Combo Meter optimizer and replay. No Bucks or Knowledge board optimizers yet.
 - **Upgrades:** An upgrade catalog with game order/IDs, levels, description, next-level effect and **pre-discount base cost estimates**; a goal-filtered progression advisor; and a Menagerie Doubler advisor reading Spelunk[52].
-- **Knowledge:** 64 sushi tiers, names, knowledge levels, EXP progress, bonus categories and Perfecto states.
+- **Knowledge:** 64 sushi tiers, names, knowledge levels, EXP progress, known bonus categories and Perfecto states. Tiers without category metadata are explicitly marked unavailable rather than assigned fictitious effects.
 
 The advisor is informational: it does not yet compute global ROI across all game systems or modify the save. Price estimates omit account discounts and other account-dependent modifiers. Reference metadata is derived from the public Idleon Toolbox Sushi Station parser and tables, and can change as the game updates.
 

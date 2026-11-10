@@ -453,7 +453,7 @@ details summary{cursor:pointer;font-size:12px;font-weight:700;color:#9eb7c9}
 
 /* v1.10.0 · Sushi Station Lab — shared navigation and account information. */
 .lab-navigation{display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin:0 0 20px;background:#132333;border:1px solid #30475b;border-radius:14px;padding:8px}
-.lab-nav-button{border:1px solid transparent;border-radius:10px;padding:11px 17px;color:#a8c3ce;background:transparent;cursor:pointer;font:700 14px/1.35 inherit}
+.lab-nav-button{border:1px solid transparent;border-radius:10px;padding:11px 17px;color:#a8c3ce;background:transparent;cursor:pointer;font:inherit;font-weight:700;font-size:14px;line-height:1.35}
 .lab-nav-button:hover{background:#1c3541;color:#d5f9eb}
 .lab-nav-button[aria-selected="true"]{background:#226c5a;border-color:#4bad8a;color:#fff;box-shadow:0 2px 9px #0002}
 .lab-nav-button:focus-visible,.lab-subnavigation button:focus-visible{outline:2px solid #a0ebcc;outline-offset:2px}
@@ -470,7 +470,7 @@ details summary{cursor:pointer;font-size:12px;font-weight:700;color:#9eb7c9}
 .lab-planner-card .hint{margin:5px 0 0}
 .lab-mini-badge{color:#94dcbf;background:#18392f;border:1px solid #397c64;border-radius:99px;padding:4px 10px;font-size:11px;white-space:nowrap}
 .lab-subnavigation{display:flex;flex-wrap:wrap;gap:7px;border-bottom:1px solid #334b5b;margin:4px 0 20px;padding-bottom:10px}
-.lab-subnavigation button{font:700 13px/1.35 inherit;background:#1b3040;color:#b5cad3;border:1px solid #385065;border-radius:9px;padding:10px 13px;cursor:pointer}
+.lab-subnavigation button{font:inherit;font-weight:700;font-size:13px;line-height:1.35;background:#1b3040;color:#b5cad3;border:1px solid #385065;border-radius:9px;padding:10px 13px;cursor:pointer}
 .lab-subnavigation button[aria-selected="true"]{background:#266b5a;color:white;border-color:#57a58b}
 .lab-toolbar{display:flex;align-items:end;gap:14px;flex-wrap:wrap;margin:12px 0}
 .lab-toolbar label{display:flex;flex-direction:column;gap:5px;color:#b3c9d4;font-size:12px;font-weight:700}

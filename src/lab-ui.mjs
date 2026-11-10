@@ -51,7 +51,7 @@ export function initializeSushiLab(getSave){
    button.tabIndex=id===target?0:-1;
   }
   // Navigation doesn't reset the imported file or discard an optimizer replay.
-  window.scrollTo({top:0,behavior:"instant"});
+  window.scrollTo({top:0,behavior:"auto"});
  };
  for(const button of document.querySelectorAll("[data-lab-target]")){
   button.addEventListener("click",()=>setTab(button.dataset.labTarget));
@@ -180,7 +180,7 @@ export function initializeSushiLab(getSave){
    addText(root,"hint","Import a full Idleon Toolbox JSON to see assigned Sushi doublers from Spelunk[52].");
    return;
   }
-  const data=getSushiSnapshot(save()),chosen=doublerUpgrades(save(),doublerGoal);
+  const chosen=doublerUpgrades(save(),doublerGoal);
   const assigned=getUpgradeRows(save()).filter(u=>u.doubled);
   addText(root,"lab-result-meta",
    "Current Sushi doubler assignments ("+assigned.length+"): "+
@@ -203,7 +203,7 @@ export function initializeSushiLab(getSave){
    tier.append(el("strong","","T"+k.tier+" · "+k.name),el("span","lab-row-subtitle",k.categoryName));
    const level=s?(k.discovered?fmt(k.level):"Undiscovered"):"Import save";
    const xp=s&&k.discovered?fmt(k.xp)+" / "+fmt(k.xpReq):none;
-   const benefit=s&&k.discovered?numberDisplay(k.bonus):"Per level "+fmt(k.perLevel);
+   const benefit=!k.mapped?"Reference unavailable":s&&k.discovered?numberDisplay(k.bonus):"Per level "+fmt(k.perLevel);
    const status=s?(k.perfecto?"Perfecto":k.discovered?"Not Perfecto":"Undiscovered"):"—";
    tr.append(tier,el("td","",level),el("td","",xp),el("td","",benefit),el("td","",status));
    body.append(tr);

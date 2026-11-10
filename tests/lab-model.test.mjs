@@ -38,3 +38,12 @@ test("advisor goals and doubler eligibility use actual upgrade ids",()=>{
  assert.ok(doublerUpgrades(s,"bucks").some(x=>x.id===31&&x.doubled));
  assert.ok(doublerUpgrades(s,"all").every(x=>x.doublerEligible));
 });
+
+test("knowledge tiers lacking reference bonus metadata are labelled unknown, not zero",()=>{
+ const s={sushi:[[],[],[],[],[],Array(64).fill(0),Array(64).fill(0),Array(64).fill(5)]};
+ const k=getKnowledgeRows(s);
+ assert.equal(k[63].name,"Chromatic Nigiri");
+ assert.equal(k[63].mapped,false);
+ assert.equal(k[63].bonus,null);
+ assert.equal(k[49].mapped,true);
+});

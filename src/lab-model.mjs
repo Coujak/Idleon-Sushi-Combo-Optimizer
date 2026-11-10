@@ -61,10 +61,11 @@ export function getKnowledgeRows(save){
   const xp=num(s.xp[index]);
   const xpReq=(3+(level+Math.pow(level,1.5)))*Math.pow(1.5,Math.max(0,level-2));
   const factor=Math.min(2,1+Math.max(0,track));
-  return {...entry,categoryName:KNOWLEDGE_CATEGORIES[entry.category]??"Other",
+  const mapped=Number.isInteger(entry.category)&&entry.category>=0&&entry.category<KNOWLEDGE_CATEGORIES.length;
+  return {...entry,mapped,categoryName:mapped?KNOWLEDGE_CATEGORIES[entry.category]:"Effect not yet mapped",
    level,discovered,perfecto,xp,xpReq,
-   bonus:discovered?Math.max(0,entry.perLevel*level*factor*(1+index/30)):0,
-   nextLevelGain:entry.perLevel*factor*(1+index/30)};
+   bonus:mapped&&discovered?Math.max(0,entry.perLevel*level*factor*(1+index/30)):null,
+   nextLevelGain:mapped?entry.perLevel*factor*(1+index/30):null};
  });
 }
 export function advisorUpgrades(save,goal){
