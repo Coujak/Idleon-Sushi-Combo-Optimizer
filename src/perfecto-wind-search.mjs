@@ -4,7 +4,7 @@
 // Starting sushi > cooked tier must be prepared normally; their exponentially
 // larger ingredient cost is charged against the shared recipe budget.
 import {simulateMerge} from "./optimizer-core.mjs";
-import {sushiDirectCookFuel,affordableSushiCookingTiers} from "./perfecto-fuel.mjs?v=1.15.1";
+import {sushiDirectCookFuel,affordableSushiCookingTiers} from "./perfecto-fuel.mjs?v=1.16.6";
 
 const N=120;
 const clamp=(v,lo,hi)=>Math.max(lo,Math.min(hi,v));
