@@ -1,19 +1,18 @@
-// Account-aware Perfecto odds and a buildable, bounded Wind-based board search.
-// Prepared target sushi are never invented: they must occur in a simulated
-// valid merge or Heat of the East Wind action from the starting inventory.
+// Perfecto probability and automatic buildable-board plan.
+// This planner does not depend on the user's time, pace, or desired copy count.
 import {getKnowledgeRows,getSushiSnapshot,getUpgradeRows} from "./lab-model.mjs";
-import {sushiDirectCookFuel,estimateSushiFuelEconomy} from "./perfecto-fuel.mjs";
-import {searchPerfectoBoard} from "./perfecto-wind-search.mjs";
-export {sushiDirectCookFuel} from "./perfecto-fuel.mjs";
+import {estimateSushiFuelEconomy} from "./perfecto-fuel.mjs?v=1.15.0";
+import {searchPerfectoBoard} from "./perfecto-wind-search.mjs?v=1.15.0";
+export {sushiDirectCookFuel} from "./perfecto-fuel.mjs?v=1.15.0";
 
 const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
 const finite=x=>Number.isFinite(Number(x))?Number(x):0;
-const boardCache=new WeakMap();
+const cache=new WeakMap();
 export function perfectoSingleChance(tier,knowledgePct=0){
- const id=Number(tier)-1;
- if(!Number.isInteger(id)||id<0||id>=64)return 0;
- return clamp(.6*Math.pow(.81,id)/(1+id/8)*
-  (1+Math.max(0,finite(knowledgePct))/100),0,1);
+ const index=Number(tier)-1;
+ if(!Number.isInteger(index)||index<0||index>=64)return 0;
+ return clamp(.6*Math.pow(.81,index)/(1+index/8)*
+   (1+Math.max(0,finite(knowledgePct))/100),0,1);
 }
 export function perfectoBoardChance(singleChance,copies){
  const p=clamp(finite(singleChance),0,1);
@@ -31,73 +30,56 @@ export function perfectoAttemptsForConfidence(chance,confidence){
 }
 export function availablePerfectoTargets(save){
  if(!save)return [];
- return getKnowledgeRows(save).filter(x=>x.discovered&&!x.perfecto);
+ return getKnowledgeRows(save).filter(k=>k.discovered&&!k.perfecto);
 }
 export function chooseNextPerfectoTier(save){
  return availablePerfectoTargets(save)[0]?.tier??null;
 }
-function getBoundedSearch(save,tier,options){
- let cached=boardCache.get(save);
- if(!cached){cached=new Map();boardCache.set(save,cached);}
- const key=JSON.stringify([tier,options.protectHigher,options.hours,options.secondsPerCook,
-  options.mode,options.capacityOverride,options.generationOverride,options.maxActions]);
- if(cached.has(key))return cached.get(key);
- const economy=estimateSushiFuelEconomy(save,{
-  capacityOverride:options.capacityOverride,
-  generationOverride:options.generationOverride
- });
- const search=searchPerfectoBoard(save,tier,economy,{
-  protectHigher:options.protectHigher,hours:options.hours,
-  secondsPerCook:options.secondsPerCook,mode:options.mode,
-  maxActions:options.maxActions??320
- });
- const result={economy,search};
- cached.set(key,result);
- // Bound memory: an import can have many manual target/settings combinations.
- if(cached.size>32)cached.delete(cached.keys().next().value);
+function getSearch(save,target,protectHigher){
+ let byTarget=cache.get(save);
+ if(!byTarget){byTarget=new Map();cache.set(save,byTarget);}
+ const key=String(target)+"-"+String(protectHigher);
+ if(byTarget.has(key))return byTarget.get(key);
+ // Fuel cap determines which sushi the player can cook directly. It never
+ // imposes a preparation deadline or a user-controlled rate.
+ const economy=estimateSushiFuelEconomy(save);
+ const run=searchPerfectoBoard(save,target,economy,{protectHigher});
+ const result={economy,run};
+ byTarget.set(key,result);
+ if(byTarget.size>30)byTarget.delete(byTarget.keys().next().value);
  return result;
 }
-function visualBoard(save,tier,run,{protectHigher=true,copies=null}={}){
+function visualBoard(save,tier,run,{protectHigher=true}={}){
  if(!run)return null;
- const original=save.tiles??[],slots=save.slots??[];
- const existing=run.currentCopies??0;
- const allowed=copies===null||copies===undefined?
-  run.targetCount:clamp(Math.floor(finite(copies)),existing,run.targetCount);
- const targetPositions=run.board.map((t,i)=>t===tier?i:null).filter(i=>i!==null);
- const originalTargets=new Set(targetPositions.filter(i=>Number(original[i])===tier-1));
- const newPositions=targetPositions.filter(i=>!originalTargets.has(i));
- const keepNew=new Set(newPositions.slice(0,Math.max(0,allowed-existing)));
- let newCount=0,replaced=0,kept=0;
- const board=run.board.map((t,i)=>{
-  const slot=Number(slots[i]??-1);
-  const old=Number(original[i]??-1);
-  if(slot<0)return {index:i,slot,role:"locked",tile:old,preparedTier:null};
-  if(t===tier&&!originalTargets.has(i)&&!keepNew.has(i)){
-   t=0; // Optional slider hides surplus simulated copies.
-  }
-  const preparedTier=t>0?t-1:-1;
+ const oldTiles=save.tiles??[],oldSlots=save.slots??[];
+ let copies=0,newCount=0,replaced=0;
+ const board=run.board.map((value,i)=>{
+  const slot=Number(oldSlots[i]??-1);
+  const tile=Number(oldTiles[i]??-1);
+  if(slot<0)return {index:i,slot,tile,role:"locked",preparedTier:null};
+  const preparedTier=value>0?value-1:-1;
   let role="empty";
-  if(t===tier){
-   role="target";
-   if(!originalTargets.has(i))newCount++;
-  }else if(t>tier&&protectHigher)role="protected";
-  else if(t>0)role="ingredient";
-  if(preparedTier!==old&&old>=0)replaced++;
-  if(t===tier)kept++;
-  return {index:i,slot,role,tile:old,preparedTier,
-   newCopy:role==="target"&&old!==tier-1};
+  if(value===tier){
+   role="target";copies++;
+   if(tile!==tier-1)newCount++;
+  }else if(value>tier&&protectHigher)role="protected";
+  else if(value>0)role="ingredient";
+  if(preparedTier!==tile&&tile>=0)replaced++;
+  return {index:i,slot,tile,role,preparedTier,
+   newCopy:role==="target"&&tile!==tier-1};
  });
  return {
   board,unlocked:board.filter(x=>x.slot>=0).length,
   eligible:board.filter(x=>x.slot>=0&&x.role!=="protected").length,
   protected:board.filter(x=>x.role==="protected").length,
-  currentCopies:existing,copies:kept,maxCopies:run.targetCount,minCopies:existing,
+  currentCopies:run.currentCopies??0,copies,
+  maxCopies:copies,minCopies:run.currentCopies??0,
   additionalCopies:newCount,replaced,
   purchasedCopies:run.purchased??0,estimatedManualMerges:run.mergers??0,
-  windUpgrades:run.windUpgrades??0,sourceTier:run.sourceTier,
-  scenario:run.scenario??null,searchAttempts:run.attempted??0,
-  searchLimitReached:!!run.searchLimitReached,
-  targetTier:tier,
+  windUpgrades:run.windUpgrades??0,
+  scenario:run.recipe??null,searchAttempts:run.attempted??0,
+  sourceTier:run.sourceTier??null,
+  targetTier:tier,searchLimitReached:!!run.heuristic,
   changedPositions:board.filter(x=>x.newCopy).map(x=>x.index),
   positions:board.filter(x=>x.role==="target").map(x=>x.index)
  };
@@ -105,58 +87,52 @@ function visualBoard(save,tier,run,{protectHigher=true,copies=null}={}){
 export function perfectoBoardPlan(save,tier,options={}){
  return getPerfectoPlanner(save,{...options,tier}).plan??null;
 }
-export function getPerfectoPlanner(save,{
- tier=null,copies=null,protectHigher=true,hours=168,secondsPerCook=20,mode="yield",
- capacityOverride=null,generationOverride=null,maxActions=320
-}={}){
+export function getPerfectoPlanner(save,{tier=null,protectHigher=true}={}){
  const knowledge=getKnowledgeRows(save);
  const next=chooseNextPerfectoTier(save);
  const requested=Number(tier);
  const target=Number.isInteger(requested)&&requested>=1&&requested<=64?requested:next;
- const rows=knowledge.filter(x=>x.tier===50||x.tier===54);
- const knownBonus=rows.reduce((sum,row)=>sum+(row.bonus??0),0);
+ const rows=knowledge.filter(k=>k.tier===50||k.tier===54);
+ const knownBonus=rows.reduce((sum,k)=>sum+(k.bonus??0),0);
  const bonus={rows,knowledgeBonus:knownBonus,knowledgeMultiplier:1+knownBonus/100};
  if(!save||!target)return {target:null,next,bonus,reason:save?"complete":"import"};
  const current=knowledge[target-1];
  if(!current?.discovered)return {target:null,next,bonus,reason:"undiscovered"};
- const opts={protectHigher,hours:Number(hours),secondsPerCook:Number(secondsPerCook),
-  mode,capacityOverride,generationOverride,maxActions};
- const {economy,search}=getBoundedSearch(save,target,opts);
- const plan=visualBoard(save,target,search,{protectHigher,copies});
+ const {economy,run}=getSearch(save,target,protectHigher);
+ const plan=visualBoard(save,target,run,{protectHigher});
  const snapshot=getSushiSnapshot(save);
- const p=perfectoSingleChance(target,knownBonus);
- const currentChance=perfectoBoardChance(p,plan?.currentCopies??0);
- const planChance=perfectoBoardChance(p,plan?.copies??0);
- const avg=planChance>0?1/planChance:null;
+ const singleChance=perfectoSingleChance(target,knownBonus);
+ const currentChance=perfectoBoardChance(singleChance,plan?.currentCopies??0);
+ const planChance=perfectoBoardChance(singleChance,plan?.copies??0);
+ const expectedActivations=planChance>0?1/planChance:null;
  const upgrades=getUpgradeRows(save);
- const freeBottomless=upgrades.find(x=>x.id===21)?.rawBonus??0;
- const freeKnowledge=knowledge.filter(x=>x.category===5&&x.discovered).reduce((a,x)=>a+(x.bonus||0),0);
- const freeKnown=Math.min(.6,Math.max(0,(freeBottomless+freeKnowledge)/100));
- const sourceCost=search?.sourceCost??null;
- const purchased=plan?.purchasedCopies??0;
- const sourceCooks=sourceCost===null?null:purchased*sourceCost;
+ const bottomless=upgrades.find(x=>x.id===21)?.rawBonus??0;
+ const freeKnowledge=knowledge.filter(k=>k.category===5&&k.discovered)
+   .reduce((a,k)=>a+(k.bonus??0),0);
+ const freeKnown=clamp((bottomless+freeKnowledge)/100,0,.6);
  let recommendation;
- if(current.perfecto)recommendation={state:"completed",text:"This sushi is already Perfecto. Select another tier."};
- else if(!plan?.eligible)recommendation={state:"blocked",text:"No usable positions. Unprotect higher-tier sushi or expand the board."};
+ if(current.perfecto)recommendation={state:"completed",text:"This sushi is already Perfecto."};
+ else if(!plan?.eligible)recommendation={state:"blocked",
+  text:"There are no replaceable slots. Keep the higher-tier protection enabled, or choose to replace those tiles."};
  else if(plan.copies===0)recommendation={state:"prepare",
-  text:"The bounded Wind search has not produced this target tier within the selected cooking budget. Increase the preparation window or improve the fuel economy; no fake target copies are shown."};
+  text:"The recipe search did not produce this tier. The planner leaves the board as attainable lower-tier sushi rather than inventing target copies."};
  else if(snapshot.shakers[1]<=0)recommendation={state:"save",
-  text:"No Pepper Shakers are available. Aim for the best simulated final board before attempting Perfecto."};
+  text:"No Pepper Shakers are available. Prepare the recommended board and save your next Pepper use for it."};
  else if(plan.currentCopies===0||currentChance<planChance*.9)
   recommendation={state:"prepare",
-   text:"Prepare the simulated target copies first. Using Pepper on the recommended board gives better estimated odds."};
- else recommendation={state:"ready",text:"Your current copies are close to the best simulated board. Using Pepper now is reasonable."};
- return {target,current,bonus,next,plan,snapshot,economy,search,cooking:sourceCost===null?null:{
-  tier:search.sourceTier,cost:sourceCost,possibleCooks:search.searchCookLimit
- },singleChance:p,currentChance,planChance,expectedActivations:avg,
-  milestones:[.5,.9,.99].map(c=>({confidence:c,attempts:perfectoAttemptsForConfidence(planChance,c)})),
+   text:"Aim for the final board before using Pepper. Its larger target-sushi group improves your estimated success chance."};
+ else recommendation={state:"ready",
+  text:"Your current board is close to the best simulated result. Using Pepper now is reasonable."};
+ return {
+  target,current,bonus,next,plan,snapshot,economy,search:run,
+  singleChance,currentChance,planChance,expectedActivations,
+  milestones:[.5,.9,.99].map(confidence=>({
+   confidence,attempts:perfectoAttemptsForConfidence(planChance,confidence)})),
   freeUse:{knownChance:freeKnown,knownFrom:["Bottomless Shakers","Sushi Knowledge"],
-   researchNotIncluded:true,expectedConsumedUpperBound:avg===null?null:avg*(1-freeKnown)},
-  preparation:{maxDirectCookTier:economy?.maxCookTier??1,
-   directCook:target<=(economy?.maxCookTier??1),
-   fuelPerCopy:sourceCost,minDirectCookFuel:sourceCooks,
-   saltEstimate:0,saltVerified:false,
-   saltAvailable:snapshot.shakers[0]??0,pepperAvailable:snapshot.shakers[1]??0},
+   researchNotIncluded:true,
+   expectedConsumedUpperBound:expectedActivations===null?null:expectedActivations*(1-freeKnown)},
+  preparation:{saltAvailable:snapshot.shakers[0]??0,pepperAvailable:snapshot.shakers[1]??0,
+   saltEstimate:0,saltVerified:false},
   recommendation,independenceAssumption:true,simulatedWind:true,
   ignoresSaltAndCookTierProcs:true
  };

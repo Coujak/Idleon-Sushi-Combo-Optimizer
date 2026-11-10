@@ -1,272 +1,318 @@
-// Bounded search for buildable Perfecto boards.
-// Every newly created target tile must be produced by a replayable merge /
-// Heat of the East Wind event from optimizer-core.mjs. No target tiles are
-// conjured from a fixed board layout or a simplistic material division.
+// Perfecto board search: resource-bounded *recipes*, not time- or pace-bounded.
+// The user sees only the best final board. All new target sushi come from
+// actual 2-to-1 merges (including verified Heat of the East Wind events).
+// Starting sushi > cooked tier must be prepared normally; their exponentially
+// larger ingredient cost is charged against the shared recipe budget.
 import {simulateMerge} from "./optimizer-core.mjs";
-import {sushiDirectCookFuel,chooseFuelCookingTier} from "./perfecto-fuel.mjs";
+import {sushiDirectCookFuel} from "./perfecto-fuel.mjs?v=1.15.0";
 
-const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
-const number=x=>Number.isFinite(Number(x))?Number(x):0;
-const BOARD_SIZE=120;
-
+const N=120;
+const clamp=(v,lo,hi)=>Math.max(lo,Math.min(hi,v));
+const read=(arr,i,fallback=-1)=>Number.isInteger(Number(arr?.[i]))?Number(arr[i]):fallback;
+const sourceWeight=(tier,reference)=>Math.pow(2,tier-reference);
 export function getSushiWindCap(save){
  const upgrades=save?.sushi?.[2]??[];
- if(!(Number(upgrades[29])>=1))return 0;
+ if(read(upgrades,29,0)<1)return 0;
  const tracking=save?.sushi?.[5]??[];
  let discovered=0;
- for(const value of tracking){
-  if(Number(value)<0)break;
-  discovered++;
- }
- return Math.max(0,Math.min(58,discovered-6));
+ for(const v of tracking){if(Number(v)<0)break;discovered++;}
+ return clamp(discovered-6,0,58);
 }
-function importedBoard(save){
- const slots=Array.from({length:BOARD_SIZE},(_,i)=>Number(save?.slots?.[i]??-1));
- const board=Array.from({length:BOARD_SIZE},(_,i)=>slots[i]>=0?
-   Math.max(0,number(save?.tiles?.[i])+1):0);
- return {slots,board};
-}
-function candidatesForSource(economy,target,hours,secondsPerCook,mode){
- const choices=[];
- const best=chooseFuelCookingTier(economy,target,{hours,secondsPerCook,mode});
- if(!best)return choices;
- const tiers=new Set([best.tier]);
- for(let d=1;d<=4;d++)if(best.tier-d>=1)tiers.add(best.tier-d);
- for(const tier of tiers){
-  const cost=sushiDirectCookFuel(tier);
-  if(cost===null||cost>economy.capacity)continue;
-  const availableFuel=Math.max(0,economy.currentFuel+economy.generationPerHour*hours);
-  const timeLimit=Math.floor(hours*3600/secondsPerCook);
-  const possibleCooks=Math.max(0,Math.min(1e8,Math.floor(availableFuel/cost),timeLimit));
-  if(mode==="steady"&&
-    cost>economy.generationPerHour*secondsPerCook/3600&&tier!==best.tier)continue;
-  choices.push({tier,cost,possibleCooks,fullySustainable:
-   cost<=economy.generationPerHour*secondsPerCook/3600,
-   sourceMode:mode,durationHours:hours,secondsPerCook});
- }
- return choices;
-}
-function layoutFromSave(save,target,source,scenario,cookLimit,protectHigher){
- const {slots,board:original}=importedBoard(save);
- const protectedPositions=[];
- const targetPositions=[];
- const flexible=[];
- for(let i=0;i<BOARD_SIZE;i++){
+function geometry(save,target,protectHigher){
+ const slots=Array.from({length:N},(_,i)=>read(save?.slots,i,-1));
+ const tiles=Array.from({length:N},(_,i)=>slots[i]<0?0:read(save?.tiles,i,-1)+1);
+ const frozen=new Set(),flex=[];
+ for(let i=0;i<N;i++){
   if(slots[i]<0)continue;
-  if(protectHigher&&original[i]>target)protectedPositions.push(i);
-  else if(original[i]===target)targetPositions.push(i);
-  else flexible.push(i);
+  if(tiles[i]===target||protectHigher&&tiles[i]>target)frozen.add(i);
+  else flex.push(i);
  }
- const board=original.slice();
- const initial=flexible.map(i=>original[i]).filter(t=>t>0);
- if(scenario==="descending"||scenario==="descending-replace")
-  initial.sort((a,b)=>b-a);
- else if(scenario==="ascending")initial.sort((a,b)=>a-b);
- else if(scenario==="alternating"){
-  initial.sort((a,b)=>b-a);
-  const tmp=[],half=Math.ceil(initial.length/2);
-  for(let i=0;i<half;i++){
-   tmp.push(initial[i]);
-   if(i+half<initial.length)tmp.push(initial[i+half]);
-  }
-  initial.splice(0,initial.length,...tmp);
+ const fixedTargets=tiles.filter((t,i)=>slots[i]>=0&&t===target).length;
+ const protectedCount=[...frozen].filter(i=>tiles[i]>target).length;
+ let bestChain=0;
+ for(const dst of flex){
+  if(!flex.some(i=>i<dst))continue;
+  let k=0;while(k<25&&flex.includes(dst+1+k))k++;
+  bestChain=Math.max(bestChain,k);
  }
- // Sorting changes *positions*, never sushi tier counts.
- if(scenario!=="original"){
-  for(let j=0;j<flexible.length;j++)board[flexible[j]]=initial[j]??0;
- }
- let remaining=Math.min(cookLimit,1e8),purchased=0;
- // Take empty slots before replacing inferior tiles.
- const holes=flexible.filter(i=>board[i]===0).sort((a,b)=>a-b);
- for(const i of holes){
-  if(remaining<=0)break;
-  board[i]=source;purchased++;remaining--;
- }
- if(scenario.includes("replace")){
-  const inferior=flexible.filter(i=>board[i]>0&&
-   (board[i]<source||!protectHigher&&board[i]>target))
-    .sort((a,b)=>board[a]-board[b]||a-b);
-  for(const i of inferior){
-   if(remaining<=0)break;
-   board[i]=source;purchased++;remaining--;
-  }
- }
- return {board,slots,purchased,budgetRemaining:remaining,
-  original,protectedPositions,targetPositions,scenario};
+ return {slots,tiles,flex,frozen,fixedTargets,protectedCount,bestChain};
 }
-function chooseMerge(board,slots,source,target,windCap,chainLimit,variation){
- let best=null;
- const weight=t=>Math.pow(2.12,Math.max(0,Math.min(60,t-source)));
- for(let dst=0;dst<BOARD_SIZE;dst++){
-  if(slots[dst]<0)continue;
-  const tier=board[dst];
-  if(tier<=0||tier>=target)continue;
-  let nearestLeft=-1,farthestLeft=-1,nearestRight=-1,farthestRight=-1;
-  for(let i=0;i<BOARD_SIZE;i++){
-   if(i===dst||slots[i]<0||board[i]!==tier)continue;
-   if(i<dst){nearestLeft=i; if(farthestLeft<0)farthestLeft=i;}
-   else{if(nearestRight<0)nearestRight=i;farthestRight=i;}
+function maxCookableTier(economy,target){
+ if(!economy)return 1;
+ let best=1;
+ const upper=Math.min(target,Math.max(1,Math.round(economy.maxCookTier??1)));
+ for(let t=1;t<=upper;t++){
+  const cost=sushiDirectCookFuel(t);
+  if(cost!==null&&cost<=economy.capacity&&economy.generationPerHour>0)best=t;
+ }
+ return best;
+}
+function countFlex(geom,board){
+ const c=new Int32Array(65);
+ for(const i of geom.flex)if(board[i]>0&&board[i]<=64)c[board[i]]++;
+ return c;
+}
+function recipeBoard(geom,target,ref,seed,recipe,budget,windCap){
+ const board=geom.tiles.slice(),positions=geom.flex;
+ // In this planner, original lower sushi can be rearranged or replaced.
+ // Preserve only target and higher-tier sushi. Existing input also provides
+ // an alternative recipe with no need to recreate the owned low sushi.
+ let spent=0;
+ if(recipe==="existing"){
+  for(const i of positions)if(board[i]<0||board[i]>target)board[i]=0;
+  for(const i of positions){
+   if(board[i]>0)continue;
+   const cost=sourceWeight(seed,ref);
+   if(spent+cost>budget)break;
+   board[i]=seed;spent+=cost;
   }
-  const sources=new Set([nearestLeft,farthestLeft,nearestRight,farthestRight]);
-  for(const src of sources){
-   if(src<0)continue;
-   // Score projected changes without copying the 120-cell board for every
-   // possible pair. The ONE selected action is then executed and checked
-   // through the existing canonical simulateMerge function.
-   let windGrowth=0,windCount=0;
-   if(src<dst&&tier<=windCap){
-    let previous=tier;
-    for(let q=dst+1;q<board.length&&windCount<chainLimit;q++){
-     const v=board[q];
-     if(v<1||v>=target||(q===dst+1?v>tier:v!==previous-1))break;
-     windGrowth+=weight(v+1)-weight(v);windCount++;previous=v;
+  return {board,spent};
+ }
+ for(const i of positions)board[i]=0;
+ const entries=[];
+ if(recipe==="ladder"||recipe==="double-ladder"){
+  const top=Math.min(windCap,target-1,seed+7);
+  const reps=recipe==="double-ladder"?2:1;
+  if(top>seed)for(let cycle=0;cycle<reps;cycle++){
+   entries.push(top,top,top);
+   for(let t=top-1;t>=seed;t--)entries.push(t);
+  }
+ }else if(recipe==="high-pair"){
+  const top=Math.min(target-1,seed+7);
+  if(top>seed)entries.push(top,top,Math.max(seed,top-1),Math.max(seed,top-1));
+ }else if(recipe==="apex"){
+  // A single buildable high-tier anchor can accelerate progress.
+  const high=Math.min(target-1,seed+8);
+  if(high>seed)entries.push(high);
+ }
+ // Only commit advanced ingredients if the *entire* proposed setup fits.
+ const minCost=positions.length*sourceWeight(seed,ref);
+ const recipeCost=entries.reduce((sum,t)=>sum+sourceWeight(t,ref)-sourceWeight(seed,ref),0);
+ if(minCost+recipeCost>budget)entries.length=0;
+ for(let j=0;j<positions.length;j++){
+  const tier=entries[j]??seed;
+  board[positions[j]]=tier;
+  spent+=sourceWeight(tier,ref);
+ }
+ return {board,spent};
+}
+function availableActionPositions(geom,chainLen){
+ if(chainLen===0&&geom.flex.length>=2)return {src:geom.flex[0],dst:geom.flex[geom.flex.length-1]};
+ let candidates=null;
+ for(const dst of geom.flex){
+  let source=-1;
+  for(const i of geom.flex){if(i<dst){source=i;break;}}
+  if(source<0)continue;
+  let valid=true;
+  for(let j=1;j<=chainLen;j++)if(!geom.flex.includes(dst+j)){valid=false;break;}
+  if(!valid)continue;
+  candidates={src:source,dst};break;
+ }
+ if(candidates)return candidates;
+ if(chainLen>0)return null;
+ if(geom.flex.length<2)return null;
+ return {src:geom.flex[1],dst:geom.flex[0]}; // non-Wind merge
+}
+function possibleMoves(counts,geom,target,windCap,reference,mode){
+ const moves=[];
+ const maxChain=geom.bestChain;
+ for(let tier=1;tier<target;tier++){
+  if(counts[tier]<2)continue;
+  const firsts=[-1];
+  if(tier<=windCap&&maxChain>0){
+   // The first Wind target may share the trigger's tier. Every subsequent
+   // target must descend exactly one tier, as in the canonical simulator.
+   for(let first=tier;first>=Math.max(1,tier-3);first--){
+    if(counts[first]-(first===tier?2:0)>0)firsts.push(first);
+   }
+  }
+  for(const first of firsts){
+   const chain=[];
+   if(first>0){
+    for(let k=first;k>=1&&chain.length<maxChain;k--){
+     if(counts[k]-(k===tier?2:0)<1)break;
+     chain.push(k);
     }
    }
-   const ordinaryGain=weight(tier+1)-2*weight(tier);
-   const createsTarget=tier+1===target?1:0;
-   const score=(createsTarget?1e18:0)+ordinaryGain+windGrowth+
-    windCount*(variation%2===0?2:6)+
-    (variation%3===1?(dst/BOARD_SIZE)*.0001:0)+
-    (variation%3===2?(BOARD_SIZE-dst)/BOARD_SIZE*.0001:0);
-   if(!best||score>best.score||
-     score===best.score&&(variation%2===0?src<best.src:src>best.src)){
-    best={src,dst,score};
-   }
+   const windGain=chain.reduce((sum,t)=>sum+sourceWeight(t,reference),0);
+   const climb=sourceWeight(tier,reference);
+   const hit=tier+1===target;
+   let score=(hit?1e9:0);
+   if(mode===0)score+=windGain*2+climb*.3+chain.length*.01;
+   else if(mode===1)score+=windGain*.8+climb*1.1+chain.length*.1;
+   else if(mode===2)score+=windGain*4+climb*.07+chain.length*.2;
+   else score+=windGain*1.4+climb*.7+chain.length*.4;
+   if(first===-1&&tier<=windCap)score-=climb*.2;
+   moves.push({tier,chain,score,hit,windGain});
   }
  }
- if(!best)return null;
- const executed=simulateMerge(board,best.src,best.dst,windCap,chainLimit,target);
- return executed?{...best,next:executed.board,events:executed.events}:null;
+ return moves.sort((a,b)=>b.score-a.score||b.tier-a.tier||b.chain.length-a.chain.length);
 }
-function refill(board,slots,source,remaining,style){
- let used=0;
- const empties=[];
- for(let i=0;i<board.length;i++)if(slots[i]>=0&&board[i]===0)empties.push(i);
- if(style%2===1)empties.reverse();
- for(const i of empties){
-  if(used>=remaining)break;
-  board[i]=source;used++;
+function arrangeAndMerge(state,geom,move,windCap,target){
+ const {tier,chain}=move;
+ const loc=availableActionPositions(geom,chain.length);
+ if(!loc)return null;
+ const source=loc.src,dest=loc.dst;
+ const rest=state.counts.slice();
+ rest[tier]-=2;
+ for(const t of chain)rest[t]--;
+ if(rest.some(c=>c<0))return null;
+ const board=geom.tiles.slice();
+ for(const i of geom.flex)board[i]=0;
+ board[source]=tier;board[dest]=tier;
+ chain.forEach((t,j)=>{board[dest+j+1]=t;});
+ const reserved=new Set([source,dest,...chain.map((_,j)=>dest+j+1)]);
+ const others=geom.flex.filter(i=>!reserved.has(i));
+ // Keep remaining sushi, including remainders, in descending order.
+ let k=0;
+ for(let t=target;t>=1;t--)for(let n=0;n<rest[t];n++){
+  if(k>=others.length)return null;
+  board[others[k++]]=t;
  }
- return used;
+ const trial=simulateMerge(board,source,dest,windCap,25,target);
+ if(!trial)return null;
+ for(const i of geom.frozen)if(trial.board[i]!==geom.tiles[i])return null;
+ return {
+  counts:countFlex(geom,trial.board),
+  wind:trial.events.filter(x=>x.kind==="wind").length,
+  target:trial.board.filter((v,i)=>v===target&&geom.flex.includes(i)).length,
+  merges:state.merges+1,
+  spent:state.spent,
+  board:trial.board
+ };
 }
-function runScenario(save,target,cooking,windCap,{protectHigher=true,maxActions=320,variation=0,scenario="original"}={}){
- const actualBudget=Math.max(0,Math.floor(cooking.possibleCooks));
- const searchCookLimit=Math.min(actualBudget,2000);
- const prepared=layoutFromSave(save,target,cooking.tier,scenario,searchCookLimit,protectHigher);
- let board=prepared.board;
- const startBoard=board.slice(),events=[];
- let purchased=prepared.purchased;
- let totalWind=0,merges=0;
- const headCount=()=>board.filter(v=>v===target).length;
- let bestCount=headCount(),bestBoard=board.slice(),bestEventCount=0,bestPurchased=purchased;
- const initialPurchased=purchased;
- for(let step=0;step<maxActions;step++){
-  let chosen=chooseMerge(board,prepared.slots,cooking.tier,target,windCap,25,variation);
-  if(!chosen){
-   if(purchased>=searchCookLimit)break;
-   const before=board.slice();
-   const added=refill(board,prepared.slots,cooking.tier,searchCookLimit-purchased,variation);
-   if(!added)break;
-   const positions=[];
-   for(let i=0;i<board.length;i++)if(before[i]===0&&board[i]===cooking.tier)positions.push(i);
-   events.push({kind:"cook",positions});
-   purchased+=added;
-   chosen=chooseMerge(board,prepared.slots,cooking.tier,target,windCap,25,variation);
-   if(!chosen)break;
-  }
-  const from=board[chosen.src];
-  board=chosen.next;
-  const countWind=chosen.events.filter(e=>e.kind==="wind").length;
-  merges++;totalWind+=countWind;
-  events.push({kind:"merge",src:chosen.src,dst:chosen.dst,from,wind:countWind});
-  const count=headCount();
-  if(count>bestCount||(count===bestCount&&count>0&&purchased<bestPurchased)){
-   bestCount=count;bestBoard=board.slice();bestEventCount=events.length;bestPurchased=purchased;
-  }
-  if(purchased<searchCookLimit){
-   const next=board.slice();
-   const used=refill(next,prepared.slots,cooking.tier,searchCookLimit-purchased,variation);
-   if(used){
-    const positions=[];
-    for(let i=0;i<next.length;i++)if(board[i]===0&&next[i]===cooking.tier)positions.push(i);
-    events.push({kind:"cook",positions});
-    purchased+=used;board=next;
-   }
-  }
+function addSeedCopies(state,geom,seed,reference,budget){
+ const available=Math.floor((budget-state.spent)/sourceWeight(seed,reference)+1e-9);
+ if(available<=0)return state;
+ const c=state.counts;
+ let occupied=0;
+ for(let t=1;t<c.length;t++)occupied+=c[t];
+ const free=Math.max(0,geom.flex.length-occupied);
+ const count=Math.min(free,available);
+ if(count<=0)return state;
+ c[seed]+=count;
+ state.spent+=count*sourceWeight(seed,reference);
+ return state;
+}
+function finalBoard(state,geom,target){
+ const board=geom.tiles.slice();
+ for(const i of geom.flex)board[i]=0;
+ const rest=state.counts.slice();
+ let p=0;
+ // Place created targets together, then the remaining high-tier inventory
+ // in descending order for an easier final board to replicate.
+ for(let t=target;t>=1;t--)for(let j=0;j<rest[t];j++){
+  if(p>=geom.flex.length)throw Error("Simulation exceeds unlocked slots");
+  board[geom.flex[p++]]=t;
  }
- const chosenBoard=bestCount>0?bestBoard:board;
- const taken=bestCount>0?bestPurchased:purchased;
- const usedEvents=bestCount>0?events.slice(0,bestEventCount):events;
- const protectedValid=prepared.protectedPositions.every(i=>chosenBoard[i]===prepared.original[i]);
- const existingTargetValid=prepared.targetPositions.every(i=>chosenBoard[i]===target);
- if(!protectedValid||!existingTargetValid)throw Error("Perfecto search altered protected or existing target sushi");
- return {board:chosenBoard,startBoard,slots:prepared.slots,
-  targetCount:chosenBoard.filter(v=>v===target).length,
-  purchased:taken,initialPurchased,searchCookLimit,
-  mergers:merges,windUpgrades:totalWind,
-  sourceTier:cooking.tier,sourceCost:cooking.cost,
-  protectedPositions:prepared.protectedPositions,scenario,variation,
-  eventCount:usedEvents.length,events:usedEvents};
+ return board;
 }
-function rank(a,b){
- if(!a)return b;
- if(b.targetCount!==a.targetCount)return b.targetCount>a.targetCount?b:a;
- if(b.windUpgrades!==a.windUpgrades)return b.windUpgrades>a.windUpgrades?b:a;
- if(b.purchased!==a.purchased)return b.purchased<a.purchased?b:a;
- return a;
+function scoreState(state,geom){
+ return {target:state.target+geom.fixedTargets,
+  merges:state.merges,wind:state.wind,spent:state.spent};
 }
-export function searchPerfectoBoard(save,target,economy,{
- protectHigher=true,hours=168,secondsPerCook=20,mode="yield",maxActions=550
-}={}){
- if(!save||!economy||!Number.isInteger(target)||target<1||target>64)return null;
- const sources=candidatesForSource(economy,target,hours,secondsPerCook,mode);
+function better(a,b){
+ if(!a)return true;
+ if(b.target!==a.target)return b.target>a.target;
+ if(b.spent!==a.spent)return b.spent<a.spent;
+ if(b.merges!==a.merges)return b.merges<a.merges;
+ return b.wind>a.wind;
+}
+function runRecipe(geom,target,reference,seed,recipe,mode,windCap,budget,stepLimit){
+ const setup=recipeBoard(geom,target,reference,seed,recipe,budget,windCap);
+ let state={
+  counts:countFlex(geom,setup.board),
+  spent:setup.spent,
+  merges:0,wind:0,target:0
+ };
+ const initialSpent=state.spent;
+ let best=null;
+ // One cycle costs a bounded number of prepared sushi, not a user's time.
+ // This prevents the meaningless "infinite fuel => 99 target copies" answer.
+ for(let step=0;step<stepLimit;step++){
+  const possibilities=possibleMoves(state.counts,geom,target,windCap,reference,mode);
+  let result=null;
+  for(const choice of possibilities.slice(0,4)){
+   result=arrangeAndMerge(state,geom,choice,windCap,target);
+   if(result)break;
+  }
+  if(!result)break;
+  result.wind=state.wind+result.wind;
+  state=addSeedCopies(result,geom,seed,reference,budget);
+  const metric=scoreState(state,geom);
+  if(better(best?.metric,metric)){
+   best={metric,counts:state.counts.slice(),spent:state.spent,
+    merges:state.merges,wind:state.wind,target:state.target};
+  }
+  if(metric.target>=geom.flex.length+geom.fixedTargets)break;
+ }
+ if(!best){
+  const metric=scoreState(state,geom);
+  best={metric,counts:state.counts.slice(),spent:state.spent,
+   merges:state.merges,wind:state.wind,target:state.target};
+ }
+ return {
+  ...best,sourceTier:seed,referenceTier:reference,recipe,mode,
+  initialSpent,budget,seedEquivalentUsed:best.spent,
+  board:finalBoard(best,geom,target)
+ };
+}
+export function searchPerfectoBoard(save,target,economy,{protectHigher=true,effortMultiplier=16}={}){
+ if(!save||!Number.isInteger(target)||target<1||target>64)return null;
+ const geom=geometry(save,target,protectHigher);
+ const currentCopies=geom.fixedTargets;
  const windCap=getSushiWindCap(save);
- const original=importedBoard(save);
- const currentCopies=original.board.filter((t,i)=>original.slots[i]>=0&&t===target).length;
- const protectedCount=original.board.filter((t,i)=>original.slots[i]>=0&&protectHigher&&t>target).length;
- let best=null,trials=0;
- if(!sources.length){
-  const board=original.board.slice();
-  return {board,slots:original.slots,targetCount:currentCopies,currentCopies,
-   purchased:0,protectedCount,windCap,sourceTier:null,sourceCost:null,
-   maxCopies:currentCopies,attempted:0,searchLimitReached:false,reason:"no-affordable-cook"};
+ const cookTier=maxCookableTier(economy,target);
+ // Tier 1 is directly cookable and needs no merges.
+ if(target===1){
+  const board=geom.tiles.slice();
+  for(const pos of geom.flex)board[pos]=1;
+  return {board,slots:geom.slots,targetCount:currentCopies+geom.flex.length,
+   currentCopies,protectedCount:geom.protectedCount,windCap,sourceTier:1,
+   sourceCost:sushiDirectCookFuel(1),purchased:geom.flex.length,
+   mergers:0,windUpgrades:0,attempted:1,reason:"direct-cooking",
+   effortBudget:geom.flex.length,effortBasisTier:1,heuristic:true};
  }
- const variants=["original","descending-replace","descending","alternating"];
- // Search two near-optimal cooking tiers with several physical arrangements.
- // Deterministic bounded heuristic; not an assertion of global optimality.
- for(const cooking of sources.slice(0,3)){
-  for(let variant=0;variant<variants.length;variant++){
-   const candidate=runScenario(save,target,cooking,windCap,{
-    protectHigher,maxActions,scenario:variants[variant],
-    variation:variant
-   });
-   best=rank(best,candidate);trials++;
-  }
+ if(!geom.flex.length){
+  return {board:geom.tiles,slots:geom.slots,targetCount:currentCopies,
+   currentCopies,protectedCount:geom.protectedCount,windCap,
+   sourceTier:cookTier,sourceCost:sushiDirectCookFuel(cookTier),
+   purchased:0,mergers:0,windUpgrades:0,attempted:0,
+   reason:"no-spare-slots",heuristic:true};
  }
- return {...best,currentCopies,protectedCount,windCap,maxCopies:best?.targetCount??currentCopies,
-  attempted:trials,searchLimitReached:best?.searchCookLimit===2000||best?.mergers>=maxActions,
-  reason:best?.targetCount>currentCopies?"simulated":"no-improvement",
-  heuristic:true};
-}
-export function verifyPerfectoSearch(save,target,run,windCap){
- if(!run||!Array.isArray(run.startBoard)||!Array.isArray(run.events))return false;
- const orig=importedBoard(save),slots=orig.slots;
- const protectedPositions=run.protectedPositions??[];
- let board=run.startBoard.slice(),purchased=run.initialPurchased;
- for(const event of run.events){
-  if(event.kind==="cook"){
-   for(const i of event.positions){
-    if(slots[i]<0||board[i]!==0)return false;
-    board[i]=run.sourceTier;purchased++;
+ // "Target - 10" is only a search center. Direct-cooking capability
+ // limits how far above cookable tiers the starting recipe may go, while
+ // intermediate sushi can be produced by merging as the player prefers.
+ const reference=clamp(Math.min(target-10,cookTier+9),1,Math.max(1,target-1));
+ const sources=[reference,reference-1,reference+1,reference-2].filter((t,i,arr)=>
+  t>=1&&t<target&&t<=cookTier+10&&arr.indexOf(t)===i);
+ if(!sources.length)sources.push(1);
+ const budget=Math.max(geom.flex.length*effortMultiplier,geom.flex.length*3);
+ const stepLimit=Math.min(3000,Math.max(120,Math.ceil(budget*4)));
+ const recipes=["uniform","ladder","double-ladder","high-pair","apex","existing"];
+ let best=null,attempted=0;
+ for(const seed of sources){
+  for(const recipe of recipes){
+   for(let mode=0;mode<3;mode++){
+    const candidate=runRecipe(geom,target,reference,seed,recipe,mode,windCap,budget,stepLimit);
+    attempted++;
+    if(better(best?.metric,candidate.metric))best=candidate;
    }
-   continue;
   }
-  if(event.kind!=="merge")return false;
-  const next=simulateMerge(board,event.src,event.dst,windCap,25,target);
-  if(!next||next.events.filter(x=>x.kind==="wind").length!==event.wind)return false;
-  board=next.board;
  }
- return protectedPositions.every(i=>board[i]===orig.board[i])&&
-  purchased<=run.searchCookLimit&&
-  board.every((tile,i)=>tile===run.board[i]);
+ const targetCount=best?.metric.target??currentCopies;
+ return {
+  board:best?.board??geom.tiles,
+  slots:geom.slots,
+  targetCount,currentCopies,protectedCount:geom.protectedCount,windCap,
+  sourceTier:best?.sourceTier??cookTier,
+  sourceCost:sushiDirectCookFuel(best?.sourceTier??cookTier),
+  cookedSourceTier:cookTier,
+  purchased:best?.seedEquivalentUsed??0,
+  mergers:best?.merges??0,windUpgrades:best?.wind??0,
+  attempted,recipe:best?.recipe??null,
+  effortBudget:budget,effortBasisTier:reference,
+  reason:targetCount>currentCopies?"simulated":"no-improvement",
+  heuristic:true,searchLimitReached:false
+ };
 }

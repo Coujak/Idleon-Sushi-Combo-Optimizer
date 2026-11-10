@@ -863,14 +863,6 @@ details summary{cursor:pointer;font-size:12px;font-weight:700;color:#9eb7c9}
  color:#c0e8dc;background:#173c38;border:1px solid #3b7064;
  border-radius:20px;font-size:11px;white-space:nowrap
 }
-.perfecto-copies-setting{
- background:#102735;border:1px solid #314d5d;border-radius:10px;
- padding:13px 15px;margin-bottom:11px
-}
-.perfecto-copies-setting label{display:block;color:#d4eee2;font-size:12px;font-weight:800;margin-bottom:8px}
-.perfecto-copies-setting input[type=range]{width:100%;accent-color:#65db9d;cursor:pointer}
-.perfecto-copies-setting input[type=range]:disabled{opacity:.4;cursor:not-allowed}
-.perfecto-copies-setting .hint{font-size:11px;line-height:1.5;margin:7px 0 0}
 .perfecto-board-note{
  background:#152c38;border-left:3px solid #6acfa2;color:#c5dfe1;
  font-size:12px;font-weight:700;padding:9px 13px;border-radius:7px;margin:8px 0
@@ -943,39 +935,7 @@ details summary{cursor:pointer;font-size:12px;font-weight:700;color:#9eb7c9}
  .perfecto-section-head h3{font-size:15px}
 }
 
-/* v1.14.0 — Buildable Perfecto boards and fuel-aware Wind search */
-.perfecto-fuel-controls{
- display:grid;grid-template-columns:repeat(3,minmax(180px,1fr));
- gap:11px;margin:15px 0 12px
-}
-.perfecto-fuel-controls label,.perfecto-fuel-override-inputs label{
- display:flex;flex-direction:column;gap:6px;
- font-size:12px;font-weight:700;color:#b1ccda;min-width:0
-}
-.perfecto-fuel-controls select,.perfecto-fuel-override-inputs input{
- min-height:42px;max-width:100%;width:100%;
- background:#112838;color:#e7f4ed;border:1px solid #426270;
- border-radius:9px;padding:9px 10px;font:inherit;font-size:12px
-}
-.perfecto-fuel-economy{
- display:grid;grid-template-columns:repeat(4,minmax(0,1fr));
- gap:10px;margin-bottom:13px
-}
-.perfecto-fuel-economy>div{
- display:flex;flex-direction:column;gap:5px;min-width:0;
- padding:12px;background:#123039;border:1px solid #375c62;border-radius:10px
-}
-.perfecto-fuel-economy span{color:#a6c4c7;font-size:11px}
-.perfecto-fuel-economy strong{font-size:13px;color:#d8ffe3;overflow-wrap:anywhere}
-.lab-perfecto-panel details.perfecto-fuel-overrides{
- margin:10px 0 14px;padding:10px 13px;
- background:#102939;border:1px solid #355362;border-radius:10px
-}
-.lab-perfecto-panel details.perfecto-fuel-overrides>summary{font-size:12px;color:#abdfcc}
-.perfecto-fuel-override-inputs{
- display:grid;grid-template-columns:repeat(2,minmax(0,1fr));
- gap:13px;margin:13px 0
-}
+/* Perfecto board result details. The planner has no manual pace or fuel controls. */
 .perfecto-odds-ratio{
  font-size:13px!important;line-height:1.25!important;
  color:#d6ffdf!important;font-weight:800;font-variant-numeric:tabular-nums
@@ -986,11 +946,3 @@ details summary{cursor:pointer;font-size:12px;font-weight:700;color:#9eb7c9}
  border:1px solid #658b88
 }
 .perfecto-tile.perfecto-ingredient .perfecto-tile-tier{color:#c5dcde}
-@media(max-width:900px){
- .perfecto-fuel-controls{grid-template-columns:repeat(2,minmax(0,1fr))}
- .perfecto-fuel-economy{grid-template-columns:repeat(2,minmax(0,1fr))}
-}
-@media(max-width:560px){
- .perfecto-fuel-controls,.perfecto-fuel-override-inputs{grid-template-columns:1fr}
- .perfecto-fuel-economy{grid-template-columns:repeat(2,minmax(0,1fr))}
-}
