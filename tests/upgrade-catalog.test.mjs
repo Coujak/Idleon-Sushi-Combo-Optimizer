@@ -269,7 +269,7 @@ test("Account export resolves every upgrade description dollar placeholder",()=>
  const estimate=upgradeCatalogDollarValue(fastburn,save);
  assert.equal(estimate.estimated,true);
  assert.match(estimate.text,/Fuel\/hr\. Max Cap is/);
- assert.ok(estimate.text.includes("T")||estimate.text.includes("B"));
+ assert.match(estimate.text,/^[0-9.,]+(?:[A-Za-z]+)? Fuel\/hr\. Max Cap is [0-9.,]+(?:[A-Za-z]+)? Fuel$/);
  const segments=upgradeDescriptionSegments(fastburn.description,fastburn,true,estimate);
  assert.ok(segments.some(p=>p.kind==="estimated"));
 });
