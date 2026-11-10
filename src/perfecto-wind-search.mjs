@@ -338,6 +338,44 @@ export function finishCertifiedCarryBoard(best,geom,target,windCap){
  best.merges+=Number(extraMerges);
  return best;
 }
+// The recipe search optimizes target count, then this presentation pass puts
+// completed target sushi on special plates before ordinary plates. It does not
+// move protected higher-tier sushi or previously owned target copies, and
+// does not change the number or tier of any sushi in the recipe.
+const isBonusSushiSlot=slot=>slot===1||slot===2||slot===3;
+export function prioritizePerfectoBonusSlots(board,geom,target,certificate=null){
+ if(!Array.isArray(board))return board;
+ const flex=geom.flex;
+ const targets=flex.reduce((n,pos)=>n+(board[pos]===target?1:0),0);
+ const others=flex.map(pos=>board[pos]).filter(tier=>tier!==target&&tier>0)
+   .sort((a,b)=>b-a);
+ const ranked=flex.slice().sort((a,b)=>{
+  const ap=isBonusSushiSlot(geom.slots[a])?0:1;
+  const bp=isBonusSushiSlot(geom.slots[b])?0:1;
+  return ap-bp||a-b;
+ });
+ const result=board.slice();
+ for(const pos of flex)result[pos]=0;
+ for(let i=0;i<targets;i++)result[ranked[i]]=target;
+ const leftover=flex.filter(pos=>result[pos]===0);
+ // Support sushi stay descending in physical board order wherever possible.
+ let slots=leftover.slice().sort((a,b)=>a-b);
+ for(let i=0;i<others.length;i++)result[slots[i]]=others[i];
+ if(certificate?.supportingSushi){
+  // The certificate records user-reproducible final locations, not only tiers.
+  const byTier=new Map();
+  for(let i=0;i<others.length;i++){
+   const tier=others[i];
+   if(!byTier.has(tier))byTier.set(tier,[]);
+   byTier.get(tier).push(slots[i]+1);
+  }
+  for(const item of certificate.supportingSushi){
+   const positions=byTier.get(item.tier);
+   if(positions?.length)item.position=positions.shift();
+  }
+ }
+ return result;
+}
 export function searchPerfectoBoard(save,target,economy,{protectHigher=true,effortMultiplier=16}={}){
  if(!save||!Number.isInteger(target)||target<1||target>64)return null;
  const geom=geometry(save,target,protectHigher);
@@ -382,6 +420,7 @@ export function searchPerfectoBoard(save,target,economy,{protectHigher=true,effo
   }
  }
  if(best?.certificate)finishCertifiedCarryBoard(best,geom,target,windCap);
+ if(best)best.board=prioritizePerfectoBonusSlots(best.board,geom,target,best.certificate);
  const targetCount=best?.metric.target??currentCopies;
  return {
   board:best?.board??geom.tiles,
