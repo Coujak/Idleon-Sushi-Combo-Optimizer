@@ -12,13 +12,16 @@ Browser-based Sushi Station account dashboard, reference guides and Combo Meter 
 
 The advisors are informational and never modify the imported save. Price estimates use account discounts when their source data is available. Reference metadata is derived from the public Sushi Station game rules, and can change as the game updates.
 
-## Personalized Progression Advisor (v1.16.0)
+## Personalized Progression Advisor (v1.16.3)
 
-The **Upgrades → Progression advisor** now uses the imported account's actual Sushi Bucks balance, upgrade levels, assigned Doublers, and estimated **discounted** next purchase prices. Choose a goal (Bucks, Fuel generation, Fuel capacity, Knowledge EXP, Perfecto, or cheaper upgrades). It highlights the next recommended affordable upgrade—or a savings target if none can be confirmed affordable—with the upgrade icon, current → next level, estimated price, Bucks shortfall, marginal raw upgrade effect, and a reason for its placement.
+The **Upgrades → Progression Advisor** uses imported Sushi Bucks, upgrade levels, assigned Doublers and discounted next upgrade costs to recommend the next purchase for the selected goal. The featured upgrade shows its current → next level, estimated price, Bucks shortfall, next raw effect, and a ranking rationale. Priority is a transparent heuristic, not mathematically proven ROI across unrelated upgrade types.
 
-A short three-upgrade **priority snapshot** shows the current order, and a comparison list supports **Recommended priority / Value / Largest next-level improvement / Lowest estimated cost**, **All / Affordable / Needs more Bucks / Already maxed** filters, plus a show-maxed option. Purchases and future Bucks are not simulated: reimport after buying to refresh the ranking.
+The **Next purchases plan** supports **5 / 10 / 25 / 50 / 100**, plus a custom **1–500** purchase count. It is sequential: after every purchase it updates the planned upgrade's level, recomputes the remaining Bucks, reprices upgrades and reranks recommendations. The same upgrade can appear multiple times. Once starting Bucks are exhausted, the plan assumes saving only the additional amount needed before each next purchase; **it does not forecast future earnings or time to purchase**. Reimport after real purchases.
 
-This recommendation score is a **transparent heuristic**, not a rigorous cross-upgrade ROI. Upgrades can have incomparable effects (one-time unlocks, additive boosts, and nonlinear multipliers). The model emphasizes currently affordable options, relative next-level raw contribution, cost relative to the available Bucks, and one-time unlocks. Incomplete discount data is identified as a possible upper price estimate; missing affordability is not treated as an exact shortage.
+The **Cards / List** toggle switches between visual and compact purchase results. Each step shows the selected goal's **before → after** result, and the summary compares the imported account with the end of the plan. Fuel generation/hr, fuel capacity and discounts use modeled known effects; Bucks generation/hr also incorporates known per-tier production, board bonuses, Combo and Knowledge factors. Incomplete external bonuses mean these figures are estimates rather than exact in-game totals. Knowledge EXP and Perfecto goals display partial, clearly labeled metrics when a full goal-wide total is not available.
+
+An optional expandable **in-game readings** section accepts rates such as `2.5T` or `1.23E30` for Bucks/hr, Fuel/hr and maximum Fuel. The selected goal's current value is anchored to that reading, while future purchase effects are scaled from supported game formulas. No player's personal readings are embedded in the website or persisted to GitHub; they live only in browser form state until the page is closed or refreshed.
+
 
 ## Perfecto Pepper plan (v1.15.7)
 
