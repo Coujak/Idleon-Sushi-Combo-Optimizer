@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {readFileSync} from "node:fs";
-import {getPreparedBoardSections,hasSlotLayoutChanges,FIRST_ENGINE_INDEX,preparedSectionOutlinePath} from "../src/prepared-sections.mjs";
+import {getPreparedBoardSections,hasSlotLayoutChanges,FIRST_ENGINE_INDEX,preparedSectionOutlinePath,preparedOutlineCoordinates} from "../src/prepared-sections.mjs";
 import {buildExperimental13Candidates} from "../src/experimental13-preparation.mjs";
 import {buildExperimental2Candidates} from "../src/experimental2-preparation.mjs";
 
@@ -78,4 +78,28 @@ test("Prepared board spotlight supports hover, focus, click and cleanup",()=>{
   assert.match(css,/\.prepared-outline-chain\{stroke:/);
   assert.match(css,/highlight-supply \.tile\.prepared-chain/);
   assert.match(css,/highlight-chain \.tile\.prepared-supply/);
+});
+
+test("Outline coordinates hug tile edges and center each gap in SVG space",()=>{
+  const tiles=Array.from({length:120},(_,i)=>{
+    const col=i%15,row=Math.floor(i/15);
+    const left=100+col*12,top=200+row*13;
+    return {left,right:left+10,top,bottom:top+11};
+  });
+  const frame={left:95,top:194,width:200,height:120};
+  const coordinates=preparedOutlineCoordinates(tiles,frame,15,2);
+  assert.ok(coordinates);
+  assert.equal(coordinates.xs.length,16);
+  assert.equal(coordinates.ys.length,9);
+  assert.equal(coordinates.xs[0],3); // 2px beyond the leftmost tile
+  assert.equal(coordinates.xs[1],16); // midpoint of the first 2px gap
+  assert.equal(coordinates.xs[15],185); // 2px beyond the rightmost tile
+  assert.equal(coordinates.ys[0],4);
+  assert.equal(coordinates.ys[1],18);
+  assert.equal(coordinates.ys[8],110);
+});
+test("Prepared UI measures SVG coordinates rather than the board border",()=>{
+  const code=readFileSync(new URL("../src/app.js",import.meta.url),"utf8");
+  assert.match(code,/const svgBox=outline\.getBoundingClientRect\(\)/);
+  assert.match(code,/preparedOutlineCoordinates\(bounds,svgBox,COLUMNS,2\)/);
 });
