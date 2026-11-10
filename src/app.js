@@ -12,12 +12,13 @@ import {BOARD_COLUMNS,BOARD_CELLS,normalizeBoardData,layoutOptions} from "./boar
 import {windTierMaximum,clampWindTier,windTierAfterPreparedChange} from "./wind-limit.mjs?v=1.9.10";
 import {initializeSushiLab} from "./lab-ui.mjs?v=1.10.2";
 import {sushiTierIconPath} from "./sushi-reference.mjs?v=1.10.2";
-import {getPreparedBoardSections,hasSlotLayoutChanges} from "./prepared-sections.mjs?v=1.10.5";
+import {getPreparedBoardSections,hasSlotLayoutChanges,preparedSectionOutlinePath} from "./prepared-sections.mjs?v=1.10.6";
 const COLUMNS=BOARD_COLUMNS;
 let imported=null;
 const sushiLab=initializeSushiLab(()=>imported);
 let customBoard=null;
 let replayCleanup=()=>{};
+let preparedOutlineCleanup=()=>{};
 let activeSearch=null;
 function cancelRunningSearch(){activeSearch?.abort();}
 function disposeReplay(){replayCleanup();replayCleanup=()=>{};}
@@ -415,6 +416,7 @@ async function showSolver(signal){
   $("solverNote").textContent=(custom?"Custom board · staircase recycling, greedy, beam, and tactical reposition searches tested. ":"Best of "+solution.testedCandidates+" preparations (base Tier "+solution.base+", "+solution.shape+"). ")+result.remaining+" occupied sushi remain. Heat model: "+mode+". Scores remain estimates, not a guaranteed maximum.";
   $("solverNote").textContent+=" Mode: "+optimizerModeLabel+". Winning strategy: "+result.strategy+". Slot arrangement: "+(solution.layoutName??"Current positions")+". Prepared tier cap: "+maxTier+"; East Wind limit: "+cap+".";
   if(!custom&&protectTier64)$("solverNote").textContent+=" The protected Tier "+(maxTier>=64?maxTier:64)+" is placed in the first unlocked slot of the suggested layout."; 
+  preparedOutlineCleanup();preparedOutlineCleanup=()=>{};
   const root=$("solverSteps");root.replaceChildren();
   const movedFrom=slots.filter((v,i)=>v>=0&&recommendedSlots[i]<0).length;
   const changedTypes=slots.filter((v,i)=>v>=0&&recommendedSlots[i]>=0&&v!==recommendedSlots[i]).length;
@@ -435,21 +437,27 @@ async function showSolver(signal){
     const h=document.createElement("h3");h.textContent=sectionNumber+" · "+label;
     if(slotLayoutHeading)h.id="optimizerSlotLayout";
     root.append(h);sectionNumber++;
+    let guide=null,supply=null,chainGuide=null;
     if(sectionInfo){
-      const guide=document.createElement("div");guide.className="prepared-section-guide";
-      const supply=document.createElement("div");supply.className="prepared-section-guide-item prepared-guide-supply";
+      guide=document.createElement("div");guide.className="prepared-section-guide";
+      supply=document.createElement("div");supply.className="prepared-section-guide-item prepared-guide-supply";
       const supplyTitle=document.createElement("strong");supplyTitle.textContent="Supply / tools";
       const supplyText=document.createElement("p");
       supplyText.textContent="The protected Tier 64 stays first. Other sushi here are arranged highest to lowest to make preparation easier. They are mainly merge supplies for the chain, not the fixed Wind engine.";
       supply.append(supplyTitle,supplyText);
-      const chainGuide=document.createElement("div");chainGuide.className="prepared-section-guide-item prepared-guide-chain";
+      chainGuide=document.createElement("div");chainGuide.className="prepared-section-guide-item prepared-guide-chain";
       const chainTitle=document.createElement("strong");chainTitle.textContent="Heat of the East Wind chain";
       const chainText=document.createElement("p");
       chainText.textContent="These sushi form the ordered merge anchors and descending Wind paths. Keep their positions exactly as shown: reordering this area can change or break the simulated combo.";
       chainGuide.append(chainTitle,chainText);
+      for(const [card,name] of [[supply,"supply"],[chainGuide,"chain"]]){
+        card.tabIndex=0;card.setAttribute("role","button");
+        card.setAttribute("aria-label","Highlight "+(name==="supply"?"supply and tools":"Heat of the East Wind chain")+" on the board");
+        card.title="Hover, focus or click to highlight this section";
+      }
       guide.append(supply,chainGuide);root.append(guide);
       const key=document.createElement("p");key.className="hint prepared-section-key";
-      key.textContent="Rose outline = supply / tools (including protected Tier 64) · Mint outline = fixed chain. The original tile colors still indicate plate types.";
+      key.textContent="Rose border = supply / tools (including protected Tier 64) · Mint border = fixed chain. Hover or focus a guide card to spotlight its section; click to pin it.";
       root.append(key);
     }
     const legend=document.createElement("p");legend.className="hint";legend.textContent="Green: Regular · Red: Hot · Blue: Cold · Gold: Milktoast. Hover over a tile for its slot type and position.";root.append(legend);
@@ -467,6 +475,64 @@ async function showSolver(signal){
       const role=sectionInfo?.roles[i]==="supply"?(i===sectionInfo.protectedPosition?" · Protected anchor / supply section":" · Supply / tools"):sectionInfo?.roles[i]==="chain"?" · Fixed Wind chain":"";
       cell.title="Position "+(i+1)+" · "+(SLOT_NAMES[slot]??"Locked")+(showTiers&&tier>0?" · Tier "+tier:"")+role;
       grid.append(cell);
+    }
+    if(sectionInfo){
+      const outline=document.createElementNS("http://www.w3.org/2000/svg","svg");
+      outline.classList.add("prepared-outline");
+      outline.setAttribute("aria-hidden","true");
+      for(const role of ["supply","chain"]){
+        const path=document.createElementNS("http://www.w3.org/2000/svg","path");
+        path.classList.add("prepared-outline-"+role);
+        outline.append(path);
+      }
+      grid.append(outline);
+      const refreshOutline=()=>{
+        if(!grid.isConnected)return;
+        const cells=[...grid.querySelectorAll(".tile")];
+        const gridBox=grid.getBoundingClientRect();
+        if(!gridBox.width||!gridBox.height||cells.length!==BOARD_CELLS)return;
+        const xs=[],ys=[];
+        const bounds=cells.map(cell=>cell.getBoundingClientRect());
+        const gapX=Math.max(0,bounds[1].left-bounds[0].right);
+        const gapY=Math.max(0,bounds[15].top-bounds[0].bottom);
+        xs.push(bounds[0].left-gridBox.left-gapX/2);
+        for(let col=1;col<COLUMNS;col++)xs.push((bounds[col-1].right+bounds[col].left)/2-gridBox.left);
+        xs.push(bounds[COLUMNS-1].right-gridBox.left+gapX/2);
+        ys.push(bounds[0].top-gridBox.top-gapY/2);
+        for(let row=1;row<BOARD_CELLS/COLUMNS;row++)ys.push((bounds[(row-1)*COLUMNS].bottom+bounds[row*COLUMNS].top)/2-gridBox.top);
+        ys.push(bounds[BOARD_CELLS-COLUMNS].bottom-gridBox.top+gapY/2);
+        const width=gridBox.width,height=gridBox.height;
+        outline.setAttribute("viewBox","0 0 "+width+" "+height);
+        for(const role of ["supply","chain"]){
+          outline.querySelector(".prepared-outline-"+role).setAttribute("d",
+            preparedSectionOutlinePath(sectionInfo.roles,role,xs,ys,COLUMNS));
+        }
+      };
+      const observer=typeof ResizeObserver!=="undefined"?new ResizeObserver(refreshOutline):null;
+      observer?.observe(grid);
+      window.addEventListener("resize",refreshOutline);
+      preparedOutlineCleanup=()=>{observer?.disconnect();window.removeEventListener("resize",refreshOutline);};
+      requestAnimationFrame(refreshOutline);
+      let pinned=null;
+      const spotlight=role=>{
+        grid.classList.toggle("highlight-supply",role==="supply");
+        grid.classList.toggle("highlight-chain",role==="chain");
+        supply.classList.toggle("is-active",role==="supply");
+        chainGuide.classList.toggle("is-active",role==="chain");
+        supply.setAttribute("aria-pressed",String(pinned==="supply"));
+        chainGuide.setAttribute("aria-pressed",String(pinned==="chain"));
+      };
+      for(const [card,role] of [[supply,"supply"],[chainGuide,"chain"]]){
+        card.setAttribute("aria-pressed","false");
+        card.addEventListener("pointerenter",()=>spotlight(role));
+        card.addEventListener("pointerleave",()=>spotlight(pinned));
+        card.addEventListener("focus",()=>spotlight(role));
+        card.addEventListener("blur",()=>spotlight(pinned));
+        card.addEventListener("click",()=>{pinned=pinned===role?null:role;spotlight(pinned);});
+        card.addEventListener("keydown",event=>{
+          if(event.key==="Enter"||event.key===" "){event.preventDefault();card.click();}
+        });
+      }
     }
     scroll.append(grid);root.append(scroll);
   }
