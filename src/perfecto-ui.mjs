@@ -22,7 +22,6 @@ const numAttempts=value=>Number.isFinite(value)&&value!==null?display(value):"â€
 export function initializePerfectoUI(getSave){
  let plannerTab="combo",tierChoice="auto";
  const targetSelect=$("perfectoTarget");
- const protect=$("perfectoProtectHigher");
  const summary=$("perfectoTargetSummary");
  function setPlannerTab(target){
   plannerTab=target==="perfecto"?"perfecto":"combo";
@@ -47,7 +46,6 @@ export function initializePerfectoUI(getSave){
   });
  }
  targetSelect.addEventListener("change",()=>{tierChoice=targetSelect.value;render();});
- protect.addEventListener("change",render);
  $("perfectoResetTarget").addEventListener("click",()=>{tierChoice="auto";render();});
  function text(id,value){$(id).textContent=value;}
  function sushiIcon(tier,css){
@@ -115,7 +113,7 @@ export function initializePerfectoUI(getSave){
    tierChoice="auto";
   }
   targetSelect.value=tierChoice;
-  const result=getPerfectoPlanner(saved,{tier:tierChoice,protectHigher:protect.checked});
+  const result=getPerfectoPlanner(saved,{tier:tierChoice});
   renderBonuses(result);
   const ready=!!result.target&&!!result.plan;
   $("perfectoCalculator").classList.toggle("hidden",!ready);
