@@ -137,19 +137,27 @@ export function initializePerfectoUI(getSave){
   text("perfectoPlanCopies",p.copies+" copies");
   text("perfectoExpectedActivations",numAttempts(result.expectedActivations));
   text("perfectoCopyCount",p.copies+" target copies found");
+  const proof=result.search?.certificate;
   text("perfectoPreparationSummary",
    p.copies+" target copies · "+p.additionalCopies+" newly produced in the simulation · "+
+   (proof?.supportingCount?proof.supportingCount+" supporting sushi · ":"")+
    p.protected+" protected higher-tier sushi · "+p.unlocked+" unlocked slots");
   text("perfectoProtectedCount",p.protected+" higher-tier sushi preserved");
-  const proof=result.search?.certificate;
   text("perfectoModelNote",proof?
-   "Constructive merge-only recipe: cook T"+proof.startingTier+" (each costs "+
-   display(result.search.sourceCost)+" fuel, "+percent(proof.capacityShare)+" of fuel capacity), "+
-   "then repeatedly merge equal tiers westwards up to T"+proof.targetTier+
-   ". Reserve "+proof.workspaceSlots+" empty positions while producing each target. "+
-   "The recipe needs "+proof.cooksExact+" cooked source sushi and "+
-   proof.mergesExact+" merges total, with no Salt or Wind luck required. "+
-   "This proves the shown target copies can be built, but not that the board is globally optimal.":
+   "Cook T"+proof.startingTier+" (each costs "+display(result.search.sourceCost)+
+   " fuel, "+percent(proof.capacityShare)+" of fuel capacity), then merge equal tiers "+
+   "westwards until you have "+p.copies+" copies of T"+proof.targetTier+
+   ". Temporarily keep "+proof.workspaceSlots+" positions free while building each target. "+
+   "Making the target copies requires "+proof.cooksExact+" T"+proof.startingTier+
+   " cooks and "+proof.mergesExact+" merges. "+
+   (proof.supportingCount?
+    "After the targets are complete, fill the remaining "+proof.supportingCount+
+    " positions with a descending T"+proof.supportingHighest+"–T"+
+    proof.supportingLowest+" staircase, built highest first. This adds "+
+    proof.supportingCooksExact+" cooks and "+proof.supportingMergesExact+
+    " merges. These supporting sushi do not increase the immediate Perfecto chance. ":"")+
+   "This proves a reproducible merge-only layout without Salt or Wind luck, "+
+   "not a global maximum.":
    "Best result from "+p.searchAttempts+" starting recipes and search variants, using "+
    display(p.estimatedManualMerges)+" simulated merges and "+
    display(p.windUpgrades)+" Wind upgrades. This bounded Wind recipe is a heuristic candidate, "+
