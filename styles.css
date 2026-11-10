@@ -576,3 +576,43 @@ details summary{cursor:pointer;font-size:12px;font-weight:700;color:#9eb7c9}
 @media(prefers-reduced-motion:reduce){
   .prepared-section-board .tile,.prepared-outline path,.prepared-section-guide-item[role="button"]{transition:none}
 }
+
+/* v1.11.0: Upgrade Catalog readability, sorting and filters. */
+#lab-upgrade-catalog .lab-catalog-toolbar{
+ display:grid;grid-template-columns:minmax(195px,1.6fr) repeat(3,minmax(135px,1fr));
+ gap:11px 13px;align-items:end;margin:14px 0;
+}
+#lab-upgrade-catalog .lab-catalog-toolbar label{min-width:0}
+#lab-upgrade-catalog .lab-catalog-toolbar input,
+#lab-upgrade-catalog .lab-catalog-toolbar select{min-width:0;width:100%}
+#lab-upgrade-catalog .lab-catalog-toolbar .hint{grid-column:1/-1;margin:0;font-size:12px}
+.lab-catalog-table{min-width:865px}
+.lab-catalog-table td:first-child{width:42%;min-width:300px}
+.lab-sort-header{
+ border:0;background:none;color:inherit;cursor:pointer;font:inherit;font-weight:750;
+ padding:4px 0;text-align:left;white-space:nowrap;
+}
+.lab-sort-header:hover:not(:disabled){color:#ddf8e9}
+.lab-sort-header:disabled{opacity:.48;cursor:not-allowed}
+.lab-sort-header:focus-visible{outline:2px solid #9ae7ce;outline-offset:3px;border-radius:3px}
+.lab-sort-indicator{color:#8bd6b9}
+.lab-catalog-summary{display:flex;align-items:center;justify-content:space-between;gap:10px;cursor:pointer;list-style:none}
+.lab-catalog-summary::-webkit-details-marker{display:none}
+.lab-catalog-summary::marker{content:""}
+.lab-catalog-summary:focus-visible{outline:2px solid #9ae7ce;outline-offset:3px;border-radius:5px}
+.lab-catalog-summary:hover .lab-upgrade-copy strong{color:#a6ebc9}
+.lab-upgrade-copy{display:flex;flex-direction:column;gap:4px;min-width:0}
+.lab-upgrade-summary{font-size:11px;line-height:1.5;color:#aebfcd;overflow-wrap:anywhere}
+.lab-catalog-more{flex:0 0 auto;white-space:nowrap;font-size:11px;font-weight:700;color:#89d9b7}
+.lab-catalog-more::after{content:" +";font-size:15px}
+.lab-catalog-detail[open] .lab-catalog-more::after{content:" −"}
+.lab-catalog-description{font-size:12px;line-height:1.6;color:#d2e5ea;margin:11px 0 2px;padding-left:46px}
+.lab-catalog-variable-note{font-size:11px;line-height:1.55;color:#8ba6b5;margin:5px 0 0;padding-left:46px}
+.lab-catalog-table .lab-upgrade-identity{min-width:0}
+@media(max-width:930px){
+ #lab-upgrade-catalog .lab-catalog-toolbar{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media(max-width:540px){
+ #lab-upgrade-catalog .lab-catalog-toolbar{grid-template-columns:minmax(0,1fr)}
+ .lab-catalog-description,.lab-catalog-variable-note{padding-left:0}
+}

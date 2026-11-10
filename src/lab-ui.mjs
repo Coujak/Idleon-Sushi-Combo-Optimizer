@@ -1,6 +1,7 @@
 // Sushi Station Lab: lightweight, accessible navigation and account-aware
 // information panels. All imported JSON stays in memory on the user's device.
-import {SUSHI_REFERENCE_SOURCE,sushiUpgradeIconPath,sushiTierIconPath} from "./sushi-reference.mjs?v=1.10.2";
+import {sushiUpgradeIconPath,sushiTierIconPath} from "./sushi-reference.mjs?v=1.10.2";
+import {CATALOG_SORT_OPTIONS,CATALOG_STATUS_OPTIONS,upgradeSummary,readableUpgradeDescription,catalogHasVariableValues,filterSortCatalog} from "./upgrade-catalog.mjs?v=1.11.0";
 import {ADVISOR_GOALS,numberText,getSushiSnapshot,getUpgradeRows,
  getKnowledgeRows,advisorUpgrades,doublerUpgrades} from "./lab-model.mjs";
 
@@ -37,6 +38,8 @@ function openButton(name,target){
 let setTab=()=>{};
 export function initializeSushiLab(getSave){
  let mainTab="overview",upgradeTab="catalog",goal="bucks",doublerGoal="all";
+ let catalogSort="shop",catalogCategory="all",catalogStatus="all";
+ const expandedUpgradeDetails=new Set();
  const save=()=>getSave();
  const tabs=["overview","planners","upgrades","knowledge"];
  setTab=(target)=>{
@@ -88,10 +91,36 @@ export function initializeSushiLab(getSave){
  goalInput.value=goal;
  goalInput.addEventListener("change",()=>{goal=goalInput.value;renderAdvisor();});
  dblInput.addEventListener("change",()=>{doublerGoal=dblInput.value;renderDoubler();});
+ const categoryInput=$("labUpgradeCategory");
+ const statusInput=$("labUpgradeStatus");
+ const sortInput=$("labUpgradeSort");
+ for(const entry of [...ADVISOR_GOALS,{id:"other",name:"Other / utility"}]){
+  categoryInput.append(new Option(entry.name,entry.id));
+ }
+ for(const entry of CATALOG_STATUS_OPTIONS){
+  const option=new Option(entry.label,entry.value);
+  option.dataset.requiresSave=String(!!entry.requiresSave);
+  statusInput.append(option);
+ }
+ for(const entry of CATALOG_SORT_OPTIONS){
+  const option=new Option(entry.label,entry.value);
+  option.dataset.requiresSave=String(!!entry.requiresSave);
+  sortInput.append(option);
+ }
  $("labUpgradeSearch").addEventListener("input",renderCatalog);
+ categoryInput.addEventListener("change",()=>{catalogCategory=categoryInput.value;renderCatalog();});
+ statusInput.addEventListener("change",()=>{catalogStatus=statusInput.value;renderCatalog();});
+ sortInput.addEventListener("change",()=>{catalogSort=sortInput.value;renderCatalog();});
+ for(const button of document.querySelectorAll("[data-catalog-sort]")){
+  button.addEventListener("click",()=>{
+   const first=button.dataset.catalogSort,second=button.dataset.catalogSortReverse||"shop";
+   catalogSort=catalogSort===first?second:first;
+   sortInput.value=catalogSort;
+   renderCatalog();
+  });
+ }
  $("labKnowledgeSearch").addEventListener("input",renderKnowledge);
  $("labKnowledgeStatus").addEventListener("change",renderKnowledge);
- $("labReferenceSource").href=SUSHI_REFERENCE_SOURCE;
 
  function sushiArtwork(tier){
   const frame=el("span","lab-sushi-art-frame");
@@ -181,28 +210,64 @@ export function initializeSushiLab(getSave){
   return img;
  }
  function renderCatalog(){
-  const q=$("labUpgradeSearch").value.trim().toLowerCase(),s=save();
-  const rows=getUpgradeRows(s).filter(u=>
-   (u.name+" "+u.id+" "+u.shop+" "+u.description).toLowerCase().includes(q));
+  const s=save(),hasSave=!!s;
+  for(const select of [statusInput,sortInput]){
+   for(const option of select.options)option.disabled=option.dataset.requiresSave==="true"&&!hasSave;
+  }
+  if(!hasSave){
+   if(CATALOG_STATUS_OPTIONS.some(x=>x.value===catalogStatus&&x.requiresSave))catalogStatus="all";
+   if(CATALOG_SORT_OPTIONS.some(x=>x.value===catalogSort&&x.requiresSave))catalogSort="shop";
+   statusInput.value=catalogStatus;sortInput.value=catalogSort;
+  }
+  const rows=filterSortCatalog(getUpgradeRows(s),{
+   query:$("labUpgradeSearch").value,category:catalogCategory,status:catalogStatus,sort:catalogSort,hasSave
+  });
   const body=$("labUpgradeRows");body.replaceChildren();
   $("labUpgradeCount").textContent=rows.length+" / 46 upgrades";
+  for(const header of [
+   {key:"name",sorts:["name-asc","name-desc"]},
+   {key:"level",sorts:["level-asc","level-desc"]},
+   {key:"cost",sorts:["cost-asc","cost-desc"]},
+   {key:"doubler",sorts:["doubled-first"]}
+  ]){
+   const th=document.querySelector('[data-catalog-column="'+header.key+'"]');
+   const active=header.sorts.includes(catalogSort);
+   const descending=catalogSort.endsWith("-desc")||catalogSort==="doubled-first";
+   th.setAttribute("aria-sort",active?(descending?"descending":"ascending"):"none");
+   th.querySelector(".lab-sort-indicator").textContent=active?(descending?" ↓":" ↑"):" ↕";
+   th.querySelector(".lab-sort-header").disabled=!hasSave&&header.key!=="name";
+  }
+  $("labUpgradeEmpty").classList.toggle("hidden",rows.length!==0);
   for(const u of rows){
    const tr=el("tr"),name=el("td","lab-upgrade-name");
+   const details=el("details","lab-catalog-detail");
+   details.open=expandedUpgradeDetails.has(u.id);
+   const summary=el("summary","lab-catalog-summary");
+   summary.addEventListener("click",()=>{
+    if(details.open)expandedUpgradeDetails.delete(u.id);
+    else expandedUpgradeDetails.add(u.id);
+   });
    const identity=el("span","lab-upgrade-identity");
-   identity.append(upgradeArtwork(u),el("strong","",upgradeLabel(u)));
-   name.append(identity);
-   const details=el("details","lab-row-detail");
-   const summary=el("summary","", "Effect details");
-   details.append(summary,el("p","",u.description||"No effect details available in the reference."));
+   const copy=el("span","lab-upgrade-copy");
+   copy.append(el("strong","",upgradeLabel(u)),
+    el("span","lab-upgrade-summary",upgradeSummary(u)));
+   identity.append(upgradeArtwork(u),copy);
+   summary.append(identity,el("span","lab-catalog-more","Details"));
+   details.append(summary,el("p","lab-catalog-description",readableUpgradeDescription(u.description)));
+   if(catalogHasVariableValues(u.description)){
+    details.append(el("p","lab-catalog-variable-note",
+     "[variable] and [in-game value] indicate amounts calculated by the game, not confirmed account-specific values."));
+   }
    name.append(details);
-   const level=s?fmt(u.level)+(u.maxLevel>0?" / "+fmt(u.maxLevel):""):"Import save";
-   const price=s?(u.atMax?"Maxed":numberDisplay(u.baseNextCost)):"Import save";
-   const effect=s?effectText(u):"Per-level "+fmt(u.perLevel)+" (base)";
+   const level=u.maxLevel===0?"Unavailable":hasSave?fmt(u.level)+(u.maxLevel>0?" / "+fmt(u.maxLevel):""):"Import save";
+   const price=u.maxLevel===0?"Unavailable":hasSave?(u.atMax?"Maxed":numberDisplay(u.baseNextCost)):"Import save";
+   const effect=u.maxLevel===0?"—":hasSave?effectText(u):"Per-level "+fmt(u.perLevel)+" (base)";
    for(const c of [name,el("td","",level),el("td","",price),
       el("td","",effect),el("td","",u.doubled?"Active ×2":u.doublerEligible?"Eligible":"—")])tr.append(c);
    body.append(tr);
   }
  }
+
  function resultCard(u,mode){
   const item=el("article","lab-result-card");
   const header=el("div","lab-result-head");
