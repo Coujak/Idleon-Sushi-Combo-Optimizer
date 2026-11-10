@@ -5,6 +5,7 @@ import {initializePerfectoUI} from "./perfecto-ui.mjs?v=1.15.8";
 import {CATALOG_SORT_OPTIONS,CATALOG_STATUS_OPTIONS,upgradeSummary,readableUpgradeDescription,upgradeDescriptionSegments,catalogHasVariableValues,filterSortCatalog} from "./upgrade-catalog.mjs?v=1.12.2";
 import {ADVISOR_GOALS,numberText,getSushiSnapshot,getUpgradeRows,
  getKnowledgeRows,advisorUpgrades,doublerUpgrades,getSushiDoublerCounts,sushiUpgradeExtraText,upgradeAffordability} from "./lab-model.mjs?v=1.12.1";
+import {getProgressionAdvice,PROGRESSION_SORT_OPTIONS,PROGRESSION_FILTER_OPTIONS} from "./progression-advisor.mjs?v=1.16.0";
 
 const $=id=>document.getElementById(id);
 const el=(tag,css="",value)=>{
@@ -45,6 +46,7 @@ function openButton(name,target){
 let setTab=()=>{};
 export function initializeSushiLab(getSave){
  let mainTab="overview",upgradeTab="catalog",goal="bucks",doublerGoal="all";
+ let advisorSort="recommended",advisorFilter="all";
  let catalogSort="shop",catalogCategory="all",catalogStatus="all";
  const expandedUpgradeDetails=new Set();
  const save=()=>getSave();
@@ -98,6 +100,14 @@ export function initializeSushiLab(getSave){
  goalInput.value=goal;
  goalInput.addEventListener("change",()=>{goal=goalInput.value;renderAdvisor();});
  dblInput.addEventListener("change",()=>{doublerGoal=dblInput.value;renderDoubler();});
+ const advisorSortInput=$("labAdvisorSort"),advisorFilterInput=$("labAdvisorFilter");
+ const advisorMaxedInput=$("labAdvisorShowMaxed");
+ for(const item of PROGRESSION_SORT_OPTIONS)advisorSortInput.append(new Option(item.label,item.value));
+ for(const item of PROGRESSION_FILTER_OPTIONS)advisorFilterInput.append(new Option(item.label,item.value));
+ advisorSortInput.value=advisorSort;advisorFilterInput.value=advisorFilter;
+ advisorSortInput.addEventListener("change",()=>{advisorSort=advisorSortInput.value;renderAdvisor();});
+ advisorFilterInput.addEventListener("change",()=>{advisorFilter=advisorFilterInput.value;renderAdvisor();});
+ advisorMaxedInput.addEventListener("change",renderAdvisor);
  const categoryInput=$("labUpgradeCategory");
  const statusInput=$("labUpgradeStatus");
  const sortInput=$("labUpgradeSort");
@@ -379,17 +389,113 @@ export function initializeSushiLab(getSave){
   }
   return item;
  }
+ function advisorBadge(u){
+  if(u.atMax)return ["Maxed","lab-advisor-badge-muted"];
+  if(u.affordability==="affordable")return ["Can buy now","lab-advisor-badge-success"];
+  if(u.affordability==="unaffordable")return ["Save more Bucks","lab-advisor-badge-secondary"];
+  if(u.affordability==="uncertain")return ["Price uncertain","lab-advisor-badge-uncertain"];
+  return ["Cost unknown","lab-advisor-badge-muted"];
+ }
+ function advisorPrice(u){
+  return u.costKnown?numberDisplay(u.estimatedNextCost):"Unavailable";
+ }
+ function advisorShortfall(u){
+  if(u.atMax)return "Already maxed";
+  if(u.affordability==="affordable")return "Enough Bucks to purchase";
+  if(u.missing===null)return "Price information incomplete";
+  if(u.affordability==="uncertain")
+   return "Up to "+numberDisplay(u.missing)+" more Bucks at this estimate";
+  return numberDisplay(u.missing)+" more Bucks needed";
+ }
+ function advisorIdentity(u){
+  const identity=el("div","lab-advisor-identity");
+  identity.append(upgradeArtwork(u));
+  const copy=el("div","lab-advisor-identity-copy");
+  copy.append(el("strong","",upgradeLabel(u)),
+   el("span","","Lv "+fmt(u.level)+" → "+fmt(u.level+(u.atMax?0:1))+
+    (u.doubled?" · Doubled":"")));
+  identity.append(copy);
+  return identity;
+ }
+ function advisorDetail(u,featured=false){
+  const item=el("article",featured?"lab-advisor-top":"lab-advisor-option");
+  const header=el("div","lab-advisor-option-head");
+  header.append(advisorIdentity(u));
+  const [label,klass]=advisorBadge(u);
+  header.append(el("span","lab-advisor-badge "+klass,label));
+  item.append(header);
+  item.append(el("p","lab-advisor-one-line",upgradeSummary(u)));
+  const metrics=el("div","lab-advisor-metrics");
+  function metric(caption,value,className=""){
+   const cell=el("div","lab-advisor-metric "+className);
+   cell.append(el("small","",caption),el("strong","",value));
+   metrics.append(cell);
+  }
+  if(featured)metric("YOUR SUSHI BUCKS",numberDisplay(getSushiSnapshot(save()).bucks));
+  metric(u.exactCost?"ESTIMATED DISCOUNTED PRICE":"UPPER PRICE ESTIMATE",
+   u.atMax?"Maxed":advisorPrice(u));
+  metric("BUYING POWER",advisorShortfall(u),u.affordability==="affordable"?
+   "lab-advisor-good":"");
+  item.append(metrics);
+  const benefit=el("div","lab-advisor-benefit");
+  benefit.append(el("span","","NEXT LEVEL BENEFIT"),el("strong","",u.effect.label));
+  item.append(benefit);
+  if(featured){
+   item.append(el("p","lab-advisor-reason",u.reason+" "+u.budgetNote));
+   if(!u.exactCost)item.append(el("p","lab-advisor-price-note",
+    "The imported save may omit a discount. Your actual in-game price can be lower than shown."));
+  }else if(!u.exactCost){
+   item.append(el("p","lab-advisor-price-note","Price may be lower if discounts are missing."));
+  }
+  return item;
+ }
  function renderAdvisor(){
-  const root=$("labAdvisorResults");root.replaceChildren();
+  const root=$("labAdvisorResults"),feature=$("labAdvisorFeature"),
+   roadmap=$("labAdvisorRoadmap"),summary=$("labAdvisorSummary"),
+   count=$("labAdvisorResultsCount");
+  root.replaceChildren();feature.replaceChildren();roadmap.replaceChildren();summary.replaceChildren();
+  count.textContent="";
   if(!save()){
-   addText(root,"hint","Import a save on Overview to compare your actual upgrade levels and possible next upgrades.");
+   summary.append(el("p","hint","Import your Sushi Station game save on Overview to receive a personalized buying recommendation."));
    return;
   }
-  const candidates=advisorUpgrades(save(),goal);
-  addText(root,"hint",candidates.length+
-   " relevant upgrades, sorted by estimated base purchase cost. This is goal-based guidance, not a full account-wide ROI calculation.");
-  for(const u of candidates)root.append(resultCard(u,"advisor"));
-  if(!candidates.length)addText(root,"hint","No upgrades currently mapped to this goal.");
+  const advice=getProgressionAdvice(save(),goal,{
+   sort:advisorSort,filter:advisorFilter,includeMaxed:advisorMaxedInput.checked
+  });
+  summary.append(el("strong","",advice.affordableCount+" affordable now · "+
+   advice.count+" upgrades not maxed · "+numberDisplay(advice.bucks)+" Sushi Bucks available"));
+  if(advice.partialPrices)summary.append(el("span","",
+   "Some prices are upper estimates because the imported save lacks one or more discounts."));
+  if(!advice.best){
+   feature.append(el("p","hint","Every upgrade mapped to this goal is already maxed, or no applicable upgrades are available."));
+  }else{
+   const head=el("div","lab-advisor-feature-heading");
+   head.append(el("span","lab-advisor-kicker",
+    advice.best.affordability==="affordable"?"RECOMMENDED NEXT PURCHASE":"RECOMMENDED UPGRADE TO SAVE FOR"),
+     el("span","lab-advisor-method","Account-aware priority"));
+   feature.append(head,advisorDetail(advice.best,true));
+   if(advice.best.affordability!=="affordable")
+    feature.append(el("p","lab-advisor-feature-footnote",
+     "No upgrades for this goal are currently confirmed affordable. The suggestion above is a savings target, not an instruction to buy immediately."));
+  }
+  for(const [i,u] of advice.roadmap.entries()){
+   const step=el("article","lab-advisor-roadmap-step");
+   const head=el("div","lab-advisor-roadmap-top");
+   head.append(el("span","lab-advisor-roadmap-index",String(i+1)),
+    el("strong","",u.name));
+   step.append(head,el("span","lab-advisor-roadmap-status",
+    (u.affordability==="affordable"?"Affordable":"Save for")+
+    " · "+(u.costKnown?numberDisplay(u.estimatedNextCost)+" Bucks":"Cost unknown")));
+   roadmap.append(step);
+  }
+  if(!advice.roadmap.length)roadmap.append(el("p","hint","No remaining purchases for this goal."));
+  // The recommended purchase is already featured. List other candidates
+  // under the requested filters without repeating the same upgrade.
+  const alternatives=advice.rows.filter(u=>u.id!==advice.best?.id);
+  count.textContent=alternatives.length+" alternatives"+(advisorFilter==="all"?"":" in this filter");
+  for(const u of alternatives)root.append(advisorDetail(u,false));
+  if(!alternatives.length)root.append(el("p","hint",
+   "No other upgrades match these filters. Change the goal or filters to compare more options."));
  }
  function renderDoubler(){
   const root=$("labDoublerResults");root.replaceChildren();
