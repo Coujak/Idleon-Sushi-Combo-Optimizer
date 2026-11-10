@@ -1,8 +1,8 @@
 // Goal-specific result previews for planned Sushi upgrade purchases.
 // Only model totals supported by the existing save and known formulas.
 // A partial multiplier is never mislabeled as the full hourly production.
-import {getKnowledgeRows,getUpgradeRows,sushiUpgradeDiscounts} from "./lab-model.mjs";
-import {estimateSushiFuelEconomy} from "./perfecto-fuel.mjs";
+import {getKnowledgeRows,getUpgradeRows,sushiUpgradeDiscounts} from "./lab-model.mjs?v=1.16.6";
+import {estimateSushiFuelEconomy} from "./perfecto-fuel.mjs?v=1.16.6";
 
 const finite=value=>typeof value==="number"&&Number.isFinite(value);
 const format=(n,digits=3)=>{
