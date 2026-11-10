@@ -28,7 +28,8 @@ for(const [exp,build] of [[2,buildExperimental2Candidates],[13,buildExperimental
       assert.equal(result.chainCount,100-FIRST_ENGINE_INDEX[exp]);
       assert.equal(result.roles[offset],"supply");
       assert.equal(result.roles[result.firstEnginePosition],"chain");
-      assert.equal(result.roles[119-offset]??null,offset===0?null:"supply");
+      assert.equal(result.roles[offset+99],"chain");
+      if(offset===20)assert.equal(result.roles[0],null);
     });
   }
 }
