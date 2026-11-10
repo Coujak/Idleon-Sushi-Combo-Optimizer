@@ -12,6 +12,7 @@ import {BOARD_COLUMNS,BOARD_CELLS,normalizeBoardData,layoutOptions} from "./boar
 import {windTierMaximum,clampWindTier,windTierAfterPreparedChange} from "./wind-limit.mjs?v=1.9.10";
 import {initializeSushiLab} from "./lab-ui.mjs?v=1.10.2";
 import {sushiTierIconPath} from "./sushi-reference.mjs?v=1.10.2";
+import {getPreparedBoardSections,hasSlotLayoutChanges} from "./prepared-sections.mjs?v=1.10.5";
 const COLUMNS=BOARD_COLUMNS;
 let imported=null;
 const sushiLab=initializeSushiLab(()=>imported);
@@ -427,27 +428,51 @@ async function showSolver(signal){
     moves.textContent="Rearrangement guide (positions counted left to right, top to bottom): Empty sushi from slots being moved. Move plates out of positions "+(remove.join(", ")||"none")+" and place the same plate types into the recommended positions "+(add.join(", ")||"none")+". Use the colored boards below to match each plate type; you may need temporary empty positions to swap plates.";
     root.append(moves);
   }
-  function make(label,values,showTiers){
-    const h=document.createElement("h3");h.textContent=label;if(label.startsWith("1 ·"))h.id="optimizerSlotLayout";root.append(h);
+  const sections=custom?null:getPreparedBoardSections(solution,recommendedSlots);
+  const showSlotRecommendation=hasSlotLayoutChanges(slots,recommendedSlots);
+  let sectionNumber=1;
+  function make(label,values,showTiers,sectionInfo=null,slotLayoutHeading=false){
+    const h=document.createElement("h3");h.textContent=sectionNumber+" · "+label;
+    if(slotLayoutHeading)h.id="optimizerSlotLayout";
+    root.append(h);sectionNumber++;
+    if(sectionInfo){
+      const guide=document.createElement("div");guide.className="prepared-section-guide";
+      const supply=document.createElement("div");supply.className="prepared-section-guide-item prepared-guide-supply";
+      const supplyTitle=document.createElement("strong");supplyTitle.textContent="Supply / tools";
+      const supplyText=document.createElement("p");
+      supplyText.textContent="The protected Tier 64 stays first. Other sushi here are arranged highest to lowest to make preparation easier. They are mainly merge supplies for the chain, not the fixed Wind engine.";
+      supply.append(supplyTitle,supplyText);
+      const chainGuide=document.createElement("div");chainGuide.className="prepared-section-guide-item prepared-guide-chain";
+      const chainTitle=document.createElement("strong");chainTitle.textContent="Heat of the East Wind chain";
+      const chainText=document.createElement("p");
+      chainText.textContent="These sushi form the ordered merge anchors and descending Wind paths. Keep their positions exactly as shown: reordering this area can change or break the simulated combo.";
+      chainGuide.append(chainTitle,chainText);
+      guide.append(supply,chainGuide);root.append(guide);
+      const key=document.createElement("p");key.className="hint prepared-section-key";
+      key.textContent="Rose outline = supply / tools (including protected Tier 64) · Mint outline = fixed chain. The original tile colors still indicate plate types.";
+      root.append(key);
+    }
     const legend=document.createElement("p");legend.className="hint";legend.textContent="Green: Regular · Red: Hot · Blue: Cold · Gold: Milktoast. Hover over a tile for its slot type and position.";root.append(legend);
     const scroll=document.createElement("div");scroll.className="board-scroll optimizer-board-scroll";
-    const grid=document.createElement("div");grid.className="board optimizer-board";
-    const displaySlots=label.startsWith("0 ·")?slots:recommendedSlots;
+    const grid=document.createElement("div");grid.className="board optimizer-board"+(sectionInfo?" prepared-section-board":"");
     for(let i=0;i<BOARD_CELLS;i++){
-      const slot=displaySlots[i]??-1,tier=values[i]??0;
+      const slot=recommendedSlots[i]??-1,tier=values[i]??0;
       const cell=document.createElement("div");
       cell.className="tile"+(slot>=0?" slot-"+slot:" locked")+(showTiers&&tier<1?" empty":"");
+      if(sectionInfo?.roles[i])cell.classList.add("prepared-"+sectionInfo.roles[i]);
+      if(sectionInfo?.protectedPosition===i)cell.classList.add("prepared-protected");
+      if(sectionInfo?.firstEnginePosition===i)cell.classList.add("prepared-engine-start");
       if(slot>=0&&showTiers&&tier>0){addSushiVisual(cell,tier);}
       else if(slot>=0&&!showTiers){const dot=document.createElement("span");dot.className="slot-marker";dot.textContent="•";cell.append(dot);}
-      cell.title="Position "+(i+1)+" · "+(SLOT_NAMES[slot]??"Locked")+(showTiers&&tier>0?" · Tier "+tier:"");
+      const role=sectionInfo?.roles[i]==="supply"?(i===sectionInfo.protectedPosition?" · Protected anchor / supply section":" · Supply / tools"):sectionInfo?.roles[i]==="chain"?" · Fixed Wind chain":"";
+      cell.title="Position "+(i+1)+" · "+(SLOT_NAMES[slot]??"Locked")+(showTiers&&tier>0?" · Tier "+tier:"")+role;
       grid.append(cell);
     }
     scroll.append(grid);root.append(scroll);
   }
-  make("0 · Current slot layout",[],false);
-  make("1 · Recommended slot layout ("+(solution.layoutName??"current")+")",[],false);
-  make(custom?"2 · Your custom starting board":"2 · Recommended prepared sushi tiers (not your current inventory)",solution.board,true);
-  const heading=document.createElement("h3");heading.textContent="3 · Interactive merge sequence";root.append(heading);
+  if(showSlotRecommendation)make("Recommended slot layout ("+(solution.layoutName??"current")+")",[],false,null,true);
+  make(custom?"Your custom starting board":"Recommended prepared sushi tiers (not your current inventory)",solution.board,true,sections);
+  const heading=document.createElement("h3");heading.textContent=sectionNumber+" · Interactive merge sequence";root.append(heading);
   const intro=document.createElement("p");intro.className="hint";intro.textContent="Watch the combo with Play, or jump between steps yourself. Blue is the source, green the destination, and purple is Heat of the East Wind. Step 0 shows the full board.";root.append(intro);
   const layout=document.createElement("div");layout.className="merge-layout";
   const left=document.createElement("div");left.className="merge-board-panel";
