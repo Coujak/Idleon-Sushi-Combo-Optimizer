@@ -66,7 +66,7 @@ test("Research CLI reports honest results without publishing an unqualified expe
  const outcome=spawnSync(process.execPath,[runner.pathname,"--trials=2","--seed=421"],
   {encoding:"utf8",timeout:30000});
  assert.equal(outcome.status,0,outcome.stderr||outcome.stdout);
- assert.match(outcome.stdout,/Exp 13\\.0 verified: 76532/);
+ assert.match(outcome.stdout,/Exp 13\.0 verified: 76532/);
  assert.match(outcome.stdout,/"nextTarget": 80000/);
  assert.match(outcome.stdout,/No new numbered Experiment: threshold not achieved/);
 });
