@@ -1,7 +1,7 @@
 // Sushi Station Lab: lightweight, accessible navigation and account-aware
 // information panels. All imported JSON stays in memory on the user's device.
 import {sushiUpgradeIconPath,sushiTierIconPath} from "./sushi-reference.mjs?v=1.10.2";
-import {initializePerfectoUI} from "./perfecto-ui.mjs?v=1.15.5";
+import {initializePerfectoUI} from "./perfecto-ui.mjs?v=1.15.7";
 import {CATALOG_SORT_OPTIONS,CATALOG_STATUS_OPTIONS,upgradeSummary,readableUpgradeDescription,upgradeDescriptionSegments,catalogHasVariableValues,filterSortCatalog} from "./upgrade-catalog.mjs?v=1.12.2";
 import {ADVISOR_GOALS,numberText,getSushiSnapshot,getUpgradeRows,
  getKnowledgeRows,advisorUpgrades,doublerUpgrades,getSushiDoublerCounts,sushiUpgradeExtraText,upgradeAffordability} from "./lab-model.mjs?v=1.12.1";
@@ -394,7 +394,7 @@ export function initializeSushiLab(getSave){
  function renderDoubler(){
   const root=$("labDoublerResults");root.replaceChildren();
   if(!save()){
-   addText(root,"hint","Import a full Idleon Toolbox JSON to see assigned Sushi doublers from Spelunk[52].");
+   addText(root,"hint","Import a full game save JSON to see assigned Sushi doublers from Spelunk[52].");
    return;
   }
   const chosen=doublerUpgrades(save(),doublerGoal);
