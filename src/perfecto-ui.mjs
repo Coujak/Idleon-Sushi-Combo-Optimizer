@@ -2,7 +2,7 @@
 // The optimizer chooses its own final copy count and prepared arrangement.
 import {sushiTierIconPath} from "./sushi-reference.mjs";
 import {numberText} from "./lab-model.mjs";
-import {availablePerfectoTargets,getPerfectoPlanner} from "./perfecto-planner.mjs?v=1.15.4";
+import {availablePerfectoTargets,getPerfectoPlanner} from "./perfecto-planner.mjs?v=1.15.5";
 
 const $=id=>document.getElementById(id);
 const node=(tag,css="",value)=>{
@@ -158,12 +158,12 @@ export function initializePerfectoUI(getSave){
    "Making the target copies requires "+proof.cooksExact+" T"+proof.startingTier+
    " cooks and "+proof.mergesExact+" merges. "+
    (proof.supportingCount?
-    "After the targets are complete, fill the remaining "+proof.supportingCount+
-    " positions with descending support tiers T"+proof.supportingHighest+"–T"+
+    "After the targets are complete, build the remaining "+proof.supportingCount+
+    " descending support sushi for the top of the regular-plate area: T"+proof.supportingHighest+"–T"+
     proof.supportingLowest+", built highest first. The final board assigns "+
     "Hot, Cold and Milktoast plates to the highest tiers first, even above "+
     "the Perfecto target; supporting sushi use regular plates where possible. "+
-    "Rearrange existing sushi after construction if needed. This adds "+
+    "On regular plates the support staircase comes first, followed by target copies; protected higher-tier sushi take the last regular slot where possible. Rearrange existing sushi after construction if needed. This adds "+
     proof.supportingCooksExact+" cooks and "+proof.supportingMergesExact+
     " merges. These supporting sushi do not increase the immediate Perfecto chance. ":"")+
    "This proves a reproducible merge-only layout without Salt or Wind luck, "+
