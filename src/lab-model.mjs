@@ -11,7 +11,7 @@ const num=x=>{const n=Number(x);return Number.isFinite(n)?n:0;};
 export const numberText=(n)=>{
  if(!Number.isFinite(n))return "Too large to display";
  const abs=Math.abs(n);
- return abs>=1e12||abs>0&&abs<0.001?n.toExponential(3):
+ return abs>=1e12||abs>0&&abs<0.001?n.toExponential(3).replace(/e\+?/i,"E"):
   n.toLocaleString("en-US",{maximumFractionDigits:abs<10?3:2});
 };
 export function getSushiSnapshot(save){
