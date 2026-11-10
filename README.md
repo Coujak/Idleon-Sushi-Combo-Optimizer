@@ -19,7 +19,7 @@ See [`assets/README.md`](assets/README.md) for the complete artwork inventory an
 - **Upgrades (46/46):** `Upgrade Name (Upgrade X).png`, where X is the **1-based shop list position**, not the internal ID saved in `Sushi[2]`.
 - **Sushi (64/64):** `Sushi Name (Tier X).png`, where X is the displayed tier (1–64).
 - **Shakers:** Copies of the Salt, Pepper and Saffron icons under `assets/shakers/`.
-- **Campfires:** Five legacy `SushiUpg23–27.png` assets retained so fireplace graphics keep working.
+- **Campfires:** Five renamed fireplace images using `Upgrade Name (Upgrade X).png`, matching the Upgrades folder; the board now loads their new paths.
 
 The `sushiUpgradeIconPath(id)` and `sushiTierIconPath(tier)` helpers resolve renamed assets without confusing internal IDs, shop position, or displayed tiers.
 

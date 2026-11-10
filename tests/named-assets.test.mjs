@@ -43,3 +43,15 @@ test("Landing page and UI modules reference the renamed icon paths",()=>{
  assert.ok(lab.includes("sushiUpgradeIconPath(u.id)"));
  assert.ok(lab.includes('art.src="assets/shakers/"'));
 });
+
+test("Campfire art uses upgrade shop numbers and duplicates the matching upgrade icons",()=>{
+ const names=["Charcoal Fireplace (Upgrade 17).png","Barium Firelighter (Upgrade 26).png","Copper Firelighter (Upgrade 33).png","Lithium Firelighter (Upgrade 40).png","Potassium Firelighter (Upgrade 42).png"];
+ const actual=readdirSync(path.join(root,"assets/campfires")).filter(f=>f.endsWith(".png")).sort();
+ assert.deepEqual(actual,[...names].sort());
+ const app=get("src/app.js").toString("utf8");
+ assert.ok(app.includes('encodeURIComponent(FIRE_IMAGES[f])'));
+ for(const name of names){
+  assert.ok(app.includes('"'+name+'"'));
+  assert.deepEqual(get("assets/campfires/"+name),get("assets/upgrades/"+name));
+ }
+});

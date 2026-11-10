@@ -115,7 +115,7 @@ function addSushiVisual(cell,tier){
   cell.append(number);
 }
 const FIRE_NAMES=["Orange · Charcoal Fireplace","Green · Barium Firelighter","Blue · Copper Firelighter","Pink · Lithium Firelighter","Purple · Potassium Firelighter"];
-const FIRE_IMAGES=["SushiUpg23.png","SushiUpg27.png","SushiUpg24.png","SushiUpg26.png","SushiUpg25.png"];
+const FIRE_IMAGES=["Charcoal Fireplace (Upgrade 17).png","Barium Firelighter (Upgrade 26).png","Copper Firelighter (Upgrade 33).png","Lithium Firelighter (Upgrade 40).png","Potassium Firelighter (Upgrade 42).png"];
 function renderBoard(tiles,perfecto,slots,fires){
   const board=$("board");board.replaceChildren();
   // Always show eight rows, even when all the user's slots are at the top.
@@ -136,7 +136,7 @@ function renderBoard(tiles,perfecto,slots,fires){
   for(let i=0;i<COLUMNS;i++){
     const f=fires[i]??-1,cell=document.createElement("div");cell.className="fire-cell"+(f>=0?" fire-"+f:"");
     if(f>=0&&f<FIRE_IMAGES.length){
-      const img=document.createElement("img");img.className="campfire-art";img.src="assets/campfires/"+FIRE_IMAGES[f];img.alt=FIRE_NAMES[f];img.loading="lazy";img.onerror=()=>{img.remove();cell.textContent="♨";};cell.append(img);
+      const img=document.createElement("img");img.className="campfire-art";img.src="assets/campfires/"+encodeURIComponent(FIRE_IMAGES[f]);img.alt=FIRE_NAMES[f];img.loading="lazy";img.onerror=()=>{img.remove();cell.textContent="♨";};cell.append(img);
     }
     cell.title="Column "+(i+1)+" · "+(FIRE_NAMES[f]??"No fireplace");
     fireRow.append(cell);
