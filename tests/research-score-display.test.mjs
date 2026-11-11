@@ -53,3 +53,28 @@ test("An old saved record alone cannot enable Stop & Continue",()=>{
  assert.equal(Boolean(current?.search),false);
  assert.equal(currentRunScore({splitResearch:true,runBest:null,solution:saved}),null);
 });
+
+test("Normal Custom completion shows this run's 64,946 rather than saved 68,396",()=>{
+ const saved={board:["saved"],search:{score:68396,remaining:8}};
+ const current={board:["current"],search:{score:64946,remaining:9}};
+ // The completed search deliberately shows the new search's winner.
+ const selected=selectDisplayedSearchResult(saved,current,true);
+ assert.equal(selected.search.score,64946);
+ assert.equal(selected.board[0],"current");
+ assert.equal(saved.search.score,68396);
+ // View saved best remains a separate explicit action.
+ assert.equal(selectDisplayedSearchResult(saved,current,false),saved);
+});
+test("A completed split search without new boards can display its saved fallback",()=>{
+ const saved={search:{score:68396,remaining:8}};
+ const newRun=null;
+ assert.equal(selectDisplayedSearchResult(saved,newRun,false),saved);
+ assert.throws(()=>selectDisplayedSearchResult(saved,newRun,true),
+  /No completed result from this run/);
+});
+test("A current-run improvement above saved best wins on regular completion",()=>{
+ const saved={search:{score:68396,remaining:8}};
+ const current={search:{score:70100,remaining:7}};
+ assert.equal(selectDisplayedSearchResult(saved,current,true).search.score,70100);
+ assert.equal(betterRunCandidate(current,saved),true);
+});
