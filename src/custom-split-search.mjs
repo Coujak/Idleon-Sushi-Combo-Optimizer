@@ -84,7 +84,14 @@ export function buildCustomSplitCandidates(positions,maxTier,cap,chainLimit=25,
       " variation "+(selected.length+1),variant:"custom refinement"});
    }
   }
-  selected.forEach((candidate,i)=>{candidate.configurationIndex=i+1;});
+  selected.forEach((candidate,i)=>{
+   candidate.configurationIndex=i+1;
+   // The neutral 50/50 boundary belongs equally to both search workers,
+   // regardless of which base profile originally generated the candidate.
+   candidate.splitDirection=split===50?
+    (i%2===0?"supply":"engine"):
+    (split>50?"supply":"engine");
+  });
   candidates.push(...selected);
  }
  return candidates;
