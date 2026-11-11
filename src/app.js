@@ -778,13 +778,33 @@ async function showSolver(signal,foundId=null,savedOnly=false){
         card.title="Hover, focus or click to highlight this section";
       }
       guide.append(supply,chainGuide);root.append(guide);
-      const key=document.createElement("p");key.className="hint prepared-section-key";
-      key.textContent="Rose border = merge supplies and tools"+
-       (protectedTier?" (including protected Tier "+protectedTier+")":"")+
-       " · Mint border = fixed Wind engine. Hover or focus a guide card to spotlight its section; click to pin it.";
-      root.append(key);
     }
-    const legend=document.createElement("p");legend.className="hint";legend.textContent="Green: Regular · Red: Hot · Blue: Cold · Gold: Milktoast. Hover over a tile for its slot type and position.";root.append(legend);
+    // Reuse Overview's square plate swatches and show the section outlines
+    // as matching rose/mint border samples instead of describing colors.
+    const legend=document.createElement("div");
+    legend.className="legend optimizer-board-legend";
+    const addKey=(symbolClass,labelText)=>{
+      const item=document.createElement("span");
+      const sample=document.createElement("i");sample.className=symbolClass;
+      sample.setAttribute("aria-hidden","true");
+      item.append(sample,document.createTextNode(labelText));
+      legend.append(item);
+    };
+    if(sectionInfo){
+      addKey("prepared-legend-supply","Supply / tools"+
+       (sectionInfo.protectedPosition!==null?" (protected anchor included)":""));
+      addKey("prepared-legend-chain","Wind engine");
+    }
+    for(const [symbol,labelText] of [
+      ["normal","Regular"],["hot","Hot"],["cold","Cold"],["milk","Milktoast"]
+    ])addKey(symbol,labelText);
+    root.append(legend);
+    const legendHint=document.createElement("p");
+    legendHint.className="hint optimizer-legend-hint";
+    legendHint.textContent=(sectionInfo?
+     "Hover or focus a section card to highlight its tiles; click to pin it. ":"")+
+     "Hover over a tile for its plate type and position.";
+    root.append(legendHint);
     const scroll=document.createElement("div");scroll.className="board-scroll optimizer-board-scroll";
     const grid=document.createElement("div");grid.className="board optimizer-board"+(sectionInfo?" prepared-section-board":"");
     for(let i=0;i<BOARD_CELLS;i++){
