@@ -1411,3 +1411,61 @@ details summary{cursor:pointer;font-size:12px;font-weight:700;color:#9eb7c9}
  .research-actions>*{flex:1 1 180px}
  .combo-checklist{grid-template-columns:1fr}
 }
+
+
+/* Replay guidance: show what the user should do after the selected action. */
+.merge-layout:focus-visible{outline:2px solid #77dcba;outline-offset:5px;border-radius:10px}
+.merge-action-guide{
+ display:flex;flex-direction:column;gap:8px;padding:16px 18px;margin-bottom:14px;
+ border:1px solid #438a76;border-left:4px solid #75deb6;
+ border-radius:12px;background:#112d30;
+}
+.merge-action-guide .merge-action-eyebrow{
+ font-size:11px;font-weight:800;letter-spacing:.09em;text-transform:uppercase;color:#94dfbe
+}
+.merge-action-guide .merge-action-instruction{
+ color:#effff7;font-size:clamp(15px,1.3vw,19px);line-height:1.45
+}
+.merge-action-guide .merge-action-outcome{color:#b5d5cf;font-size:12px;line-height:1.45;margin:0}
+.merge-action-guide.is-complete{border-color:#638675;border-left-color:#a4e7aa}
+.merge-preview-label{
+ display:inline-flex;align-items:center;gap:6px;color:#c1ddd4;
+ font-size:12px;white-space:nowrap;cursor:pointer
+}
+#solver .merge-preview-label input[type="checkbox"]{
+ width:15px;height:15px;min-height:0;margin:0;accent-color:#79d9ae
+}
+.merge-layout .merge-board .tile.merge-next-from{
+ outline:3px solid #62b7ff;outline-offset:-2px;z-index:2
+}
+.merge-layout .merge-board .tile.merge-next-to{
+ outline:3px solid #6df5a8;outline-offset:-2px;z-index:2
+}
+.merge-next-marker{
+ position:absolute;bottom:0;left:0;right:0;display:block;
+ padding:1px 0;line-height:1.2;text-align:center;
+ font-size:clamp(6px,.6vw,9px);font-weight:900;letter-spacing:.02em;
+ background:#1b5485;color:#fff;z-index:4;pointer-events:none
+}
+.merge-next-to .merge-next-marker{background:#17643d}
+.merge-next-wind{border-color:#69548a;color:#d9bfff}
+.merge-step-list-heading{
+ position:sticky;top:0;z-index:5;display:flex;justify-content:space-between;
+ align-items:center;gap:8px;padding:8px 4px 10px;margin:0 0 2px;
+ background:#101e2c;border-bottom:1px solid #385262
+}
+.merge-step-list-heading strong{color:#dbf5e9;font-size:13px}
+.merge-step-list-heading .button{padding:6px 10px;font-size:11px;white-space:nowrap}
+.merge-step.completed{opacity:.72}
+.merge-step.completed:before{
+ content:"✓";float:right;color:#8eddb4;font-weight:900
+}
+.merge-step.up-next{border-color:#5ba2da;box-shadow:inset 3px 0 #6da8ef}
+.merge-step.up-next:after{
+ content:"UP NEXT";font-size:10px;font-weight:800;color:#9ccdf6;letter-spacing:.06em
+}
+.merge-shortcuts{margin:10px 0 0;font-size:11px;line-height:1.5}
+@media(max-width:850px){
+ .merge-timeline{flex-wrap:wrap}
+ .merge-preview-label{flex:1 1 100%}
+}
