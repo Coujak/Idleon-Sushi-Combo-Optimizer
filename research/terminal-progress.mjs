@@ -28,7 +28,7 @@ const ANSI={
 };
 const paint=(color,text)=>ANSI[color]+text+ANSI.reset;
 export function colorizeSplitProgress(line){
- const parts=line.match(/^(Evaluating \| )(\d+\/\d+)( \| \[)(#+)( *)(\] +\d+\.\d% - Split best: )(.+)$/);
+ const parts=line.match(/^(Evaluating \| )(\d+\/\d+)( \| \[)(#*)( *)(\] +\d+\.\d% - Split best: )(.+)$/);
  if(!parts)return line; // Narrow columns may truncate the suffix.
  const [,verb,split,opening,done,left,ending,score]=parts;
  const complete=Number(ending.match(/\d+\.\d%/)?.[0].slice(0,-1)??0)>=100;
