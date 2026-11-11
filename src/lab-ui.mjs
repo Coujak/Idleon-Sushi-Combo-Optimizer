@@ -224,9 +224,9 @@ export function initializeSushiLab(getSave){
  function renderShakerCards(stats){
   const box=$("labShakerCards");box.replaceChildren();
   const list=[
-   {name:"Salt Shaker",initial:"S",desc:"Tier-up shaker"},
-   {name:"Pepper Shaker",initial:"P",desc:"Perfecto shaker"},
-   {name:"Saffron Shaker",initial:"F",desc:"Bucks shaker"}
+   {name:"Salt Shaker",initial:"S",desc:"Tier-up shaker",upgradeId:17},
+   {name:"Pepper Shaker",initial:"P",desc:"Perfecto shaker",upgradeId:18},
+   {name:"Saffron Shaker",initial:"F",desc:"Bucks shaker",upgradeId:19}
   ];
   for(let i=0;i<list.length;i++){
    const info=list[i],card=el("div","lab-shaker-card");
@@ -243,6 +243,17 @@ export function initializeSushiLab(getSave){
    const count=el("span","lab-shaker-count");
    count.append(el("strong","",stats?fmt(stats.shakers[i]):"—"),
     el("span","",stats?"uses available":"Import save"));
+   if(stats){
+    const unlocked=Number(stats.levels?.[info.upgradeId]??0)>0;
+    const daily=stats.shakerDaily;
+    const rate=el("span","lab-shaker-daily",
+     !unlocked?"Locked":daily?.known?"+"+daily.total+"/day":"+1/day base");
+    rate.title=!unlocked?"Unlock this shaker in Sushi Station upgrades":
+     daily?.known?"Daily uses: 1 base + "+daily.bonus+
+      " from Shakin' It Research (Lv "+daily.bonus+").":
+      "Base +1 use/day. Import Research grid data to determine additional daily uses.";
+    count.append(rate);
+   }
    card.append(icon,label,count);
    box.append(card);
   }
