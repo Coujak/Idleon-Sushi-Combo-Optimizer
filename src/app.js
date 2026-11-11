@@ -463,7 +463,8 @@ async function showSolver(signal,foundId=null){
   const progress=(done,candidate=null)=>{
     const pct=total?Math.round(done/total*100):100;
     $("optimizerProgressBar").value=done;
-    $("optimizerProgressBar").max=total;
+    $("optimizerProgressBar").max=Math.max(1,total);
+    if(total===0)$("optimizerProgressBar").value=1;
     if(dualSplit&&candidate?.splitDirection){
       const track=tracks[candidate.splitDirection];
       track.done++;
@@ -556,7 +557,7 @@ async function showSolver(signal,foundId=null){
     throwIfCancelled(signal);
     solution={...solution,testedCandidates:candidates.length};
     if(!winningIsFromCache){
-     $("optimizerProgressText").textContent="Refining the best preparation…";
+      $("optimizerProgressText").textContent="Refining the best preparation…";
     await yieldToUI(signal);
     solution.search=beamSearchCombos(solution.board,cap,chain,solution.board.filter(v=>v>0).length-1,solution.search,maxTier);
     updateLiveScore();
