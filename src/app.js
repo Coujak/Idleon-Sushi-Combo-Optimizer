@@ -11,6 +11,7 @@ import {MODE_CATALOG,getModeInfo,modeOptionLabel,modeDisplayLabel} from "./mode-
 const $=id=>document.getElementById(id);
 import {BOARD_COLUMNS,BOARD_CELLS,normalizeBoardData,layoutOptions} from "./board-geometry.mjs?v=1.8.4";
 import {windTierMaximum,clampWindTier,windTierAfterPreparedChange} from "./wind-limit.mjs?v=1.9.10";
+import {detectSushiProgress} from "./sushi-progression.mjs?v=1.17.0";
 import {initializeSushiLab} from "./lab-ui.mjs?v=1.16.7";
 import {sushiTierIconPath} from "./sushi-reference.mjs?v=1.16.6";
 import {getPreparedBoardSections,hasSlotLayoutChanges,preparedSectionOutlinePath,preparedOutlineCoordinates} from "./prepared-sections.mjs?v=1.10.7";
@@ -64,13 +65,6 @@ function decodeSave(input){
   const sushiDoublerInfo=input.account?.menagerie?.doublers?.sushi
     ??input.data?.menagerie?.doublers?.sushi??null;
   return {sushi,spelunk,menagerie,research,bundleBonV,sushiDoublerInfo,tiles,perfecto:Array.isArray(sushi[5])?sushi[5].map(Number):null,slots,fires:Array.isArray(sushi[3])?sushi[3].slice(0,15).map(Number):[],source:input.data?.Sushi!=null?"Game save export":"Raw game data"};
-}
-function detectSushiProgress(save){
-  // Sushi[0] stores tier IDs on the board (zero-based). Do not mistake
-  // upgrade levels or knowledge EXP arrays for unlocked-tier flags.
-  const highestOnBoard=Math.max(0,...save.tiles.filter(n=>Number.isInteger(n)&&n>=0).map(n=>n+1));
-  const highest=highestOnBoard;
-  return {highest,highestOnBoard,source:"Highest sushi found on board (fallback)",windCap:Math.max(0,highest-6)};
 }
 let previousPreparedTierForWind=Number($("seedTier").value);
 function syncWindTierLimit({normalize=false,followMaximum=false}={}){
