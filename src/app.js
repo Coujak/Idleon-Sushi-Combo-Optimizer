@@ -516,7 +516,7 @@ async function showSolver(signal,foundId=null,savedOnly=false){
     }
   };
   progress(0);
-  // Retain the saved winner for Stop & Keep Best, but start the current-run
+  // Retain the saved winner for Stop & Continue, but start the current-run
   // counter at "—" until an actual new candidate finishes evaluation.
   if(solution)updateLiveScore();
   await yieldToUI(signal);
@@ -554,7 +554,7 @@ async function showSolver(signal,foundId=null,savedOnly=false){
     updateLiveScore();
     progress(1);
   }else{
-    // Abort means discard normally; "Stop & keep best" preserves the
+    // Abort means discard normally; "Stop & Continue" preserves the
     // already replay-validated winner, without continuing refinement.
     try{
     if(dualSplit&&typeof Worker!=="undefined"&&total>0){
@@ -1196,7 +1196,7 @@ function updateCancelControls(state){
  $("stopKeepBest").classList.toggle("hidden",!running);
  $("stopKeepBest").disabled=stopping||!activeSearch?.hasResult;
  $("stopKeepBest").textContent=stopping&&activeSearch?.keepBestRequested?
-  "Saving best…":"Stop & keep best";
+  "Opening best result…":"Stop & Continue";
  for(const button of [$("cancelSolver"),$("cancelSolverProgress")]){
   button.classList.toggle("hidden",!running);
   button.disabled=stopping;
