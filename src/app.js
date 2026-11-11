@@ -3,7 +3,9 @@ import {searchTacticalCombos} from "./tactical-search.mjs?v=1.9.9";
 import {createReplayController} from "./replay-controller.mjs?v=1.7.4";
 import {replayMotionTiming} from "./merge-motion.mjs?v=1.15.6";
 import {buildCandidates} from "./preparation-core.mjs?v=1.9.9";
-import {getModeCandidates} from "./optimizer-modes.mjs?v=1.17.2";
+import {getModeCandidates} from "./optimizer-modes.mjs?v=1.18.0";
+import {comboSplitPercentages} from "./combo-split-strategies.mjs?v=1.18.0";
+import {FOUND_CONFIGURATIONS,buildFoundConfiguration} from "./found-configurations.mjs?v=1.18.0";
 import {searchLookaheadCombos} from "./lookahead-search.mjs?v=1.9.9";
 import {throwIfCancelled,yieldToUI} from "./optimizer-run.mjs?v=1.8.1";
 import {searchCombos} from "./merge-search.mjs?v=1.9.9";
@@ -339,7 +341,7 @@ function validateTiming(moves,timeout,secondsPerMerge,secondsPerRelocation){
   return {events,valid:events.every(e=>e.safe),
     minimumMargin:events.length?Math.min(...events.map(e=>e.remaining)):null,totalDuration};
 }
-async function showSolver(signal){
+async function showSolver(signal,foundId=null){
   throwIfCancelled(signal);
   if(!imported)return;
   const detected=detectSushiProgress(imported);
@@ -357,26 +359,40 @@ async function showSolver(signal){
   if(positions.length<2){$("solverNote").textContent="At least two unlocked slots are required.";$("solverSteps").replaceChildren();return;}
   $("solverNote").textContent="Searching prepared tier layouts…";
   const mode="descending domino";
-   const optimizerMode=getModeInfo($("optimizerMode").value).id;
-   const optimizerModeLabel=modeDisplayLabel(getModeInfo(optimizerMode));
-  const custom=$("baseTier").value==="custom";
+  const foundInfo=foundId?FOUND_CONFIGURATIONS.find(config=>config.id===foundId):null;
+  if(foundId&&!foundInfo)throw Error("Unknown found configuration");
+  const optimizerMode=foundInfo?foundInfo.id:getModeInfo($("optimizerMode").value).id;
+  const optimizerModeLabel=foundInfo?"Found configuration · "+foundInfo.name:
+   modeDisplayLabel(getModeInfo(optimizerMode));
+  const custom=!foundInfo&&$("baseTier").value==="custom";
   const protectTier64=maxTier>=64||imported.tiles.includes(63);
   const highestIngredient=protectTier64&&maxTier>=64?maxTier-1:maxTier;
-  const selectedBase=custom?0:($("baseTier").value==="manual"?
+  const selectedBase=custom||foundInfo?0:($("baseTier").value==="manual"?
     Math.min(highestIngredient,Math.max(1,Math.round(Number($("manualBaseTier").value)||1))):
     (Number($("baseTier").value)||0));
   // A protected Tier 64 is retained for lower-tier legacy setups. Above
   // Tier 64 the protected preparation anchor becomes the selected maximum.
   const arrangements=custom?[{name:"Current positions",slots}]:layoutOptions(slots);
-  const candidates=custom?null:arrangements.flatMap(layout=>{
+  const perSplit=Number($("customPerSplit").value);
+  const customSettings={splitMode:$("customSplitMode").value,perSplit};
+  if(!custom&&optimizerMode==="optimizer5"&&(!Number.isSafeInteger(perSplit)||perSplit<1||perSplit>1000))
+   throw Error("Choose 1–1,000 configurations per unique split.");
+  const allCandidates=custom?null:arrangements.flatMap(layout=>{
     const layoutPositions=layout.slots.map((v,i)=>v>=0?i:-1).filter(i=>i>=0);
-    const prepared=getModeCandidates(layoutPositions,maxTier,cap,selectedBase,chain,protectTier64,optimizerMode);
+    const prepared=foundInfo?
+     [buildFoundConfiguration(foundId,layoutPositions,maxTier,cap,chain,protectTier64)].filter(Boolean):
+     getModeCandidates(layoutPositions,maxTier,cap,selectedBase,chain,protectTier64,optimizerMode,customSettings);
     return prepared.map(candidate=>({...candidate,slots:layout.slots,layoutName:layout.name}));
   });
+  // A Found Configuration replays exactly one historical preparation, never
+  // a sweep or multiple automatically generated search configurations.
+  const candidates=foundInfo?allCandidates.slice(0,1):allCandidates;
   const total=custom?1:candidates.length;
-  if(total<1)throw Error("No valid preparations for these tier settings.");
+  if(total<1)throw Error(foundInfo?
+   "This Found Configuration requires 100 contiguous slots, T64, Wind limit T58, and chain limit 25.":
+   "No valid preparations for these tier settings.");
   let solution=null;
-  const dualSplit=!custom&&["optimizer1","optimizer2","optimizer3","optimizer4"].includes(optimizerMode);
+  const dualSplit=!custom&&!foundInfo&&["optimizer1","optimizer2","optimizer3","optimizer4","optimizer5"].includes(optimizerMode);
   $("optimizerSingleProgress").classList.toggle("hidden",dualSplit);
   $("optimizerDualProgress").classList.toggle("hidden",!dualSplit);
   const tracks={
@@ -448,7 +464,7 @@ async function showSolver(signal){
     await yieldToUI(signal);
     solution.search=searchTacticalCombos(solution.board,cap,chain,solution.slots,solution.search,{depth:12,width:12,branchLimit:16,maximumTier:maxTier});
     await yieldToUI(signal);
-    if(optimizerMode==="adaptive"||optimizerMode==="experimental12"||optimizerMode==="experimental13"){
+    if(foundInfo||optimizerMode==="adaptive"||optimizerMode==="experimental12"||optimizerMode==="experimental13"){
       $("optimizerProgressText").textContent="Exploring deeper merge orders…"+bestScoreLabel();
       await yieldToUI(signal);
       solution.search=searchLookaheadCombos(solution.board,cap,chain,solution.search,
@@ -475,7 +491,7 @@ async function showSolver(signal){
   $("solverMoves").textContent=verified.merges;
   $("solverRepositions").textContent=verified.repositions;
   $("solverNote").textContent=(custom?"Custom board · staircase recycling, greedy, beam, and tactical reposition searches tested. ":"Best of "+solution.testedCandidates+" preparations (base Tier "+solution.base+", "+solution.shape+"). ")+result.remaining+" occupied sushi remain. Heat model: "+mode+". Scores remain estimates, not a guaranteed maximum.";
-  $("solverNote").textContent+=" Mode: "+optimizerModeLabel+". Winning strategy: "+result.strategy+". Slot arrangement: "+(solution.layoutName??"Current positions")+". Available prepared tier: "+maxTier+"; East Wind limit: "+cap+".";
+  $("solverNote").textContent+=(foundInfo?" This is a previously found fixed board, not a configuration discovered by an optimizer.":"")+" Mode: "+optimizerModeLabel+". Winning strategy: "+result.strategy+". Slot arrangement: "+(solution.layoutName??"Current positions")+". Available prepared tier: "+maxTier+"; East Wind limit: "+cap+".";
   if(solution.adaptive)$("solverNote").textContent+=" Adaptive "+solution.shape+
    " (working tier T"+solution.workingTier+
    (solution.referenceExperiment?", learned from historical Exp "+solution.referenceExperiment:"")+
