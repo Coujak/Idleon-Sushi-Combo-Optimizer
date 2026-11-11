@@ -3,12 +3,12 @@
 // Additional candidates are reproducible variations, not exhaustive enumeration.
 import {buildSplitComboCandidates} from "./combo-split-strategies.mjs";
 
-function randomSource(seed){
+export function randomSource(seed){
  let state=(seed>>>0)||1;
  return ()=>{state^=state<<13;state^=state>>>17;state^=state<<5;
   return (state>>>0)/4294967296;};
 }
-function mutateCandidate(parent,positions,selectedBase,maxTier,random){
+export function mutateCandidate(parent,positions,selectedBase,maxTier,random){
  const tiers=positions.map(p=>parent.board[p]);
  const supply=parent.supplyCount;
  const protectedSlot=parent.strategySections?.protectedPosition===positions[0];
