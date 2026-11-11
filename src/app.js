@@ -3,18 +3,18 @@ import {searchTacticalCombos} from "./tactical-search.mjs?v=1.9.9";
 import {createReplayController} from "./replay-controller.mjs?v=1.7.4";
 import {replayMotionTiming} from "./merge-motion.mjs?v=1.15.6";
 import {buildCandidates} from "./preparation-core.mjs?v=1.9.9";
-import {getModeCandidates} from "./optimizer-modes.mjs?v=1.17.0";
+import {getModeCandidates} from "./optimizer-modes.mjs?v=1.17.1";
 import {searchLookaheadCombos} from "./lookahead-search.mjs?v=1.9.9";
 import {throwIfCancelled,yieldToUI} from "./optimizer-run.mjs?v=1.8.1";
 import {searchCombos} from "./merge-search.mjs?v=1.9.9";
-import {MODE_CATALOG,getModeInfo,modeOptionLabel,modeDisplayLabel} from "./mode-catalog.mjs?v=1.17.0";
+import {MODE_CATALOG,getModeInfo,modeOptionLabel,modeDisplayLabel} from "./mode-catalog.mjs?v=1.17.1";
 const $=id=>document.getElementById(id);
 import {BOARD_COLUMNS,BOARD_CELLS,normalizeBoardData,layoutOptions} from "./board-geometry.mjs?v=1.8.4";
 import {windTierMaximum,clampWindTier,windTierAfterPreparedChange} from "./wind-limit.mjs?v=1.9.10";
 import {detectSushiProgress} from "./sushi-progression.mjs?v=1.17.0";
 import {initializeSushiLab} from "./lab-ui.mjs?v=1.16.7";
 import {sushiTierIconPath} from "./sushi-reference.mjs?v=1.16.6";
-import {getPreparedBoardSections,hasSlotLayoutChanges,preparedSectionOutlinePath,preparedOutlineCoordinates} from "./prepared-sections.mjs?v=1.17.0";
+import {getPreparedBoardSections,hasSlotLayoutChanges,preparedSectionOutlinePath,preparedOutlineCoordinates} from "./prepared-sections.mjs?v=1.17.1";
 const COLUMNS=BOARD_COLUMNS;
 let imported=null;
 const sushiLab=initializeSushiLab(()=>imported);
@@ -801,7 +801,7 @@ function initModePicker(){
   }
   rows.append(row);
  }
- selector.value=MODE_CATALOG.some(mode=>mode.id===old)?old:"adaptive";
+ selector.value=MODE_CATALOG.some(mode=>mode.id===old)?old:"simple";
 }
 function updateOptimizerModeHint(){
  const info=getModeInfo($("optimizerMode").value);
@@ -813,7 +813,7 @@ function updateOptimizerModeHint(){
  const discovered=imported?detectSushiProgress(imported).highest:0;
  const preview=tier>64&&tier>discovered;
  $("optimizerModeBenchmark").textContent=info.benchmark===null?
-  (info.id==="adaptive"?"Simulated at your settings":preview?"Future-tier preview":"Flexible setups"):
+  (info.kind==="split"?"Search at your settings":info.id==="adaptive"?"Simulated at your settings":preview?"Future-tier preview":"Flexible setups"):
   (preview?"Historical T64 benchmark: ":"")+info.benchmark.toLocaleString()+" simulated pts";
  $("optimizerModeHint").textContent=info.summary+(preview?
   " Above-T64 tiers have not been confirmed in this save. Historical experiment benchmarks remain T64/T58 only.":"");
