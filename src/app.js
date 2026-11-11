@@ -533,6 +533,9 @@ async function showSolver(signal,foundId=null,savedOnly=false){
      solution.search=next;
      if(dualSplit&&!winningIsFromCache){
       currentRunSolution={...solution,search:next};
+      // Refined current-run scores also become the all-time winner when
+      // they improve the already selected global best.
+      overallWinner=solution;
       runBest=next.score;
      }
     }
