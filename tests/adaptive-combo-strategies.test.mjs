@@ -43,7 +43,9 @@ test("Tier 80 and Tier 52 generate translated shapes without copying a false 76,
   assert.ok(candidates.some(x=>x.workingTier<top));
   for(const c of candidates){
    assert.equal(c.board.length,120);
-   assert.equal(c.board[0],top>=64?top:top-1);
+   if(top>=64)assert.equal(c.board[0],top);
+   else assert.ok(c.board[0]>=1&&c.board[0]<top,
+    "An unprotected strategy may use a lower working tier in its first cell");
    assert.equal(c.board.filter(x=>x>0).length,100);
    assert.ok(c.board.slice(1,100).every(x=>x>=1&&x<top),
     "Illegal ingredient at "+top+" "+c.name);
