@@ -15,6 +15,23 @@ export function hasSlotLayoutChanges(currentSlots,recommendedSlots){
 }
 
 export function getPreparedBoardSections(candidate,slots){
+  if(candidate?.adaptive&&candidate.strategySections&&
+     Array.isArray(candidate.board)&&candidate.board.length===120&&
+     Array.isArray(slots)&&slots.length===120){
+   const positions=slots.flatMap((slot,index)=>slot>=0?[index]:[]);
+   const engineStart=candidate.strategySections.enginePositions?.[0];
+   const boundary=positions.indexOf(engineStart);
+   if(boundary<1||positions.length<8||
+      positions.some((pos,index)=>index>0&&pos!==positions[index-1]+1)||
+      positions.some(pos=>!Number.isInteger(candidate.board[pos])||candidate.board[pos]<1))
+    return null;
+   const roles=Array(120).fill(null);
+   positions.forEach((pos,index)=>{roles[pos]=index<boundary?"supply":"chain";});
+   return {experiment:null,adaptive:true,workingTier:candidate.workingTier,
+     protectedPosition:candidate.strategySections.protectedPosition,
+     firstEnginePosition:engineStart,
+     roles,supplyCount:boundary,chainCount:positions.length-boundary};
+  }
   const match=/^Experimental (\d+)\.0(?:\s|·)/.exec(candidate?.name??"");
   const experiment=match?Number(match[1]):0;
   const firstEngineIndex=FIRST_ENGINE_INDEX[experiment];
