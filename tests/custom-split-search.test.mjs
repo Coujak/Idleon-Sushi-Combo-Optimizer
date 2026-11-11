@@ -46,3 +46,28 @@ test("Custom mode is deterministic and preserves the prepared tier ceiling",()=>
   assert.ok(candidate.board.slice(60).every(n=>n===0));
  }
 });
+
+test("Custom Fast 100 splits 50/50 evenly (not 900 vs 600)",()=>{
+ const one=buildCustomSplitCandidates(positions,64,58,25,0,true,"optimizer1",100);
+ const counts=one.reduce((acc,candidate)=>{
+  acc[candidate.splitDirection]=(acc[candidate.splitDirection]??0)+1;
+  return acc;
+ },{});
+ assert.equal(one.length,500);
+ assert.deepEqual(counts,{supply:250,engine:250});
+ const neutral=one.filter(candidate=>candidate.splitPercent===50);
+ assert.equal(neutral.length,100);
+ assert.equal(neutral.filter(candidate=>candidate.splitDirection==="supply").length,50);
+ assert.equal(neutral.filter(candidate=>candidate.splitDirection==="engine").length,50);
+ // Three supported arrangements produce 1,500 total preparations.
+ assert.equal(counts.supply*3,750);
+ assert.equal(counts.engine*3,750);
+});
+test("Odd custom budgets split neutral 50/50 as evenly as possible",()=>{
+ const candidates=buildCustomSplitCandidates(positions,64,58,25,0,true,"optimizer1",75);
+ const neutral=candidates.filter(candidate=>candidate.splitPercent===50);
+ const a=neutral.filter(candidate=>candidate.splitDirection==="supply").length;
+ const b=neutral.filter(candidate=>candidate.splitDirection==="engine").length;
+ assert.equal(a+b,75);
+ assert.ok(Math.abs(a-b)<=1);
+});
