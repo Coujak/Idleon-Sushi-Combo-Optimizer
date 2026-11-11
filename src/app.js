@@ -912,13 +912,23 @@ const updateFoundButton=()=>{$("runFoundConfiguration").disabled=!$("foundConfig
 $("foundConfiguration").addEventListener("change",updateFoundButton);
 updateFoundButton();
 updateOptimizerModeHint();
-$("cancelSolver").addEventListener("click",()=>{
-  if(!activeSearch)return;
-  cancelRunningSearch();
-  $("cancelSolver").disabled=true;
-  $("cancelSolver").textContent="Stopping…";
-  $("optimizerProgressText").textContent="Stopping after the current calculation…";
-});
+function updateCancelControls(state){
+ const running=state!=="idle",stopping=state==="stopping";
+ for(const button of [$("cancelSolver"),$("cancelSolverProgress")]){
+  button.classList.toggle("hidden",!running);
+  button.disabled=stopping;
+  button.textContent=stopping?"Stopping…":
+   button.id==="cancelSolverProgress"?"Cancel optimization":"Cancel";
+ }
+}
+function requestSearchCancellation(){
+ if(!activeSearch||activeSearch.signal.aborted)return;
+ cancelRunningSearch();
+ updateCancelControls("stopping");
+ $("optimizerProgressText").textContent="Stopping after the current calculation…";
+}
+$("cancelSolver").addEventListener("click",requestSearchCancellation);
+$("cancelSolverProgress").addEventListener("click",requestSearchCancellation);
 async function executeConfiguredSearch(foundId=null){
   if(!imported){$("solverNote").textContent="Import a valid game save JSON first.";return;}
   if(activeSearch)return;
@@ -926,10 +936,10 @@ async function executeConfiguredSearch(foundId=null){
   const controller=new AbortController();
   activeSearch=controller;
   const runButton=$("runSolver"),foundButton=$("runFoundConfiguration");
-  const button=foundId?foundButton:runButton,cancel=$("cancelSolver");
+  const button=foundId?foundButton:runButton;
   runButton.disabled=true;foundButton.disabled=true;
   button.textContent=foundId?"Replaying…":"Optimizing…";
-  cancel.classList.remove("hidden");cancel.disabled=false;cancel.textContent="Cancel";
+  updateCancelControls("running");
   $("optimizerProgress").classList.remove("hidden");
   $("optimizerSingleProgress").classList.remove("hidden");
   $("optimizerDualProgress").classList.add("hidden");
@@ -939,6 +949,9 @@ async function executeConfiguredSearch(foundId=null){
   $("solverResults").classList.add("hidden");
   $("solverNote").textContent="Searching candidate layouts…";
   try{
+    // Let the browser paint the Cancel controls before preparing a large
+    // candidate catalogue, which otherwise blocks the main JS thread.
+    await yieldToUI(controller.signal);
     await showSolver(controller.signal,foundId);
     throwIfCancelled(controller.signal);
     $("solverResults").classList.remove("hidden");
@@ -962,7 +975,7 @@ async function executeConfiguredSearch(foundId=null){
     runButton.disabled=false;runButton.textContent="Run optimizer";
     foundButton.textContent="Replay found board";
     foundButton.disabled=!$("foundConfiguration").value;
-    cancel.disabled=false;cancel.textContent="Cancel";cancel.classList.add("hidden");
+    updateCancelControls("idle");
   }
 }
 $("runSolver").addEventListener("click",()=>executeConfiguredSearch());
