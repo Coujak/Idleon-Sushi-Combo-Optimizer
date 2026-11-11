@@ -72,7 +72,7 @@ function simpleCascade(positions,maxTier,cap,chain,selectedBase,protect){
 // copied or translated. More precise modes simply evaluate more boundaries.
 function makeSplit(positions,maxTier,cap,chain,selectedBase,protect,pct,variant){
  const n=positions.length,anchor=protectedAnchor(maxTier,protect);
- const supplyCount=Math.max(anchor===null?1:2,
+ const supplyCount=Math.max(1,
   Math.min(n-1,Math.round(n*pct/100)));
  const engineCount=n-supplyCount;
  const supplyIngredients=supplyCount-(anchor===null?0:1);
