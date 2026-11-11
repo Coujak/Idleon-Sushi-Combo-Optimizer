@@ -791,7 +791,9 @@ async function showSolver(signal){
 function initModePicker(){
  const selector=$("optimizerMode"),old=selector.value,rows=$("modeComparisonRows");
  selector.replaceChildren();rows.replaceChildren();
- for(const mode of MODE_CATALOG){
+ const shownModes=[...MODE_CATALOG.filter(m=>m.kind==="split"),
+  ...MODE_CATALOG.filter(m=>m.kind!=="split")];
+ for(const mode of shownModes){
   const option=document.createElement("option");option.value=mode.id;option.textContent=modeOptionLabel(mode);selector.append(option);
   const row=document.createElement("tr");row.dataset.mode=mode.id;
   for(const value of [modeDisplayLabel(mode),mode.difficulty,mode.benchmark===null?"—":mode.benchmark.toLocaleString()]){
