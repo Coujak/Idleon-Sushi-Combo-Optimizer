@@ -8,7 +8,9 @@ import {comboSplitPercentages} from "./combo-split-strategies.mjs?v=1.18.0";
 import {FOUND_CONFIGURATIONS,buildFoundConfiguration} from "./found-configurations.mjs?v=1.18.0";
 import {searchLookaheadCombos} from "./lookahead-search.mjs?v=1.9.9";
 import {throwIfCancelled,yieldToUI} from "./optimizer-run.mjs?v=1.8.1";
-import {scanSplitDirectionsInParallel} from "./split-search-parallel.mjs?v=1.18.3";
+import {scanSplitDirectionsInParallel} from "./split-search-parallel.mjs?v=1.18.4";
+import {buildNovelSplitCandidates} from "./split-research-round.mjs?v=1.18.4";
+import {researchContext,loadResearchHistory,rememberEvaluatedBoards,rememberBestCandidate,resetResearchHistory} from "./research-memory.mjs?v=1.18.4";
 import {searchCombos} from "./merge-search.mjs?v=1.9.9";
 import {MODE_CATALOG,getModeInfo,modeOptionLabel,modeDisplayLabel} from "./mode-catalog.mjs?v=1.17.1";
 const $=id=>document.getElementById(id);
@@ -388,22 +390,60 @@ async function showSolver(signal,foundId=null){
   const customSettings={splitMode:$("customSplitMode").value,perSplit};
   if(!custom&&optimizerMode==="optimizer5"&&(!Number.isSafeInteger(perSplit)||perSplit<1||perSplit>1000))
    throw Error("Choose 1–1,000 configurations per unique split.");
-  const allCandidates=custom?null:arrangements.flatMap(layout=>{
+  const dualSplit=!custom&&!foundInfo&&["optimizer1","optimizer2","optimizer3","optimizer4","optimizer5"].includes(optimizerMode);
+  const researchState={checkedBefore:0,persistent:true,contexts:new Map(),best:null};
+  const baseSplitMode=optimizerMode==="optimizer5"?customSettings.splitMode:optimizerMode;
+  const searchBudget=optimizerMode==="optimizer5"?perSplit:50;
+  const generated=custom?null:await Promise.all(arrangements.map(async layout=>{
+    throwIfCancelled(signal);
     const layoutPositions=layout.slots.map((v,i)=>v>=0?i:-1).filter(i=>i>=0);
-    const prepared=foundInfo?
-     [buildFoundConfiguration(foundId,layoutPositions,maxTier,cap,chain,protectTier64)].filter(Boolean):
-     getModeCandidates(layoutPositions,maxTier,cap,selectedBase,chain,protectTier64,optimizerMode,customSettings);
+    let prepared;
+    if(dualSplit){
+      const context=researchContext({maxTier,cap,chain,selectedBase,
+       protectHighest:protectTier64,slots:layout.slots});
+      const history=await loadResearchHistory(context);
+      researchState.contexts.set(context,history);
+      researchState.checkedBefore+=history.seen.size;
+      if(!history.persistent)researchState.persistent=false;
+      // Older or corrupted results must never become the new baseline.
+      if(history.best?.search?.moves&&history.best?.board){
+        try{
+          const verified=validateComboReplay(history.best.board,
+           history.best.search.moves,cap,chain,layout.slots,maxTier);
+          if(verified.score===history.best.search.score&&
+           verified.board.every((tier,i)=>tier===history.best.search.board[i])&&
+           (!researchState.best||history.best.search.score>researchState.best.search.score))
+           researchState.best={...history.best,slots:layout.slots,layoutName:layout.name};
+        }catch{/* Invalid saved results are ignored. */}
+      }
+      await yieldToUI(signal);
+      const base=getModeCandidates(layoutPositions,maxTier,cap,selectedBase,
+       chain,protectTier64,baseSplitMode,customSettings);
+      prepared=buildNovelSplitCandidates(base,layoutPositions,maxTier,
+       selectedBase,searchBudget,history).map(candidate=>({...candidate,researchContext:context}));
+    }else{
+      prepared=foundInfo?
+       [buildFoundConfiguration(foundId,layoutPositions,maxTier,cap,chain,protectTier64)].filter(Boolean):
+       getModeCandidates(layoutPositions,maxTier,cap,selectedBase,chain,protectTier64,optimizerMode,customSettings);
+    }
     return prepared.map(candidate=>({...candidate,slots:layout.slots,layoutName:layout.name}));
-  });
-  // A Found Configuration replays exactly one historical preparation, never
-  // a sweep or multiple automatically generated search configurations.
+  }));
+  // Historical fixed boards are replayed once, never used as research seeds.
+  const allCandidates=generated?.flat()??null;
   const candidates=foundInfo?allCandidates.slice(0,1):allCandidates;
   const total=custom?1:candidates.length;
-  if(total<1)throw Error(foundInfo?
+  if(total<1&&!researchState.best)throw Error(foundInfo?
    "This Found Configuration requires 100 contiguous slots, T64, Wind limit T58, and chain limit 25.":
-   "No valid preparations for these tier settings.");
-  let solution=null;
-  const dualSplit=!custom&&!foundInfo&&["optimizer1","optimizer2","optimizer3","optimizer4","optimizer5"].includes(optimizerMode);
+   "No new configurations could be generated for these game settings.");
+  let solution=researchState.best;
+  let winningIsFromCache=Boolean(solution);
+  if(dualSplit){
+    $("researchHistoryStatus").textContent=
+     researchState.checkedBefore.toLocaleString()+" previously evaluated boards for these game settings · "+
+     total.toLocaleString()+" new preparations this run · "+
+     (solution?"Best saved score: "+solution.search.score.toLocaleString():"No saved best yet")+
+     (researchState.persistent?". Results remain on this device.":" · Browser storage unavailable; history lasts only until this page closes.");
+  }
   $("optimizerSingleProgress").classList.toggle("hidden",dualSplit);
   $("optimizerDualProgress").classList.toggle("hidden",!dualSplit);
   const tracks={
@@ -421,7 +461,7 @@ async function showSolver(signal,foundId=null){
   // candidate seen so far, including the refinement passes.
   const updateLiveScore=()=>setComboScoreBubble(true,solution?.search?.score??null);
   const progress=(done,candidate=null)=>{
-    const pct=Math.round(done/total*100);
+    const pct=total?Math.round(done/total*100):100;
     $("optimizerProgressBar").value=done;
     $("optimizerProgressBar").max=total;
     if(dualSplit&&candidate?.splitDirection){
@@ -438,8 +478,18 @@ async function showSolver(signal,foundId=null){
     }
   };
   progress(0);
-  // Yield between candidate evaluations so progress can paint in the browser.
+  // Show the previous best immediately, even before any new board is evaluated.
+  if(solution)updateLiveScore();
   await yieldToUI(signal);
+  const persistWinner=async candidate=>{
+    if(!candidate?.researchContext||!candidate.search?.moves)return;
+    const verified=validateComboReplay(candidate.board,candidate.search.moves,
+     cap,chain,candidate.slots,maxTier);
+    if(verified.score!==candidate.search.score||
+     !verified.board.every((tier,i)=>tier===candidate.search.board[i]))
+     throw Error("Research result failed replay validation.");
+    await rememberBestCandidate(candidate.researchContext,candidate);
+  };
   if(custom){
     const board=getCustomBoard().slice();
     if(board.filter(v=>v>0).length<2)throw Error("Place at least two sushi on the custom board.");
@@ -458,7 +508,10 @@ async function showSolver(signal,foundId=null){
     if(dualSplit&&typeof Worker!=="undefined"){
       let evaluated=0;
       await scanSplitDirectionsInParallel(candidates,
-       {cap,chain,mode,maxTier},signal,({direction,processed,splitPercent,improved})=>{
+       {cap,chain,mode,maxTier},signal,async({direction,processed,splitPercent,improved,checked})=>{
+        // Only report work as checked after a Worker completes its batch.
+        if(checked?.length)await rememberEvaluatedBoards(checked);
+        if(improved)await persistWinner(improved);
         const track=tracks[direction];
         track.done+=processed;
         track.progress.value=track.done;
@@ -474,6 +527,7 @@ async function showSolver(signal,foundId=null){
          (improved.search.score===solution.search.score&&
           improved.search.remaining<solution.search.remaining))){
           solution=improved;
+          winningIsFromCache=false;
           updateLiveScore();
         }
       });
@@ -487,7 +541,13 @@ async function showSolver(signal,foundId=null){
         const search=searchStaircaseCombos(candidate.board,cap,chain,candidate.slots,greedy,{maximumTier:maxTier});
         if(!solution||search.score>solution.search.score||(search.score===solution.search.score&&search.remaining<solution.search.remaining)){
           solution={...candidate,search};
+          winningIsFromCache=false;
           updateLiveScore();
+        }
+        if(dualSplit){
+         await rememberEvaluatedBoards([{context:candidate.researchContext,
+          key:candidate.board.join(",")}]);
+         if(solution?.board===candidate.board)await persistWinner(solution);
         }
         progress(i+1,candidate);
         await yieldToUI(signal);
@@ -495,7 +555,8 @@ async function showSolver(signal,foundId=null){
     }
     throwIfCancelled(signal);
     solution={...solution,testedCandidates:candidates.length};
-    $("optimizerProgressText").textContent="Refining the best preparation…";
+    if(!winningIsFromCache){
+     $("optimizerProgressText").textContent="Refining the best preparation…";
     await yieldToUI(signal);
     solution.search=beamSearchCombos(solution.board,cap,chain,solution.board.filter(v=>v>0).length-1,solution.search,maxTier);
     updateLiveScore();
@@ -515,9 +576,18 @@ async function showSolver(signal,foundId=null){
       updateLiveScore();
       await yieldToUI(signal);
     }
+    } // A cached winner is already verified; don't recompute its merge search.
   }
   throwIfCancelled(signal);
   if(!solution||!solution.search)throw Error("No valid preparations for these tier settings.");
+  if(dualSplit){
+    await persistWinner(solution);
+    $("researchHistoryStatus").textContent=
+      (researchState.checkedBefore+total).toLocaleString()+
+      " boards evaluated across sessions for these game settings · "+
+      "Best verified score: "+solution.search.score.toLocaleString()+
+      (researchState.persistent?" · Saved in this browser.":" · Session-only memory.");
+  }
   const result=solution.search;
   const recommendedSlots=solution.slots??slots;
   const verified=validateComboReplay(solution.board,result.moves,cap,chain,recommendedSlots,maxTier);
