@@ -11,7 +11,18 @@ This visits **21 splits**, from **30 supply / 70 engine** to **10 supply / 90 en
 
 Every evaluated board is searched with the existing eight greedy merge policies by default (`--scoring=full`). This does **not** test every possible merge order, but new winning results are replay-checked before they are saved.
 
-Progress and per-split winning boards/action sequences are saved to `research/results/sweep-30-to-10.json`. The script prints interim best scores. Press **Ctrl+C** to save and exit, then rerun the same command to resume. Increase the budget to continue farther:
+Progress and per-split winning boards/action sequences are saved to `research/results/sweep-30-to-10.json`. In an interactive terminal, the script displays **one fixed progress row for each of the 21 splits** (30/70 through 10/90), updating the bars in place instead of printing a new line at each report:
+
+```text
+Evaluating | 30/70 | [############                            ]  30.0% - Split best: 68,420
+Evaluating | 29/71 | [###########                             ]  27.5% - Split best: 70,100
+...
+Evaluating | 10/90 | [##############                          ]  35.0% - Split best: 66,850
+```
+
+The percentages are **cumulative per-split progress** (including earlier checkpoint work), not independent parallel workers. The sweep still evaluates one candidate at a time, round-robin across splits. New records print above the dashboard and it immediately redraws. `--report-every=25` controls how frequently a row can refresh; updates are rate-limited to protect throughput during million-board searches. Redirected output and CI logs use ordinary text instead of terminal cursor control.
+
+Press **Ctrl+C** to save and exit, then rerun the same command to resume. Increase the budget to continue farther:
 
 ```powershell
 node research/sweep-30-to-10.mjs --mode=guided --per-split=10000
@@ -40,7 +51,7 @@ node research/sweep-30-to-10.mjs --mode=exact --min-tier=1 --max-tier=2 --engine
 ## Other settings
 
 - `--scoring=quick` evaluates one East Wind policy instead of the eight-policy scorer. Scores remain replay-checked, but merge-order exploration is weaker.
-- `--report-every=25` prints progress every 25 evaluations.
+- `--report-every=25` updates the interactive progress display (or writes a plain-text progress message when not in a terminal) every 25 evaluations, subject to a short redraw throttle.
 - `--save-every=25` writes periodic checkpoints; new best scores always trigger a save.
 - `--start=30 --end=10` selects the inclusive descending split range.
 - `--reset` starts a new search and **overwrites the specified checkpoint**.
