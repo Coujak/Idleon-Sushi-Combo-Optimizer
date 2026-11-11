@@ -482,6 +482,13 @@ async function showSolver(signal,foundId=null){
   // Show the previous best immediately, even before any new board is evaluated.
   if(solution)updateLiveScore();
   await yieldToUI(signal);
+  // Refinement may not replace a stronger previously tested merge sequence.
+  const keepBetterSearch=next=>{
+    if(next&&(next.score>solution.search.score||
+     (next.score===solution.search.score&&next.remaining<solution.search.remaining)))
+     solution.search=next;
+    updateLiveScore();
+  };
   const persistWinner=async candidate=>{
     if(!candidate?.researchContext||!candidate.search?.moves)return;
     const verified=validateComboReplay(candidate.board,candidate.search.moves,
@@ -559,22 +566,18 @@ async function showSolver(signal,foundId=null){
     if(!winningIsFromCache){
       $("optimizerProgressText").textContent="Refining the best preparation…";
     await yieldToUI(signal);
-    solution.search=beamSearchCombos(solution.board,cap,chain,solution.board.filter(v=>v>0).length-1,solution.search,maxTier);
-    updateLiveScore();
+    keepBetterSearch(beamSearchCombos(solution.board,cap,chain,solution.board.filter(v=>v>0).length-1,solution.search,maxTier));
     await yieldToUI(signal);
-    solution.search=searchStaircaseCombos(solution.board,cap,chain,solution.slots,solution.search,{maximumTier:maxTier});
-    updateLiveScore();
+    keepBetterSearch(searchStaircaseCombos(solution.board,cap,chain,solution.slots,solution.search,{maximumTier:maxTier}));
     $("optimizerProgressText").textContent="Checking tactical Wind setups…";
     await yieldToUI(signal);
-    solution.search=searchTacticalCombos(solution.board,cap,chain,solution.slots,solution.search,{depth:12,width:12,branchLimit:16,maximumTier:maxTier});
-    updateLiveScore();
+    keepBetterSearch(searchTacticalCombos(solution.board,cap,chain,solution.slots,solution.search,{depth:12,width:12,branchLimit:16,maximumTier:maxTier}));
     await yieldToUI(signal);
     if(foundInfo||optimizerMode==="adaptive"||optimizerMode==="experimental12"||optimizerMode==="experimental13"){
       $("optimizerProgressText").textContent="Exploring deeper merge orders…";
       await yieldToUI(signal);
-      solution.search=searchLookaheadCombos(solution.board,cap,chain,solution.search,
-        {maxPasses:3,maxBranches:18,maxEvaluations:3500,maximumTier:maxTier});
-      updateLiveScore();
+      keepBetterSearch(searchLookaheadCombos(solution.board,cap,chain,solution.search,
+        {maxPasses:3,maxBranches:18,maxEvaluations:3500,maximumTier:maxTier}));
       await yieldToUI(signal);
     }
     } // A cached winner is already verified; don't recompute its merge search.
