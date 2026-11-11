@@ -805,6 +805,7 @@ async function showSolver(signal,foundId=null,savedOnly=false){
   layout.setAttribute("aria-label","Interactive Sushi Station merge replay. Use left and right arrows to navigate steps.");
   const left=document.createElement("div");left.className="merge-board-panel";
   const actionGuide=document.createElement("div");actionGuide.className="merge-action-guide";
+  actionGuide.setAttribute("aria-live","polite");
   const actionLabel=document.createElement("span");actionLabel.className="merge-action-eyebrow";
   const actionText=document.createElement("strong");actionText.className="merge-action-instruction";
   const actionOutcome=document.createElement("p");actionOutcome.className="merge-action-outcome";
@@ -1045,6 +1046,7 @@ async function showSolver(signal,foundId=null,savedOnly=false){
     playButton.setAttribute("aria-pressed",String(playing));
     playButton.classList.toggle("is-playing",playing);
     indicator.setAttribute("aria-live",playing?"off":"polite");
+    actionGuide.setAttribute("aria-live",playing?"off":"polite");
   }
   const player=createReplayController({
     totalSteps:result.moves.length,
@@ -1123,7 +1125,7 @@ async function showSolver(signal,foundId=null,savedOnly=false){
       const url=URL.createObjectURL(blob),link=document.createElement("a");
       link.href=url;link.download="sushi-combo-steps.txt";
       document.body.append(link);link.click();link.remove();
-      URL.revokeObjectURL(url);
+      window.setTimeout(()=>URL.revokeObjectURL(url),1000);
       copySteps.textContent="Downloaded steps";
     }
   });
