@@ -1663,3 +1663,11 @@ details summary{cursor:pointer;font-size:12px;font-weight:700;color:#9eb7c9}
  #idleonCloudPanel .idleon-cloud-url-label{flex:1 1 100%;order:2}
  #idleonCloudPanel #idleonSteamConnect{order:3}
 }
+
+/* Keep the future Google device-code method visibly distinct from the working-form Steam prototype. */
+#idleonCloudPanel .idleon-cloud-provider-note{
+ margin:0 0 14px;padding:10px 12px;border-radius:9px;
+ border:1px solid #3b5868;background:#152e3d;
+ color:#bcd2de;font-size:12px;line-height:1.55;
+}
+#idleonCloudPanel .idleon-cloud-provider-note strong{color:#e4f1f5}
