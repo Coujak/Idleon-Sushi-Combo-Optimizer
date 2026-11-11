@@ -1105,6 +1105,62 @@ function requestKeepBest(){
  $("optimizerProgressText").textContent="Stopping · preparing the best verified result…";
 }
 $("stopKeepBest").addEventListener("click",requestKeepBest);
+// Research history never includes the imported Idleon account JSON.
+function verifyImportedResearchBest(context,candidate){
+ try{
+  const [version,maxTier,cap,chain,base,protectedTop,slots]=JSON.parse(context);
+  if(!Array.isArray(slots)||slots.length!==BOARD_CELLS||
+   !Array.isArray(candidate.board)||candidate.board.length!==BOARD_CELLS||
+   !Array.isArray(candidate.slots)||candidate.slots.length!==BOARD_CELLS||
+   !candidate.slots.every((type,i)=>type===slots[i])||
+   !candidate.board.every((tier,i)=>
+     Number.isSafeInteger(tier)&&tier>=0&&tier<=Math.max(64,maxTier)&&
+     (slots[i]>=0||tier===0))||
+   !Array.isArray(candidate.search?.moves)||
+   !Array.isArray(candidate.search?.board)||
+   !Number.isSafeInteger(candidate.search?.score))return false;
+  const verified=validateComboReplay(candidate.board,candidate.search.moves,
+   cap,chain,slots,maxTier);
+  return verified.score===candidate.search.score&&
+   verified.board.every((tier,i)=>tier===candidate.search.board[i]);
+ }catch{return false;}
+}
+$("exportResearch").addEventListener("click",async()=>{
+ if(activeSearch)return;
+ const button=$("exportResearch");button.disabled=true;
+ try{
+  const payload=await exportResearchData();
+  const blob=new Blob([JSON.stringify(payload)],{type:"application/json"});
+  const url=URL.createObjectURL(blob);
+  const link=document.createElement("a");
+  link.href=url;link.download="idleon-sushi-research.json";
+  document.body.append(link);link.click();link.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),1000);
+  $("researchHistoryStatus").textContent="Exported "+
+   payload.checked.length.toLocaleString()+" board fingerprints and "+
+   payload.best.length+" saved best configurations. No account data included.";
+ }catch(error){
+  $("researchHistoryStatus").textContent="Research export failed: "+String(error.message??error);
+ }finally{button.disabled=false;}
+});
+$("importResearchButton").addEventListener("click",()=>{
+ if(!activeSearch)$("importResearch").click();
+});
+$("importResearch").addEventListener("change",async event=>{
+ if(activeSearch)return;
+ const file=event.target.files?.[0];
+ if(!file)return;
+ try{
+  if(file.size>50*1024*1024)throw Error("Research import exceeds the 50 MB safety limit");
+  const data=JSON.parse(await file.text());
+  const result=await importResearchData(data,verifyImportedResearchBest);
+  $("researchHistoryStatus").textContent="Imported "+
+   result.checked.toLocaleString()+" evaluated board fingerprints and "+
+   result.best+" validated best configurations. Run the optimizer to use them.";
+ }catch(error){
+  $("researchHistoryStatus").textContent="Research import failed: "+String(error.message??error);
+ }finally{event.target.value="";}
+});
 $("clearResearchHistory").addEventListener("click",async()=>{
  if(activeSearch)return;
  if(!window.confirm("Clear previously evaluated optimizer boards and saved best scores from this browser?"))return;
@@ -1127,7 +1183,7 @@ async function executeConfiguredSearch(foundId=null,savedOnly=false){
   const runButton=$("runSolver"),foundButton=$("runFoundConfiguration");
   const button=foundId?foundButton:runButton;
   runButton.disabled=true;foundButton.disabled=true;
-  for(const id of ["clearResearchHistory","viewResearchBest","exportResearch","importResearch"])
+  for(const id of ["clearResearchHistory","viewResearchBest","exportResearch","importResearch","importResearchButton"])
    $(id).disabled=true;
   button.textContent=foundId?"Replaying…":savedOnly?"Loading saved best…":"Optimizing…";
   updateCancelControls("running");
