@@ -11,6 +11,7 @@ import {buildExperimental13Candidates,EXPERIMENTAL_13_BENCHMARK} from '../src/ex
 import {searchCombos} from '../src/merge-search.mjs';
 import {rolloutEastWind} from '../src/lookahead-search.mjs';
 import {validateComboReplay} from '../src/optimizer-core.mjs';
+import {createSplitProgressDashboard} from './terminal-progress.mjs';
 
 const flags=Object.fromEntries(process.argv.slice(2).map(arg=>{
  if(!arg.startsWith('--'))throw Error('Expected --name=value, received '+arg);
@@ -79,8 +80,11 @@ let state=existsSync(checkpoint)&&flags.reset!=='true'?JSON.parse(readFileSync(c
 if(JSON.stringify(state.config)!==JSON.stringify(config))throw Error('Checkpoint belongs to different settings. Use --reset or another --checkpoint.');
 const save=()=>{state.updated=new Date().toISOString();mkdirSync(dirname(checkpoint),{recursive:true});
  writeFileSync(checkpoint+'.tmp',JSON.stringify(state,null,2)+'\n');renameSync(checkpoint+'.tmp',checkpoint);};
-let interrupted=false;
-process.on('SIGINT',()=>{interrupted=true;console.log('\nStop requested; saving checkpoint...');});
+let interrupted=false,dashboard=null;
+process.on('SIGINT',()=>{
+ interrupted=true;
+ dashboard?.announce('Stop requested; saving checkpoint...');
+});
 process.on('SIGTERM',()=>{interrupted=true;});
 function rng(record){let x=record.rng>>>0;x^=x<<13;x^=x>>>17;x^=x<<5;
  record.rng=x>>>0;return (record.rng>>>0)/4294967296;}
@@ -150,7 +154,16 @@ if(mode==='exact'){
  for(const split of splits)console.log(split+'/'+(100-split)+' possibilities: '+exactParams.get(split).total.toString());
 }
 if(mode==='guided')console.log('Guided search is NOT exhaustive; it uses seeded layouts plus iterative mutations.');
-let lastReport=0;
+// Each of the 21 splits keeps its own persistent terminal row. Exact mode
+// may finish before --per-split when its bounded domain is exhausted.
+const limits=new Map(splits.map(split=>{
+ const domain=mode==='exact'?exactParams.get(split).total:null;
+ const budget=perSplit===null?domain:BigInt(perSplit);
+ return [split,domain===null?budget:budget<domain?budget:domain];
+}));
+dashboard=createSplitProgressDashboard({splits,state,limits});
+dashboard.drawAll();
+let lastReport=0,lastPaint=0;
 while(!interrupted){
  let advanced=false;
  for(const split of splits){
@@ -178,14 +191,23 @@ while(!interrupted){
     merges:verification.merges,repositions:verification.repositions,
     actions:search.moves.map(move=>({kind:move.kind,src:move.src,dst:move.dst,score:move.score,
       wind:move.events.filter(e=>e.kind==='wind').length}))};
-   console.log('NEW BEST '+split+'/'+(100-split)+' : '+search.score.toLocaleString()+
+   dashboard.announce('NEW BEST '+split+'/'+(100-split)+' : '+search.score.toLocaleString()+
     ' points ('+origin+', evaluated '+record.tested+')');
    save();
   }
   if(overall-lastReport>=reportEvery){
    lastReport=overall;
-   console.log('Evaluated '+overall.toLocaleString()+' this run | '+split+'/'+(100-split)+
-    ' | split best '+(record.best?.score??0).toLocaleString());
+   if(dashboard.interactive){
+    // Avoid excessive ANSI output in million-board sweeps.
+    if(Date.now()-lastPaint>=100){
+     dashboard.update(split);
+     lastPaint=Date.now();
+    }
+   }else{
+    // Redirected output/CI has no cursor movements; retain plain logs.
+    console.log('Evaluated '+overall.toLocaleString()+' this run | '+split+'/'+(100-split)+
+     ' | split best '+(record.best?.score??0).toLocaleString());
+   }
   }
   if(overall%saveEvery===0)save();
  }
@@ -194,6 +216,7 @@ while(!interrupted){
  await new Promise(resolve=>setImmediate(resolve));
 }
 save();
+dashboard.drawAll();
 const table=splits.map(split=>({split:split+'/'+(100-split),tested:state.splitResults[split].tested,
  bestScore:state.splitResults[split].best?.score??null}));
 console.table(table);
