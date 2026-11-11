@@ -2,6 +2,7 @@ import {simulateMerge,validateComboReplay,searchStaircaseCombos} from "./optimiz
 import {searchTacticalCombos} from "./tactical-search.mjs?v=1.9.9";
 import {createReplayController} from "./replay-controller.mjs?v=1.7.4";
 import {replayMotionTiming} from "./merge-motion.mjs?v=1.15.6";
+import {buildReplayGuide,nextWindReplayStep} from "./replay-guide.mjs?v=1.18.7";
 import {buildCandidates} from "./preparation-core.mjs?v=1.9.9";
 import {getModeCandidates} from "./optimizer-modes.mjs?v=1.18.6";
 import {comboSplitPercentages} from "./combo-split-strategies.mjs?v=1.18.0";
@@ -797,18 +798,28 @@ async function showSolver(signal,foundId=null,savedOnly=false){
   renderComboReport(root,{currentTiles:imported.tiles,currentSlots:slots,solution,
    comparison,sections,previousBest:dualSplit?previousRecord:null});
   const heading=document.createElement("h3");heading.textContent=sectionNumber+" · Interactive merge sequence";root.append(heading);
-  const intro=document.createElement("p");intro.className="hint";intro.textContent="Watch the picked sushi slide into the destination before the merge and East Wind resolve. Blue marks the source, green the destination, and purple marks Wind. Use Play or select a step; Step 0 shows the full board.";root.append(intro);
+  const intro=document.createElement("p");intro.className="hint";intro.textContent="The board shows the result of your selected step. Blue FROM and green TO markers show what to do next; purple tiles show Wind upgrades from the last move. Select a step, follow the instruction, and press Next when done.";root.append(intro);
   const layout=document.createElement("div");layout.className="merge-layout";
+  layout.tabIndex=0;
+  layout.setAttribute("role","region");
+  layout.setAttribute("aria-label","Interactive Sushi Station merge replay. Use left and right arrows to navigate steps.");
   const left=document.createElement("div");left.className="merge-board-panel";
+  const actionGuide=document.createElement("div");actionGuide.className="merge-action-guide";
+  const actionLabel=document.createElement("span");actionLabel.className="merge-action-eyebrow";
+  const actionText=document.createElement("strong");actionText.className="merge-action-instruction";
+  const actionOutcome=document.createElement("p");actionOutcome.className="merge-action-outcome";
+  actionGuide.append(actionLabel,actionText,actionOutcome);
+  left.append(actionGuide);
   const controls=document.createElement("div");controls.className="merge-controls";
   const navigation=document.createElement("div");navigation.className="merge-navigation";
   const first=document.createElement("button");first.type="button";first.className="button quiet";first.textContent="↺ Step 0";first.title="Return to the prepared board";
   const previous=document.createElement("button");previous.type="button";previous.className="button secondary";previous.textContent="← Previous";
   const playButton=document.createElement("button");playButton.type="button";playButton.className="button primary merge-play";playButton.textContent="▶ Play";playButton.setAttribute("aria-pressed","false");
   const next=document.createElement("button");next.type="button";next.className="button secondary";next.textContent="Next →";
+  const nextWind=document.createElement("button");nextWind.type="button";nextWind.className="button quiet merge-next-wind";nextWind.textContent="Next Wind ✦";nextWind.title="Jump to the next merge with East Wind upgrades (skips intermediate actions in this preview)";
   const lastStep=document.createElement("button");lastStep.type="button";lastStep.className="button quiet";lastStep.textContent="Last step";lastStep.title="Skip to the final step";
   const indicator=document.createElement("strong");indicator.className="merge-step-indicator";indicator.setAttribute("aria-live","polite");
-  navigation.append(first,previous,playButton,next,lastStep);
+  navigation.append(first,previous,playButton,next,nextWind,lastStep);
   controls.append(navigation,indicator);left.append(controls);
   const timeline=document.createElement("div");timeline.className="merge-timeline";
   const seek=document.createElement("input");seek.type="range";seek.className="merge-seek";seek.min="0";seek.max=String(result.moves.length);seek.step="1";seek.value="0";seek.setAttribute("aria-label","Jump to replay step");
@@ -820,14 +831,25 @@ async function showSolver(signal,foundId=null,savedOnly=false){
     speedSelect.append(option);
   }
   speedLabel.append(speedSelect);
-  timeline.append(seek,speedLabel);left.append(timeline);
+  const previewLabel=document.createElement("label");previewLabel.className="merge-preview-label";
+  const previewCheck=document.createElement("input");previewCheck.type="checkbox";previewCheck.checked=true;
+  previewLabel.append(previewCheck,document.createTextNode("Highlight next move"));
+  timeline.append(seek,speedLabel,previewLabel);left.append(timeline);
   const boardScroll=document.createElement("div");boardScroll.className="board-scroll optimizer-board-scroll";
   const boardGrid=document.createElement("div");boardGrid.className="board optimizer-board merge-board";
   boardScroll.append(boardGrid);left.append(boardScroll);
   const scoreLine=document.createElement("p");scoreLine.className="merge-score";left.append(scoreLine);
+  const shortcuts=document.createElement("p");shortcuts.className="hint merge-shortcuts";
+  shortcuts.textContent="Keyboard: focus the replay panel, then ← / → = previous / next, Space = play or pause, W = next Wind. Click a step on the right to jump directly.";
+  left.append(shortcuts);
   const right=document.createElement("div");right.className="merge-step-list";right.setAttribute("aria-label","Merge steps");
+  const listHeader=document.createElement("div");listHeader.className="merge-step-list-heading";
+  const listTitle=document.createElement("strong");listTitle.textContent="Step checklist";
+  const copySteps=document.createElement("button");copySteps.type="button";copySteps.className="button quiet";copySteps.textContent="Copy steps";
+  listHeader.append(listTitle,copySteps);right.append(listHeader);
   layout.append(left,right);root.append(layout);
   const cumulative=[0];for(const m of result.moves)cumulative.push(cumulative[cumulative.length-1]+m.score);
+  const replayGuide=buildReplayGuide(solution.board,result.moves,COLUMNS);
 
   let selected=0;
   const stepButtons=[];
