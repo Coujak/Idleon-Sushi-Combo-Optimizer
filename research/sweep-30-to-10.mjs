@@ -200,7 +200,9 @@ while(!interrupted){
    if(dashboard.interactive){
     // Avoid excessive ANSI output in million-board sweeps.
     if(Date.now()-lastPaint>=100){
-     dashboard.update(split);
+     // Refresh ALL split rows together: a throttled single-row redraw can
+     // leave other bars stale because the sweep rotates among 21 splits.
+     dashboard.drawAll();
      lastPaint=Date.now();
     }
    }else{
