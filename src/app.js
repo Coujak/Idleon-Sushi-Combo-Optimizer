@@ -1166,7 +1166,9 @@ function updateOptimizerModeHint(){
  $("optimizerModeHint").textContent=info.summary+(preview?
   " Above-T64 tiers have not been confirmed in this save. Historical experiment benchmarks remain T64/T58 only.":"");
  const isCustom=info.id==="optimizer5";
- $("customOptimizerSettings").classList.toggle("hidden",!isCustom);
+ // Custom controls use the same main settings grid as every other mode.
+ for(const field of document.querySelectorAll(".custom-optimizer-setting"))
+  field.classList.toggle("hidden",!isCustom);
  const count=Number($("customPerSplit").value);
  const budget=Number.isSafeInteger(count)&&count>=1&&count<=1000?count:null;
  const resolution=$("customSplitMode").value;
