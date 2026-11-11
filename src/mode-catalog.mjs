@@ -13,7 +13,7 @@ export const MODE_CATALOG=Object.freeze([
   {
     "id": "adaptive",
     "number": null,
-    "name": "Adaptive Strategy Planner",
+    "name": "Progression-Aware Planner",
     "difficulty": "Adaptive",
     "benchmark": null,
     "summary": "Compares procedural multi-wave engines and strategies learned from historical experiments at your available tier, Wind cap and unlocked slot count. Scores are simulated, not inherited from T64 showcase boards."
