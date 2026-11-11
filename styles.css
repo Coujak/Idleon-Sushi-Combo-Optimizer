@@ -1456,3 +1456,12 @@ details summary{cursor:pointer;font-size:12px;font-weight:700;color:#9eb7c9}
  .merge-timeline{flex-wrap:wrap}
  .merge-preview-label{flex:1 1 100%}
 }
+
+/* Custom-only inputs share the primary optimizer settings grid. */
+#solver>.actions .custom-search-estimate{
+ grid-column:1/-1;
+ margin:0;
+ line-height:1.45;
+ font-size:12px;
+ color:#9fb9c5;
+}
