@@ -19,7 +19,7 @@ export function* enumerateTierMultisets(count,minTier,maxTier){
  }
 }
 export function* enumerateSplitTierBoards({
- positions,supplyCount,maxTier,minTier=1,protectedTier=null
+ positions,supplyCount,maxTier,minTier=1,protectedTier=null,ingredientMaxTier=null
 }){
  if(!Array.isArray(positions)||positions.length<2||
   positions.some((p,i)=>!Number.isSafeInteger(p)||p<0||p>=120||
@@ -32,8 +32,11 @@ export function* enumerateSplitTierBoards({
  const supplySize=supplyCount-anchorCount;
  if(supplySize<0)throw new RangeError("No room for protected tier");
  const engineSize=positions.length-supplyCount;
- for(const supply of enumerateTierMultisets(supplySize,minTier,maxTier-anchorCount)){
-  for(const engine of enumerateTierMultisets(engineSize,minTier,maxTier-anchorCount)){
+ const ingredientCeiling=ingredientMaxTier??(maxTier-anchorCount);
+ if(!Number.isSafeInteger(ingredientCeiling)||ingredientCeiling<minTier||
+  ingredientCeiling>maxTier-anchorCount)throw new RangeError("Invalid ingredient ceiling");
+ for(const supply of enumerateTierMultisets(supplySize,minTier,ingredientCeiling)){
+  for(const engine of enumerateTierMultisets(engineSize,minTier,ingredientCeiling)){
    const board=Array(120).fill(0);
    const tiers=[...(anchorCount?[protectedTier]:[]),...supply,...engine];
    positions.forEach((p,i)=>{board[p]=tiers[i];});
