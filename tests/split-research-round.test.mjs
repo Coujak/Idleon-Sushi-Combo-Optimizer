@@ -45,3 +45,19 @@ test("Future unlocked tiers are not treated as T64-only boards",()=>{
  assert.ok(found.every(candidate=>candidate.board[0]===80&&
   candidate.board.slice(1,100).every(tier=>tier>=1&&tier<80)));
 });
+
+test("Fast with 100 per unique split shares all three layouts evenly between workers",()=>{
+ const layouts=3,budget=100;
+ let supply=0,engine=0;
+ for(let i=0;i<layouts;i++){
+  const generated=buildNovelSplitCandidates(base,positions,64,0,budget,{seen:new Set(),best:null});
+  assert.equal(generated.length,500);
+  supply+=generated.filter(c=>c.splitDirection==="supply").length;
+  engine+=generated.filter(c=>c.splitDirection==="engine").length;
+  const neutral=generated.filter(c=>c.splitPercent===50);
+  assert.equal(neutral.filter(c=>c.splitDirection==="supply").length,50);
+  assert.equal(neutral.filter(c=>c.splitDirection==="engine").length,50);
+ }
+ assert.equal(supply,750);
+ assert.equal(engine,750);
+});
