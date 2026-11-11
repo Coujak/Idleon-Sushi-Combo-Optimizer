@@ -783,10 +783,11 @@ async function showSolver(signal,foundId=null,savedOnly=false){
     // as matching rose/mint border samples instead of describing colors.
     const legend=document.createElement("div");
     legend.className="legend optimizer-board-legend";
-    const addKey=(symbolClass,labelText)=>{
+    const addKey=(symbolClass,labelText,symbolText="")=>{
       const item=document.createElement("span");
       const sample=document.createElement("i");sample.className=symbolClass;
       sample.setAttribute("aria-hidden","true");
+      if(symbolText)sample.textContent=symbolText;
       item.append(sample,document.createTextNode(labelText));
       legend.append(item);
     };
@@ -797,6 +798,13 @@ async function showSolver(signal,foundId=null,savedOnly=false){
     for(const [symbol,labelText] of [
       ["normal","Regular"],["hot","Hot"],["cold","Cold"],["milk","Milktoast"]
     ])addKey(symbol,labelText);
+    if(showTiers){
+      // Match the actual symbols and colors drawn on the prepared sushi tiles.
+      addKey("combo-cell-status combo-status-correct","Already correct","✓");
+      addKey("combo-cell-status combo-status-wrong","Wrong sushi","!");
+      addKey("combo-cell-status combo-status-missing","Add sushi","+");
+      addKey("combo-cell-status combo-status-slot","Plate mismatch","↔");
+    }
     root.append(legend);
     const legendHint=document.createElement("p");
     legendHint.className="hint optimizer-legend-hint";
