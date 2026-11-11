@@ -1,7 +1,7 @@
 // Keep the familiar default optimizer unchanged. Experimental includes the
 // default preparations plus optional layered East Wind reserves.
 import {buildCandidates} from "./preparation-core.mjs";
-import {buildCustomSplitCandidates} from "./custom-split-search.mjs?v=1.18.0";
+import {buildCustomSplitCandidates} from "./custom-split-search.mjs?v=1.18.6";
 import {isSplitOptimizerMode,buildSplitComboCandidates} from "./combo-split-strategies.mjs?v=1.18.0";
 import {buildAdaptiveComboCandidates} from "./adaptive-combo-strategies.mjs?v=1.17.0";
 import {buildLayeredCandidates} from "./layered-preparation.mjs";
