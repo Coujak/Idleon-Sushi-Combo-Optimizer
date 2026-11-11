@@ -40,10 +40,10 @@ test('New-best announcement preserves the fixed dashboard below the message',()=
  dashboard.drawAll();
  state.splitResults[24].best.score=77000;
  dashboard.announce('NEW BEST 24/76 : 77,000 points');
- assert.equal(writes.length,3);
+ assert.equal(writes.length,4);
  assert.equal(writes[1],'\x1b[21A\r\x1b[0J');
  assert.match(writes[2],/^NEW BEST 24\/76 : 77,000 points\n/);
- assert.equal(writes[2].split('Evaluating |').length-1,21);
+ assert.equal(writes[3].split('Evaluating |').length-1,21);
 });
 test('Progress formatting fits narrow terminals and handles large exact domains',()=>{
  for(const columns of [60,70,80,120]){
