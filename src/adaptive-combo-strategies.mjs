@@ -61,8 +61,9 @@ function makeBoard(positions,tiers){
  for(let i=0;i<positions.length;i++)board[positions[i]]=tiers[i];
  return board;
 }
-function sections(positions,boundary){
- return {protectedPosition:positions[0],enginePositions:positions.slice(boundary)};
+function sections(positions,boundary,isProtected){
+ return {protectedPosition:isProtected?positions[0]:null,
+  enginePositions:positions.slice(boundary)};
 }
 function scaledHistorical(positions,maxTier,cap,chain,baseChoice,protectHighest){
  if(positions.length!==100||chain!==25||
@@ -86,7 +87,7 @@ function scaledHistorical(positions,maxTier,cap,chain,baseChoice,protectHighest)
     workingTier:workingTop,
     referenceExperiment:def.number,
     historicalBenchmark:null,
-    strategySections:sections(positions,def.boundary),
+    strategySections:sections(positions,def.boundary,protect!==null),
     adaptive:true
    });
   }
@@ -148,7 +149,7 @@ function procedural(positions,maxTier,cap,chain,baseChoice,protectHighest){
      base,shape:"adaptive "+waves+"-wave reserve engine",
      board:makeBoard(positions,tiers),
      workingTier:workingTop,
-     strategySections:sections(positions,supplyCount),
+     strategySections:sections(positions,supplyCount,protect!==null),
      adaptive:true
     });
    }
