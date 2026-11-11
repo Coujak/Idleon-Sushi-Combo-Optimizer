@@ -138,7 +138,7 @@ export const MODE_CATALOG=Object.freeze([
     "name": "Optimizer 1 (Fast)",
     "difficulty": "Fast",
     "benchmark": null,
-    "summary": "Search supply/engine divisions 50/50, 70/30 and 90/10; 20-point jumps."
+    "summary": "Search in both directions from 50/50: 70/30, 90/10 supply-heavy, and 30/70, 10/90 engine-heavy. Two progress bars."
   },
   {
     "id": "optimizer2",
@@ -147,7 +147,7 @@ export const MODE_CATALOG=Object.freeze([
     "name": "Optimizer 2 (Mid)",
     "difficulty": "Mid",
     "benchmark": null,
-    "summary": "Search supply/engine divisions 50/50 through 90/10; 10-point jumps."
+    "summary": "Search both directions in 10-point jumps: 50/50 to 90/10 and 50/50 to 10/90, with independent progress bars."
   },
   {
     "id": "optimizer3",
@@ -156,7 +156,7 @@ export const MODE_CATALOG=Object.freeze([
     "name": "Optimizer 3 (Slow)",
     "difficulty": "Slow",
     "benchmark": null,
-    "summary": "Search supply/engine divisions 50/50 through 95/5; 5-point jumps."
+    "summary": "Search both directions in 5-point jumps: 50/50 to 95/5 and 50/50 to 5/95, with independent progress bars."
   },
   {
     "id": "optimizer4",
@@ -165,7 +165,7 @@ export const MODE_CATALOG=Object.freeze([
     "name": "Optimizer 4 (Max)",
     "difficulty": "Max",
     "benchmark": null,
-    "summary": "Search every supply/engine division 50/50 through 99/1; 1-point jumps."
+    "summary": "Search both directions at 1-point resolution: 50/50 to 99/1 and 50/50 to 1/99, with independent progress bars."
   }
 ]);
 export function getModeInfo(id){return MODE_CATALOG.find(m=>m.id===id)??MODE_CATALOG[0];}
