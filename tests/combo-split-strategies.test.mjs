@@ -135,3 +135,12 @@ test("Wrong slot geometry, mode or limits never produce phantom splits",()=>{
  assert.deepEqual(buildSplitComboCandidates(positions,64,58,25,0,true,"other"),[]);
  assert.deepEqual(comboSplitPercentages("other"),[]);
 });
+
+test("Max visits the Experiment 13 24/76 boundary with the same profile catalogue",()=>{
+ const max=buildSplitComboCandidates(positions,64,58,25,0,true,"optimizer4");
+ const at24=max.filter(c=>c.splitPercent===24&&c.splitDirection==="engine");
+ assert.equal(at24.length,26);
+ assert.ok(at24.every(c=>c.supplyCount===24&&c.engineCount===76));
+ const at76=max.filter(c=>c.splitPercent===76&&c.splitDirection==="supply");
+ assert.deepEqual(at24.map(c=>c.variant),at76.map(c=>c.variant));
+});
