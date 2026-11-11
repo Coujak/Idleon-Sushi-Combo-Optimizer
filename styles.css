@@ -538,6 +538,18 @@ details summary{cursor:pointer;font-size:12px;font-weight:700;color:#9eb7c9}
 .lab-shaker-count{align-items:end}
 .lab-shaker-count strong{color:#c7eedb;font-size:23px;font-variant-numeric:tabular-nums}
 .lab-shaker-count span{font-size:10px;color:#97b1c0;white-space:nowrap}
+/* Daily shaker refills: compact, account-aware, and separate from uses held. */
+.lab-shaker-count .lab-shaker-daily{
+ display:inline-flex;align-items:center;justify-content:center;
+ margin-top:3px;padding:3px 7px;border-radius:999px;
+ background:#1d483d;border:1px solid #367660;color:#9eecd0;
+ font-size:11px;font-weight:800;white-space:nowrap;
+ font-variant-numeric:tabular-nums;
+}
+.lab-shaker-count .lab-shaker-daily.is-locked{
+ background:#25313b;border-color:#475565;color:#99acba;
+}
+
 .lab-dashboard-lists{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}
 .lab-sushi-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:9px}
 .lab-sushi-card{display:flex;align-items:center;gap:10px;background:#162d3a;border:1px solid #355367;border-radius:11px;padding:9px;min-width:0}
