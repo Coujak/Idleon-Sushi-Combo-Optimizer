@@ -146,11 +146,18 @@ export function buildSplitComboCandidates(positions,maxTier,cap,chainLimit=25,
   {label:"balanced",peakFactor:.56,stages:3,stageBias:"equal",reserveCurve:"linear"},
   {label:"deep",peakFactor:.72,stages:3,stageBias:"equal",reserveCurve:"linear"},
  ];
- for(const stages of [2,3])for(const stageBias of ["front","back"])
+ // 48 structural profiles: 36 front/back stage arrangements across
+ // 2, 3 and 4 waves, plus 12 equal-weight arrangements for 2 and 3 waves.
+ // Combined with the two baseline profiles above, that's 50 per split.
+ for(const stages of [2,3,4])for(const stageBias of ["front","back"])
   for(const peakFactor of [.40,.56,.72])
    for(const reserveCurve of ["high","low"])
     profiles.push({label:stages+" stages "+stageBias+" "+peakFactor+" "+reserveCurve,
      stages,stageBias,peakFactor,reserveCurve});
+ for(const stages of [2,3])for(const peakFactor of [.40,.56,.72])
+  for(const reserveCurve of ["high","low"])
+   profiles.push({label:stages+" stages equal "+peakFactor+" "+reserveCurve,
+    stages,stageBias:"equal",peakFactor,reserveCurve});
  const supplyTrack=comboSplitPercentages(mode,"supply");
  const engineTrack=comboSplitPercentages(mode,"engine");
  // Interleave both real searches so neither progress bar stays frozen
