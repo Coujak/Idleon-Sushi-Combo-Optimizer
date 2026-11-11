@@ -5,6 +5,20 @@ Browser-based Sushi Station account dashboard, reference guides and Combo Meter 
 **Site:** https://coujak.github.io/Idleon-Sushi-Combo-Optimizer/
 
 
+## Experimental Idleon cloud login (development branch only)
+
+The Overview now includes an optional **Connect Idleon account · Steam** panel. This is an early proof of concept; do not consider it production-verified until a real Steam sign-in is tested from the GitHub Pages origin.
+
+1. Open Steam's official sign-in page using the button in the panel.
+2. After Steam redirects to `www.legendsofidleon.com/steamsso/`, copy the full address.
+3. Paste the return address into Sushi Station Lab and click **Connect**. The input is cleared immediately.
+4. A successful sign-in reads **only your own** Firestore `_data/{authenticated uid}` cloud save and passes only `Sushi`, `Spelunk`, `Menagerie`, `Research`, and `BundlesReceived` to the existing game-save parser.
+5. **Refresh cloud save** fetches an updated snapshot; **Disconnect** signs out and clears data imported from the cloud session.
+
+Security/privacy: this uses the existing Idleon authentication backend and Firebase client app configuration, not a server controlled by Sushi Station Lab. Steam credentials are entered on Steam, never here; the Steam redirect URL is a short-lived, sensitive signed assertion. Firebase auth is configured for **in-memory persistence only** (no login persistence across refreshes). The client never writes to the game's database, stores no credentials/tokens in local storage, and does not include them in research exports. Steam SSO requests are sent only to the official Idleon Cloud Function, and cloud-save reads go directly to Firebase. Manual JSON import remains available without any sign-in.
+
+Known limitations: cross-origin access to Idleon's Steam token-exchange service and Firestore permissions are controlled by Idleon and **have not been end-to-end verified from GitHub Pages**. The service may refuse this origin or change its interface. Google sign-in was previously rejected due to an incompatible OAuth token audience and is intentionally not exposed in this prototype. Never paste the Steam return URL into messages or screenshots.
+
 ## Combo Meter progressive search (beta)
 
 The Combo Meter planner is a **heuristic** search tool, not a guarantee of the highest mathematically possible score. Its recommended board and merge sequence are checked against the local simulator. In-game execution, combo timing and game effects can still differ.
