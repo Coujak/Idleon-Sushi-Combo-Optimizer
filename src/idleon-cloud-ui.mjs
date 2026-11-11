@@ -14,6 +14,11 @@ export function initializeIdleonCloudUI({onSave,onDisconnect}){
  const state=$("idleonCloudStatus");
  const problem=$("idleonCloudError");
  const details=$("idleonCloudDetails");
+ // If a browser serves an older cached HTML shell, keep manual import alive.
+ // Cloud login can become available after a hard refresh.
+ if([openButton,input,connectButton,refreshButton,disconnectButton,state,problem,details]
+  .some(node=>!node))
+  return {disconnect:async()=>{},isConnected:()=>false};
  let busy=false;
 
  function report(error){
