@@ -442,8 +442,9 @@ async function showSolver(signal,foundId=null,savedOnly=false){
   const candidates=foundInfo?allCandidates.slice(0,1):
    dualSplit&&limit>0?chooseCandidatesByBudget(allCandidates,limit):allCandidates;
   const total=custom?1:candidates.length;
-  if(total<1&&!researchState.best)throw Error(foundInfo?
-   "This Found Configuration requires 100 contiguous slots, T64, Wind limit T58, and chain limit 25.":
+  if(total<1&&!researchState.best)throw Error(savedOnly?
+   "There is no saved best yet for these game settings. Run a split optimizer first.":
+   foundInfo?"This Found Configuration requires 100 contiguous slots, T64, Wind limit T58, and chain limit 25.":
    "No new configurations could be generated for these game settings.");
   let solution=researchState.best;
   let winningIsFromCache=Boolean(solution);
@@ -545,8 +546,11 @@ async function showSolver(signal,foundId=null,savedOnly=false){
     updateLiveScore();
     progress(1);
   }else{
-    if(dualSplit&&typeof Worker!=="undefined"){
-      let evaluated=0;
+    // Abort means discard normally; "Stop & keep best" preserves the
+    // already replay-validated winner, without continuing refinement.
+    try{
+    if(dualSplit&&typeof Worker!=="undefined"&&total>0&&
+      !(goal>0&&solution?.search?.score>=goal)){
       await scanSplitDirectionsInParallel(candidates,
        {cap,chain,mode,maxTier},signal,async({direction,processed,splitPercent,improved,checked})=>{
         // Only report work as checked after a Worker completes its batch.
@@ -558,11 +562,12 @@ async function showSolver(signal,foundId=null,savedOnly=false){
         track.status.textContent=splitPercent+"/"+(100-splitPercent)+" · "+
          Math.round(track.done/Math.max(1,track.total)*100)+"% ("+
          track.done+"/"+track.total+")";
-        evaluated+=processed;
-        $("optimizerProgressBar").value=evaluated;
+        evaluatedCount+=processed;
+        $("optimizerProgressBar").value=evaluatedCount;
         $("optimizerProgressBar").max=total;
         $("optimizerProgressText").textContent=optimizerModeLabel+" · "+
-         evaluated+" / "+total+" layouts evaluated concurrently";
+         evaluatedCount+" / "+total+" layouts evaluated concurrently";
+        if(improved)runBest=Math.max(runBest??0,improved.search.score);
         if(improved&&(!solution||improved.search.score>solution.search.score||
          (improved.search.score===solution.search.score&&
           improved.search.remaining<solution.search.remaining))){
@@ -570,8 +575,11 @@ async function showSolver(signal,foundId=null,savedOnly=false){
           winningIsFromCache=false;
           updateLiveScore();
         }
+        statsUpdate();
+        if(goal>0&&solution?.search?.score>=goal&&activeSearch&&!signal.aborted)
+         requestKeepBest();
       });
-    }else{
+    }else if(total>0&&!(goal>0&&solution?.search?.score>=goal)){
       // Non-split planners and browsers lacking module Workers retain the
       // original single-thread evaluation as a compatible fallback.
       for(let i=0;i<candidates.length;i++){
@@ -585,17 +593,30 @@ async function showSolver(signal,foundId=null,savedOnly=false){
           updateLiveScore();
         }
         if(dualSplit){
+         if(solution?.board===candidate.board)await persistWinner(solution);
          await rememberEvaluatedBoards([{context:candidate.researchContext,
           key:candidate.board.join(",")}]);
-         if(solution?.board===candidate.board)await persistWinner(solution);
+         evaluatedCount++;
+         runBest=Math.max(runBest??0,search.score);
+         statsUpdate();
         }
         progress(i+1,candidate);
+        if(goal>0&&solution?.search?.score>=goal&&activeSearch&&!signal.aborted)
+         requestKeepBest();
         await yieldToUI(signal);
       }
     }
-    throwIfCancelled(signal);
-    solution={...solution,testedCandidates:candidates.length};
-    if(!winningIsFromCache){
+    }catch(error){
+      if(!(error?.name==="AbortError"&&activeSearch?.keepBestRequested))
+       throw error;
+    }
+    if(signal.aborted&&!activeSearch?.keepBestRequested)throwIfCancelled(signal);
+    if(!solution?.search){
+      if(signal.aborted)throwIfCancelled(signal);
+      throw Error("No completed, replay-validated configuration is available yet.");
+    }
+    solution={...solution,testedCandidates:dualSplit?evaluatedCount:candidates.length};
+    if(!winningIsFromCache&&!activeSearch?.keepBestRequested){
       $("optimizerProgressText").textContent="Refining the best preparation…";
     await yieldToUI(signal);
     keepBetterSearch(beamSearchCombos(solution.board,cap,chain,solution.board.filter(v=>v>0).length-1,solution.search,maxTier));
@@ -614,11 +635,11 @@ async function showSolver(signal,foundId=null,savedOnly=false){
     }
     } // A cached winner is already verified; don't recompute its merge search.
   }
-  throwIfCancelled(signal);
+  if(signal.aborted&&!activeSearch?.keepBestRequested)throwIfCancelled(signal);
   if(!solution||!solution.search)throw Error("No valid preparations for these tier settings.");
   if(dualSplit){
     $("researchHistoryStatus").textContent=
-      (researchState.checkedBefore+total).toLocaleString()+
+      (researchState.checkedBefore+evaluatedCount).toLocaleString()+
       " boards evaluated across sessions for these game settings · "+
       "Best verified score: "+solution.search.score.toLocaleString()+
       (researchState.persistent?" · Saved in this browser.":" · Session-only memory.");
@@ -663,6 +684,7 @@ async function showSolver(signal,foundId=null,savedOnly=false){
     root.append(moves);
   }
   const sections=custom?null:getPreparedBoardSections(solution,recommendedSlots);
+  const comparison=comparePreparedBoard(imported.tiles,slots,solution.board,recommendedSlots);
   const showSlotRecommendation=hasSlotLayoutChanges(slots,recommendedSlots);
   let sectionNumber=1;
   function make(label,values,showTiers,sectionInfo=null,slotLayoutHeading=false){
@@ -706,7 +728,10 @@ async function showSolver(signal,foundId=null,savedOnly=false){
       if(sectionInfo?.roles[i])cell.classList.add("prepared-"+sectionInfo.roles[i]);
       if(sectionInfo?.protectedPosition===i)cell.classList.add("prepared-protected");
       if(sectionInfo?.firstEnginePosition===i)cell.classList.add("prepared-engine-start");
-      if(slot>=0&&showTiers&&tier>0){addSushiVisual(cell,tier);}
+      if(slot>=0&&showTiers&&tier>0){
+        addSushiVisual(cell,tier);
+        if(values===solution.board)decoratePreparedCell(cell,comparison.statuses[i]);
+      }
       else if(slot>=0&&!showTiers){const dot=document.createElement("span");dot.className="slot-marker";dot.textContent="•";cell.append(dot);}
       const role=sectionInfo?.roles[i]==="supply"?(sectionInfo.protectedPosition!==null&&i===sectionInfo.protectedPosition?" · Protected anchor / supply section":" · Supply / tools"):sectionInfo?.roles[i]==="chain"?" · Fixed Wind chain":"";
       cell.title="Position "+(i+1)+" · "+(SLOT_NAMES[slot]??"Locked")+(showTiers&&tier>0?" · Tier "+tier:"")+role;
@@ -767,6 +792,8 @@ async function showSolver(signal,foundId=null,savedOnly=false){
   }
   if(showSlotRecommendation)make("Recommended slot layout ("+(solution.layoutName??"current")+")",[],false,null,true);
   make(custom?"Your custom starting board":"Recommended prepared sushi tiers (not your current inventory)",solution.board,true,sections);
+  renderComboReport(root,{currentTiles:imported.tiles,currentSlots:slots,solution,
+   comparison,sections,previousBest:dualSplit?previousRecord:null});
   const heading=document.createElement("h3");heading.textContent=sectionNumber+" · Interactive merge sequence";root.append(heading);
   const intro=document.createElement("p");intro.className="hint";intro.textContent="Watch the picked sushi slide into the destination before the merge and East Wind resolve. Blue marks the source, green the destination, and purple marks Wind. Use Play or select a step; Step 0 shows the full board.";root.append(intro);
   const layout=document.createElement("div");layout.className="merge-layout";
