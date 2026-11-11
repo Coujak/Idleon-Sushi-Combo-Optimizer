@@ -153,3 +153,21 @@ test("missing Research data does not falsely report +1/day as the exact refill r
  research[0][188]=3; // Cannot exceed the Shakin' It max level 2.
  assert.equal(getShakerDailyUses({research}).known,false);
 });
+
+test("Overview highest-on-board counts copies without confusing discovered tier",()=>{
+ const sushi=[[],[],[],[],[],Array(64).fill(-1)];
+ sushi[5][63]=0; // T64 discovered but not currently on the board.
+ const board={sushi,tiles:[-1,57,56,57,-1,57,12],slots:Array(7).fill(0)};
+ const snap=getSushiSnapshot(board);
+ assert.equal(snap.highest,58);
+ assert.equal(snap.highestCopies,3);
+ assert.equal(snap.occupied,4);
+ // An empty board must not display T0 or a copy count.
+ const empty=getSushiSnapshot({...board,tiles:[-1,-1,-1]});
+ assert.equal(empty.highest,0);
+ assert.equal(empty.highestCopies,0);
+ // Zero-based sushi ID 63 is displayed as tier 64.
+ const capped=getSushiSnapshot({...board,tiles:[63,63,63,62]});
+ assert.equal(capped.highest,64);
+ assert.equal(capped.highestCopies,3);
+});
