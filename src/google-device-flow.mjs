@@ -78,25 +78,27 @@ export function createGoogleDeviceFlow({
    const seq=generation;
    if(!config)throw Error("Start Google device authorization first.");
    let interval=config.intervalMs;
-   while(seq===generation&&now()<config.expiresAt){
-    await sleep(interval);
-    if(seq!==generation)return null;
-    const decision=nextGoogleDevicePoll(
-     await exchangeDeviceCode(config.deviceCode),interval,now(),config.expiresAt);
-    if(seq!==generation)return null;
-    if(decision.status==="pending"){interval=decision.nextIntervalMs;continue;}
-    if(decision.status==="denied")throw Error("Google sign-in was cancelled.");
-    if(decision.status==="expired")throw Error("Google sign-in code expired.");
-    if(decision.status!=="authorized")throw Error("Google could not complete sign-in.");
-    try{
+   try{
+    while(seq===generation&&now()<config.expiresAt){
+     await sleep(interval);
+     if(seq!==generation)return null;
+     const decision=nextGoogleDevicePoll(
+      await exchangeDeviceCode(config.deviceCode),interval,now(),config.expiresAt);
+     if(seq!==generation)return null;
+     if(decision.status==="pending"){interval=decision.nextIntervalMs;continue;}
+     if(decision.status==="denied")throw Error("Google sign-in was cancelled.");
+     if(decision.status==="expired")throw Error("Google sign-in code expired.");
+     if(decision.status!=="authorized")throw Error("Google could not complete sign-in.");
      const user=await authenticate(decision.idToken);
      if(seq!==generation)return null;
      return await readCloud(user);
-    }finally{active=null;}
+    }
+    if(seq!==generation)return null;
+    throw Error("Google sign-in code expired.");
+   }finally{
+    // Do not erase a newer sign-in started while the previous one was pending.
+    if(seq===generation)active=null;
    }
-   if(seq!==generation)return null;
-   active=null;
-   throw Error("Google sign-in code expired.");
   },
   cancel(){generation++;active=null;},
   isPending(){return Boolean(active);}
