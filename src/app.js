@@ -10,7 +10,10 @@ import {searchLookaheadCombos} from "./lookahead-search.mjs?v=1.9.9";
 import {throwIfCancelled,yieldToUI} from "./optimizer-run.mjs?v=1.8.1";
 import {scanSplitDirectionsInParallel} from "./split-search-parallel.mjs?v=1.18.4";
 import {buildNovelSplitCandidates} from "./split-research-round.mjs?v=1.18.4";
-import {researchContext,loadResearchHistory,rememberEvaluatedBoards,rememberBestCandidate,resetResearchHistory} from "./research-memory.mjs?v=1.18.4";
+import {researchContext,loadResearchHistory,rememberEvaluatedBoards,rememberBestCandidate,
+ resetResearchHistory,exportResearchData,importResearchData} from "./research-memory.mjs?v=1.18.5";
+import {comparePreparedBoard,chooseCandidatesByBudget} from "./combo-qol.mjs?v=1.18.5";
+import {renderComboReport,decoratePreparedCell} from "./combo-qol-ui.mjs?v=1.18.5";
 import {searchCombos} from "./merge-search.mjs?v=1.9.9";
 import {MODE_CATALOG,getModeInfo,modeOptionLabel,modeDisplayLabel} from "./mode-catalog.mjs?v=1.17.1";
 const $=id=>document.getElementById(id);
@@ -354,7 +357,7 @@ function validateTiming(moves,timeout,secondsPerMerge,secondsPerRelocation){
   return {events,valid:events.every(e=>e.safe),
     minimumMargin:events.length?Math.min(...events.map(e=>e.remaining)):null,totalDuration};
 }
-async function showSolver(signal,foundId=null){
+async function showSolver(signal,foundId=null,savedOnly=false){
   throwIfCancelled(signal);
   if(!imported)return;
   const detected=detectSushiProgress(imported);
@@ -378,6 +381,12 @@ async function showSolver(signal,foundId=null){
   const optimizerModeLabel=foundInfo?"Found configuration · "+foundInfo.name:
    modeDisplayLabel(getModeInfo(optimizerMode));
   const custom=!foundInfo&&$("baseTier").value==="custom";
+  if(savedOnly&&(!["optimizer1","optimizer2","optimizer3","optimizer4","optimizer5"].includes(optimizerMode)||custom))
+   throw Error("Select Fast, Mid, Slow, Max, or Custom to view its saved research best.");
+  const goal=Number($("scoreTarget").value);
+  const limit=Number($("configurationLimit").value);
+  if(!Number.isSafeInteger(goal)||goal<0||!Number.isSafeInteger(limit)||limit<0||limit>100000)
+   throw Error("Score target must be nonnegative and max configurations must be 0–100,000.");
   const protectTier64=maxTier>=64||imported.tiles.includes(63);
   const highestIngredient=protectTier64&&maxTier>=64?maxTier-1:maxTier;
   const selectedBase=custom||foundInfo?0:($("baseTier").value==="manual"?
@@ -417,10 +426,10 @@ async function showSolver(signal,foundId=null){
         }catch{/* Invalid saved results are ignored. */}
       }
       await yieldToUI(signal);
-      const base=getModeCandidates(layoutPositions,maxTier,cap,selectedBase,
+      const base=savedOnly?[]:getModeCandidates(layoutPositions,maxTier,cap,selectedBase,
        chain,protectTier64,baseSplitMode,customSettings);
-      prepared=buildNovelSplitCandidates(base,layoutPositions,maxTier,
-       selectedBase,searchBudget,history).map(candidate=>({...candidate,researchContext:context}));
+      prepared=(savedOnly?[]:buildNovelSplitCandidates(base,layoutPositions,maxTier,
+       selectedBase,searchBudget,history)).map(candidate=>({...candidate,researchContext:context}));
     }else{
       prepared=foundInfo?
        [buildFoundConfiguration(foundId,layoutPositions,maxTier,cap,chain,protectTier64)].filter(Boolean):
@@ -430,13 +439,29 @@ async function showSolver(signal,foundId=null){
   }));
   // Historical fixed boards are replayed once, never used as research seeds.
   const allCandidates=generated?.flat()??null;
-  const candidates=foundInfo?allCandidates.slice(0,1):allCandidates;
+  const candidates=foundInfo?allCandidates.slice(0,1):
+   dualSplit&&limit>0?chooseCandidatesByBudget(allCandidates,limit):allCandidates;
   const total=custom?1:candidates.length;
   if(total<1&&!researchState.best)throw Error(foundInfo?
    "This Found Configuration requires 100 contiguous slots, T64, Wind limit T58, and chain limit 25.":
    "No new configurations could be generated for these game settings.");
   let solution=researchState.best;
   let winningIsFromCache=Boolean(solution);
+  let evaluatedCount=0,runBest=null;
+  const previousRecord=researchState.best;
+  const statsUpdate=()=>{
+   if(!dualSplit)return;
+   const initial=previousRecord?.search?.score??null;
+   $("researchSavedBest").textContent=solution?.search?.score?.toLocaleString()??"—";
+   $("researchRunBest").textContent=runBest?.toLocaleString()??"—";
+   $("researchLifetime").textContent=(researchState.checkedBefore+evaluatedCount).toLocaleString();
+   $("researchRunCount").textContent=evaluatedCount.toLocaleString();
+   $("researchSkipped").textContent=researchState.checkedBefore.toLocaleString();
+   $("researchImprovement").textContent=initial===null?
+    (runBest===null?"—":"New record"):(solution?.search?
+    "+"+Math.max(0,solution.search.score-initial).toLocaleString():"—");
+  };
+  statsUpdate();
   if(dualSplit){
     $("researchHistoryStatus").textContent=
      researchState.checkedBefore.toLocaleString()+" previously evaluated boards for these game settings · "+
@@ -459,7 +484,14 @@ async function showSolver(signal,foundId=null){
   }
   // Keep the prominent score bubble in sync with the strongest simulated
   // candidate seen so far, including the refinement passes.
-  const updateLiveScore=()=>setComboScoreBubble(true,solution?.search?.score??null);
+  const updateLiveScore=()=>{
+   setComboScoreBubble(true,solution?.search?.score??null);
+   if(activeSearch&&solution?.search){
+    activeSearch.hasResult=true;
+    if(!activeSearch.signal.aborted)$("stopKeepBest").disabled=false;
+   }
+   statsUpdate();
+  };
   const progress=(done,candidate=null)=>{
     const pct=total?Math.round(done/total*100):100;
     $("optimizerProgressBar").value=done;
