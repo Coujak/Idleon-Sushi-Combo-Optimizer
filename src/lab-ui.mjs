@@ -248,6 +248,7 @@ export function initializeSushiLab(getSave){
     const daily=stats.shakerDaily;
     const rate=el("span","lab-shaker-daily",
      !unlocked?"Locked":daily?.known?"+"+daily.total+"/day":"+1/day base");
+    if(!unlocked)rate.classList.add("is-locked");
     rate.title=!unlocked?"Unlock this shaker in Sushi Station upgrades":
      daily?.known?"Daily uses: 1 base + "+daily.bonus+
       " from Shakin' It Research (Lv "+daily.bonus+").":
