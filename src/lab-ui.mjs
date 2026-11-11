@@ -4,7 +4,7 @@ import {sushiUpgradeIconPath,sushiTierIconPath} from "./sushi-reference.mjs?v=1.
 import {initializePerfectoUI} from "./perfecto-ui.mjs?v=1.16.6";
 import {CATALOG_SORT_OPTIONS,CATALOG_STATUS_OPTIONS,upgradeSummary,readableUpgradeDescription,upgradeDescriptionSegments,catalogHasVariableValues,filterSortCatalog,upgradeCatalogDollarValue} from "./upgrade-catalog.mjs?v=1.16.7";
 import {ADVISOR_GOALS,numberText,getSushiSnapshot,getUpgradeRows,
- getKnowledgeRows,advisorUpgrades,doublerUpgrades,getSushiDoublerCounts,sushiUpgradeExtraText,upgradeAffordability} from "./lab-model.mjs?v=1.19.7";
+ getKnowledgeRows,advisorUpgrades,doublerUpgrades,getSushiDoublerCounts,sushiUpgradeExtraText,upgradeAffordability} from "./lab-model.mjs?v=1.19.10";
 import {getProgressionAdvice,PROGRESSION_SORT_OPTIONS,PROGRESSION_FILTER_OPTIONS} from "./progression-advisor.mjs?v=1.16.6";
 import {buildProgressionPurchasePlan} from "./progression-roadmap.mjs?v=1.16.7";
 import {parseGameQuantity} from "./progression-calibration.mjs?v=1.16.3";
