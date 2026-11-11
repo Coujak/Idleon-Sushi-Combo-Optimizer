@@ -1552,19 +1552,21 @@ details summary{cursor:pointer;font-size:12px;font-weight:700;color:#9eb7c9}
 }
 #lab-overview .lab-shaker-copy span{font-size:11px;line-height:1.35}
 #lab-overview .lab-shaker-count{
- display:flex;flex-direction:column;align-items:flex-end;
- justify-content:center;gap:4px;min-width:max-content;
+ display:flex;flex-direction:column;align-items:center;
+ justify-content:center;gap:4px;min-width:max-content;text-align:center;
 }
 #lab-overview .lab-shaker-usage-row{
- display:flex;align-items:center;justify-content:flex-end;gap:7px;
+ display:flex;align-items:center;justify-content:center;gap:7px;
 }
 #lab-overview .lab-shaker-count .lab-shaker-count-value{
  font-size:29px;line-height:1.05;color:#b3f4d3;
 }
 #lab-overview .lab-shaker-count .lab-shaker-daily{
+ display:inline-flex;align-items:center;justify-content:center;text-align:center;
  margin:0;padding:4px 7px;font-size:10px;line-height:1.1;
 }
 #lab-overview .lab-shaker-count .lab-shaker-count-caption{
+ display:block;width:100%;text-align:center;
  font-size:10px;line-height:1.25;letter-spacing:.02em;
  color:#afc6cf;
 }
