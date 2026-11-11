@@ -454,6 +454,7 @@ async function showSolver(signal,foundId=null,savedOnly=false){
   // Keep this run's strongest completed candidate separate from the saved
   // all-time winner. Stop & Continue must use the former, even if it scores less.
   let currentRunSolution=null;
+  let showCurrentRun=false;
   let overallWinner=solution;
   let winningIsFromCache=Boolean(solution);
   let evaluatedCount=0,runBest=null;
@@ -646,7 +647,7 @@ async function showSolver(signal,foundId=null,savedOnly=false){
     // View saved best (or a run with no new boards to evaluate) uses
     // the historical record, which is maintained independently.
     overallWinner=solution;
-    const showCurrentRun=dualSplit&&!savedOnly&&Boolean(currentRunSolution?.search);
+    showCurrentRun=dualSplit&&!savedOnly&&Boolean(currentRunSolution?.search);
     const selected=selectDisplayedSearchResult(overallWinner,currentRunSolution,showCurrentRun);
     if(showCurrentRun)winningIsFromCache=false;
     // Never mutate the saved candidate's search object during refinement.
