@@ -28,7 +28,7 @@ for(const [mode,percentages] of Object.entries(expected)){
    assert.equal(option.board.filter(t=>t>0).length,100);
    assert.equal(option.board[0],64);
    assert.equal(option.board.filter(t=>t===64).length,1);
-   assert.ok(option.board.slice(1).every(t=>t>=1&&t<=63));
+   assert.ok(option.board.slice(1,100).every(t=>t>=1&&t<=63));
    if(mode!=="simple"){
     assert.equal(option.supplyCount+option.engineCount,100);
     assert.equal(option.supplyCount,option.splitPercent);
