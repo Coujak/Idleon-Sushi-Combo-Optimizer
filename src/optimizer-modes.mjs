@@ -1,6 +1,7 @@
 // Keep the familiar default optimizer unchanged. Experimental includes the
 // default preparations plus optional layered East Wind reserves.
 import {buildCandidates} from "./preparation-core.mjs";
+import {isSplitOptimizerMode,buildSplitComboCandidates} from "./combo-split-strategies.mjs";
 import {buildAdaptiveComboCandidates} from "./adaptive-combo-strategies.mjs?v=1.17.0";
 import {buildLayeredCandidates} from "./layered-preparation.mjs";
 import {buildTuned100Candidates} from "./tuned-preparation.mjs";
@@ -18,6 +19,10 @@ import {buildExperimental12Candidates} from "./experimental12-preparation.mjs?v=
 import {buildExperimental13Candidates} from "./experimental13-preparation.mjs?v=1.10.4";
 
 export function getModeCandidates(positions,maxTier,cap,selectedBase,chainLimit,protectTier64,mode="default"){
+  // Split optimizers test precisely their own supply/engine boundaries.
+  // Never mix historical fixed-layout scores into adaptive mode comparisons.
+  if(isSplitOptimizerMode(mode))return buildSplitComboCandidates(
+    positions,maxTier,cap,chainLimit,selectedBase,protectTier64,mode);
   const candidates=buildCandidates(positions,maxTier,cap,selectedBase,chainLimit,protectTier64);
   // Adaptive is deliberately independent from the numbered score showcases:
   // Experiment 2 must not silently select an Experiment 13-derived board.
