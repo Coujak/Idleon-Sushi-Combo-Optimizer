@@ -1586,3 +1586,80 @@ details summary{cursor:pointer;font-size:12px;font-weight:700;color:#9eb7c9}
 }
 /* The longer discovery label wraps cleanly without changing card height. */
 #lab-overview .lab-stat-label{overflow-wrap:break-word}
+
+/* Optional read-only Steam / Idleon Firebase cloud save connection (dev only). */
+#idleonCloudPanel{
+ border:1px solid #37675f;background:linear-gradient(135deg,#112d37,#123b38);
+ border-radius:13px;margin:14px 0 15px;overflow:hidden;
+}
+#idleonCloudPanel>summary{
+ display:flex;align-items:center;justify-content:space-between;gap:12px;
+ cursor:pointer;padding:14px 16px;list-style:none;color:#e9fbf2;
+}
+#idleonCloudPanel>summary::-webkit-details-marker{display:none}
+#idleonCloudPanel>summary:focus-visible{outline:2px solid #8de4bc;outline-offset:-3px}
+#idleonCloudPanel>summary:after{content:"▾";color:#a6d9cd;font-size:14px;order:3}
+#idleonCloudPanel[open]>summary:after{content:"▴"}
+#idleonCloudPanel .idleon-cloud-title{
+ display:inline-flex;align-items:center;flex-wrap:wrap;gap:8px;
+ min-width:0;font-size:14px;font-weight:800;
+}
+#idleonCloudPanel .idleon-cloud-symbol{
+ display:grid;place-items:center;width:28px;height:28px;flex:0 0 28px;
+ border-radius:9px;background:#20544a;color:#9ef3c8;font-size:17px;
+}
+#idleonCloudPanel .idleon-cloud-beta{
+ display:inline-flex;align-items:center;padding:3px 8px;border-radius:99px;
+ background:#203848;color:#b4d7e6;font-size:10px;font-weight:700;
+ letter-spacing:.015em;
+}
+#idleonCloudPanel #idleonCloudStatus{margin-left:auto;white-space:nowrap;font-size:11px}
+#idleonCloudPanel .idleon-cloud-body{
+ border-top:1px solid #355b58;padding:16px;
+}
+#idleonCloudPanel .idleon-cloud-body>.hint{margin:0 0 12px;line-height:1.55}
+#idleonCloudPanel .idleon-cloud-steps{
+ margin:0 0 16px;padding-left:23px;color:#c6dfe3;
+ font-size:12px;line-height:1.65;
+}
+#idleonCloudPanel .idleon-cloud-steps li{padding-left:4px;margin:4px 0}
+#idleonCloudPanel .idleon-cloud-controls{
+ display:flex;flex-wrap:wrap;align-items:flex-end;gap:9px;margin:10px 0;
+}
+#idleonCloudPanel .idleon-cloud-url-label{
+ display:flex;flex:1 1 260px;flex-direction:column;gap:5px;min-width:190px;
+ font-size:11px;font-weight:700;color:#b6d6d9;
+}
+#idleonCloudPanel .idleon-cloud-url-label input{
+ box-sizing:border-box;width:100%;min-height:39px;margin:0;padding:9px 11px;
+ background:#102331;color:#eaf9f4;border:1px solid #527077;
+ border-radius:8px;font:inherit;font-size:12px;
+}
+#idleonCloudPanel .idleon-cloud-url-label input:focus-visible{
+ outline:2px solid #78d6ba;outline-offset:1px;
+}
+#idleonCloudPanel .idleon-cloud-controls .button{min-height:39px;margin:0}
+#idleonCloudPanel .idleon-cloud-session{
+ align-items:center;margin-top:16px;
+}
+#idleonCloudPanel .idleon-cloud-session .hint{
+ flex:1 1 250px;min-width:0;margin:0;font-size:11px;
+}
+#idleonCloudPanel #idleonCloudError{margin:10px 0}
+#idleonCloudPanel .privacy{
+ margin:12px 0 0;font-size:11px;line-height:1.55;color:#9eb8bf;
+}
+#lab-overview .idleon-manual-import{margin:12px 0 0}
+#lab-overview .idleon-manual-label{
+ display:block;color:#91b7bd;text-transform:uppercase;letter-spacing:.055em;
+ font-size:10px;font-weight:800;margin-bottom:10px;
+}
+#lab-overview .idleon-manual-import .actions{margin:0}
+@media(max-width:650px){
+ #idleonCloudPanel>summary{flex-wrap:wrap;padding:12px}
+ #idleonCloudPanel #idleonCloudStatus{margin-left:0}
+ #idleonCloudPanel .idleon-cloud-body{padding:12px}
+ #idleonCloudPanel .idleon-cloud-controls .button{flex:1 1 120px}
+ #idleonCloudPanel .idleon-cloud-url-label{flex:1 1 100%;order:2}
+ #idleonCloudPanel #idleonSteamConnect{order:3}
+}
