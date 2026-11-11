@@ -454,6 +454,7 @@ async function showSolver(signal,foundId=null,savedOnly=false){
   // Keep this run's strongest completed candidate separate from the saved
   // all-time winner. Stop & Continue must use the former, even if it scores less.
   let currentRunSolution=null;
+  let overallWinner=solution;
   let winningIsFromCache=Boolean(solution);
   let evaluatedCount=0,runBest=null;
   const previousRecord=researchState.best;
@@ -638,7 +639,7 @@ async function showSolver(signal,foundId=null,savedOnly=false){
     // Stopping early opens the best configuration from this search,
     // NOT the potentially higher historical record. Normal completion
     // retains the previous best across sessions.
-    const overallWinner=solution;
+    overallWinner=solution;
     solution=selectDisplayedSearchResult(solution,currentRunSolution,
      Boolean(dualSplit&&activeSearch?.keepBestRequested));
     if(solution!==overallWinner)winningIsFromCache=false;
