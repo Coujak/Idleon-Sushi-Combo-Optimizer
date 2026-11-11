@@ -94,6 +94,18 @@
 .optimizer-progress-heading{display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:10px}
 .optimizer-progress-heading strong{color:#d9f8e9}
 .optimizer-progress-heading span{font-size:13px;color:#a5c9ce}
+.optimizer-progress-heading .optimizer-progress-cancel{
+ margin-left:auto;padding:10px 16px;min-height:40px;white-space:nowrap;
+ border:1px solid #b57b7f;background:#523138;color:#ffe7e8;
+ font-size:13px;font-weight:700;
+}
+.optimizer-progress-heading .optimizer-progress-cancel:hover:not(:disabled){
+ background:#693943;border-color:#d7a1a5;
+}
+@media(max-width:600px){
+ .optimizer-progress-heading .optimizer-progress-cancel{width:100%;margin-left:0}
+}
+
 .optimizer-progress progress{display:block;width:100%;height:13px;border:0;border-radius:999px;overflow:hidden;accent-color:#79d9ae;background:#243a48}
 .optimizer-progress progress::-webkit-progress-bar{background:#243a48;border-radius:999px}
 .optimizer-progress progress::-webkit-progress-value{background:linear-gradient(90deg,#3db4b3,#79d9ae);border-radius:999px;transition:width .12s ease}
