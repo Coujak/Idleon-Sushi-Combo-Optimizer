@@ -390,6 +390,11 @@ async function showSolver(signal){
     track.progress.value=0;
     track.status.textContent="50/50 · 0%";
   }
+  // Show the best simulated score discovered so far during long searches.
+  // It is a provisional score until the final replay is validated.
+  const bestScoreLabel=()=>solution?.search?
+    " · Best so far: "+solution.search.score.toLocaleString()+" points":
+    " · Best so far: —";
   const progress=(done,candidate=null)=>{
     const pct=Math.round(done/total*100);
     $("optimizerProgressBar").value=done;
@@ -402,9 +407,9 @@ async function showSolver(signal){
       track.status.textContent=ratio+" · "+Math.round(track.done/Math.max(1,track.total)*100)+"% ("+
         track.done+"/"+track.total+")";
       $("optimizerProgressText").textContent=optimizerModeLabel+" · "+
-        done+" / "+total+" layouts evaluated in both directions";
+        done+" / "+total+" layouts evaluated in both directions"+bestScoreLabel();
     }else{
-      $("optimizerProgressText").textContent=optimizerModeLabel+" · "+pct+"% · "+done+" / "+total+" layouts evaluated";
+      $("optimizerProgressText").textContent=optimizerModeLabel+" · "+pct+"% · "+done+" / "+total+" layouts evaluated"+bestScoreLabel();
     }
   };
   progress(0);
@@ -434,17 +439,17 @@ async function showSolver(signal){
       await yieldToUI(signal);
     }
     solution={...solution,testedCandidates:candidates.length};
-    $("optimizerProgressText").textContent="Refining the best preparation…";
+    $("optimizerProgressText").textContent="Refining the best preparation…"+bestScoreLabel();
     await yieldToUI(signal);
     solution.search=beamSearchCombos(solution.board,cap,chain,solution.board.filter(v=>v>0).length-1,solution.search,maxTier);
     await yieldToUI(signal);
     solution.search=searchStaircaseCombos(solution.board,cap,chain,solution.slots,solution.search,{maximumTier:maxTier});
-    $("optimizerProgressText").textContent="Checking tactical Wind setups…";
+    $("optimizerProgressText").textContent="Checking tactical Wind setups…"+bestScoreLabel();
     await yieldToUI(signal);
     solution.search=searchTacticalCombos(solution.board,cap,chain,solution.slots,solution.search,{depth:12,width:12,branchLimit:16,maximumTier:maxTier});
     await yieldToUI(signal);
     if(optimizerMode==="adaptive"||optimizerMode==="experimental12"||optimizerMode==="experimental13"){
-      $("optimizerProgressText").textContent="Exploring deeper merge orders…";
+      $("optimizerProgressText").textContent="Exploring deeper merge orders…"+bestScoreLabel();
       await yieldToUI(signal);
       solution.search=searchLookaheadCombos(solution.board,cap,chain,solution.search,
         {maxPasses:3,maxBranches:18,maxEvaluations:3500,maximumTier:maxTier});
