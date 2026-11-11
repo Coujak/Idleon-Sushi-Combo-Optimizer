@@ -23,8 +23,9 @@ const $=id=>document.getElementById(id);
 import {BOARD_COLUMNS,BOARD_CELLS,normalizeBoardData,layoutOptions} from "./board-geometry.mjs?v=1.8.4";
 import {windTierMaximum,clampWindTier,windTierAfterPreparedChange} from "./wind-limit.mjs?v=1.9.10";
 import {detectSushiProgress} from "./sushi-progression.mjs?v=1.17.0";
-import {initializeSushiLab} from "./lab-ui.mjs?v=1.19.7";
+import {initializeSushiLab} from "./lab-ui.mjs?v=1.19.8";
 import {sushiTierIconPath} from "./sushi-reference.mjs?v=1.16.6";
+import {countOverviewPlates,overviewTileInfo} from "./overview-helpers.mjs?v=1.19.8";
 import {getPreparedBoardSections,hasSlotLayoutChanges,preparedSectionOutlinePath,preparedOutlineCoordinates} from "./prepared-sections.mjs?v=1.17.1";
 const COLUMNS=BOARD_COLUMNS;
 let imported=null;
@@ -157,20 +158,57 @@ function addSushiVisual(cell,tier){
 }
 const FIRE_NAMES=["Orange · Charcoal Fireplace","Green · Barium Firelighter","Blue · Copper Firelighter","Pink · Lithium Firelighter","Purple · Potassium Firelighter"];
 const FIRE_IMAGES=["Charcoal Fireplace (Upgrade 17).png","Barium Firelighter (Upgrade 26).png","Copper Firelighter (Upgrade 33).png","Lithium Firelighter (Upgrade 40).png","Potassium Firelighter (Upgrade 42).png"];
+function renderPlateBreakdown(slots=null){
+ const container=$("boardPlateSummary");
+ container.replaceChildren();
+ const types=[
+  ["normal","Regular"],["hot","Hot"],["cold","Cold"],["milk","Milktoast"]
+ ];
+ const counts=slots?countOverviewPlates(slots):null;
+ for(let i=0;i<types.length;i++){
+  const [color,label]=types[i];
+  const item=document.createElement("span"),sample=document.createElement("i");
+  sample.className=color;
+  sample.setAttribute("aria-hidden","true");
+  item.append(sample,document.createTextNode(label+" "+(counts?counts[i]:"—")));
+  container.append(item);
+ }
+ const perfecto=document.createElement("span");
+ perfecto.className="perfecto-legend";
+ const symbol=document.createElement("img");
+ symbol.src="assets/Perfecto_Symbol.png";
+ symbol.className="perfecto-legend-icon";
+ symbol.alt="";
+ symbol.setAttribute("aria-hidden","true");
+ perfecto.append(symbol,document.createTextNode("Perfecto"));
+ container.append(perfecto);
+}
 function renderBoard(tiles,perfecto,slots,fires){
   const board=$("board");board.replaceChildren();
+  const selection=$("boardSelection");
+  selection.replaceChildren();selection.classList.add("hidden");
+  renderPlateBreakdown(slots);
   // Always show eight rows, even when all the user's slots are at the top.
   for(let i=0;i<BOARD_CELLS;i++){
     const id=tiles[i]??-1,slot=slots[i]??-1;
-    const cell=document.createElement("div");
-    cell.className="tile"+(slot>=0?" slot-"+slot:" locked")+(id<0?" empty":"");
+    const cell=document.createElement(slot>=0?"button":"div");
+    cell.className="tile"+(slot>=0?" slot-"+slot+" overview-board-tile":" locked")+(id<0?" empty":"");
+    if(slot>=0){
+      cell.type="button";
+      cell.dataset.position=String(i);
+      cell.setAttribute("aria-pressed","false");
+    }
     if(slot>=0&&id>=0){
       const isPerfecto=Array.isArray(perfecto)&&perfecto[id]>0;
       if(isPerfecto)cell.classList.add("perfecto");
       addSushiVisual(cell,id+1);
       if(isPerfecto){const mark=document.createElement("img");mark.className="perfecto-mark";mark.src="assets/Perfecto_Symbol.png";mark.alt="Perfecto";mark.title="Perfecto";mark.loading="lazy";cell.append(mark);}
     }else if(slot>=0){cell.textContent="·";}
-    cell.title="Position "+(i+1)+" · "+(SLOT_NAMES[slot]??"Locked")+(id>=0?" · Tier "+(id+1):" · Empty")+(id>=0&&perfecto?.[id]>0?" · Perfecto":"");
+    const info=overviewTileInfo({tiles,slots,perfecto},i);
+    cell.title="Position "+info.position+" · "+info.plate+" plate"+
+     (info.tier?" · T"+info.tier+" "+info.name:" · "+info.status)+
+     (info.tier?" · "+info.status:"");
+    if(slot>=0)cell.setAttribute("aria-label",cell.title);
     board.append(cell);
   }
   const fireRow=document.createElement("div");fireRow.className="fire-row";
@@ -183,9 +221,30 @@ function renderBoard(tiles,perfecto,slots,fires){
     fireRow.append(cell);
   }
   $("fireplaces").replaceChildren(fireRow);
+  let selectedTile=null;
+  board.onclick=event=>{
+   const tile=event.target.closest?.(".overview-board-tile");
+   if(!tile||!board.contains(tile))return;
+   const index=Number(tile.dataset.position);
+   const info=overviewTileInfo({tiles,slots,perfecto},index);
+   if(!info)return;
+   if(selectedTile){
+    selectedTile.classList.remove("is-selected");
+    selectedTile.setAttribute("aria-pressed","false");
+   }
+   selectedTile=tile;tile.classList.add("is-selected");
+   tile.setAttribute("aria-pressed","true");
+   const title=document.createElement("strong");
+   title.textContent="Position "+info.position+" · "+
+    (info.tier?"T"+info.tier+" "+info.name:"Empty plate");
+   const details=document.createElement("span");
+   details.textContent=info.plate+" plate · "+info.status;
+   selection.replaceChildren(title,details);
+   selection.classList.remove("hidden");
+  };
   const filled=tiles.filter(n=>n>=0).length;
   $("boardStatus").textContent=filled+" sushi tiles";
-  $("boardDetails").textContent=filled+" occupied slots · "+slots.filter(n=>n>=0).length+" / 100 unlocked slots across an 8×15 board · "+fires.filter(n=>n>=0).length+" fireplaces. Hover over a slot or fireplace for details.";
+  $("boardDetails").textContent=filled+" occupied slots · "+slots.filter(n=>n>=0).length+" / 100 unlocked slots across an 8×15 board · "+fires.filter(n=>n>=0).length+" fireplaces. Select a plate to inspect it, or hover over a fireplace for details.";
 }
 function importSave(data,label){
   const parsed=decodeSave(data);
@@ -206,7 +265,7 @@ function importSave(data,label){
   // Parsing and dashboard rendering are separate: a stale UI module must
   // never misreport successfully decoded game data as an invalid JSON file.
   let dashboardError=null;
-  try{sushiLab.refresh();}
+  try{sushiLab.markImported();}
   catch(e){dashboardError=e;console.error("Sushi Lab dashboard rendering failed",e);}
   $("jsonPreview").textContent=JSON.stringify({source:parsed.source,sushiArrayLengths:parsed.sushi.map(x=>Array.isArray(x)?x.length:null),firstTiles:parsed.tiles.slice(0,30),slotTypes:parsed.slots,fireTypes:parsed.fires,perfectoFlags:parsed.perfecto?.slice(0,70)??null},null,2);
   if(dashboardError){
@@ -221,7 +280,10 @@ function error(e){$("importStatus").textContent="Import failed";$("importStatus"
 $("pasteToggle").addEventListener("click",()=>{const open=$("pasteArea").classList.toggle("hidden")===false;$("pasteToggle").setAttribute("aria-expanded",String(open));if(open)$("jsonInput").focus();});
 $("parseJson").addEventListener("click",()=>{try{importSave(JSON.parse($("jsonInput").value),"Pasted JSON");}catch(e){error(e);}});
 $("jsonFile").addEventListener("change",async e=>{const f=e.target.files?.[0];if(!f)return;try{importSave(JSON.parse(await f.text()),f.name);}catch(err){error(err);}});
-$("clearImport").addEventListener("click",()=>{cancelRunningSearch();disposeReplay();imported=null;customBoard=null;$("solver").classList.add("hidden");$("jsonInput").value="";$("jsonFile").value="";$("board").replaceChildren();$("fireplaces").replaceChildren();$("importSummary").classList.add("hidden");$("pasteArea").classList.add("hidden");$("pasteToggle").setAttribute("aria-expanded","false");$("importStatus").textContent="Waiting for data";$("importStatus").classList.remove("success");$("boardStatus").textContent="Import a save";$("boardDetails").textContent="Your imported tiles will appear here.";$("jsonPreview").textContent="No JSON imported yet.";sushiLab.refresh();});
+$("clearImport").addEventListener("click",()=>{cancelRunningSearch();disposeReplay();imported=null;customBoard=null;$("solver").classList.add("hidden");$("jsonInput").value="";$("jsonFile").value="";$("board").replaceChildren();$("fireplaces").replaceChildren();$("importSummary").classList.add("hidden");$("pasteArea").classList.add("hidden");$("pasteToggle").setAttribute("aria-expanded","false");$("importStatus").textContent="Waiting for data";$("importStatus").classList.remove("success");$("boardStatus").textContent="Import a save";$("boardDetails").textContent="Your imported tiles will appear here.";$("jsonPreview").textContent="No JSON imported yet.";$("boardSelection").classList.add("hidden");$("boardSelection").replaceChildren();renderPlateBreakdown(null);sushiLab.clearImported();});
+
+// The Overview shows the same plate colors even before a save is imported.
+renderPlateBreakdown(null);
 
 // Merge physics and staircase recycling live in optimizer-core.mjs.
 // Slot relocation layouts are generated by board-geometry.mjs.
