@@ -1376,3 +1376,38 @@ details summary{cursor:pointer;font-size:12px;font-weight:700;color:#9eb7c9}
 .optimizer-track-engine progress::-webkit-progress-value{background:linear-gradient(90deg,#5588d3,#90b9f4)}
 .optimizer-track-engine progress::-moz-progress-bar{background:#90b9f4}
 @media(max-width:650px){.optimizer-dual-progress{grid-template-columns:1fr}}
+
+/* Research dashboard, preparation checklist and in-place board comparison. */
+.research-stats,.combo-report-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(135px,1fr));gap:10px;margin:12px 0}
+.research-stats>div,.combo-report-metric{display:flex;flex-direction:column;gap:6px;padding:12px;border:1px solid #315263;border-radius:10px;background:#152b37}
+.research-stats small,.combo-report-metric small{color:#9cbabf;font-size:11px}
+.research-stats strong,.combo-report-metric strong{color:#a8f2d1;font-size:19px;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.research-actions{display:flex;gap:9px;flex-wrap:wrap;margin-top:12px;align-items:center}
+.research-import-label{display:inline-flex;align-items:center;cursor:pointer;font-size:13px}
+.research-file-input{position:absolute;width:1px;height:1px;opacity:0;overflow:hidden}
+.research-file-input:focus-visible+.research-actions,.research-import-label:focus-within{outline:2px solid #9cf5d6}
+#stopKeepBest{white-space:nowrap;border-color:#4d8d77;background:#21483e;color:#c3ffe6;font-weight:700}
+#stopKeepBest:hover:not(:disabled){background:#2d604e}
+.combo-preparation-report,.combo-breakdown{border:1px solid #315263;background:#10232e;border-radius:14px;margin:18px 0;padding:18px}
+.combo-report-heading{margin:12px 0 8px;font-size:17px;color:#d8f4e8}
+.combo-checklist{display:grid;grid-template-columns:repeat(auto-fit,minmax(270px,1fr));gap:6px 14px;margin-top:12px}
+.combo-checklist-section{grid-column:1/-1;margin:12px 0 3px;color:#b6e1d0;font-size:14px}
+.combo-checklist-item{display:flex;align-items:flex-start;gap:10px;padding:8px 10px;border-radius:8px;border:1px solid #2a4552;background:#192d38;font-size:12px;line-height:1.5;cursor:pointer}
+.combo-checklist-item input{accent-color:#66d2a4;flex:0 0 auto;margin-top:3px}
+.combo-checklist-item.is-checked{opacity:.62}
+.combo-checklist-item.is-checked span{text-decoration:line-through}
+.combo-chains,.combo-changes{margin:10px 0}
+.optimizer-board .tile{position:relative}
+.optimizer-board .tile.combo-cell-correct{outline:2px solid #67dca2;outline-offset:-2px}
+.optimizer-board .tile.combo-cell-misplaced{outline:2px solid #e2a36b;outline-offset:-2px}
+.optimizer-board .tile.combo-cell-wrong-slot{outline:2px dashed #e17e8d;outline-offset:-2px}
+.combo-cell-status{position:absolute;right:2px;top:2px;z-index:3;display:grid;place-items:center;min-width:20px;height:20px;padding:0 3px;line-height:1;font-size:12px;font-weight:900;border-radius:99px;box-shadow:0 2px 6px rgba(0,0,0,.45);pointer-events:none}
+.combo-status-correct{background:#136343;color:#e6ffef}
+.combo-status-wrong{background:#a05a20;color:#fff6e8}
+.combo-status-missing{background:#31566a;color:#eefaff}
+.combo-status-slot{background:#953f4a;color:#fff}
+@media(max-width:640px){
+ .research-stats,.combo-report-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .research-actions>*{flex:1 1 180px}
+ .combo-checklist{grid-template-columns:1fr}
+}
