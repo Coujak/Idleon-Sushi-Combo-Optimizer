@@ -76,6 +76,20 @@
 
 /* Optimization status: actual candidate completion, not a simulated timer. */
 .hidden{display:none!important}
+
+/* Persistent live/final Combo Meter score, visible independently of results. */
+.solver-score-bubble{
+ display:flex;align-items:baseline;justify-content:space-between;flex-wrap:wrap;
+ gap:8px 20px;margin:14px 0;padding:16px 20px;
+ border:1px solid #4a977d;border-radius:14px;
+ background:linear-gradient(115deg,#15362f,#182c36);
+ box-shadow:0 6px 18px rgba(0,0,0,.16);
+}
+.solver-score-bubble strong{font-size:15px;color:#c8f2e2}
+.solver-score-bubble #solverScore{
+ font-size:clamp(26px,3vw,38px);line-height:1.1;font-weight:800;
+ color:#9af5c7;font-variant-numeric:tabular-nums;
+}
 .optimizer-progress{margin:16px 0;padding:15px 16px;background:#101e2d;border:1px solid #355166;border-radius:12px}
 .optimizer-progress-heading{display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:10px}
 .optimizer-progress-heading strong{color:#d9f8e9}
