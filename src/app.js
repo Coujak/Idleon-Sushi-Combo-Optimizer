@@ -385,10 +385,14 @@ async function showSolver(signal,foundId=null,savedOnly=false){
   const custom=!foundInfo&&$("baseTier").value==="custom";
   if(savedOnly&&(!["optimizer1","optimizer2","optimizer3","optimizer4","optimizer5"].includes(optimizerMode)||custom))
    throw Error("Select Fast, Mid, Slow, Max, or Custom to view its saved research best.");
-  const goal=Number($("scoreTarget").value);
-  const limit=Number($("configurationLimit").value);
-  if(!Number.isSafeInteger(goal)||goal<0||!Number.isSafeInteger(limit)||limit<0||limit>100000)
-   throw Error("Score target must be nonnegative and max configurations must be 0–100,000.");
+  // Optional stopping/budget controls belong exclusively to Optimizer 5
+  // (Custom), not to the built-in Fast, Mid, Slow or Max modes.
+  const customOptimizer=optimizerMode==="optimizer5";
+  const goal=customOptimizer?Number($("scoreTarget").value):0;
+  const limit=customOptimizer?Number($("configurationLimit").value):0;
+  if(customOptimizer&&(!Number.isSafeInteger(goal)||goal<0||
+     !Number.isSafeInteger(limit)||limit<0||limit>100000))
+   throw Error("Custom score target must be nonnegative and max configurations must be 0–100,000.");
   const protectTier64=maxTier>=64||imported.tiles.includes(63);
   const highestIngredient=protectTier64&&maxTier>=64?maxTier-1:maxTier;
   const selectedBase=custom||foundInfo?0:($("baseTier").value==="manual"?
