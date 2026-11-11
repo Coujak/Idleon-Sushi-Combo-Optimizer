@@ -155,7 +155,7 @@ export async function importResearchData(data,validateBest){
   }catch{return false;}
  };
  const boardValid=key=>typeof key==="string"&&key.length<7000&&
-  /^\\d+(,\\d+)*$/.test(key);
+  /^\d+(,\d+)*$/.test(key);
  for(const {context,key} of data.checked){
   if(!contextValid(context)||!boardValid(key))
    throw Error("Research export contains an invalid board or settings");
