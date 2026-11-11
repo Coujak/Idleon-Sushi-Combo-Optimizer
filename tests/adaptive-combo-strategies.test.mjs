@@ -35,13 +35,15 @@ test("Adaptive strategy carries historical layout exactly at T64/T58 only",()=>{
 test("Tier 80 and Tier 52 generate translated shapes without copying a false 76,532 claim",()=>{
  for(const top of [52,80,100]){
   const cap=top-6;
-  const candidates=buildAdaptiveComboCandidates(positions(100),top,cap,25,0,true);
+  // Below T64, there is no imported T64 to preserve. Existing-T64
+  // preservation is separately covered in the dedicated test below.
+  const candidates=buildAdaptiveComboCandidates(positions(100),top,cap,25,0,top>=64);
   assert.ok(candidates.length>=10,"No useful adaptive research layouts at tier "+top);
   assert.ok(candidates.some(x=>x.referenceExperiment!==undefined));
   assert.ok(candidates.some(x=>x.workingTier<top));
   for(const c of candidates){
    assert.equal(c.board.length,120);
-   assert.equal(c.board[0],top);
+   assert.equal(c.board[0],top>=64?top:top-1);
    assert.equal(c.board.filter(x=>x>0).length,100);
    assert.ok(c.board.slice(1,100).every(x=>x>=1&&x<top),
     "Illegal ingredient at "+top+" "+c.name);
