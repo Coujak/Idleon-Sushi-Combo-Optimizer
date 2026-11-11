@@ -418,7 +418,7 @@ async function showSolver(signal){
     await yieldToUI(signal);
     solution.search=searchTacticalCombos(solution.board,cap,chain,solution.slots,solution.search,{depth:12,width:12,branchLimit:16,maximumTier:maxTier});
     await yieldToUI(signal);
-    if(optimizerMode==="experimental12"||optimizerMode==="experimental13"){
+    if(optimizerMode==="adaptive"||optimizerMode==="experimental12"||optimizerMode==="experimental13"){
       $("optimizerProgressText").textContent="Exploring deeper merge orders…";
       await yieldToUI(signal);
       solution.search=searchLookaheadCombos(solution.board,cap,chain,solution.search,
