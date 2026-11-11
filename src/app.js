@@ -11,6 +11,7 @@ import {FOUND_CONFIGURATIONS,buildFoundConfiguration} from "./found-configuratio
 import {searchLookaheadCombos} from "./lookahead-search.mjs?v=1.9.9";
 import {throwIfCancelled,yieldToUI} from "./optimizer-run.mjs?v=1.8.1";
 import {scanSplitDirectionsInParallel} from "./split-search-parallel.mjs?v=1.18.4";
+import {currentRunScore,reachedCurrentRunGoal} from "./research-score-display.mjs?v=1.19.2";
 import {buildNovelSplitCandidates} from "./split-research-round.mjs?v=1.18.6";
 import {researchContext,loadResearchHistory,rememberEvaluatedBoards,rememberBestCandidate,
  resetResearchHistory,exportResearchData,importResearchData} from "./research-memory.mjs?v=1.18.6";
@@ -486,10 +487,10 @@ async function showSolver(signal,foundId=null,savedOnly=false){
     track.progress.value=0;
     track.status.textContent="50/50 · 0%";
   }
-  // Keep the prominent score bubble in sync with the strongest simulated
-  // candidate seen so far, including the refinement passes.
+  // The running bubble reflects only THIS search's best, not the historical
+  // saved winner used to protect results from regressing across sessions.
   const updateLiveScore=()=>{
-   setComboScoreBubble(true,solution?.search?.score??null);
+   setComboScoreBubble(true,currentRunScore({splitResearch:dualSplit,runBest,solution}));
    if(activeSearch&&solution?.search){
     activeSearch.hasResult=true;
     if(!activeSearch.signal.aborted)$("stopKeepBest").disabled=false;
@@ -515,14 +516,18 @@ async function showSolver(signal,foundId=null,savedOnly=false){
     }
   };
   progress(0);
-  // Show the previous best immediately, even before any new board is evaluated.
+  // Retain the saved winner for Stop & Keep Best, but start the current-run
+  // counter at "—" until an actual new candidate finishes evaluation.
   if(solution)updateLiveScore();
   await yieldToUI(signal);
   // Refinement may not replace a stronger previously tested merge sequence.
   const keepBetterSearch=next=>{
     if(next&&(next.score>solution.search.score||
-     (next.score===solution.search.score&&next.remaining<solution.search.remaining)))
+     (next.score===solution.search.score&&next.remaining<solution.search.remaining))){
      solution.search=next;
+     if(dualSplit&&!winningIsFromCache)
+      runBest=Math.max(runBest??0,next.score);
+    }
     updateLiveScore();
   };
   const persistWinner=async candidate=>{
@@ -552,8 +557,7 @@ async function showSolver(signal,foundId=null,savedOnly=false){
     // Abort means discard normally; "Stop & keep best" preserves the
     // already replay-validated winner, without continuing refinement.
     try{
-    if(dualSplit&&typeof Worker!=="undefined"&&total>0&&
-      !(goal>0&&solution?.search?.score>=goal)){
+    if(dualSplit&&typeof Worker!=="undefined"&&total>0){
       await scanSplitDirectionsInParallel(candidates,
        {cap,chain,mode,maxTier},signal,async({direction,processed,splitPercent,improved,checked})=>{
         // Only report work as checked after a Worker completes its batch.
@@ -576,13 +580,14 @@ async function showSolver(signal,foundId=null,savedOnly=false){
           improved.search.remaining<solution.search.remaining))){
           solution=improved;
           winningIsFromCache=false;
-          updateLiveScore();
         }
-        statsUpdate();
-        if(goal>0&&solution?.search?.score>=goal&&activeSearch&&!signal.aborted)
+        // Even if this batch lost to an old saved score, show its new
+        // best to reflect real progress in the current search.
+        updateLiveScore();
+        if(reachedCurrentRunGoal(goal,runBest)&&activeSearch&&!signal.aborted)
          requestKeepBest();
       });
-    }else if(total>0&&!(goal>0&&solution?.search?.score>=goal)){
+    }else if(total>0){
       // Non-split planners and browsers lacking module Workers retain the
       // original single-thread evaluation as a compatible fallback.
       for(let i=0;i<candidates.length;i++){
@@ -601,10 +606,11 @@ async function showSolver(signal,foundId=null,savedOnly=false){
           key:candidate.board.join(",")}]);
          evaluatedCount++;
          runBest=Math.max(runBest??0,search.score);
-         statsUpdate();
+         // Display this run's result even when the saved record remains ahead.
+         updateLiveScore();
         }
         progress(i+1,candidate);
-        if(goal>0&&solution?.search?.score>=goal&&activeSearch&&!signal.aborted)
+        if(reachedCurrentRunGoal(goal,runBest)&&activeSearch&&!signal.aborted)
          requestKeepBest();
         await yieldToUI(signal);
       }
