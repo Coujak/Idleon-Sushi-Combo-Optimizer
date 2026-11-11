@@ -262,9 +262,10 @@ export function initializeSushiLab(getSave){
    icon.append(art);
    const label=el("span","lab-shaker-copy");
    label.append(el("strong","",info.name),el("span","",info.desc));
-   const count=el("span","lab-shaker-count");
-   count.append(el("strong","",stats?fmt(stats.shakers[i]):"—"),
-    el("span","",stats?"uses available":"Import save"));
+   const count=el("div","lab-shaker-count");
+   const useRow=el("div","lab-shaker-usage-row");
+   const countValue=el("strong","lab-shaker-count-value",stats?fmt(stats.shakers[i]):"—");
+   useRow.append(countValue);
    if(stats){
     const unlocked=Number(stats.levels?.[info.upgradeId]??0)>0;
     const daily=stats.shakerDaily;
@@ -275,8 +276,9 @@ export function initializeSushiLab(getSave){
      daily?.known?"Daily uses: 1 base + "+daily.bonus+
       " from Shakin' It Research (Lv "+daily.bonus+").":
       "Base +1 use/day. Import Research grid data to determine additional daily uses.";
-    count.append(rate);
+    useRow.append(rate);
    }
+   count.append(useRow,el("span","lab-shaker-count-caption",stats?"Available":"Import save"));
    card.append(icon,label,count);
    box.append(card);
   }
@@ -292,15 +294,16 @@ export function initializeSushiLab(getSave){
   const values=stats?[
    ["Unlocked slots",stats.unlocked+" / 100"],
    ["Sushi on board",stats.occupied],
-   ["Highest on board",stats.highest?"T"+stats.highest:"—"],
-   ["Highest discovered",progress?.highestDiscovered?"T"+progress.highestDiscovered:"—"],
+   ["Highest on board",stats.highest?"T"+stats.highest+" ×"+stats.highestCopies:"—"],
+   ["Highest Sushi Discovered",progress?.highestDiscovered?
+    progress.highestDiscovered+" / "+progress.total:"—"],
    ["Total Perfectos",progress?progress.perfectos+" / "+progress.total:"—"],
    ["Knowledge levels",fmt(stats.totalKnowledge)],
    ["Upgrade levels",fmt(stats.totalUpgrades)],
    ["Best in-game combo",fmt(stats.bestCombo)]
   ]:[
    ["Unlocked slots","—"],["Sushi on board","—"],
-   ["Highest on board","—"],["Highest discovered","—"],
+   ["Highest on board","—"],["Highest Sushi Discovered","—"],
    ["Total Perfectos","—"],["Knowledge levels","—"],
    ["Upgrade levels","—"],["Best in-game combo","—"]
   ];
