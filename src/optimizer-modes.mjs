@@ -1,6 +1,7 @@
 // Keep the familiar default optimizer unchanged. Experimental includes the
 // default preparations plus optional layered East Wind reserves.
 import {buildCandidates} from "./preparation-core.mjs";
+import {buildAdaptiveComboCandidates} from "./adaptive-combo-strategies.mjs?v=1.17.0";
 import {buildLayeredCandidates} from "./layered-preparation.mjs";
 import {buildTuned100Candidates} from "./tuned-preparation.mjs";
 import {buildExperimental2Candidates} from "./experimental2-preparation.mjs?v=1.10.4";
@@ -18,6 +19,10 @@ import {buildExperimental13Candidates} from "./experimental13-preparation.mjs?v=
 
 export function getModeCandidates(positions,maxTier,cap,selectedBase,chainLimit,protectTier64,mode="default"){
   const candidates=buildCandidates(positions,maxTier,cap,selectedBase,chainLimit,protectTier64);
+  // Adapt the underlying reserve/engine strategies at ANY available tier.
+  // Historical score boards remain separately gated to their exact settings.
+  candidates.push(...buildAdaptiveComboCandidates(
+    positions,maxTier,cap,chainLimit,selectedBase,protectTier64));
   if(["experimental","experimental2","experimental3","experimental4","experimental5","experimental6","experimental7","experimental8","experimental9","experimental10","experimental11","experimental12","experimental13"].includes(mode)&&(!selectedBase||selectedBase===cap-27)){
     candidates.push(...buildLayeredCandidates(positions,maxTier,cap,chainLimit,protectTier64));
     candidates.push(...buildTuned100Candidates(positions,maxTier,cap,chainLimit,protectTier64));
