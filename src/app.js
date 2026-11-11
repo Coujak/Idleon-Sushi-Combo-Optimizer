@@ -791,8 +791,7 @@ async function showSolver(signal,foundId=null,savedOnly=false){
       legend.append(item);
     };
     if(sectionInfo){
-      addKey("prepared-legend-supply","Supply / tools"+
-       (sectionInfo.protectedPosition!==null?" (protected anchor included)":""));
+      addKey("prepared-legend-supply","Supply / tools");
       addKey("prepared-legend-chain","Wind engine");
     }
     for(const [symbol,labelText] of [
