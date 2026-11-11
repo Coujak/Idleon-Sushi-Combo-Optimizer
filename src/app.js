@@ -24,6 +24,14 @@ let customBoard=null;
 let replayCleanup=()=>{};
 let preparedOutlineCleanup=()=>{};
 let activeSearch=null;
+// The same score bubble shows provisional best scores and the final
+// replay-validated estimate. It stays visible while detailed results are hidden.
+function setComboScoreBubble(running,score=null){
+ const bubble=$("solverScoreBubble");
+ bubble.classList.remove("hidden");
+ $("solverScoreLabel").textContent=running?"Best score so far:":"Estimated combo score:";
+ $("solverScore").textContent=Number.isFinite(score)?score.toLocaleString():"—";
+}
 function cancelRunningSearch(){activeSearch?.abort();}
 function disposeReplay(){replayCleanup();replayCleanup=()=>{};}
 function decodeSave(input){
@@ -179,6 +187,8 @@ function importSave(data,label){
   if($("baseTier").value==="custom")renderCustomEditor();
   $("solver").classList.remove("hidden");
   $("solverNote").textContent="JSON loaded. Click Run optimizer to calculate a suggested preparation and merge sequence.";
+  $("solverScoreBubble").classList.add("hidden");
+  $("solverScoreLabel").textContent="Estimated combo score:";
   $("solverScore").textContent="—";$("solverMoves").textContent="—";$("solverSteps").replaceChildren();
   $("importStatus").textContent="JSON imported";$("importStatus").classList.add("success");
   const tierProgress=detectSushiProgress(parsed);
@@ -406,11 +416,9 @@ async function showSolver(signal,foundId=null){
     track.progress.value=0;
     track.status.textContent="50/50 · 0%";
   }
-  // Show the best simulated score discovered so far during long searches.
-  // It is a provisional score until the final replay is validated.
-  const bestScoreLabel=()=>solution?.search?
-    " · Best so far: "+solution.search.score.toLocaleString()+" points":
-    " · Best so far: —";
+  // Keep the prominent score bubble in sync with the strongest simulated
+  // candidate seen so far, including the refinement passes.
+  const updateLiveScore=()=>setComboScoreBubble(true,solution?.search?.score??null);
   const progress=(done,candidate=null)=>{
     const pct=Math.round(done/total*100);
     $("optimizerProgressBar").value=done;
@@ -423,9 +431,9 @@ async function showSolver(signal,foundId=null){
       track.status.textContent=ratio+" · "+Math.round(track.done/Math.max(1,track.total)*100)+"% ("+
         track.done+"/"+track.total+")";
       $("optimizerProgressText").textContent=optimizerModeLabel+" · "+
-        done+" / "+total+" layouts evaluated in both directions"+bestScoreLabel();
+        done+" / "+total+" layouts evaluated in both directions";
     }else{
-      $("optimizerProgressText").textContent=optimizerModeLabel+" · "+pct+"% · "+done+" / "+total+" layouts evaluated"+bestScoreLabel();
+      $("optimizerProgressText").textContent=optimizerModeLabel+" · "+pct+"% · "+done+" / "+total+" layouts evaluated";
     }
   };
   progress(0);
@@ -443,6 +451,7 @@ async function showSolver(signal,foundId=null){
     search=searchTacticalCombos(board,cap,chain,slots,search,{depth:14,width:12,branchLimit:16,maximumTier:maxTier});
     await yieldToUI(signal);
     solution={board,slots,layoutName:"Current positions",base:"custom",shape:"user-defined",name:"Custom board",search,testedCandidates:1};
+    updateLiveScore();
     progress(1);
   }else{
     for(let i=0;i<candidates.length;i++){
@@ -450,25 +459,32 @@ async function showSolver(signal,foundId=null){
       const candidate=candidates[i];
       const greedy=searchCombos(candidate.board,cap,chain,4,positions.length-1,mode,maxTier);
       const search=searchStaircaseCombos(candidate.board,cap,chain,candidate.slots,greedy,{maximumTier:maxTier});
-      if(!solution||search.score>solution.search.score||(search.score===solution.search.score&&search.remaining<solution.search.remaining))solution={...candidate,search};
+      if(!solution||search.score>solution.search.score||(search.score===solution.search.score&&search.remaining<solution.search.remaining)){
+        solution={...candidate,search};
+        updateLiveScore();
+      }
       progress(i+1,candidate);
       await yieldToUI(signal);
     }
     solution={...solution,testedCandidates:candidates.length};
-    $("optimizerProgressText").textContent="Refining the best preparation…"+bestScoreLabel();
+    $("optimizerProgressText").textContent="Refining the best preparation…";
     await yieldToUI(signal);
     solution.search=beamSearchCombos(solution.board,cap,chain,solution.board.filter(v=>v>0).length-1,solution.search,maxTier);
+    updateLiveScore();
     await yieldToUI(signal);
     solution.search=searchStaircaseCombos(solution.board,cap,chain,solution.slots,solution.search,{maximumTier:maxTier});
-    $("optimizerProgressText").textContent="Checking tactical Wind setups…"+bestScoreLabel();
+    updateLiveScore();
+    $("optimizerProgressText").textContent="Checking tactical Wind setups…";
     await yieldToUI(signal);
     solution.search=searchTacticalCombos(solution.board,cap,chain,solution.slots,solution.search,{depth:12,width:12,branchLimit:16,maximumTier:maxTier});
+    updateLiveScore();
     await yieldToUI(signal);
     if(foundInfo||optimizerMode==="adaptive"||optimizerMode==="experimental12"||optimizerMode==="experimental13"){
-      $("optimizerProgressText").textContent="Exploring deeper merge orders…"+bestScoreLabel();
+      $("optimizerProgressText").textContent="Exploring deeper merge orders…";
       await yieldToUI(signal);
       solution.search=searchLookaheadCombos(solution.board,cap,chain,solution.search,
         {maxPasses:3,maxBranches:18,maxEvaluations:3500,maximumTier:maxTier});
+      updateLiveScore();
       await yieldToUI(signal);
     }
   }
@@ -487,7 +503,7 @@ async function showSolver(signal,foundId=null){
   $("timingStatus").textContent=timing.valid?"Timing feasible under assumptions":"Timing infeasible under assumptions";
   $("timingStatus").className=timing.valid?"timing-good":"timing-bad";
   $("timingDetails").textContent="Estimated execution: "+timing.totalDuration.toFixed(1)+"s · Tightest interval margin: "+(timing.minimumMargin===null?"—":timing.minimumMargin.toFixed(1)+"s")+" · Repositioning does not refresh the combo timer; merging does.";
-  $("solverScore").textContent=result.score.toLocaleString();
+  setComboScoreBubble(false,result.score);
   $("solverMoves").textContent=verified.merges;
   $("solverRepositions").textContent=verified.repositions;
   $("solverNote").textContent=(custom?"Custom board · staircase recycling, greedy, beam, and tactical reposition searches tested. ":"Best of "+solution.testedCandidates+" preparations (base Tier "+solution.base+", "+solution.shape+"). ")+result.remaining+" occupied sushi remain. Heat model: "+mode+". Scores remain estimates, not a guaranteed maximum.";
@@ -919,6 +935,7 @@ async function executeConfiguredSearch(foundId=null){
   $("optimizerDualProgress").classList.add("hidden");
   $("optimizerProgressBar").value=0;$("optimizerProgressBar").max=1;
   $("optimizerProgressText").textContent="Preparing search…";
+  setComboScoreBubble(true);
   $("solverResults").classList.add("hidden");
   $("solverNote").textContent="Searching candidate layouts…";
   try{
@@ -931,6 +948,8 @@ async function executeConfiguredSearch(foundId=null){
       if(target)target.scrollIntoView({behavior:window.matchMedia("(prefers-reduced-motion: reduce)").matches?"auto":"smooth",block:"start"});
     });
   }catch(e){
+    // Incomplete searches cannot present an unverified winner as a final score.
+    $("solverScoreBubble").classList.add("hidden");
     if(e.name==="AbortError"){
       $("optimizerProgressText").textContent="Search cancelled · Change settings and run again";
       $("solverNote").textContent="Search cancelled. No incomplete results were shown.";
