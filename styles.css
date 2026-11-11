@@ -1388,7 +1388,7 @@ details summary{cursor:pointer;font-size:12px;font-weight:700;color:#9eb7c9}
 .research-file-input:focus-visible+.research-actions,.research-import-label:focus-within{outline:2px solid #9cf5d6}
 #stopKeepBest{white-space:nowrap;border-color:#4d8d77;background:#21483e;color:#c3ffe6;font-weight:700}
 #stopKeepBest:hover:not(:disabled){background:#2d604e}
-.combo-preparation-report,.combo-breakdown{border:1px solid #315263;background:#10232e;border-radius:14px;margin:18px 0;padding:18px}
+.combo-best-comparison,.combo-breakdown{border:1px solid #315263;background:#10232e;border-radius:14px;margin:18px 0;padding:18px}
 .combo-report-heading{margin:12px 0 8px;font-size:17px;color:#d8f4e8}
 .combo-checklist{display:grid;grid-template-columns:repeat(auto-fit,minmax(270px,1fr));gap:6px 14px;margin-top:12px}
 .combo-checklist-section{grid-column:1/-1;margin:12px 0 3px;color:#b6e1d0;font-size:14px}
@@ -1413,21 +1413,8 @@ details summary{cursor:pointer;font-size:12px;font-weight:700;color:#9eb7c9}
 }
 
 
-/* Replay guidance: show what the user should do after the selected action. */
+/* Compact inline indicators replace the retired replay instruction bubble. */
 .merge-layout:focus-visible{outline:2px solid #77dcba;outline-offset:5px;border-radius:10px}
-.merge-action-guide{
- display:flex;flex-direction:column;gap:8px;padding:16px 18px;margin-bottom:14px;
- border:1px solid #438a76;border-left:4px solid #75deb6;
- border-radius:12px;background:#112d30;
-}
-.merge-action-guide .merge-action-eyebrow{
- font-size:11px;font-weight:800;letter-spacing:.09em;text-transform:uppercase;color:#94dfbe
-}
-.merge-action-guide .merge-action-instruction{
- color:#effff7;font-size:clamp(15px,1.3vw,19px);line-height:1.45
-}
-.merge-action-guide .merge-action-outcome{color:#b5d5cf;font-size:12px;line-height:1.45;margin:0}
-.merge-action-guide.is-complete{border-color:#638675;border-left-color:#a4e7aa}
 .merge-preview-label{
  display:inline-flex;align-items:center;gap:6px;color:#c1ddd4;
  font-size:12px;white-space:nowrap;cursor:pointer
