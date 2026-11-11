@@ -141,3 +141,17 @@ test("Experimental 13.0 preserves all previous modes and adds its new board",()=
  assert.ok(getModeCandidates(positions,100,94,0,25,true,"experimental13")
    .every(candidate=>candidate.name!==latest.at(-1).name));
 });
+
+test("Adaptive planner compares lower working tiers, preserving historical Experiment score boards",()=>{
+ const adaptive=getModeCandidates(positions,80,74,0,25,true,"adaptive");
+ const legacy=getModeCandidates(positions,80,74,0,25,true,"default");
+ assert.ok(adaptive.some(c=>c.adaptive));
+ assert.ok(adaptive.some(c=>c.adaptive&&c.workingTier<80));
+ assert.ok(legacy.every(c=>!c.adaptive));
+ const exp2=getModeCandidates(positions,64,58,0,25,true,"experimental2");
+ const exp13=getModeCandidates(positions,64,58,0,25,true,"experimental13");
+ assert.ok(exp2.every(c=>!c.adaptive));
+ assert.ok(exp13.every(c=>!c.adaptive));
+ assert.equal(exp2.at(-1).name,"Experimental 2.0 · Multi-wave Wind");
+ assert.equal(exp13.at(-1).name,"Experimental 13.0 · Cascade Resonance");
+});
