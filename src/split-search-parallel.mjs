@@ -40,17 +40,18 @@ export async function scanSplitDirectionsInParallel(candidates,settings,signal,o
   try{
    worker=new Worker(new URL("./split-search-worker.mjs",import.meta.url),{type:"module"});
    active.add(worker);
-   worker.onmessage=({data})=>{
+   worker.onmessage=async({data})=>{
     if(settled)return;
     if(data?.type==="error"){
      finish(new Error(direction+" search worker: "+data.message));return;
     }
     if(data?.type!=="progress")return;
     try{
-     onProgress({direction,processed:data.processed,
-      splitPercent:data.splitPercent,improved:data.improved});
+     await onProgress({direction,processed:data.processed,
+      splitPercent:data.splitPercent,improved:data.improved,
+      checked:data.checked??[]});
     }catch(error){finish(error);return;}
-    next();
+    if(!settled)next();
    };
    worker.onerror=event=>{
     event.preventDefault?.();
