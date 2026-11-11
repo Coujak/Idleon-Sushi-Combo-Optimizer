@@ -40,7 +40,7 @@ test("Imported IT JSON is not rejected when cached Advisor markup lacks optional
  assert.match(app,/try\{sushiLab\.refresh\(\);\}/);
  assert.match(app,/JSON imported · dashboard incomplete/);
  assert.match(app,/Your JSON loaded successfully, but the dashboard could not finish updating/);
- assert.match(html,/src\/app\.js\?v=1\.17\.1/);
+ assert.match(html,/src\/app\.js\?v=1\.17\.2/);
  assert.match(app,/lab-ui\.mjs\?v=1\.16\.7/);
 });
 
