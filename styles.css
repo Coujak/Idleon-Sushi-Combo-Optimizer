@@ -1497,3 +1497,42 @@ details summary{cursor:pointer;font-size:12px;font-weight:700;color:#9eb7c9}
  font-size:12px;
  color:#9fb9c5;
 }
+
+/* Overview polish: eight balanced stats, plate counts and compact progression lists. */
+#lab-overview .lab-stat-grid{grid-auto-rows:minmax(79px,auto);align-items:stretch}
+#lab-overview .lab-stat{height:100%;box-sizing:border-box;justify-content:space-between}
+#lab-overview .lab-stat-label{line-height:1.4}
+#lab-overview .lab-dashboard-lists{align-items:start}
+#lab-overview .lab-dashboard-lists>.lab-dashboard-section{min-width:0}
+#lab-overview .lab-section-count{font-size:13px;color:#9fdcc7;font-weight:650;font-variant-numeric:tabular-nums}
+#lab-overview .lab-list-toggle{display:inline-flex;margin-top:10px;padding:7px 12px;font-size:12px}
+#lab-overview .lab-sushi-grid{align-content:start}
+#lab-overview .lab-shaker-card{min-height:88px;box-sizing:border-box}
+#lab-overview .lab-shaker-count{flex:0 0 auto}
+#lab-overview .overview-plate-summary{align-items:center;gap:10px 18px;margin:12px 0}
+#lab-overview .overview-plate-summary>span{white-space:nowrap}
+#lab-overview .overview-plate-summary .perfecto-legend-icon{width:19px;height:19px}
+#lab-overview .overview-board-tile{
+ appearance:none;-webkit-appearance:none;width:100%;min-width:0;box-sizing:border-box;
+ font:inherit;color:inherit;text-align:center;cursor:pointer;padding:2px;
+ transition:filter .16s ease,outline-color .16s ease;
+}
+#lab-overview .overview-board-tile:hover{filter:brightness(1.14)}
+#lab-overview .overview-board-tile:focus-visible{outline:3px solid #e4cf77;outline-offset:-2px}
+#lab-overview .overview-board-tile.is-selected{outline:3px solid #e4cf77;outline-offset:-2px;z-index:2}
+#lab-overview .overview-board-selection{
+ display:flex;align-items:baseline;flex-wrap:wrap;gap:6px 18px;
+ background:#142d37;border:1px solid #587f74;border-radius:10px;
+ margin:10px 0 0;padding:11px 14px;font-size:13px;
+}
+#lab-overview .overview-board-selection strong{color:#e7f5ea}
+#lab-overview .overview-board-selection span{color:#afcbd2}
+@media(max-width:1150px) and (min-width:901px){
+ #lab-overview .lab-shaker-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media(max-width:550px){
+ #lab-overview .lab-stat-grid{gap:8px}
+ #lab-overview .lab-stat{padding:12px}
+ #lab-overview .overview-plate-summary{gap:8px 13px}
+ #lab-overview .lab-section-count{font-size:12px}
+}
