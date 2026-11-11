@@ -795,8 +795,7 @@ async function showSolver(signal,foundId=null,savedOnly=false){
   }
   if(showSlotRecommendation)make("Recommended slot layout ("+(solution.layoutName??"current")+")",[],false,null,true);
   make(custom?"Your custom starting board":"Recommended prepared sushi tiers (not your current inventory)",solution.board,true,sections);
-  renderComboReport(root,{currentTiles:imported.tiles,currentSlots:slots,solution,
-   comparison,sections,previousBest:dualSplit?previousRecord:null});
+  renderComboReport(root,{solution,previousBest:dualSplit?previousRecord:null});
   const heading=document.createElement("h3");heading.textContent=sectionNumber+" · Interactive merge sequence";root.append(heading);
   const intro=document.createElement("p");intro.className="hint";intro.textContent="The board shows the result of your selected step. Blue FROM and green TO markers show what to do next; purple tiles show Wind upgrades from the last move. Select a step, follow the instruction, and press Next when done.";root.append(intro);
   const layout=document.createElement("div");layout.className="merge-layout";
@@ -804,13 +803,6 @@ async function showSolver(signal,foundId=null,savedOnly=false){
   layout.setAttribute("role","region");
   layout.setAttribute("aria-label","Interactive Sushi Station merge replay. Use left and right arrows to navigate steps.");
   const left=document.createElement("div");left.className="merge-board-panel";
-  const actionGuide=document.createElement("div");actionGuide.className="merge-action-guide";
-  actionGuide.setAttribute("aria-live","polite");
-  const actionLabel=document.createElement("span");actionLabel.className="merge-action-eyebrow";
-  const actionText=document.createElement("strong");actionText.className="merge-action-instruction";
-  const actionOutcome=document.createElement("p");actionOutcome.className="merge-action-outcome";
-  actionGuide.append(actionLabel,actionText,actionOutcome);
-  left.append(actionGuide);
   const controls=document.createElement("div");controls.className="merge-controls";
   const navigation=document.createElement("div");navigation.className="merge-navigation";
   const first=document.createElement("button");first.type="button";first.className="button quiet";first.textContent="↺ Step 0";first.title="Return to the prepared board";
@@ -856,21 +848,6 @@ async function showSolver(signal,foundId=null,savedOnly=false){
   const stepButtons=[];
   let flightTimer=null,flightAnimation=null,flightGhost=null,flightEpoch=0;
   const prefersReducedMotion=()=>window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  function updateActionGuide(inFlight=false){
-    const detail=inFlight?replayGuide[selected-1]:replayGuide[selected];
-    actionGuide.classList.toggle("is-complete",!detail);
-    if(!detail){
-      actionLabel.textContent="ALL STEPS COMPLETE";
-      actionText.textContent="Your simulated combo sequence is finished.";
-      actionOutcome.textContent="Final simulated score: "+cumulative[selected].toLocaleString()+
-        " points. Return to Step 0 to follow it again.";
-      return;
-    }
-    actionLabel.textContent=(inFlight?"REPLAYING":"DO THIS NEXT")+" · Step "+
-      detail.step+" of "+result.moves.length;
-    actionText.textContent=detail.instruction;
-    actionOutcome.textContent=detail.outcome;
-  }
   function cancelFlight(){
     flightEpoch++;
     if(flightTimer!==null){window.clearTimeout(flightTimer);flightTimer=null;}
@@ -947,7 +924,6 @@ async function showSolver(signal,foundId=null,savedOnly=false){
       {reducedMotion:prefersReducedMotion()});
     drawFrame(move.board,move,{resolved:true,timing});
     completedScore(move);
-    updateActionGuide();
   }
   function displayStep(step){
     cancelFlight();
@@ -963,7 +939,6 @@ async function showSolver(signal,foundId=null,savedOnly=false){
     if(!move){
       drawFrame(solution.board,null);
       completedScore(null);
-      updateActionGuide();
     }else{
       const timing=replayMotionTiming(move,Number(speedSelect.value),
         {reducedMotion:prefersReducedMotion()});
@@ -973,9 +948,7 @@ async function showSolver(signal,foundId=null,savedOnly=false){
       if(!canAnimate){
         drawFrame(move.board,move,{resolved:true,timing});
         completedScore(move);
-        updateActionGuide();
       }else{
-        updateActionGuide(true);
         // Leave the pre-action board in place until the animated source lands.
         drawFrame(before,move);
         const sourceTile=boardGrid.children[move.src],destTile=boardGrid.children[move.dst];
@@ -1046,7 +1019,6 @@ async function showSolver(signal,foundId=null,savedOnly=false){
     playButton.setAttribute("aria-pressed",String(playing));
     playButton.classList.toggle("is-playing",playing);
     indicator.setAttribute("aria-live",playing?"off":"polite");
-    actionGuide.setAttribute("aria-live",playing?"off":"polite");
   }
   const player=createReplayController({
     totalSteps:result.moves.length,
@@ -1081,7 +1053,6 @@ async function showSolver(signal,foundId=null,savedOnly=false){
       {reducedMotion:true}):null;
     drawFrame(frame,move,{resolved:Boolean(move),timing:frameTiming});
     completedScore(move);
-    updateActionGuide();
   });
   layout.addEventListener("pointerdown",event=>{
     if(event.target.closest?.("button,input,select,textarea,label"))return;
