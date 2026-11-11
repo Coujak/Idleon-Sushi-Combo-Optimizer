@@ -20,9 +20,17 @@ for(const [mode,percentages] of Object.entries(expected)){
   assert.ok(isSplitOptimizerMode(mode));
   assert.deepEqual(comboSplitPercentages(mode),percentages);
   const options=buildSplitComboCandidates(positions,64,58,25,0,true,mode);
-  assert.equal(options.length,mode==="simple"?1:percentages.length*2);
-  assert.deepEqual([...new Set(options.map(c=>c.splitPercent).filter(x=>x!==null))],
-   percentages);
+  assert.equal(options.length,mode==="simple"?1:percentages.length*4);
+  const supplies=[...new Set(options.filter(c=>c.splitDirection==="supply").map(c=>c.splitPercent))];
+  const engines=[...new Set(options.filter(c=>c.splitDirection==="engine").map(c=>c.splitPercent))];
+  assert.deepEqual(supplies,percentages);
+  assert.deepEqual(engines,comboSplitPercentages(mode,"engine"));
+  if(mode!=="simple"){
+   assert.equal(options.filter(c=>c.splitDirection==="supply").length,percentages.length*2);
+   assert.equal(options.filter(c=>c.splitDirection==="engine").length,percentages.length*2);
+   assert.equal(options[0].splitDirection,"supply");
+   assert.equal(options[2].splitDirection,"engine");
+  }
   for(const option of options){
    assert.equal(option.board.length,120);
    assert.equal(option.board.filter(t=>t>0).length,100);
@@ -63,7 +71,7 @@ test("Modes respect future higher tiers, smaller accounts and locked slots",()=>
     [45,39,12,40,false],[21,15,0,13,false],[6,0,0,10,false]]){
   const p=Array.from({length:count},(_,i)=>offset+i);
   const candidates=getModeCandidates(p,maxTier,cap,0,25,protectedTop,"optimizer1");
-  assert.equal(candidates.length,6);
+  assert.equal(candidates.length,12);
   for(const candidate of candidates){
    assert.equal(candidate.board.length,120);
    assert.equal(candidate.board.filter(t=>t>0).length,count);
@@ -92,10 +100,32 @@ test("Chosen split explains the winning board supply and chain regions",()=>{
 test("An imported protected T64 is retained when preparing lower tiers",()=>{
  const p=Array.from({length:20},(_,i)=>i);
  const candidates=buildSplitComboCandidates(p,50,44,25,0,true,"optimizer1");
- assert.equal(candidates.length,6);
+ assert.equal(candidates.length,12);
  for(const x of candidates){
   assert.equal(x.board[0],64);
   assert.ok(x.board.slice(1,20).every(t=>t<50));
+ }
+});
+test("Both research directions sweep opposing supply/engine ratios from 50/50",()=>{
+ const grid=[
+  ["optimizer1",[50,70,90],[50,30,10]],
+  ["optimizer2",[50,60,70,80,90],[50,40,30,20,10]],
+  ["optimizer3",[50,55,60,65,70,75,80,85,90,95],[50,45,40,35,30,25,20,15,10,5]],
+  ["optimizer4",Array.from({length:50},(_,i)=>50+i),
+   Array.from({length:50},(_,i)=>50-i)]
+ ];
+ for(const [mode,supply,engine] of grid){
+  assert.deepEqual(comboSplitPercentages(mode,"supply"),supply);
+  assert.deepEqual(comboSplitPercentages(mode,"engine"),engine);
+  const options=buildSplitComboCandidates(positions,64,58,25,0,true,mode);
+  assert.equal(options.length,4*supply.length);
+  const directions=options.map(c=>c.splitDirection);
+  assert.ok(directions.every((dir,i)=>dir===((Math.floor(i/2)%2===0)?"supply":"engine")));
+  assert.ok(options.filter(c=>c.splitDirection==="supply")
+   .every(c=>c.supplyCount>=c.engineCount));
+  assert.ok(options.filter(c=>c.splitDirection==="engine")
+   .every(c=>c.supplyCount<=c.engineCount));
+  assert.ok(options.every(c=>c.splitStepIndex>=0));
  }
 });
 test("Wrong slot geometry, mode or limits never produce phantom splits",()=>{
