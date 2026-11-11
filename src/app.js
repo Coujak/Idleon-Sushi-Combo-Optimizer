@@ -461,14 +461,14 @@ async function showSolver(signal,foundId=null,savedOnly=false){
   const statsUpdate=()=>{
    if(!dualSplit)return;
    const initial=previousRecord?.search?.score??null;
-   $("researchSavedBest").textContent=solution?.search?.score?.toLocaleString()??"—";
+   $("researchSavedBest").textContent=overallWinner?.search?.score?.toLocaleString()??"—";
    $("researchRunBest").textContent=runBest?.toLocaleString()??"—";
    $("researchLifetime").textContent=(researchState.checkedBefore+evaluatedCount).toLocaleString();
    $("researchRunCount").textContent=evaluatedCount.toLocaleString();
    $("researchSkipped").textContent=researchState.checkedBefore.toLocaleString();
    $("researchImprovement").textContent=initial===null?
-    (runBest===null?"—":"New record"):(solution?.search?
-    "+"+Math.max(0,solution.search.score-initial).toLocaleString():"—");
+    (runBest===null?"—":"New record"):(overallWinner?.search?
+    "+"+Math.max(0,overallWinner.search.score-initial).toLocaleString():"—");
   };
   statsUpdate();
   if(dualSplit){
@@ -522,20 +522,19 @@ async function showSolver(signal,foundId=null,savedOnly=false){
     }
   };
   progress(0);
-  // Keep the saved record as a fallback for a normal completed search, but
-  // the Stop & Continue button needs a newly evaluated winner from this run.
+  // A normal completed research run and Stop & Continue both show this
+  // run's result. View saved best is the explicit path to the old record.
   if(solution)updateLiveScore();
   await yieldToUI(signal);
-  // Refinement may not replace a stronger previously tested merge sequence.
+  // Refinement improves the selected current-run board without replacing
+  // the historical record unless the verified score really beats it.
   const keepBetterSearch=next=>{
     if(next&&(next.score>solution.search.score||
      (next.score===solution.search.score&&next.remaining<solution.search.remaining))){
      solution.search=next;
      if(dualSplit&&!winningIsFromCache){
       currentRunSolution={...solution,search:next};
-      // Refined current-run scores also become the all-time winner when
-      // they improve the already selected global best.
-      overallWinner=solution;
+      if(betterRunCandidate(solution,overallWinner))overallWinner=solution;
       runBest=next.score;
      }
     }
@@ -591,6 +590,7 @@ async function showSolver(signal,foundId=null,savedOnly=false){
         runBest=currentRunSolution?.search?.score??null;
         if(betterRunCandidate(improved,solution)){
           solution=improved;
+          overallWinner=improved;
           winningIsFromCache=false;
         }
         // Show progress from THIS run even if the saved record is stronger.
@@ -608,6 +608,7 @@ async function showSolver(signal,foundId=null,savedOnly=false){
         const search=searchStaircaseCombos(candidate.board,cap,chain,candidate.slots,greedy,{maximumTier:maxTier});
         if(!solution||search.score>solution.search.score||(search.score===solution.search.score&&search.remaining<solution.search.remaining)){
           solution={...candidate,search};
+          overallWinner=solution;
           winningIsFromCache=false;
           updateLiveScore();
         }
@@ -641,14 +642,16 @@ async function showSolver(signal,foundId=null,savedOnly=false){
       if(signal.aborted)throwIfCancelled(signal);
       throw Error("No completed, replay-validated configuration is available yet.");
     }
-    // Stopping early opens the best configuration from this search,
-    // NOT the potentially higher historical record. Normal completion
-    // retains the previous best across sessions.
+    // Completed runs and Stop & Continue show this run's own winner.
+    // View saved best (or a run with no new boards to evaluate) uses
+    // the historical record, which is maintained independently.
     overallWinner=solution;
-    solution=selectDisplayedSearchResult(solution,currentRunSolution,
-     Boolean(dualSplit&&activeSearch?.keepBestRequested));
-    if(solution!==overallWinner)winningIsFromCache=false;
-    solution={...solution,testedCandidates:dualSplit?evaluatedCount:candidates.length};
+    const showCurrentRun=dualSplit&&!savedOnly&&Boolean(currentRunSolution?.search);
+    const selected=selectDisplayedSearchResult(overallWinner,currentRunSolution,showCurrentRun);
+    if(showCurrentRun)winningIsFromCache=false;
+    // Never mutate the saved candidate's search object during refinement.
+    solution={...selected,search:{...selected.search},
+     testedCandidates:dualSplit?evaluatedCount:candidates.length};
     if(!winningIsFromCache&&!activeSearch?.keepBestRequested){
      try{
       $("optimizerProgressText").textContent="Refining the best preparation…";
@@ -678,8 +681,8 @@ async function showSolver(signal,foundId=null,savedOnly=false){
      solution={...selectDisplayedSearchResult(overallWinner,currentRunSolution,true),
       testedCandidates:evaluatedCount};
     }else{
-     // A normal finish can improve the all-time score during refinement.
-     overallWinner=solution;
+     // Refinement updates history only when this run breaks the record.
+     if(betterRunCandidate(solution,overallWinner))overallWinner=solution;
     }
   }
   if(signal.aborted&&!activeSearch?.keepBestRequested)throwIfCancelled(signal);
@@ -689,8 +692,10 @@ async function showSolver(signal,foundId=null,savedOnly=false){
       (researchState.checkedBefore+evaluatedCount).toLocaleString()+
       " boards evaluated across sessions for these game settings · "+
       "Saved best verified score: "+(overallWinner?.search?.score??solution.search.score).toLocaleString()+
-      (activeSearch?.keepBestRequested?
-       " · Showing this run's best: "+solution.search.score.toLocaleString():"")+
+      (showCurrentRun?
+       " · Showing this run's best: "+solution.search.score.toLocaleString():
+       savedOnly?" · Viewing saved best":
+       evaluatedCount===0?" · No new boards; showing saved best":"")+
       (researchState.persistent?" · Saved in this browser.":" · Session-only memory.");
   }
   const result=solution.search;
@@ -717,6 +722,12 @@ async function showSolver(signal,foundId=null,savedOnly=false){
    "Best of "+solution.testedCandidates+" new preparations (base Tier "+solution.base+", "+solution.shape+"). ")+result.remaining+" occupied sushi remain. Heat model: "+mode+". Scores remain estimates, not a guaranteed maximum.";
   if(activeSearch?.keepBestRequested&&dualSplit)
    $("solverNote").textContent="Stopped early. This is the best completed configuration from the current run, not necessarily the historical best. "+$("solverNote").textContent;
+  else if(dualSplit&&savedOnly)
+   $("solverNote").textContent="Viewing the historical saved best configuration. "+$("solverNote").textContent;
+  else if(dualSplit&&evaluatedCount===0)
+   $("solverNote").textContent="No new configurations were available; showing the historical saved best. "+$("solverNote").textContent;
+  else if(dualSplit)
+   $("solverNote").textContent="This is the best completed configuration from the current run. "+$("solverNote").textContent;
   $("solverNote").textContent+=(foundInfo?" This is a previously found fixed board, not a configuration discovered by an optimizer.":"")+" Mode: "+optimizerModeLabel+". Winning strategy: "+result.strategy+". Slot arrangement: "+(solution.layoutName??"Current positions")+". Available prepared tier: "+maxTier+"; East Wind limit: "+cap+".";
   if(solution.adaptive)$("solverNote").textContent+=" Adaptive "+solution.shape+
    " (working tier T"+solution.workingTier+
