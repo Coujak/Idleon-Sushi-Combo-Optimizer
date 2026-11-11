@@ -146,36 +146,35 @@ export function buildSplitComboCandidates(positions,maxTier,cap,chainLimit=25,
   {label:"balanced",peakFactor:.56,stages:3,stageBias:"equal",reserveCurve:"linear"},
   {label:"deep",peakFactor:.72,stages:3,stageBias:"equal",reserveCurve:"linear"},
  ];
- // 48 structural profiles: 36 front/back stage arrangements across
- // 2, 3 and 4 waves, plus 12 equal-weight arrangements for 2 and 3 waves.
- // Combined with the two baseline profiles above, that's 50 per split.
- for(const stages of [2,3,4])for(const stageBias of ["front","back"])
-  for(const peakFactor of [.40,.56,.72])
-   for(const reserveCurve of ["high","low"])
-    profiles.push({label:stages+" stages "+stageBias+" "+peakFactor+" "+reserveCurve,
-     stages,stageBias,peakFactor,reserveCurve});
- for(const stages of [2,3])for(const peakFactor of [.40,.56,.72])
-  for(const reserveCurve of ["high","low"])
-   profiles.push({label:stages+" stages equal "+peakFactor+" "+reserveCurve,
-    stages,stageBias:"equal",peakFactor,reserveCurve});
+ // Draw 50 distinct preparations at each split from a broad catalogue of
+ // stage counts, peak tiers, reserve curves and stage biases. Identical boards
+ // are not counted twice just because their profile parameters differ.
+ for(const peakFactor of [.20,.28,.36,.44,.52,.60,.68,.76,.84])
+  for(const stageBias of ["front","back","equal"])
+   for(const stages of [2,3,4,5])
+    for(const reserveCurve of ["high","low","linear"])
+     profiles.push({label:stages+" stages "+stageBias+" "+peakFactor+" "+reserveCurve,
+      stages,stageBias,peakFactor,reserveCurve});
  const supplyTrack=comboSplitPercentages(mode,"supply");
  const engineTrack=comboSplitPercentages(mode,"engine");
- // Interleave both real searches so neither progress bar stays frozen
- // while the other direction completes. Both intentionally test 50/50.
+ // Interleave both directions, and evaluate each unique split only once.
  for(let i=0;i<Math.max(supplyTrack.length,engineTrack.length);i++){
   for(const [direction,track] of [["supply",supplyTrack],["engine",engineTrack]]){
    const percentage=track[i];
    if(percentage===undefined)continue;
-   // Identical configuration families at every sampled boundary. The mode
-   // controls ONLY which boundaries are visited, never the candidate profiles.
-   for(let variant=0;variant<profiles.length;variant++){
+   const seenBoards=new Set();
+   let accepted=0;
+   for(let variant=0;variant<profiles.length&&accepted<50;variant++){
     const candidate=makeSplit(sorted,maxTier,cap,chainLimit,
      selectedBase,protectHighest,percentage,variant%2,profiles[variant]);
-    if(candidate){
-     candidate.splitDirection=direction;
-     candidate.splitStepIndex=i;
-     candidates.push(candidate);
-    }
+    if(!candidate)continue;
+    const key=candidate.board.join(",");
+    if(seenBoards.has(key))continue;
+    seenBoards.add(key);
+    candidate.splitDirection=direction;
+    candidate.splitStepIndex=i;
+    candidates.push(candidate);
+    accepted++;
    }
   }
  }
