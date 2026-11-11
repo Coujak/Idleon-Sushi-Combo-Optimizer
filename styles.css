@@ -568,7 +568,20 @@ details summary{cursor:pointer;font-size:12px;font-weight:700;color:#9eb7c9}
 .prepared-guide-supply strong{color:#ffb4bd}
 .prepared-guide-chain{border-left:4px solid #78d9a9}
 .prepared-guide-chain strong{color:#a4efc8}
-.prepared-section-key{margin:12px 2px 7px}
+/* Planner board legend mirrors Overview's colored plate swatches. */
+#solverSteps .optimizer-board-legend{
+ display:flex;flex-wrap:wrap;align-items:center;gap:9px 15px;
+ margin:12px 2px 5px;
+}
+#solverSteps .optimizer-board-legend span{white-space:normal}
+#solverSteps .optimizer-board-legend i.prepared-legend-supply,
+#solverSteps .optimizer-board-legend i.prepared-legend-chain{
+ width:15px;height:15px;background:#142632;
+ border-width:3px;border-style:solid;border-radius:3px;
+}
+#solverSteps .optimizer-board-legend i.prepared-legend-supply{border-color:#ff90a4}
+#solverSteps .optimizer-board-legend i.prepared-legend-chain{border-color:#8df2ba}
+#solverSteps .optimizer-legend-hint{margin:0 2px 10px;font-size:12px}
 .prepared-section-board .tile.prepared-supply{outline:2px solid #e88c99;outline-offset:-3px}
 .prepared-section-board .tile.prepared-chain{outline:2px solid #78d9a9;outline-offset:-3px}
 .prepared-section-board .tile.prepared-protected{outline-width:3px}
