@@ -376,11 +376,36 @@ async function showSolver(signal){
   const total=custom?1:candidates.length;
   if(total<1)throw Error("No valid preparations for these tier settings.");
   let solution=null;
-  const progress=(done)=>{
+  const dualSplit=!custom&&["optimizer1","optimizer2","optimizer3","optimizer4"].includes(optimizerMode);
+  $("optimizerSingleProgress").classList.toggle("hidden",dualSplit);
+  $("optimizerDualProgress").classList.toggle("hidden",!dualSplit);
+  const tracks={
+    supply:{progress:$("optimizerSupplyProgress"),status:$("optimizerSupplyStatus"),done:0,
+      total:dualSplit?candidates.filter(c=>c.splitDirection==="supply").length:0},
+    engine:{progress:$("optimizerEngineProgress"),status:$("optimizerEngineStatus"),done:0,
+      total:dualSplit?candidates.filter(c=>c.splitDirection==="engine").length:0}
+  };
+  for(const track of Object.values(tracks)){
+    track.progress.max=Math.max(1,track.total);
+    track.progress.value=0;
+    track.status.textContent="50/50 · 0%";
+  }
+  const progress=(done,candidate=null)=>{
     const pct=Math.round(done/total*100);
     $("optimizerProgressBar").value=done;
     $("optimizerProgressBar").max=total;
-    $("optimizerProgressText").textContent=optimizerModeLabel+" · "+pct+"% · "+done+" / "+total+" layouts evaluated";
+    if(dualSplit&&candidate?.splitDirection){
+      const track=tracks[candidate.splitDirection];
+      track.done++;
+      track.progress.value=track.done;
+      const ratio=candidate.splitPercent+"/"+(100-candidate.splitPercent);
+      track.status.textContent=ratio+" · "+Math.round(track.done/Math.max(1,track.total)*100)+"% ("+
+        track.done+"/"+track.total+")";
+      $("optimizerProgressText").textContent=optimizerModeLabel+" · "+
+        done+" / "+total+" layouts evaluated in both directions";
+    }else{
+      $("optimizerProgressText").textContent=optimizerModeLabel+" · "+pct+"% · "+done+" / "+total+" layouts evaluated";
+    }
   };
   progress(0);
   // Yield between candidate evaluations so progress can paint in the browser.
@@ -405,7 +430,7 @@ async function showSolver(signal){
       const greedy=searchCombos(candidate.board,cap,chain,4,positions.length-1,mode,maxTier);
       const search=searchStaircaseCombos(candidate.board,cap,chain,candidate.slots,greedy,{maximumTier:maxTier});
       if(!solution||search.score>solution.search.score||(search.score===solution.search.score&&search.remaining<solution.search.remaining))solution={...candidate,search};
-      progress(i+1);
+      progress(i+1,candidate);
       await yieldToUI(signal);
     }
     solution={...solution,testedCandidates:candidates.length};
@@ -839,6 +864,8 @@ $("runSolver").addEventListener("click",async()=>{
   button.disabled=true;button.textContent="Optimizing…";
   cancel.classList.remove("hidden");cancel.disabled=false;cancel.textContent="Cancel";
   $("optimizerProgress").classList.remove("hidden");
+  $("optimizerSingleProgress").classList.remove("hidden");
+  $("optimizerDualProgress").classList.add("hidden");
   $("optimizerProgressBar").value=0;$("optimizerProgressBar").max=1;
   $("optimizerProgressText").textContent="Preparing search…";
   $("solverResults").classList.add("hidden");
