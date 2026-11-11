@@ -3,7 +3,8 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {SUSHI_UPGRADES,SUSHI_KNOWLEDGE,ELIGIBLE_DOUBLERS} from "../src/sushi-reference.mjs";
 import {numberText,baseUpgradeCost,getUpgradeRows,getKnowledgeRows,getSushiSnapshot,
- advisorUpgrades,doublerUpgrades,sushiUpgradeDiscounts,sushiUpgradeExtraText,upgradeAffordability} from "../src/lab-model.mjs";
+ advisorUpgrades,doublerUpgrades,sushiUpgradeDiscounts,sushiUpgradeExtraText,upgradeAffordability,
+ getShakerDailyUses} from "../src/lab-model.mjs";
 test("reference data follows current Sushi shop order and 64 knowledge tiers",()=>{
  assert.equal(SUSHI_UPGRADES.length,46);
  assert.equal(new Set(SUSHI_UPGRADES.map(x=>x.id)).size,46);
@@ -131,4 +132,42 @@ test("Scientific notation omits the positive exponent plus sign across account n
  assert.equal(numberText(1.234e-5),"1.234E-5");
  const fmt=readFileSync(new URL("../src/progression-goal-impact.mjs",import.meta.url),"utf8");
  assert.match(fmt,/toExponential\(3\)\.replace/);
+});
+
+test("shaker daily refills include Shakin' It Research grid I3 without hardcoding +3",()=>{
+ const research=Array.from({length:8},()=>[]);
+ research[0]=Array(240).fill(0);
+ for(const [level,expected] of [[0,1],[1,2],[2,3]]){
+  research[0][188]=level;
+  const data={research};
+  assert.deepEqual(getShakerDailyUses(data),
+   {total:expected,base:1,bonus:level,known:true});
+  assert.equal(getSushiSnapshot(data).shakerDaily.total,expected);
+ }
+});
+test("missing Research data does not falsely report +1/day as the exact refill rate",()=>{
+ const unknown=getShakerDailyUses({sushi:[[],[],[],[],[]]});
+ assert.deepEqual(unknown,{total:null,base:1,bonus:null,known:false});
+ const research=Array.from({length:8},()=>[]);
+ research[0]=Array(189).fill(0);
+ research[0][188]=3; // Cannot exceed the Shakin' It max level 2.
+ assert.equal(getShakerDailyUses({research}).known,false);
+});
+
+test("Overview highest-on-board counts copies without confusing discovered tier",()=>{
+ const sushi=[[],[],[],[],[],Array(64).fill(-1)];
+ sushi[5][63]=0; // T64 discovered but not currently on the board.
+ const board={sushi,tiles:[-1,57,56,57,-1,57,12],slots:Array(7).fill(0)};
+ const snap=getSushiSnapshot(board);
+ assert.equal(snap.highest,58);
+ assert.equal(snap.highestCopies,3);
+ assert.equal(snap.occupied,5);
+ // An empty board must not display T0 or a copy count.
+ const empty=getSushiSnapshot({...board,tiles:[-1,-1,-1]});
+ assert.equal(empty.highest,0);
+ assert.equal(empty.highestCopies,0);
+ // Zero-based sushi ID 63 is displayed as tier 64.
+ const capped=getSushiSnapshot({...board,tiles:[63,63,63,62]});
+ assert.equal(capped.highest,64);
+ assert.equal(capped.highestCopies,3);
 });

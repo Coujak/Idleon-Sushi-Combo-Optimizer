@@ -70,7 +70,7 @@ function simpleCascade(positions,maxTier,cap,chain,selectedBase,protect){
 // Each candidate uses its *own* split between reusable supplies and an
 // ordered, descending multi-wave Wind engine. No historical tier arrays are
 // copied or translated. More precise modes simply evaluate more boundaries.
-function makeSplit(positions,maxTier,cap,chain,selectedBase,protect,pct,variant){
+function makeSplit(positions,maxTier,cap,chain,selectedBase,protect,pct,variant,profile={}){
  const n=positions.length,anchor=protectedAnchor(maxTier,protect);
  const supplyCount=Math.max(1,
   Math.min(n-1,Math.round(n*pct/100)));
@@ -81,16 +81,21 @@ function makeSplit(positions,maxTier,cap,chain,selectedBase,protect,pct,variant)
  const availableCap=Math.max(1,Math.min(cap,maxIngredient));
  // The peak is searched rather than assumed to be the highest unlocked tier.
  // Alternate variants change reserve reach and the staircase wave profile.
+ const peakFactor=profile.peakFactor??(variant===0?.56:.72);
  const desiredPeak=cap>0?
-  Math.max(floor,availableCap-Math.max(2,Math.round(variant===0?chain*.56:chain*.72))):
+  Math.max(floor,availableCap-Math.max(2,Math.round(chain*peakFactor))):
   maxIngredient;
  const peak=Math.max(1,Math.min(maxIngredient,desiredPeak));
  const unit=Math.max(2,Math.min(26,chain+1,Math.max(2,peak-floor+2)));
  // No stage can use more cells than its engine portion.
  const stages=cap>0&&chain>0?
-  Math.max(1,Math.min(3,Math.ceil(engineCount/unit))):1;
- const stageSizes=Array.from({length:stages},(_,j)=>
-  Math.floor(engineCount/stages)+(j<engineCount%stages?1:0));
+  Math.max(1,Math.min(profile.stages??3,Math.ceil(engineCount/unit))):1;
+ const weights=Array.from({length:stages},(_,j)=>
+  profile.stageBias==="front"?(stages-j):profile.stageBias==="back"?(j+1):1);
+ const weightSum=weights.reduce((a,b)=>a+b,0);
+ const stageSizes=weights.map(w=>Math.floor(engineCount*w/weightSum));
+ let unassigned=engineCount-stageSizes.reduce((a,b)=>a+b,0);
+ for(let j=0;unassigned>0;j=(j+1)%stages,unassigned--)stageSizes[j]++;
  const stagePeaks=stageSizes.map((_,j)=>
   Math.max(floor,peak-(j===0?0:Math.max(1,Math.round(chain*(variant===0?.32:.4)))+(j-1))));
  const engine=[];
@@ -108,18 +113,20 @@ function makeSplit(positions,maxTier,cap,chain,selectedBase,protect,pct,variant)
  const supply=[];
  for(let i=0;i<supplyIngredients;i++){
   const progress=supplyIngredients<=1?0:i/(supplyIngredients-1);
+  const curved=profile.reserveCurve==="high"?progress*progress:
+   profile.reserveCurve==="low"?Math.sqrt(progress):progress;
   supply.push(Math.max(1,Math.min(maxIngredient,
-   upper-Math.floor((upper-lower)*progress))));
+   upper-Math.floor((upper-lower)*curved))));
  }
  supply.sort((a,b)=>b-a);
  const tiers=[...(anchor===null?[]:[anchor]),...supply,...engine];
  if(tiers.length!==n||tiers.some((tier,i)=>!Number.isInteger(tier)||tier<1||
   (anchor!==null&&i===0?tier!==anchor:tier>maxIngredient)))return null;
  return {
-  name:"Optimizer split "+pct+"/"+(100-pct)+" · "+(variant===0?"balanced":"deep")+" reserves",
+  name:"Optimizer split "+pct+"/"+(100-pct)+" · "+(profile.label??(variant===0?"balanced":"deep"))+" reserves",
   board:pack(positions,tiers),base:floor,shape:"adaptive split "+pct+"/"+(100-pct),
   splitPercent:pct,supplyCount,engineCount,
-  variant:variant===0?"balanced":"deep",
+  variant:profile.label??(variant===0?"balanced":"deep"),
   workingTier:peak,adaptive:true,
   strategySections:{
    protectedPosition:anchor===null?null:positions[0],
@@ -135,22 +142,39 @@ export function buildSplitComboCandidates(positions,maxTier,cap,chainLimit=25,
  if(mode==="simple")
   return simpleCascade(sorted,maxTier,cap,chainLimit,selectedBase,protectHighest);
  const candidates=[];
+ const profiles=[
+  {label:"balanced",peakFactor:.56,stages:3,stageBias:"equal",reserveCurve:"linear"},
+  {label:"deep",peakFactor:.72,stages:3,stageBias:"equal",reserveCurve:"linear"},
+ ];
+ // Draw 50 distinct preparations at each split from a broad catalogue of
+ // stage counts, peak tiers, reserve curves and stage biases. Identical boards
+ // are not counted twice just because their profile parameters differ.
+ for(const peakFactor of [.20,.28,.36,.44,.52,.60,.68,.76,.84])
+  for(const stageBias of ["front","back","equal"])
+   for(const stages of [2,3,4,5])
+    for(const reserveCurve of ["high","low","linear"])
+     profiles.push({label:stages+" stages "+stageBias+" "+peakFactor+" "+reserveCurve,
+      stages,stageBias,peakFactor,reserveCurve});
  const supplyTrack=comboSplitPercentages(mode,"supply");
  const engineTrack=comboSplitPercentages(mode,"engine");
- // Interleave both real searches so neither progress bar stays frozen
- // while the other direction completes. Both intentionally test 50/50.
+ // Interleave both directions, and evaluate each unique split only once.
  for(let i=0;i<Math.max(supplyTrack.length,engineTrack.length);i++){
   for(const [direction,track] of [["supply",supplyTrack],["engine",engineTrack]]){
    const percentage=track[i];
    if(percentage===undefined)continue;
-   for(let variant=0;variant<2;variant++){
+   const seenBoards=new Set();
+   let accepted=0;
+   for(let variant=0;variant<profiles.length&&accepted<50;variant++){
     const candidate=makeSplit(sorted,maxTier,cap,chainLimit,
-     selectedBase,protectHighest,percentage,variant);
-    if(candidate){
-     candidate.splitDirection=direction;
-     candidate.splitStepIndex=i;
-     candidates.push(candidate);
-    }
+     selectedBase,protectHighest,percentage,variant%2,profiles[variant]);
+    if(!candidate)continue;
+    const key=candidate.board.join(",");
+    if(seenBoards.has(key))continue;
+    seenBoards.add(key);
+    candidate.splitDirection=direction;
+    candidate.splitStepIndex=i;
+    candidates.push(candidate);
+    accepted++;
    }
   }
  }

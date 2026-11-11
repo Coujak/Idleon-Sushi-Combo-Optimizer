@@ -14,16 +14,33 @@ export const numberText=(n)=>{
  return abs>=1e12||abs>0&&abs<0.001?n.toExponential(3).replace(/e\+?/i,"E"):
   n.toLocaleString("en-US",{maximumFractionDigits:abs<10?3:2});
 };
+// Research Grid: Shakin' It (I3) is the 189th grid square (zero-based
+// index 188) in Research[0]. Each level gives +1 daily use to ALL shakers,
+// in addition to their base +1/day. Keep missing research distinct from Lv 0.
+export function getShakerDailyUses(save){
+ const level=save?.research?.[0]?.[188];
+ const n=level===undefined||level===null||level===""?NaN:Number(level);
+ if(!Number.isInteger(n)||n<0||n>2)
+  return {total:null,base:1,bonus:null,known:false};
+ return {total:1+n,base:1,bonus:n,known:true};
+}
 export function getSushiSnapshot(save){
  const s=save?.sushi??[];
  const raw=s[4]??[], tracking=s[5]??[],upgrades=s[2]??[],xp=s[6]??[],knowledge=s[7]??[];
  const spelunk=save?.spelunk??[];
  const doubled=Array.isArray(spelunk[52])?spelunk[52].map(num).filter(Number.isInteger):[];
+ // Sushi[0] stores zero-based sushi IDs. Count only actual copies of
+ // the highest tier currently present, not the highest discovered tier.
+ const board=Array.isArray(save?.tiles)?save.tiles:[];
+ const highest=board.reduce((top,id)=>
+  Number.isInteger(id)&&id>=0?Math.max(top,id+1):top,0);
+ const highestCopies=highest===0?0:board.filter(id=>id===highest-1).length;
  return {levels:upgrades,tracking,xp,knowledge,doubled,
   fuel:num(raw[0]),bucks:num(raw[3]),bestCombo:num(raw[8]),shakers:[num(raw[5]),num(raw[6]),num(raw[7])],
+  shakerDaily:getShakerDailyUses(save),
   unlocked:save?.slots?.filter(t=>t>=0).length??0,
   occupied:save?.tiles?.filter(t=>t>=0).length??0,
-  highest:Math.max(0,...(save?.tiles??[]).filter(t=>t>=0).map(t=>t+1)),
+  highest,highestCopies,
   perfectos:tracking.slice(0,64).filter(x=>num(x)>=1).length,
   discovered:tracking.slice(0,64).filter(x=>num(x)>=0).length,
   totalUpgrades:upgrades.reduce((a,v)=>a+num(v),0),

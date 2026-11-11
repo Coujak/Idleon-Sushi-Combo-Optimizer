@@ -4,10 +4,11 @@ import {sushiUpgradeIconPath,sushiTierIconPath} from "./sushi-reference.mjs?v=1.
 import {initializePerfectoUI} from "./perfecto-ui.mjs?v=1.16.6";
 import {CATALOG_SORT_OPTIONS,CATALOG_STATUS_OPTIONS,upgradeSummary,readableUpgradeDescription,upgradeDescriptionSegments,catalogHasVariableValues,filterSortCatalog,upgradeCatalogDollarValue} from "./upgrade-catalog.mjs?v=1.16.7";
 import {ADVISOR_GOALS,numberText,getSushiSnapshot,getUpgradeRows,
- getKnowledgeRows,advisorUpgrades,doublerUpgrades,getSushiDoublerCounts,sushiUpgradeExtraText,upgradeAffordability} from "./lab-model.mjs?v=1.16.7";
+ getKnowledgeRows,advisorUpgrades,doublerUpgrades,getSushiDoublerCounts,sushiUpgradeExtraText,upgradeAffordability} from "./lab-model.mjs?v=1.19.10";
 import {getProgressionAdvice,PROGRESSION_SORT_OPTIONS,PROGRESSION_FILTER_OPTIONS} from "./progression-advisor.mjs?v=1.16.6";
 import {buildProgressionPurchasePlan} from "./progression-roadmap.mjs?v=1.16.7";
 import {parseGameQuantity} from "./progression-calibration.mjs?v=1.16.3";
+import {overviewTierProgress,importAgeText} from "./overview-helpers.mjs?v=1.19.9";
 
 const $=id=>document.getElementById(id);
 const el=(tag,css="",value)=>{
@@ -50,6 +51,8 @@ export function initializeSushiLab(getSave){
  let mainTab="overview",upgradeTab="catalog",goal="bucks",doublerGoal="all";
  let advisorSort="recommended",advisorFilter="all",purchaseView="cards";
  let catalogSort="shop",catalogCategory="all",catalogStatus="all";
+ let importedAt=null;
+ const missingListExpanded={labMissingPerfectos:false,labMissingTiers:false};
  const expandedUpgradeDetails=new Set();
  const save=()=>getSave();
  const tabs=["overview","planners","upgrades","knowledge"];
@@ -209,11 +212,30 @@ export function initializeSushiLab(getSave){
   }
   return frame;
  }
- function renderMissingCards(id,list,empty){
-  const host=$(id);host.replaceChildren();
-  if(!save()){addText(host,"hint lab-empty-state","Import a save to see these tiers.");return;}
+ const missingPreviewCount=6;
+ for(const id of ["labMissingPerfectos","labMissingTiers"]){
+  $(id+"Toggle").addEventListener("click",()=>{
+   missingListExpanded[id]=!missingListExpanded[id];
+   renderOverview();
+  });
+ }
+ function renderMissingCards(id,list,empty,trackerAvailable=true){
+  const host=$(id),toggle=$(id+"Toggle"),count=$(id+"Count");
+  host.replaceChildren();
+  const hasSave=!!save();
+  count.textContent=hasSave&&trackerAvailable?"("+list.length+")":"";
+  const canExpand=hasSave&&trackerAvailable&&list.length>missingPreviewCount;
+  toggle.classList.toggle("hidden",!canExpand);
+  toggle.setAttribute("aria-expanded",String(canExpand&&missingListExpanded[id]));
+  toggle.textContent=missingListExpanded[id]?"Show fewer":"Show all ("+list.length+")";
+  if(!hasSave){addText(host,"hint lab-empty-state","Import a save to see these tiers.");return;}
+  if(!trackerAvailable){
+   addText(host,"hint lab-empty-state","Sushi discovery tracker is unavailable in this save.");
+   return;
+  }
   if(list.length===0){addText(host,"hint lab-empty-state",empty);return;}
-  for(const k of list){
+  const visible=missingListExpanded[id]?list:list.slice(0,missingPreviewCount);
+  for(const k of visible){
    const tile=el("div","lab-sushi-card"),caption=el("span","lab-sushi-card-copy");
    caption.append(el("strong","","T"+k.tier),el("span","",k.name));
    tile.append(sushiArtwork(k.tier),caption);
@@ -224,9 +246,9 @@ export function initializeSushiLab(getSave){
  function renderShakerCards(stats){
   const box=$("labShakerCards");box.replaceChildren();
   const list=[
-   {name:"Salt Shaker",initial:"S",desc:"Tier-up shaker"},
-   {name:"Pepper Shaker",initial:"P",desc:"Perfecto shaker"},
-   {name:"Saffron Shaker",initial:"F",desc:"Bucks shaker"}
+   {name:"Salt Shaker",initial:"S",desc:"Tier-up shaker",upgradeId:17},
+   {name:"Pepper Shaker",initial:"P",desc:"Perfecto shaker",upgradeId:18},
+   {name:"Saffron Shaker",initial:"F",desc:"Bucks shaker",upgradeId:19}
   ];
   for(let i=0;i<list.length;i++){
    const info=list[i],card=el("div","lab-shaker-card");
@@ -240,26 +262,50 @@ export function initializeSushiLab(getSave){
    icon.append(art);
    const label=el("span","lab-shaker-copy");
    label.append(el("strong","",info.name),el("span","",info.desc));
-   const count=el("span","lab-shaker-count");
-   count.append(el("strong","",stats?fmt(stats.shakers[i]):"—"),
-    el("span","",stats?"uses available":"Import save"));
+   const count=el("div","lab-shaker-count");
+   const useRow=el("div","lab-shaker-usage-row");
+   const countValue=el("strong","lab-shaker-count-value",stats?fmt(stats.shakers[i]):"—");
+   useRow.append(countValue);
+   if(stats){
+    const unlocked=Number(stats.levels?.[info.upgradeId]??0)>0;
+    const daily=stats.shakerDaily;
+    const rate=el("span","lab-shaker-daily",
+     !unlocked?"Locked":daily?.known?"+"+daily.total+"/day":"+1/day base");
+    if(!unlocked)rate.classList.add("is-locked");
+    rate.title=!unlocked?"Unlock this shaker in Sushi Station upgrades":
+     daily?.known?"Daily uses: 1 base + "+daily.bonus+
+      " from Shakin' It Research (Lv "+daily.bonus+").":
+      "Base +1 use/day. Import Research grid data to determine additional daily uses.";
+    useRow.append(rate);
+   }
+   count.append(useRow,el("span","lab-shaker-count-caption",stats?"Available":"Import save"));
    card.append(icon,label,count);
    box.append(card);
   }
  }
  function renderOverview(){
   const data=save(),stats=data?getSushiSnapshot(data):null,host=$("labOverviewStats");
+  const entries=getKnowledgeRows(data);
+  // Do not mistake missing/incomplete Sushi[5] data for 64 undiscovered tiers.
+  const hasTracker=!!stats&&Array.isArray(data.sushi?.[5])&&
+   data.sushi[5].length>=entries.length;
+  const progress=hasTracker?overviewTierProgress(entries):null;
   host.replaceChildren();
   const values=stats?[
    ["Unlocked slots",stats.unlocked+" / 100"],
    ["Sushi on board",stats.occupied],
-   ["Highest on board","T"+stats.highest],
+   ["Highest on board",stats.highest?"T"+stats.highest+" ×"+stats.highestCopies:"—"],
+   ["Highest Sushi Discovered",progress?.highestDiscovered?
+    progress.highestDiscovered+" / "+progress.total:"—"],
+   ["Total Perfectos",progress?progress.perfectos+" / "+progress.total:"—"],
    ["Knowledge levels",fmt(stats.totalKnowledge)],
    ["Upgrade levels",fmt(stats.totalUpgrades)],
    ["Best in-game combo",fmt(stats.bestCombo)]
   ]:[
-   ["Unlocked slots","—"],["Sushi on board","—"],["Highest on board","—"],
-   ["Knowledge levels","—"],["Upgrade levels","—"],["Best in-game combo","—"]
+   ["Unlocked slots","—"],["Sushi on board","—"],
+   ["Highest on board","—"],["Highest Sushi Discovered","—"],
+   ["Total Perfectos","—"],["Knowledge levels","—"],
+   ["Upgrade levels","—"],["Best in-game combo","—"]
   ];
   for(const [label,value] of values){
    const card=el("div","lab-stat");
@@ -267,11 +313,10 @@ export function initializeSushiLab(getSave){
    host.append(card);
   }
   renderShakerCards(stats);
-  const entries=getKnowledgeRows(data);
   renderMissingCards("labMissingPerfectos",entries.filter(x=>x.discovered&&!x.perfecto),
-   "All discovered sushi have Perfecto.");
+   "All discovered sushi have Perfecto.",hasTracker);
   renderMissingCards("labMissingTiers",entries.filter(x=>!x.discovered),
-   "Every sushi tier has been discovered.");
+   "Every sushi tier has been discovered.",hasTracker);
  }
  function upgradeArtwork(u){
   const img=el("img","lab-upgrade-icon");
@@ -674,13 +719,34 @@ export function initializeSushiLab(getSave){
   }
  }
  const perfectoUI=initializePerfectoUI(getSave);
+ function updateImportTime(){
+  const status=$("overviewImportTime");
+  status.textContent=save()&&importedAt!==null?
+   importAgeText(importedAt):"No save imported";
+  status.title=save()&&importedAt!==null?
+   "JSON imported locally: "+new Date(importedAt).toLocaleString():
+   "Import a JSON save to see account progress.";
+  $("labSaveStatus").textContent=save()?"Save loaded locally":"No save imported";
+ }
  function refresh(){
   renderOverview();renderCatalog();renderAdvisor();renderDoubler();renderKnowledge();
   perfectoUI.refresh();
-  $("labSaveStatus").textContent=save()?"Save loaded locally":"No save imported";
+  updateImportTime();
  }
+ function markImported(){
+  importedAt=Date.now();
+  for(const id of Object.keys(missingListExpanded))missingListExpanded[id]=false;
+  refresh();
+ }
+ function clearImported(){
+  importedAt=null;
+  for(const id of Object.keys(missingListExpanded))missingListExpanded[id]=false;
+  refresh();
+ }
+ // The displayed age changes even while the save remains unchanged.
+ setInterval(()=>{if(importedAt!==null&&save())updateImportTime();},60000);
  setTab("overview");
  setUpgradeTab("catalog");
  refresh();
- return {refresh,open:setTab};
+ return {refresh,markImported,clearImported,open:setTab};
 }

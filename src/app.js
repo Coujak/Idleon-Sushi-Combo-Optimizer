@@ -2,18 +2,30 @@ import {simulateMerge,validateComboReplay,searchStaircaseCombos} from "./optimiz
 import {searchTacticalCombos} from "./tactical-search.mjs?v=1.9.9";
 import {createReplayController} from "./replay-controller.mjs?v=1.7.4";
 import {replayMotionTiming} from "./merge-motion.mjs?v=1.15.6";
+import {replayFlightGeometry} from "./replay-flight-geometry.mjs?v=1.18.8";
+import {buildReplayGuide,nextWindReplayStep} from "./replay-guide.mjs?v=1.18.7";
 import {buildCandidates} from "./preparation-core.mjs?v=1.9.9";
-import {getModeCandidates} from "./optimizer-modes.mjs?v=1.17.2";
+import {getModeCandidates} from "./optimizer-modes.mjs?v=1.18.6";
+import {comboSplitPercentages} from "./combo-split-strategies.mjs?v=1.18.0";
+import {FOUND_CONFIGURATIONS,buildFoundConfiguration} from "./found-configurations.mjs?v=1.18.0";
 import {searchLookaheadCombos} from "./lookahead-search.mjs?v=1.9.9";
 import {throwIfCancelled,yieldToUI} from "./optimizer-run.mjs?v=1.8.1";
+import {scanSplitDirectionsInParallel} from "./split-search-parallel.mjs?v=1.18.4";
+import {currentRunScore,reachedCurrentRunGoal,betterRunCandidate,selectDisplayedSearchResult} from "./research-score-display.mjs?v=1.19.4";
+import {buildNovelSplitCandidates} from "./split-research-round.mjs?v=1.18.6";
+import {researchContext,loadResearchHistory,rememberEvaluatedBoards,rememberBestCandidate,
+ resetResearchHistory,exportResearchData,importResearchData} from "./research-memory.mjs?v=1.18.6";
+import {comparePreparedBoard} from "./combo-qol.mjs?v=1.18.6";
+import {renderComboReport,decoratePreparedCell} from "./combo-qol-ui.mjs?v=1.18.8";
 import {searchCombos} from "./merge-search.mjs?v=1.9.9";
 import {MODE_CATALOG,getModeInfo,modeOptionLabel,modeDisplayLabel} from "./mode-catalog.mjs?v=1.17.1";
 const $=id=>document.getElementById(id);
 import {BOARD_COLUMNS,BOARD_CELLS,normalizeBoardData,layoutOptions} from "./board-geometry.mjs?v=1.8.4";
 import {windTierMaximum,clampWindTier,windTierAfterPreparedChange} from "./wind-limit.mjs?v=1.9.10";
 import {detectSushiProgress} from "./sushi-progression.mjs?v=1.17.0";
-import {initializeSushiLab} from "./lab-ui.mjs?v=1.16.7";
+import {initializeSushiLab} from "./lab-ui.mjs?v=1.19.10";
 import {sushiTierIconPath} from "./sushi-reference.mjs?v=1.16.6";
+import {countOverviewPlates,overviewTileInfo} from "./overview-helpers.mjs?v=1.19.9";
 import {getPreparedBoardSections,hasSlotLayoutChanges,preparedSectionOutlinePath,preparedOutlineCoordinates} from "./prepared-sections.mjs?v=1.17.1";
 const COLUMNS=BOARD_COLUMNS;
 let imported=null;
@@ -22,6 +34,14 @@ let customBoard=null;
 let replayCleanup=()=>{};
 let preparedOutlineCleanup=()=>{};
 let activeSearch=null;
+// The same score bubble shows provisional best scores and the final
+// replay-validated estimate. It stays visible while detailed results are hidden.
+function setComboScoreBubble(running,score=null){
+ const bubble=$("solverScoreBubble");
+ bubble.classList.remove("hidden");
+ $("solverScoreLabel").textContent=running?"Best score so far:":"Estimated combo score:";
+ $("solverScore").textContent=Number.isFinite(score)?score.toLocaleString():"—";
+}
 function cancelRunningSearch(){activeSearch?.abort();}
 function disposeReplay(){replayCleanup();replayCleanup=()=>{};}
 function decodeSave(input){
@@ -138,20 +158,57 @@ function addSushiVisual(cell,tier){
 }
 const FIRE_NAMES=["Orange · Charcoal Fireplace","Green · Barium Firelighter","Blue · Copper Firelighter","Pink · Lithium Firelighter","Purple · Potassium Firelighter"];
 const FIRE_IMAGES=["Charcoal Fireplace (Upgrade 17).png","Barium Firelighter (Upgrade 26).png","Copper Firelighter (Upgrade 33).png","Lithium Firelighter (Upgrade 40).png","Potassium Firelighter (Upgrade 42).png"];
+function renderPlateBreakdown(slots=null){
+ const container=$("boardPlateSummary");
+ container.replaceChildren();
+ const types=[
+  ["normal","Regular"],["hot","Hot"],["cold","Cold"],["milk","Milktoast"]
+ ];
+ const counts=slots?countOverviewPlates(slots):null;
+ for(let i=0;i<types.length;i++){
+  const [color,label]=types[i];
+  const item=document.createElement("span"),sample=document.createElement("i");
+  sample.className=color;
+  sample.setAttribute("aria-hidden","true");
+  item.append(sample,document.createTextNode(label+" "+(counts?counts[i]:"—")));
+  container.append(item);
+ }
+ const perfecto=document.createElement("span");
+ perfecto.className="perfecto-legend";
+ const symbol=document.createElement("img");
+ symbol.src="assets/Perfecto_Symbol.png";
+ symbol.className="perfecto-legend-icon";
+ symbol.alt="";
+ symbol.setAttribute("aria-hidden","true");
+ perfecto.append(symbol,document.createTextNode("Perfecto"));
+ container.append(perfecto);
+}
 function renderBoard(tiles,perfecto,slots,fires){
   const board=$("board");board.replaceChildren();
+  const selection=$("boardSelection");
+  selection.replaceChildren();selection.classList.add("hidden");
+  renderPlateBreakdown(slots);
   // Always show eight rows, even when all the user's slots are at the top.
   for(let i=0;i<BOARD_CELLS;i++){
     const id=tiles[i]??-1,slot=slots[i]??-1;
-    const cell=document.createElement("div");
-    cell.className="tile"+(slot>=0?" slot-"+slot:" locked")+(id<0?" empty":"");
+    const cell=document.createElement(slot>=0?"button":"div");
+    cell.className="tile"+(slot>=0?" slot-"+slot+" overview-board-tile":" locked")+(id<0?" empty":"");
+    if(slot>=0){
+      cell.type="button";
+      cell.dataset.position=String(i);
+      cell.setAttribute("aria-pressed","false");
+    }
     if(slot>=0&&id>=0){
       const isPerfecto=Array.isArray(perfecto)&&perfecto[id]>0;
       if(isPerfecto)cell.classList.add("perfecto");
       addSushiVisual(cell,id+1);
       if(isPerfecto){const mark=document.createElement("img");mark.className="perfecto-mark";mark.src="assets/Perfecto_Symbol.png";mark.alt="Perfecto";mark.title="Perfecto";mark.loading="lazy";cell.append(mark);}
     }else if(slot>=0){cell.textContent="·";}
-    cell.title="Position "+(i+1)+" · "+(SLOT_NAMES[slot]??"Locked")+(id>=0?" · Tier "+(id+1):" · Empty")+(id>=0&&perfecto?.[id]>0?" · Perfecto":"");
+    const info=overviewTileInfo({tiles,slots,perfecto},i);
+    cell.title="Position "+info.position+" · "+info.plate+" plate"+
+     (info.tier?" · T"+info.tier+" "+info.name:" · "+info.status)+
+     (info.tier?" · "+info.status:"");
+    if(slot>=0)cell.setAttribute("aria-label",cell.title);
     board.append(cell);
   }
   const fireRow=document.createElement("div");fireRow.className="fire-row";
@@ -164,9 +221,30 @@ function renderBoard(tiles,perfecto,slots,fires){
     fireRow.append(cell);
   }
   $("fireplaces").replaceChildren(fireRow);
+  let selectedTile=null;
+  board.onclick=event=>{
+   const tile=event.target.closest?.(".overview-board-tile");
+   if(!tile||!board.contains(tile))return;
+   const index=Number(tile.dataset.position);
+   const info=overviewTileInfo({tiles,slots,perfecto},index);
+   if(!info)return;
+   if(selectedTile){
+    selectedTile.classList.remove("is-selected");
+    selectedTile.setAttribute("aria-pressed","false");
+   }
+   selectedTile=tile;tile.classList.add("is-selected");
+   tile.setAttribute("aria-pressed","true");
+   const title=document.createElement("strong");
+   title.textContent="Position "+info.position+" · "+
+    (info.tier?"T"+info.tier+" "+info.name:"Empty plate");
+   const details=document.createElement("span");
+   details.textContent=info.plate+" plate · "+info.status;
+   selection.replaceChildren(title,details);
+   selection.classList.remove("hidden");
+  };
   const filled=tiles.filter(n=>n>=0).length;
   $("boardStatus").textContent=filled+" sushi tiles";
-  $("boardDetails").textContent=filled+" occupied slots · "+slots.filter(n=>n>=0).length+" / 100 unlocked slots across an 8×15 board · "+fires.filter(n=>n>=0).length+" fireplaces. Hover over a slot or fireplace for details.";
+  $("boardDetails").textContent=filled+" occupied slots · "+slots.filter(n=>n>=0).length+" / 100 unlocked slots across an 8×15 board · "+fires.filter(n=>n>=0).length+" fireplaces. Select a plate to inspect it, or hover over a fireplace for details.";
 }
 function importSave(data,label){
   const parsed=decodeSave(data);
@@ -177,6 +255,8 @@ function importSave(data,label){
   if($("baseTier").value==="custom")renderCustomEditor();
   $("solver").classList.remove("hidden");
   $("solverNote").textContent="JSON loaded. Click Run optimizer to calculate a suggested preparation and merge sequence.";
+  $("solverScoreBubble").classList.add("hidden");
+  $("solverScoreLabel").textContent="Estimated combo score:";
   $("solverScore").textContent="—";$("solverMoves").textContent="—";$("solverSteps").replaceChildren();
   $("importStatus").textContent="JSON imported";$("importStatus").classList.add("success");
   const tierProgress=detectSushiProgress(parsed);
@@ -185,7 +265,7 @@ function importSave(data,label){
   // Parsing and dashboard rendering are separate: a stale UI module must
   // never misreport successfully decoded game data as an invalid JSON file.
   let dashboardError=null;
-  try{sushiLab.refresh();}
+  try{sushiLab.markImported();}
   catch(e){dashboardError=e;console.error("Sushi Lab dashboard rendering failed",e);}
   $("jsonPreview").textContent=JSON.stringify({source:parsed.source,sushiArrayLengths:parsed.sushi.map(x=>Array.isArray(x)?x.length:null),firstTiles:parsed.tiles.slice(0,30),slotTypes:parsed.slots,fireTypes:parsed.fires,perfectoFlags:parsed.perfecto?.slice(0,70)??null},null,2);
   if(dashboardError){
@@ -200,7 +280,10 @@ function error(e){$("importStatus").textContent="Import failed";$("importStatus"
 $("pasteToggle").addEventListener("click",()=>{const open=$("pasteArea").classList.toggle("hidden")===false;$("pasteToggle").setAttribute("aria-expanded",String(open));if(open)$("jsonInput").focus();});
 $("parseJson").addEventListener("click",()=>{try{importSave(JSON.parse($("jsonInput").value),"Pasted JSON");}catch(e){error(e);}});
 $("jsonFile").addEventListener("change",async e=>{const f=e.target.files?.[0];if(!f)return;try{importSave(JSON.parse(await f.text()),f.name);}catch(err){error(err);}});
-$("clearImport").addEventListener("click",()=>{cancelRunningSearch();disposeReplay();imported=null;customBoard=null;$("solver").classList.add("hidden");$("jsonInput").value="";$("jsonFile").value="";$("board").replaceChildren();$("fireplaces").replaceChildren();$("importSummary").classList.add("hidden");$("pasteArea").classList.add("hidden");$("pasteToggle").setAttribute("aria-expanded","false");$("importStatus").textContent="Waiting for data";$("importStatus").classList.remove("success");$("boardStatus").textContent="Import a save";$("boardDetails").textContent="Your imported tiles will appear here.";$("jsonPreview").textContent="No JSON imported yet.";sushiLab.refresh();});
+$("clearImport").addEventListener("click",()=>{cancelRunningSearch();disposeReplay();imported=null;customBoard=null;$("solver").classList.add("hidden");$("jsonInput").value="";$("jsonFile").value="";$("board").replaceChildren();$("fireplaces").replaceChildren();$("importSummary").classList.add("hidden");$("importError").classList.add("hidden");$("importError").textContent="";$("pasteArea").classList.add("hidden");$("pasteToggle").setAttribute("aria-expanded","false");$("importStatus").textContent="Waiting for data";$("importStatus").classList.remove("success");$("boardStatus").textContent="Import a save";$("boardDetails").textContent="Your imported tiles will appear here.";$("jsonPreview").textContent="No JSON imported yet.";$("boardSelection").classList.add("hidden");$("boardSelection").replaceChildren();renderPlateBreakdown(null);sushiLab.clearImported();});
+
+// The Overview shows the same plate colors even before a save is imported.
+renderPlateBreakdown(null);
 
 // Merge physics and staircase recycling live in optimizer-core.mjs.
 // Slot relocation layouts are generated by board-geometry.mjs.
@@ -339,7 +422,7 @@ function validateTiming(moves,timeout,secondsPerMerge,secondsPerRelocation){
   return {events,valid:events.every(e=>e.safe),
     minimumMargin:events.length?Math.min(...events.map(e=>e.remaining)):null,totalDuration};
 }
-async function showSolver(signal){
+async function showSolver(signal,foundId=null,savedOnly=false){
   throwIfCancelled(signal);
   if(!imported)return;
   const detected=detectSushiProgress(imported);
@@ -357,26 +440,107 @@ async function showSolver(signal){
   if(positions.length<2){$("solverNote").textContent="At least two unlocked slots are required.";$("solverSteps").replaceChildren();return;}
   $("solverNote").textContent="Searching prepared tier layouts…";
   const mode="descending domino";
-   const optimizerMode=getModeInfo($("optimizerMode").value).id;
-   const optimizerModeLabel=modeDisplayLabel(getModeInfo(optimizerMode));
-  const custom=$("baseTier").value==="custom";
+  const foundInfo=foundId?FOUND_CONFIGURATIONS.find(config=>config.id===foundId):null;
+  if(foundId&&!foundInfo)throw Error("Unknown found configuration");
+  const optimizerMode=foundInfo?foundInfo.id:getModeInfo($("optimizerMode").value).id;
+  const optimizerModeLabel=foundInfo?"Found configuration · "+foundInfo.name:
+   modeDisplayLabel(getModeInfo(optimizerMode));
+  const custom=!foundInfo&&$("baseTier").value==="custom";
+  if(savedOnly&&(!["optimizer1","optimizer2","optimizer3","optimizer4","optimizer5"].includes(optimizerMode)||custom))
+   throw Error("Select Fast, Mid, Slow, Max, or Custom to view its saved research best.");
+  // Optional score stopping applies only to Custom. Configurations per
+  // unique split is now the single search-size control.
+  const customOptimizer=optimizerMode==="optimizer5";
+  const goal=customOptimizer?Number($("scoreTarget").value):0;
+  if(customOptimizer&&(!Number.isSafeInteger(goal)||goal<0))
+   throw Error("Custom score target must be a nonnegative integer.");
   const protectTier64=maxTier>=64||imported.tiles.includes(63);
   const highestIngredient=protectTier64&&maxTier>=64?maxTier-1:maxTier;
-  const selectedBase=custom?0:($("baseTier").value==="manual"?
+  const selectedBase=custom||foundInfo?0:($("baseTier").value==="manual"?
     Math.min(highestIngredient,Math.max(1,Math.round(Number($("manualBaseTier").value)||1))):
     (Number($("baseTier").value)||0));
   // A protected Tier 64 is retained for lower-tier legacy setups. Above
   // Tier 64 the protected preparation anchor becomes the selected maximum.
   const arrangements=custom?[{name:"Current positions",slots}]:layoutOptions(slots);
-  const candidates=custom?null:arrangements.flatMap(layout=>{
+  const perSplit=Number($("customPerSplit").value);
+  const customSettings={splitMode:$("customSplitMode").value,perSplit};
+  if(!custom&&optimizerMode==="optimizer5"&&(!Number.isSafeInteger(perSplit)||perSplit<1||perSplit>1000))
+   throw Error("Choose 1–1,000 configurations per unique split.");
+  const dualSplit=!custom&&!foundInfo&&["optimizer1","optimizer2","optimizer3","optimizer4","optimizer5"].includes(optimizerMode);
+  const researchState={checkedBefore:0,persistent:true,contexts:new Map(),best:null};
+  const baseSplitMode=optimizerMode==="optimizer5"?customSettings.splitMode:optimizerMode;
+  const searchBudget=optimizerMode==="optimizer5"?perSplit:50;
+  const generated=custom?null:await Promise.all(arrangements.map(async layout=>{
+    throwIfCancelled(signal);
     const layoutPositions=layout.slots.map((v,i)=>v>=0?i:-1).filter(i=>i>=0);
-    const prepared=getModeCandidates(layoutPositions,maxTier,cap,selectedBase,chain,protectTier64,optimizerMode);
+    let prepared;
+    if(dualSplit){
+      const context=researchContext({maxTier,cap,chain,selectedBase,
+       protectHighest:protectTier64,slots:layout.slots});
+      const history=await loadResearchHistory(context);
+      researchState.contexts.set(context,history);
+      researchState.checkedBefore+=history.seen.size;
+      if(!history.persistent)researchState.persistent=false;
+      // Older or corrupted results must never become the new baseline.
+      if(history.best?.search?.moves&&history.best?.board){
+        try{
+          const verified=validateComboReplay(history.best.board,
+           history.best.search.moves,cap,chain,layout.slots,maxTier);
+          if(verified.score===history.best.search.score&&
+           verified.board.every((tier,i)=>tier===history.best.search.board[i])&&
+           (!researchState.best||history.best.search.score>researchState.best.search.score))
+           researchState.best={...history.best,slots:layout.slots,layoutName:layout.name};
+        }catch{/* Invalid saved results are ignored. */}
+      }
+      await yieldToUI(signal);
+      const base=savedOnly?[]:getModeCandidates(layoutPositions,maxTier,cap,selectedBase,
+       chain,protectTier64,baseSplitMode,customSettings);
+      prepared=(savedOnly?[]:buildNovelSplitCandidates(base,layoutPositions,maxTier,
+       selectedBase,searchBudget,history)).map(candidate=>({...candidate,researchContext:context}));
+    }else{
+      prepared=foundInfo?
+       [buildFoundConfiguration(foundId,layoutPositions,maxTier,cap,chain,protectTier64)].filter(Boolean):
+       getModeCandidates(layoutPositions,maxTier,cap,selectedBase,chain,protectTier64,optimizerMode,customSettings);
+    }
     return prepared.map(candidate=>({...candidate,slots:layout.slots,layoutName:layout.name}));
-  });
+  }));
+  // Historical fixed boards are replayed once, never used as research seeds.
+  const allCandidates=generated?.flat()??null;
+  const candidates=foundInfo?allCandidates.slice(0,1):allCandidates;
   const total=custom?1:candidates.length;
-  if(total<1)throw Error("No valid preparations for these tier settings.");
-  let solution=null;
-  const dualSplit=!custom&&["optimizer1","optimizer2","optimizer3","optimizer4"].includes(optimizerMode);
+  if(total<1&&!researchState.best)throw Error(savedOnly?
+   "There is no saved best yet for these game settings. Run a split optimizer first.":
+   foundInfo?"This Found Configuration requires 100 contiguous slots, T64, Wind limit T58, and chain limit 25.":
+   "No new configurations could be generated for these game settings.");
+  let solution=researchState.best;
+  // Keep this run's strongest completed candidate separate from the saved
+  // all-time winner. Stop & Continue must use the former, even if it scores less.
+  let currentRunSolution=null;
+  let showCurrentRun=false;
+  let overallWinner=solution;
+  let winningIsFromCache=Boolean(solution);
+  let evaluatedCount=0,runBest=null;
+  const previousRecord=researchState.best;
+  const statsUpdate=()=>{
+   if(!dualSplit)return;
+   const initial=previousRecord?.search?.score??null;
+   $("researchSavedBest").textContent=overallWinner?.search?.score?.toLocaleString()??"—";
+   $("researchRunBest").textContent=runBest?.toLocaleString()??"—";
+   $("researchLifetime").textContent=(researchState.checkedBefore+evaluatedCount).toLocaleString();
+   $("researchRunCount").textContent=evaluatedCount.toLocaleString();
+   $("researchSkipped").textContent=researchState.checkedBefore.toLocaleString();
+   $("researchImprovement").textContent=initial===null?
+    (runBest===null?"—":"New record"):(overallWinner?.search?
+    "+"+Math.max(0,overallWinner.search.score-initial).toLocaleString():"—");
+  };
+  statsUpdate();
+  if(dualSplit){
+    $("researchHistoryStatus").textContent=
+     researchState.checkedBefore.toLocaleString()+" previously evaluated boards for these game settings · "+
+     total.toLocaleString()+" new preparations this run · "+
+     (solution?"Best saved score: "+solution.search.score.toLocaleString():"No saved best yet")+
+     (researchState.persistent?". Results remain on this device.":" · Browser storage unavailable; history lasts only until this page closes.");
+  }
   $("optimizerSingleProgress").classList.toggle("hidden",dualSplit);
   $("optimizerDualProgress").classList.toggle("hidden",!dualSplit);
   const tracks={
@@ -390,10 +554,23 @@ async function showSolver(signal){
     track.progress.value=0;
     track.status.textContent="50/50 · 0%";
   }
+  // The running bubble reflects only THIS search's best, not the historical
+  // saved winner used to protect results from regressing across sessions.
+  const updateLiveScore=()=>{
+   setComboScoreBubble(true,currentRunScore({splitResearch:dualSplit,runBest,solution}));
+   if(activeSearch){
+    // A cached record is NOT enough to enable Stop & Continue.
+    activeSearch.hasResult=Boolean((dualSplit?currentRunSolution:solution)?.search);
+    if(!activeSearch.signal.aborted)
+     $("stopKeepBest").disabled=!activeSearch.hasResult;
+   }
+   statsUpdate();
+  };
   const progress=(done,candidate=null)=>{
-    const pct=Math.round(done/total*100);
+    const pct=total?Math.round(done/total*100):100;
     $("optimizerProgressBar").value=done;
-    $("optimizerProgressBar").max=total;
+    $("optimizerProgressBar").max=Math.max(1,total);
+    if(total===0)$("optimizerProgressBar").value=1;
     if(dualSplit&&candidate?.splitDirection){
       const track=tracks[candidate.splitDirection];
       track.done++;
@@ -408,8 +585,33 @@ async function showSolver(signal){
     }
   };
   progress(0);
-  // Yield between candidate evaluations so progress can paint in the browser.
+  // A normal completed research run and Stop & Continue both show this
+  // run's result. View saved best is the explicit path to the old record.
+  if(solution)updateLiveScore();
   await yieldToUI(signal);
+  // Refinement improves the selected current-run board without replacing
+  // the historical record unless the verified score really beats it.
+  const keepBetterSearch=next=>{
+    if(next&&(next.score>solution.search.score||
+     (next.score===solution.search.score&&next.remaining<solution.search.remaining))){
+     solution.search=next;
+     if(dualSplit&&!winningIsFromCache){
+      currentRunSolution={...solution,search:next};
+      if(betterRunCandidate(solution,overallWinner))overallWinner=solution;
+      runBest=next.score;
+     }
+    }
+    updateLiveScore();
+  };
+  const persistWinner=async candidate=>{
+    if(!candidate?.researchContext||!candidate.search?.moves)return;
+    const verified=validateComboReplay(candidate.board,candidate.search.moves,
+     cap,chain,candidate.slots,maxTier);
+    if(verified.score!==candidate.search.score||
+     !verified.board.every((tier,i)=>tier===candidate.search.board[i]))
+     throw Error("Research result failed replay validation.");
+    await rememberBestCandidate(candidate.researchContext,candidate);
+  };
   if(custom){
     const board=getCustomBoard().slice();
     if(board.filter(v=>v>0).length<2)throw Error("Place at least two sushi on the custom board.");
@@ -422,43 +624,152 @@ async function showSolver(signal){
     search=searchTacticalCombos(board,cap,chain,slots,search,{depth:14,width:12,branchLimit:16,maximumTier:maxTier});
     await yieldToUI(signal);
     solution={board,slots,layoutName:"Current positions",base:"custom",shape:"user-defined",name:"Custom board",search,testedCandidates:1};
+    updateLiveScore();
     progress(1);
   }else{
-    for(let i=0;i<candidates.length;i++){
-      throwIfCancelled(signal);
-      const candidate=candidates[i];
-      const greedy=searchCombos(candidate.board,cap,chain,4,positions.length-1,mode,maxTier);
-      const search=searchStaircaseCombos(candidate.board,cap,chain,candidate.slots,greedy,{maximumTier:maxTier});
-      if(!solution||search.score>solution.search.score||(search.score===solution.search.score&&search.remaining<solution.search.remaining))solution={...candidate,search};
-      progress(i+1,candidate);
-      await yieldToUI(signal);
+    // Abort means discard normally; "Stop & Continue" selects the
+    // best replay-validated candidate from this invocation without refinement.
+    try{
+    if(dualSplit&&typeof Worker!=="undefined"&&total>0){
+      await scanSplitDirectionsInParallel(candidates,
+       {cap,chain,mode,maxTier},signal,async({direction,processed,splitPercent,improved,checked})=>{
+        // Only report work as checked after a Worker completes its batch.
+        if(improved)await persistWinner(improved);
+        if(checked?.length)await rememberEvaluatedBoards(checked);
+        const track=tracks[direction];
+        track.done+=processed;
+        track.progress.value=track.done;
+        track.status.textContent=splitPercent+"/"+(100-splitPercent)+" · "+
+         Math.round(track.done/Math.max(1,track.total)*100)+"% ("+
+         track.done+"/"+track.total+")";
+        evaluatedCount+=processed;
+        $("optimizerProgressBar").value=evaluatedCount;
+        $("optimizerProgressBar").max=total;
+        $("optimizerProgressText").textContent=optimizerModeLabel+" · "+
+         evaluatedCount+" / "+total+" layouts evaluated concurrently";
+        // The worker has already replay-validated the candidate above.
+        if(betterRunCandidate(improved,currentRunSolution))
+         currentRunSolution=improved;
+        runBest=currentRunSolution?.search?.score??null;
+        if(betterRunCandidate(improved,solution)){
+          solution=improved;
+          overallWinner=improved;
+          winningIsFromCache=false;
+        }
+        // Show progress from THIS run even if the saved record is stronger.
+        updateLiveScore();
+        if(reachedCurrentRunGoal(goal,runBest)&&activeSearch&&!signal.aborted)
+         requestKeepBest();
+      });
+    }else if(total>0){
+      // Non-split planners and browsers lacking module Workers retain the
+      // original single-thread evaluation as a compatible fallback.
+      for(let i=0;i<candidates.length;i++){
+        throwIfCancelled(signal);
+        const candidate=candidates[i];
+        const greedy=searchCombos(candidate.board,cap,chain,4,positions.length-1,mode,maxTier);
+        const search=searchStaircaseCombos(candidate.board,cap,chain,candidate.slots,greedy,{maximumTier:maxTier});
+        if(!solution||search.score>solution.search.score||(search.score===solution.search.score&&search.remaining<solution.search.remaining)){
+          solution={...candidate,search};
+          overallWinner=solution;
+          winningIsFromCache=false;
+          updateLiveScore();
+        }
+        if(dualSplit){
+         const candidateResult={...candidate,search};
+         if(betterRunCandidate(candidateResult,currentRunSolution)){
+          // Validate even sub-record candidates, since Stop & Continue
+          // can intentionally choose one below the saved all-time score.
+          await persistWinner(candidateResult);
+          currentRunSolution=candidateResult;
+         }
+         if(solution?.board===candidate.board)await persistWinner(solution);
+         await rememberEvaluatedBoards([{context:candidate.researchContext,
+          key:candidate.board.join(",")}]);
+         evaluatedCount++;
+         runBest=currentRunSolution?.search?.score??null;
+         updateLiveScore();
+        }
+        progress(i+1,candidate);
+        if(reachedCurrentRunGoal(goal,runBest)&&activeSearch&&!signal.aborted)
+         requestKeepBest();
+        await yieldToUI(signal);
+      }
     }
-    solution={...solution,testedCandidates:candidates.length};
-    $("optimizerProgressText").textContent="Refining the best preparation…";
-    await yieldToUI(signal);
-    solution.search=beamSearchCombos(solution.board,cap,chain,solution.board.filter(v=>v>0).length-1,solution.search,maxTier);
-    await yieldToUI(signal);
-    solution.search=searchStaircaseCombos(solution.board,cap,chain,solution.slots,solution.search,{maximumTier:maxTier});
-    $("optimizerProgressText").textContent="Checking tactical Wind setups…";
-    await yieldToUI(signal);
-    solution.search=searchTacticalCombos(solution.board,cap,chain,solution.slots,solution.search,{depth:12,width:12,branchLimit:16,maximumTier:maxTier});
-    await yieldToUI(signal);
-    if(optimizerMode==="adaptive"||optimizerMode==="experimental12"||optimizerMode==="experimental13"){
-      $("optimizerProgressText").textContent="Exploring deeper merge orders…";
+    }catch(error){
+      if(!(error?.name==="AbortError"&&activeSearch?.keepBestRequested))
+       throw error;
+    }
+    if(signal.aborted&&!activeSearch?.keepBestRequested)throwIfCancelled(signal);
+    if(!solution?.search){
+      if(signal.aborted)throwIfCancelled(signal);
+      throw Error("No completed, replay-validated configuration is available yet.");
+    }
+    // Completed runs and Stop & Continue show this run's own winner.
+    // View saved best (or a run with no new boards to evaluate) uses
+    // the historical record, which is maintained independently.
+    overallWinner=solution;
+    showCurrentRun=dualSplit&&!savedOnly&&Boolean(currentRunSolution?.search);
+    const selected=selectDisplayedSearchResult(overallWinner,currentRunSolution,showCurrentRun);
+    if(showCurrentRun)winningIsFromCache=false;
+    // Never mutate the saved candidate's search object during refinement.
+    solution={...selected,search:{...selected.search},
+     testedCandidates:dualSplit?evaluatedCount:candidates.length};
+    if(!winningIsFromCache&&!activeSearch?.keepBestRequested){
+     try{
+      $("optimizerProgressText").textContent="Refining the best preparation…";
       await yieldToUI(signal);
-      solution.search=searchLookaheadCombos(solution.board,cap,chain,solution.search,
-        {maxPasses:3,maxBranches:18,maxEvaluations:3500,maximumTier:maxTier});
+      keepBetterSearch(beamSearchCombos(solution.board,cap,chain,solution.board.filter(v=>v>0).length-1,solution.search,maxTier));
       await yieldToUI(signal);
+      keepBetterSearch(searchStaircaseCombos(solution.board,cap,chain,solution.slots,solution.search,{maximumTier:maxTier}));
+      $("optimizerProgressText").textContent="Checking tactical Wind setups…";
+      await yieldToUI(signal);
+      keepBetterSearch(searchTacticalCombos(solution.board,cap,chain,solution.slots,solution.search,{depth:12,width:12,branchLimit:16,maximumTier:maxTier}));
+      await yieldToUI(signal);
+      if(foundInfo||optimizerMode==="adaptive"||optimizerMode==="experimental12"||optimizerMode==="experimental13"){
+       $("optimizerProgressText").textContent="Exploring deeper merge orders…";
+       await yieldToUI(signal);
+       keepBetterSearch(searchLookaheadCombos(solution.board,cap,chain,solution.search,
+         {maxPasses:3,maxBranches:18,maxEvaluations:3500,maximumTier:maxTier}));
+       await yieldToUI(signal);
+      }
+     }catch(error){
+      // A Stop & Continue click during refinement must still show the last
+      // completed candidate rather than being treated like Cancel.
+      if(!(error?.name==="AbortError"&&activeSearch?.keepBestRequested))
+       throw error;
+     }
+    } // A cached winner is already verified; don't recompute its merge search.
+    if(dualSplit&&activeSearch?.keepBestRequested){
+     solution={...selectDisplayedSearchResult(overallWinner,currentRunSolution,true),
+      testedCandidates:evaluatedCount};
+    }else{
+     // Refinement updates history only when this run breaks the record.
+     if(betterRunCandidate(solution,overallWinner))overallWinner=solution;
     }
   }
-  throwIfCancelled(signal);
+  if(signal.aborted&&!activeSearch?.keepBestRequested)throwIfCancelled(signal);
   if(!solution||!solution.search)throw Error("No valid preparations for these tier settings.");
+  if(dualSplit){
+    $("researchHistoryStatus").textContent=
+      (researchState.checkedBefore+evaluatedCount).toLocaleString()+
+      " boards evaluated across sessions for these game settings · "+
+      "Saved best verified score: "+(overallWinner?.search?.score??solution.search.score).toLocaleString()+
+      (showCurrentRun?
+       " · Showing this run's best: "+solution.search.score.toLocaleString():
+       savedOnly?" · Viewing saved best":
+       evaluatedCount===0?" · No new boards; showing saved best":"")+
+      (researchState.persistent?" · Saved in this browser.":" · Session-only memory.");
+  }
   const result=solution.search;
   const recommendedSlots=solution.slots??slots;
   const verified=validateComboReplay(solution.board,result.moves,cap,chain,recommendedSlots,maxTier);
   if(verified.score!==result.score||!verified.board.every((t,i)=>t===result.board[i])){
     throw Error("Combo replay validation disagrees with the optimizer result.");
   }
+  // The saved-best store only replaces records with a higher validated score.
+  // Displaying a weaker current-run result does not overwrite historical best.
+  if(dualSplit)await persistWinner(solution);
   const timeout=Math.max(.1,Number($("comboTimeout").value)||5.5);
   const moveTime=Math.max(.1,Number($("mergeTime").value)||1.5);
   const relocationTime=Math.max(.1,Number($("relocationTime").value)||.6);
@@ -466,11 +777,21 @@ async function showSolver(signal){
   $("timingStatus").textContent=timing.valid?"Timing feasible under assumptions":"Timing infeasible under assumptions";
   $("timingStatus").className=timing.valid?"timing-good":"timing-bad";
   $("timingDetails").textContent="Estimated execution: "+timing.totalDuration.toFixed(1)+"s · Tightest interval margin: "+(timing.minimumMargin===null?"—":timing.minimumMargin.toFixed(1)+"s")+" · Repositioning does not refresh the combo timer; merging does.";
-  $("solverScore").textContent=result.score.toLocaleString();
+  setComboScoreBubble(false,result.score);
   $("solverMoves").textContent=verified.merges;
   $("solverRepositions").textContent=verified.repositions;
-  $("solverNote").textContent=(custom?"Custom board · staircase recycling, greedy, beam, and tactical reposition searches tested. ":"Best of "+solution.testedCandidates+" preparations (base Tier "+solution.base+", "+solution.shape+"). ")+result.remaining+" occupied sushi remain. Heat model: "+mode+". Scores remain estimates, not a guaranteed maximum.";
-  $("solverNote").textContent+=" Mode: "+optimizerModeLabel+". Winning strategy: "+result.strategy+". Slot arrangement: "+(solution.layoutName??"Current positions")+". Available prepared tier: "+maxTier+"; East Wind limit: "+cap+".";
+  $("solverNote").textContent=(custom?"Custom board · staircase recycling, greedy, beam, and tactical reposition searches tested. ":
+   solution.testedCandidates===0?"Loaded previously verified best configuration. ":
+   "Best of "+solution.testedCandidates+" new preparations (base Tier "+solution.base+", "+solution.shape+"). ")+result.remaining+" occupied sushi remain. Heat model: "+mode+". Scores remain estimates, not a guaranteed maximum.";
+  if(activeSearch?.keepBestRequested&&dualSplit)
+   $("solverNote").textContent="Stopped early. This is the best completed configuration from the current run, not necessarily the historical best. "+$("solverNote").textContent;
+  else if(dualSplit&&savedOnly)
+   $("solverNote").textContent="Viewing the historical saved best configuration. "+$("solverNote").textContent;
+  else if(dualSplit&&evaluatedCount===0)
+   $("solverNote").textContent="No new configurations were available; showing the historical saved best. "+$("solverNote").textContent;
+  else if(dualSplit)
+   $("solverNote").textContent="This is the best completed configuration from the current run. "+$("solverNote").textContent;
+  $("solverNote").textContent+=(foundInfo?" This is a previously found fixed board, not a configuration discovered by an optimizer.":"")+" Mode: "+optimizerModeLabel+". Winning strategy: "+result.strategy+". Slot arrangement: "+(solution.layoutName??"Current positions")+". Available prepared tier: "+maxTier+"; East Wind limit: "+cap+".";
   if(solution.adaptive)$("solverNote").textContent+=" Adaptive "+solution.shape+
    " (working tier T"+solution.workingTier+
    (solution.referenceExperiment?", learned from historical Exp "+solution.referenceExperiment:"")+
@@ -491,6 +812,7 @@ async function showSolver(signal){
     root.append(moves);
   }
   const sections=custom?null:getPreparedBoardSections(solution,recommendedSlots);
+  const comparison=comparePreparedBoard(imported.tiles,slots,solution.board,recommendedSlots);
   const showSlotRecommendation=hasSlotLayoutChanges(slots,recommendedSlots);
   let sectionNumber=1;
   function make(label,values,showTiers,sectionInfo=null,slotLayoutHeading=false){
@@ -518,13 +840,40 @@ async function showSolver(signal){
         card.title="Hover, focus or click to highlight this section";
       }
       guide.append(supply,chainGuide);root.append(guide);
-      const key=document.createElement("p");key.className="hint prepared-section-key";
-      key.textContent="Rose border = merge supplies and tools"+
-       (protectedTier?" (including protected Tier "+protectedTier+")":"")+
-       " · Mint border = fixed Wind engine. Hover or focus a guide card to spotlight its section; click to pin it.";
-      root.append(key);
     }
-    const legend=document.createElement("p");legend.className="hint";legend.textContent="Green: Regular · Red: Hot · Blue: Cold · Gold: Milktoast. Hover over a tile for its slot type and position.";root.append(legend);
+    // Reuse Overview's square plate swatches and show the section outlines
+    // as matching rose/mint border samples instead of describing colors.
+    const legend=document.createElement("div");
+    legend.className="legend optimizer-board-legend";
+    const addKey=(symbolClass,labelText,symbolText="")=>{
+      const item=document.createElement("span");
+      const sample=document.createElement("i");sample.className=symbolClass;
+      sample.setAttribute("aria-hidden","true");
+      if(symbolText)sample.textContent=symbolText;
+      item.append(sample,document.createTextNode(labelText));
+      legend.append(item);
+    };
+    if(sectionInfo){
+      addKey("prepared-legend-supply","Supply / tools");
+      addKey("prepared-legend-chain","Wind engine");
+    }
+    for(const [symbol,labelText] of [
+      ["normal","Regular"],["hot","Hot"],["cold","Cold"],["milk","Milktoast"]
+    ])addKey(symbol,labelText);
+    if(showTiers){
+      // Match the actual symbols and colors drawn on the prepared sushi tiles.
+      addKey("combo-cell-status combo-status-correct","Already correct","✓");
+      addKey("combo-cell-status combo-status-wrong","Wrong sushi","!");
+      addKey("combo-cell-status combo-status-missing","Add sushi","+");
+      addKey("combo-cell-status combo-status-slot","Plate mismatch","↔");
+    }
+    root.append(legend);
+    const legendHint=document.createElement("p");
+    legendHint.className="hint optimizer-legend-hint";
+    legendHint.textContent=(sectionInfo?
+     "Hover or focus a section card to highlight its tiles; click to pin it. ":"")+
+     "Hover over a tile for its plate type and position.";
+    root.append(legendHint);
     const scroll=document.createElement("div");scroll.className="board-scroll optimizer-board-scroll";
     const grid=document.createElement("div");grid.className="board optimizer-board"+(sectionInfo?" prepared-section-board":"");
     for(let i=0;i<BOARD_CELLS;i++){
@@ -534,7 +883,10 @@ async function showSolver(signal){
       if(sectionInfo?.roles[i])cell.classList.add("prepared-"+sectionInfo.roles[i]);
       if(sectionInfo?.protectedPosition===i)cell.classList.add("prepared-protected");
       if(sectionInfo?.firstEnginePosition===i)cell.classList.add("prepared-engine-start");
-      if(slot>=0&&showTiers&&tier>0){addSushiVisual(cell,tier);}
+      if(slot>=0&&showTiers&&tier>0){
+        addSushiVisual(cell,tier);
+        if(values===solution.board)decoratePreparedCell(cell,comparison.statuses[i]);
+      }
       else if(slot>=0&&!showTiers){const dot=document.createElement("span");dot.className="slot-marker";dot.textContent="•";cell.append(dot);}
       const role=sectionInfo?.roles[i]==="supply"?(sectionInfo.protectedPosition!==null&&i===sectionInfo.protectedPosition?" · Protected anchor / supply section":" · Supply / tools"):sectionInfo?.roles[i]==="chain"?" · Fixed Wind chain":"";
       cell.title="Position "+(i+1)+" · "+(SLOT_NAMES[slot]??"Locked")+(showTiers&&tier>0?" · Tier "+tier:"")+role;
@@ -595,9 +947,13 @@ async function showSolver(signal){
   }
   if(showSlotRecommendation)make("Recommended slot layout ("+(solution.layoutName??"current")+")",[],false,null,true);
   make(custom?"Your custom starting board":"Recommended prepared sushi tiers (not your current inventory)",solution.board,true,sections);
+  renderComboReport(root,{solution,previousBest:dualSplit?previousRecord:null});
   const heading=document.createElement("h3");heading.textContent=sectionNumber+" · Interactive merge sequence";root.append(heading);
-  const intro=document.createElement("p");intro.className="hint";intro.textContent="Watch the picked sushi slide into the destination before the merge and East Wind resolve. Blue marks the source, green the destination, and purple marks Wind. Use Play or select a step; Step 0 shows the full board.";root.append(intro);
+  const intro=document.createElement("p");intro.className="hint";intro.textContent="The board shows the selected step. Blue FROM and green TO labels mark the upcoming move; purple highlights show Wind upgrades. Use the step list or playback controls to follow the sequence.";root.append(intro);
   const layout=document.createElement("div");layout.className="merge-layout";
+  layout.tabIndex=0;
+  layout.setAttribute("role","region");
+  layout.setAttribute("aria-label","Interactive Sushi Station merge replay. Use left and right arrows to navigate steps.");
   const left=document.createElement("div");left.className="merge-board-panel";
   const controls=document.createElement("div");controls.className="merge-controls";
   const navigation=document.createElement("div");navigation.className="merge-navigation";
@@ -605,9 +961,10 @@ async function showSolver(signal){
   const previous=document.createElement("button");previous.type="button";previous.className="button secondary";previous.textContent="← Previous";
   const playButton=document.createElement("button");playButton.type="button";playButton.className="button primary merge-play";playButton.textContent="▶ Play";playButton.setAttribute("aria-pressed","false");
   const next=document.createElement("button");next.type="button";next.className="button secondary";next.textContent="Next →";
+  const nextWind=document.createElement("button");nextWind.type="button";nextWind.className="button quiet merge-next-wind";nextWind.textContent="Next Wind ✦";nextWind.title="Jump to the next merge with East Wind upgrades (skips intermediate actions in this preview)";
   const lastStep=document.createElement("button");lastStep.type="button";lastStep.className="button quiet";lastStep.textContent="Last step";lastStep.title="Skip to the final step";
   const indicator=document.createElement("strong");indicator.className="merge-step-indicator";indicator.setAttribute("aria-live","polite");
-  navigation.append(first,previous,playButton,next,lastStep);
+  navigation.append(first,previous,playButton,next,nextWind,lastStep);
   controls.append(navigation,indicator);left.append(controls);
   const timeline=document.createElement("div");timeline.className="merge-timeline";
   const seek=document.createElement("input");seek.type="range";seek.className="merge-seek";seek.min="0";seek.max=String(result.moves.length);seek.step="1";seek.value="0";seek.setAttribute("aria-label","Jump to replay step");
@@ -619,14 +976,25 @@ async function showSolver(signal){
     speedSelect.append(option);
   }
   speedLabel.append(speedSelect);
-  timeline.append(seek,speedLabel);left.append(timeline);
+  const previewLabel=document.createElement("label");previewLabel.className="merge-preview-label";
+  const previewCheck=document.createElement("input");previewCheck.type="checkbox";previewCheck.checked=true;
+  previewLabel.append(previewCheck,document.createTextNode("Highlight next move"));
+  timeline.append(seek,speedLabel,previewLabel);left.append(timeline);
   const boardScroll=document.createElement("div");boardScroll.className="board-scroll optimizer-board-scroll";
   const boardGrid=document.createElement("div");boardGrid.className="board optimizer-board merge-board";
   boardScroll.append(boardGrid);left.append(boardScroll);
   const scoreLine=document.createElement("p");scoreLine.className="merge-score";left.append(scoreLine);
+  const shortcuts=document.createElement("p");shortcuts.className="hint merge-shortcuts";
+  shortcuts.textContent="Keyboard: focus the replay panel, then ← / → = previous / next, Space = play or pause, W = next Wind. Click a step on the right to jump directly.";
+  left.append(shortcuts);
   const right=document.createElement("div");right.className="merge-step-list";right.setAttribute("aria-label","Merge steps");
+  const listHeader=document.createElement("div");listHeader.className="merge-step-list-heading";
+  const listTitle=document.createElement("strong");listTitle.textContent="Step checklist";
+  const copySteps=document.createElement("button");copySteps.type="button";copySteps.className="button quiet";copySteps.textContent="Copy steps";
+  listHeader.append(listTitle,copySteps);right.append(listHeader);
   layout.append(left,right);root.append(layout);
   const cumulative=[0];for(const m of result.moves)cumulative.push(cumulative[cumulative.length-1]+m.score);
+  const replayGuide=buildReplayGuide(solution.board,result.moves,COLUMNS);
 
   let selected=0;
   const stepButtons=[];
@@ -640,6 +1008,8 @@ async function showSolver(signal){
   }
   function drawFrame(board,move,{resolved=false,timing=null}={}){
     const changes=new Map(),windOrder=new Map();
+    const nextMove=(!move||resolved)&&previewCheck.checked?
+      result.moves[selected]:null;
     if(move){
       changes.set(move.src,"source");
       changes.set(move.dst,"destination");
@@ -671,11 +1041,22 @@ async function showSolver(signal){
         }else tile.classList.add("dim-tile");
       }
       if(type>=0&&tier>0)addSushiVisual(tile,tier);
+      if(type>=0&&nextMove&&(i===nextMove.src||i===nextMove.dst)){
+        const isFrom=i===nextMove.src;
+        tile.classList.remove("dim-tile");
+        tile.classList.add("focus-tile",isFrom?"merge-next-from":"merge-next-to");
+        const marker=document.createElement("span");
+        marker.className="merge-next-marker";
+        marker.textContent=isFrom?"FROM":"TO";
+        marker.setAttribute("aria-hidden","true");
+        tile.append(marker);
+      }
       if(resolved&&move&&i===move.dst&&type>=0&&!prefersReducedMotion())
         tile.classList.add("merge-landed");
       tile.title="Position "+(i+1)+" · "+(SLOT_NAMES[type]??"Locked")+
         (tier?" · Tier "+tier:" · Empty")+
-        (changes.has(i)?" · "+changes.get(i):"");
+        (changes.has(i)?" · "+changes.get(i):"")+
+        (nextMove&&i===nextMove.src?" · Next source":nextMove&&i===nextMove.dst?" · Next destination":"");
       boardGrid.append(tile);
     }
   }
@@ -705,6 +1086,7 @@ async function showSolver(signal){
     first.disabled=selected===0;previous.disabled=selected===0;
     next.disabled=selected===result.moves.length;
     lastStep.disabled=selected===result.moves.length;
+    nextWind.disabled=nextWindReplayStep(result.moves,selected)===null;
     const move=selected>0?result.moves[selected-1]:null;
     if(!move){
       drawFrame(solution.board,null);
@@ -725,16 +1107,20 @@ async function showSolver(signal){
         const sourceRect=sourceTile.getBoundingClientRect();
         const destRect=destTile.getBoundingClientRect();
         const gridRect=boardGrid.getBoundingClientRect();
-        const dx=destRect.left-sourceRect.left,dy=destRect.top-sourceRect.top;
+        const {left,top,width,height,dx,dy}=replayFlightGeometry(
+          sourceRect,destRect,gridRect,boardGrid.clientLeft,boardGrid.clientTop);
         flightGhost=sourceTile.cloneNode(true);
         flightGhost.classList.remove("focus-tile","merge-source","dim-tile","wind-active");
         flightGhost.classList.add("merge-flying-sushi");
         flightGhost.removeAttribute("title");
         flightGhost.setAttribute("aria-hidden","true");
-        flightGhost.style.left=(sourceRect.left-gridRect.left)+"px";
-        flightGhost.style.top=(sourceRect.top-gridRect.top)+"px";
-        flightGhost.style.width=sourceRect.width+"px";
-        flightGhost.style.height=sourceRect.height+"px";
+        // Absolute positioning starts at the board's inner border edge.
+        // Match source size, then travel from center to center at the
+        // destination even if responsive tile sizes differ fractionally.
+        flightGhost.style.left=left+"px";
+        flightGhost.style.top=top+"px";
+        flightGhost.style.width=width+"px";
+        flightGhost.style.height=height+"px";
         sourceTile.classList.add("merge-source-lifted");
         boardGrid.append(flightGhost);
         const epoch=flightEpoch;
@@ -755,9 +1141,20 @@ async function showSolver(signal){
     }
     stepButtons.forEach((button,i)=>{
       button.classList.toggle("selected",i===selected);
+      button.classList.toggle("completed",i>0&&i<selected);
+      button.classList.toggle("up-next",i===selected+1);
       button.setAttribute("aria-current",i===selected?"step":"false");
     });
-    stepButtons[selected]?.scrollIntoView({block:"nearest",behavior:"auto"});
+    // Only scroll the checklist, not the entire page while autoplay runs.
+    const active=stepButtons[selected];
+    if(active){
+      const listBounds=right.getBoundingClientRect();
+      const itemBounds=active.getBoundingClientRect();
+      if(itemBounds.top<listBounds.top+45)
+        right.scrollTop+=itemBounds.top-listBounds.top-70;
+      else if(itemBounds.bottom>listBounds.bottom)
+        right.scrollTop+=itemBounds.bottom-listBounds.bottom+12;
+    }
   }
   function addStep(title,detail,index){
     const button=document.createElement("button");button.type="button";button.className="merge-step";
@@ -767,10 +1164,11 @@ async function showSolver(signal){
     right.append(button);stepButtons.push(button);
   }
   addStep("Step 0 · Prepared board","All sushi positioned; combo not started",0);
-  result.moves.forEach((m,i)=>{
-    const isMove=m.kind==="move";
-    addStep("Step "+(i+1)+" · "+(isMove?"Move":"Merge")+" · "+(m.src+1)+" → "+(m.dst+1),
-      (isMove?"Move Tier "+m.tier+" to an empty slot · +0 points":"+"+m.score+" points · "+m.events.filter(e=>e.kind==="wind").length+" Wind upgrades")+" · Total "+cumulative[i+1]+" · "+(timing.events[i].safe?"Timing OK":"Timeout risk"),i+1);
+  replayGuide.forEach((item,i)=>{
+    addStep("Step "+item.step+" · "+item.action+" · "+item.short,
+      "+"+item.score.toLocaleString()+" pts · "+item.windUpgrades+
+      " Wind · Total "+cumulative[i+1].toLocaleString()+
+      " · "+(timing.events[i].safe?"Timing OK":"Timeout risk"),item.step);
   });
   function showPlaybackState(playing){
     playButton.textContent=playing?"⏸ Pause":"▶ Play";
@@ -791,12 +1189,72 @@ async function showSolver(signal){
   first.addEventListener("click",()=>player.goTo(0));
   previous.addEventListener("click",()=>player.goTo(player.step-1));
   next.addEventListener("click",()=>player.goTo(player.step+1));
+  nextWind.addEventListener("click",()=>{
+    const windStep=nextWindReplayStep(result.moves,player.step);
+    if(windStep!==null)player.goTo(windStep);
+  });
   lastStep.addEventListener("click",()=>player.goTo(result.moves.length));
   playButton.addEventListener("click",()=>player.toggle());
   seek.addEventListener("input",()=>player.goTo(Number(seek.value)));
   speedSelect.addEventListener("change",()=>{
     finishFlight();
     player.reschedule();
+  });
+  previewCheck.addEventListener("change",()=>{
+    // Redraw the fully resolved board when changing guide visibility.
+    finishFlight();
+    const move=selected>0?result.moves[selected-1]:null;
+    const frame=move?.board??solution.board;
+    const frameTiming=move?replayMotionTiming(move,Number(speedSelect.value),
+      {reducedMotion:true}):null;
+    drawFrame(frame,move,{resolved:Boolean(move),timing:frameTiming});
+    completedScore(move);
+  });
+  layout.addEventListener("pointerdown",event=>{
+    if(event.target.closest?.("button,input,select,textarea,label"))return;
+    layout.focus({preventScroll:true});
+  });
+  layout.addEventListener("keydown",event=>{
+    if(event.altKey||event.ctrlKey||event.metaKey||
+      event.target.closest?.("button,input,select,textarea,[contenteditable='true']"))return;
+    let handled=true;
+    switch(event.key){
+      case "ArrowRight":player.goTo(player.step+1);break;
+      case "ArrowLeft":player.goTo(player.step-1);break;
+      case "Home":player.goTo(0);break;
+      case "End":player.goTo(result.moves.length);break;
+      case " ":player.toggle();break;
+      case "w":case "W":{
+        const nextWindStep=nextWindReplayStep(result.moves,player.step);
+        if(nextWindStep!==null)player.goTo(nextWindStep);
+        break;
+      }
+      default:handled=false;
+    }
+    if(handled)event.preventDefault();
+  });
+  copySteps.addEventListener("click",async()=>{
+    const lines=["Sushi Station · Combo Meter replay",
+      "Starting prepared board: "+solution.board.join(","),
+      "Total simulated score: "+result.score.toLocaleString()+" points",""];
+    replayGuide.forEach((item,index)=>{
+      lines.push("Step "+item.step+": "+item.instruction);
+      lines.push("  "+item.outcome+" · Running total: "+
+        cumulative[index+1].toLocaleString()+" points");
+    });
+    const body=lines.join("\n");
+    try{
+      if(!navigator.clipboard?.writeText)throw Error("Clipboard unavailable");
+      await navigator.clipboard.writeText(body);
+      copySteps.textContent="Copied ✓";
+    }catch{
+      const blob=new Blob([body],{type:"text/plain;charset=utf-8"});
+      const url=URL.createObjectURL(blob),link=document.createElement("a");
+      link.href=url;link.download="sushi-combo-steps.txt";
+      document.body.append(link);link.click();link.remove();
+      window.setTimeout(()=>URL.revokeObjectURL(url),1000);
+      copySteps.textContent="Downloaded steps";
+    }
   });
   const pauseWhenHidden=()=>{
     if(document.hidden){player.pause();finishFlight();}
@@ -816,17 +1274,29 @@ async function showSolver(signal){
 function initModePicker(){
  const selector=$("optimizerMode"),old=selector.value,rows=$("modeComparisonRows");
  selector.replaceChildren();rows.replaceChildren();
- const shownModes=[...MODE_CATALOG.filter(m=>m.kind==="split"),
-  ...MODE_CATALOG.filter(m=>m.kind!=="split")];
+ const shownModes=MODE_CATALOG.filter(m=>m.kind==="split");
+ const found=$("foundConfiguration"),oldFound=found.value;
+ found.replaceChildren();
+ const placeholder=document.createElement("option");
+ placeholder.value="";placeholder.textContent="Choose an Experiment…";found.append(placeholder);
+ for(const entry of FOUND_CONFIGURATIONS){
+  const option=document.createElement("option");
+  option.value=entry.id;
+  option.textContent=entry.name+" · "+entry.benchmark.toLocaleString()+" simulated pts";
+  found.append(option);
+ }
+ found.value=FOUND_CONFIGURATIONS.some(entry=>entry.id===oldFound)?oldFound:"";
  for(const mode of shownModes){
   const option=document.createElement("option");option.value=mode.id;option.textContent=modeOptionLabel(mode);selector.append(option);
   const row=document.createElement("tr");row.dataset.mode=mode.id;
-  for(const value of [modeDisplayLabel(mode),mode.difficulty,mode.benchmark===null?"—":mode.benchmark.toLocaleString()]){
+  const scope={simple:"One cascade",optimizer1:"20%",optimizer2:"10%",
+   optimizer3:"5%",optimizer4:"1%",optimizer5:"User selected"}[mode.id]??"—";
+  for(const value of [modeDisplayLabel(mode),mode.difficulty,scope]){
    const cell=document.createElement("td");cell.textContent=value;row.append(cell);
   }
   rows.append(row);
  }
- selector.value=MODE_CATALOG.some(mode=>mode.id===old)?old:"simple";
+ selector.value=shownModes.some(mode=>mode.id===old)?old:"simple";
 }
 function updateOptimizerModeHint(){
  const info=getModeInfo($("optimizerMode").value);
@@ -842,44 +1312,164 @@ function updateOptimizerModeHint(){
   (preview?"Historical T64 benchmark: ":"")+info.benchmark.toLocaleString()+" simulated pts";
  $("optimizerModeHint").textContent=info.summary+(preview?
   " Above-T64 tiers have not been confirmed in this save. Historical experiment benchmarks remain T64/T58 only.":"");
+ const isCustom=info.id==="optimizer5";
+ // Custom controls use the same main settings grid as every other mode.
+ for(const field of document.querySelectorAll(".custom-optimizer-setting"))
+  field.classList.toggle("hidden",!isCustom);
+ const count=Number($("customPerSplit").value);
+ const budget=Number.isSafeInteger(count)&&count>=1&&count<=1000?count:null;
+ const resolution=$("customSplitMode").value;
+ const ratios=new Set([...comboSplitPercentages(resolution,"supply"),
+  ...comboSplitPercentages(resolution,"engine")]);
+ $("customSearchEstimate").textContent=budget?
+  ratios.size+" unique splits × "+budget+" distinct configurations = up to "+
+  (ratios.size*budget).toLocaleString()+" preparations per slot arrangement. Actual counts can be lower where the search cannot generate enough unique boards.":
+  "Enter a whole number between 1 and 1,000.";
  for(const row of $("modeComparisonRows").rows)row.classList.toggle("is-selected",row.dataset.mode===info.id);
 }
 initModePicker();
 $("optimizerMode").addEventListener("change",updateOptimizerModeHint);
+$("customSplitMode").addEventListener("change",updateOptimizerModeHint);
+$("customPerSplit").addEventListener("input",updateOptimizerModeHint);
+const updateFoundButton=()=>{$("runFoundConfiguration").disabled=!$("foundConfiguration").value;};
+$("foundConfiguration").addEventListener("change",updateFoundButton);
+updateFoundButton();
 updateOptimizerModeHint();
-$("cancelSolver").addEventListener("click",()=>{
-  if(!activeSearch)return;
-  cancelRunningSearch();
-  $("cancelSolver").disabled=true;
-  $("cancelSolver").textContent="Stopping…";
-  $("optimizerProgressText").textContent="Stopping after the current calculation…";
+function updateCancelControls(state){
+ const running=state!=="idle",stopping=state==="stopping";
+ $("stopKeepBest").classList.toggle("hidden",!running);
+ $("stopKeepBest").disabled=stopping||!activeSearch?.hasResult;
+ $("stopKeepBest").textContent=stopping&&activeSearch?.keepBestRequested?
+  "Opening this run's result…":"Stop & Continue";
+ for(const button of [$("cancelSolver"),$("cancelSolverProgress")]){
+  button.classList.toggle("hidden",!running);
+  button.disabled=stopping;
+  button.textContent=stopping?"Stopping…":
+   button.id==="cancelSolverProgress"?"Cancel optimization":"Cancel";
+ }
+}
+function requestSearchCancellation(){
+ if(!activeSearch||activeSearch.signal.aborted)return;
+ cancelRunningSearch();
+ updateCancelControls("stopping");
+ $("optimizerProgressText").textContent="Stopping after the current calculation…";
+}
+$("cancelSolver").addEventListener("click",requestSearchCancellation);
+$("cancelSolverProgress").addEventListener("click",requestSearchCancellation);
+function requestKeepBest(){
+ if(!activeSearch||!activeSearch.hasResult||activeSearch.signal.aborted)return;
+ activeSearch.keepBestRequested=true;
+ cancelRunningSearch();
+ updateCancelControls("stopping");
+ $("optimizerProgressText").textContent="Stopping · preparing this run's best verified result…";
+}
+$("stopKeepBest").addEventListener("click",requestKeepBest);
+// Research history never includes the imported Idleon account JSON.
+function verifyImportedResearchBest(context,candidate){
+ try{
+  const [version,maxTier,cap,chain,base,protectedTop,slots]=JSON.parse(context);
+  if(!Array.isArray(slots)||slots.length!==BOARD_CELLS||
+   !Array.isArray(candidate.board)||candidate.board.length!==BOARD_CELLS||
+   !Array.isArray(candidate.slots)||candidate.slots.length!==BOARD_CELLS||
+   !candidate.slots.every((type,i)=>type===slots[i])||
+   !candidate.board.every((tier,i)=>
+     Number.isSafeInteger(tier)&&tier>=0&&tier<=Math.max(64,maxTier)&&
+     (slots[i]>=0||tier===0))||
+   !Array.isArray(candidate.search?.moves)||
+   !Array.isArray(candidate.search?.board)||
+   !Number.isSafeInteger(candidate.search?.score))return false;
+  const verified=validateComboReplay(candidate.board,candidate.search.moves,
+   cap,chain,slots,maxTier);
+  return verified.score===candidate.search.score&&
+   verified.board.every((tier,i)=>tier===candidate.search.board[i]);
+ }catch{return false;}
+}
+$("exportResearch").addEventListener("click",async()=>{
+ if(activeSearch)return;
+ const button=$("exportResearch");button.disabled=true;
+ try{
+  const payload=await exportResearchData();
+  const blob=new Blob([JSON.stringify(payload)],{type:"application/json"});
+  const url=URL.createObjectURL(blob);
+  const link=document.createElement("a");
+  link.href=url;link.download="idleon-sushi-research.json";
+  document.body.append(link);link.click();link.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),1000);
+  $("researchHistoryStatus").textContent="Exported "+
+   payload.checked.length.toLocaleString()+" board fingerprints and "+
+   payload.best.length+" saved best configurations. No account data included.";
+ }catch(error){
+  $("researchHistoryStatus").textContent="Research export failed: "+String(error.message??error);
+ }finally{button.disabled=false;}
 });
-$("runSolver").addEventListener("click",async()=>{
+$("importResearchButton").addEventListener("click",()=>{
+ if(!activeSearch)$("importResearch").click();
+});
+$("importResearch").addEventListener("change",async event=>{
+ if(activeSearch)return;
+ const file=event.target.files?.[0];
+ if(!file)return;
+ try{
+  if(file.size>50*1024*1024)throw Error("Research import exceeds the 50 MB safety limit");
+  const data=JSON.parse(await file.text());
+  const result=await importResearchData(data,verifyImportedResearchBest);
+  $("researchHistoryStatus").textContent="Imported "+
+   result.checked.toLocaleString()+" evaluated board fingerprints and "+
+   result.best+" validated best configurations. Run the optimizer to use them.";
+ }catch(error){
+  $("researchHistoryStatus").textContent="Research import failed: "+String(error.message??error);
+ }finally{event.target.value="";}
+});
+$("clearResearchHistory").addEventListener("click",async()=>{
+ if(activeSearch)return;
+ if(!window.confirm("Clear previously evaluated optimizer boards and saved best scores from this browser?"))return;
+ const button=$("clearResearchHistory");
+ button.disabled=true;
+ try{
+  await resetResearchHistory();
+  $("researchHistoryStatus").textContent="Local optimizer history cleared. The next run starts a new search.";
+ }catch(error){
+  $("researchHistoryStatus").textContent="Could not clear local research: "+String(error.message??error);
+ }finally{button.disabled=false;}
+});
+async function executeConfiguredSearch(foundId=null,savedOnly=false){
   if(!imported){$("solverNote").textContent="Import a valid game save JSON first.";return;}
   if(activeSearch)return;
   disposeReplay();
   const controller=new AbortController();
   activeSearch=controller;
-  const button=$("runSolver"),cancel=$("cancelSolver");
-  button.disabled=true;button.textContent="Optimizing…";
-  cancel.classList.remove("hidden");cancel.disabled=false;cancel.textContent="Cancel";
+  controller.keepBestRequested=false;controller.hasResult=false;
+  const runButton=$("runSolver"),foundButton=$("runFoundConfiguration");
+  const button=foundId?foundButton:runButton;
+  runButton.disabled=true;foundButton.disabled=true;
+  for(const id of ["clearResearchHistory","viewResearchBest","exportResearch","importResearch","importResearchButton"])
+   $(id).disabled=true;
+  button.textContent=foundId?"Replaying…":savedOnly?"Loading saved best…":"Optimizing…";
+  updateCancelControls("running");
   $("optimizerProgress").classList.remove("hidden");
   $("optimizerSingleProgress").classList.remove("hidden");
   $("optimizerDualProgress").classList.add("hidden");
   $("optimizerProgressBar").value=0;$("optimizerProgressBar").max=1;
   $("optimizerProgressText").textContent="Preparing search…";
+  setComboScoreBubble(true);
   $("solverResults").classList.add("hidden");
   $("solverNote").textContent="Searching candidate layouts…";
   try{
-    await showSolver(controller.signal);
-    throwIfCancelled(controller.signal);
+    // Let the browser paint the Cancel controls before preparing a large
+    // candidate catalogue, which otherwise blocks the main JS thread.
+    await yieldToUI(controller.signal);
+    await showSolver(controller.signal,foundId,savedOnly);
+    if(!controller.keepBestRequested)throwIfCancelled(controller.signal);
     $("solverResults").classList.remove("hidden");
-    $("optimizerProgressText").textContent="Complete · Results ready";
+    $("optimizerProgressText").textContent=controller.keepBestRequested?
+     "Stopped early · This run's best result ready":"Complete · Results ready";
     requestAnimationFrame(()=>{
       const target=$("optimizerSlotLayout");
       if(target)target.scrollIntoView({behavior:window.matchMedia("(prefers-reduced-motion: reduce)").matches?"auto":"smooth",block:"start"});
     });
   }catch(e){
+    // Incomplete searches cannot present an unverified winner as a final score.
+    $("solverScoreBubble").classList.add("hidden");
     if(e.name==="AbortError"){
       $("optimizerProgressText").textContent="Search cancelled · Change settings and run again";
       $("solverNote").textContent="Search cancelled. No incomplete results were shown.";
@@ -889,7 +1479,17 @@ $("runSolver").addEventListener("click",async()=>{
     }
   }finally{
     if(activeSearch===controller)activeSearch=null;
-    button.disabled=false;button.textContent="Run optimizer";
-    cancel.disabled=false;cancel.textContent="Cancel";cancel.classList.add("hidden");
+    runButton.disabled=false;runButton.textContent="Run optimizer";
+    foundButton.textContent="Replay found board";
+    foundButton.disabled=!$("foundConfiguration").value;
+    updateCancelControls("idle");
+    for(const id of ["clearResearchHistory","viewResearchBest","exportResearch","importResearch"])
+     $(id).disabled=false;
   }
+}
+$("runSolver").addEventListener("click",()=>executeConfiguredSearch());
+$("viewResearchBest").addEventListener("click",()=>executeConfiguredSearch(null,true));
+$("runFoundConfiguration").addEventListener("click",()=>{
+ const foundId=$("foundConfiguration").value;
+ if(foundId)executeConfiguredSearch(foundId);
 });

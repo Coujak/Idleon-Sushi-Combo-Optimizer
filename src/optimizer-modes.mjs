@@ -1,7 +1,8 @@
 // Keep the familiar default optimizer unchanged. Experimental includes the
 // default preparations plus optional layered East Wind reserves.
 import {buildCandidates} from "./preparation-core.mjs";
-import {isSplitOptimizerMode,buildSplitComboCandidates} from "./combo-split-strategies.mjs?v=1.17.2";
+import {buildCustomSplitCandidates} from "./custom-split-search.mjs?v=1.18.6";
+import {isSplitOptimizerMode,buildSplitComboCandidates} from "./combo-split-strategies.mjs?v=1.18.0";
 import {buildAdaptiveComboCandidates} from "./adaptive-combo-strategies.mjs?v=1.17.0";
 import {buildLayeredCandidates} from "./layered-preparation.mjs";
 import {buildTuned100Candidates} from "./tuned-preparation.mjs";
@@ -18,7 +19,10 @@ import {buildExperimental11Candidates} from "./experimental11-preparation.mjs?v=
 import {buildExperimental12Candidates} from "./experimental12-preparation.mjs?v=1.10.4";
 import {buildExperimental13Candidates} from "./experimental13-preparation.mjs?v=1.10.4";
 
-export function getModeCandidates(positions,maxTier,cap,selectedBase,chainLimit,protectTier64,mode="default"){
+export function getModeCandidates(positions,maxTier,cap,selectedBase,chainLimit,protectTier64,mode="default",options={}){
+  if(mode==="optimizer5")return buildCustomSplitCandidates(
+    positions,maxTier,cap,chainLimit,selectedBase,protectTier64,
+    options.splitMode??"optimizer1",options.perSplit??50);
   // Split optimizers test precisely their own supply/engine boundaries.
   // Never mix historical fixed-layout scores into adaptive mode comparisons.
   if(isSplitOptimizerMode(mode))return buildSplitComboCandidates(

@@ -166,6 +166,15 @@ export const MODE_CATALOG=Object.freeze([
     "difficulty": "Max",
     "benchmark": null,
     "summary": "Search both directions at 1-point resolution: 50/50 to 99/1 and 50/50 to 1/99, with independent progress bars."
+  },
+  {
+    "id": "optimizer5",
+    "number": null,
+    "kind": "split",
+    "name": "Optimizer 5 (Custom)",
+    "difficulty": "Custom",
+    "benchmark": null,
+    "summary": "Choose Fast, Mid, Slow or Max split increments and how many DISTINCT configurations to evaluate at each unique split. This samples the search space; it is not exhaustive."
   }
 ]);
 export function getModeInfo(id){return MODE_CATALOG.find(m=>m.id===id)??MODE_CATALOG[0];}
