@@ -88,13 +88,27 @@ This is a preparation convenience change, not a new scoring strategy. Historical
 
 ## Adaptive Combo Meter strategy planner (v1.17.0)
 
-**The Combo Planner now starts in Adaptive mode.** It no longer assumes that a player has reached the T64/T58 research configuration or has 100 contiguous unlocked slots. From an imported Idleon Toolbox game save it reads the **highest discovered Sushi tier** using Sushi discovery flags (rather than just the highest currently on the board), plus the player's unlocked plates. The maximum Wind tier is derived from the selected prepared tier, and the player's chosen Wind limit is respected.
+**The Combo Planner now starts in Simple Cascade mode.** It no longer assumes that a player has reached the T64/T58 research configuration or has 100 contiguous unlocked slots. From an imported Idleon Toolbox game save it reads the **highest discovered Sushi tier** using Sushi discovery flags (rather than just the highest currently on the board), plus the player's unlocked plates. The maximum Wind tier is derived from the selected prepared tier, and the player's chosen Wind limit is respected.
 
 Adaptive mode compares reusable **supply + Wind engine** strategy families rather than claiming every account can reproduce a fixed historical score. These include transformed 100-slot board shapes from Experiments 2–13 at several working tiers and procedural one-, two-, and three-wave boards that adapt their supply/engine split to shorter contiguous layouts. It tries lower working tiers alongside the player's available maximum, scores the actual legal merges and validates the winning replay. No score is copied from a T64 record.
 
-**Historical experiments remain unchanged and selectable separately.** Experiment 1–13 modes retain their original candidate sets and their original T64 benchmark score labels; the adaptive generator does not silently substitute Experiment 13 into an earlier numbered mode. The existing legacy Default is also still selectable, but Adaptive is the recommended everyday mode.
+**Historical experiments remain unchanged and selectable separately.** Experiment 1–13 modes retain their original T64 benchmark score labels. Legacy Default and the earlier Adaptive mode also remain available. For the new transparent split comparison use Simple, Fast, Mid, Slow, or Max.
 
 Read [Combo strategy audit](research/combo-strategy-audit.md) for the experiment-by-experiment structural findings and known limitations. This is a first strategy-family implementation, **not a global optimization guarantee**. Notably, noncontiguous layouts still need stronger support, and merge-order refinement currently focuses on the highest-scoring initial candidate.
+
+## Five Combo Meter search resolutions and two-direction progress (v1.17.2)
+
+The search selection now offers **Simple Cascade**, **Optimizer 1 (Fast)**, **Optimizer 2 (Mid)**, **Optimizer 3 (Slow)**, and **Optimizer 4 (Max)**. These are **five choices**: Simple plus four increasingly fine split optimizers. They work with the current prepared-tier limit, Wind cap and available unlocked plate positions. A candidate board is scored by the actual merge model and the selected result is independently replay-verified; the optimizer's best-found score is **not** a globally proven optimum.
+
+* **Simple:** One top-to-bottom descending cascade preparation. A single progress bar tracks completion.
+* **Fast (20-point):** Supply-heavy 50/50 → 70/30 → 90/10; engine-heavy 50/50 → 30/70 → 10/90.
+* **Mid (10-point):** Supply-heavy 50/50 → 90/10 and engine-heavy 50/50 → 10/90, in increments of ten.
+* **Slow (5-point):** Supply-heavy 50/50 → 95/5 and engine-heavy 50/50 → 5/95, in increments of five.
+* **Max (1-point):** Supply-heavy 50/50 → 99/1 and engine-heavy 50/50 → 1/99, in single-point increments.
+
+Both research directions deliberately evaluate their own **50/50** starting preparation, with two alternative supply/engine configurations tested per boundary. Fast, Mid, Slow and Max show **two live, separately updated progress bars**: the current supply/chain ratio and the fraction of candidates actually evaluated in that direction. The searches are interleaved for visible progress on both sides. A 100-slot board therefore evaluates 12, 20, 40 or 200 ratio/variant candidates per contiguous layout, respectively, before refining the winning board's merge sequence. With fewer unlocked plates, percentages are rounded to integer plate counts, so distinct percentages can result in identical slot counts. Custom-board editing uses the single-board search and its single progress bar.
+
+The supply/engine border in the recommended prepared board corresponds to **the actual winning split**, not just the selected mode. Existing Experiments 1–13 remain historical reference boards, not new scores promised at arbitrary player tiers.
 
 ## Combo Meter milestone research (after Experiment 13.0)
 
