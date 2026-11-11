@@ -510,8 +510,8 @@ async function showSolver(signal,foundId=null){
       await scanSplitDirectionsInParallel(candidates,
        {cap,chain,mode,maxTier},signal,async({direction,processed,splitPercent,improved,checked})=>{
         // Only report work as checked after a Worker completes its batch.
-        if(checked?.length)await rememberEvaluatedBoards(checked);
         if(improved)await persistWinner(improved);
+        if(checked?.length)await rememberEvaluatedBoards(checked);
         const track=tracks[direction];
         track.done+=processed;
         track.progress.value=track.done;
@@ -581,7 +581,6 @@ async function showSolver(signal,foundId=null){
   throwIfCancelled(signal);
   if(!solution||!solution.search)throw Error("No valid preparations for these tier settings.");
   if(dualSplit){
-    await persistWinner(solution);
     $("researchHistoryStatus").textContent=
       (researchState.checkedBefore+total).toLocaleString()+
       " boards evaluated across sessions for these game settings · "+
@@ -594,6 +593,8 @@ async function showSolver(signal,foundId=null){
   if(verified.score!==result.score||!verified.board.every((t,i)=>t===result.board[i])){
     throw Error("Combo replay validation disagrees with the optimizer result.");
   }
+  // Persist final beam/tactical improvements only after full replay validation.
+  if(dualSplit)await persistWinner(solution);
   const timeout=Math.max(.1,Number($("comboTimeout").value)||5.5);
   const moveTime=Math.max(.1,Number($("mergeTime").value)||1.5);
   const relocationTime=Math.max(.1,Number($("relocationTime").value)||.6);
@@ -1027,6 +1028,18 @@ function requestSearchCancellation(){
 }
 $("cancelSolver").addEventListener("click",requestSearchCancellation);
 $("cancelSolverProgress").addEventListener("click",requestSearchCancellation);
+$("clearResearchHistory").addEventListener("click",async()=>{
+ if(activeSearch)return;
+ if(!window.confirm("Clear previously evaluated optimizer boards and saved best scores from this browser?"))return;
+ const button=$("clearResearchHistory");
+ button.disabled=true;
+ try{
+  await resetResearchHistory();
+  $("researchHistoryStatus").textContent="Local optimizer history cleared. The next run starts a new search.";
+ }catch(error){
+  $("researchHistoryStatus").textContent="Could not clear local research: "+String(error.message??error);
+ }finally{button.disabled=false;}
+});
 async function executeConfiguredSearch(foundId=null){
   if(!imported){$("solverNote").textContent="Import a valid game save JSON first.";return;}
   if(activeSearch)return;
@@ -1036,6 +1049,7 @@ async function executeConfiguredSearch(foundId=null){
   const runButton=$("runSolver"),foundButton=$("runFoundConfiguration");
   const button=foundId?foundButton:runButton;
   runButton.disabled=true;foundButton.disabled=true;
+  $("clearResearchHistory").disabled=true;
   button.textContent=foundId?"Replaying…":"Optimizing…";
   updateCancelControls("running");
   $("optimizerProgress").classList.remove("hidden");
@@ -1074,6 +1088,7 @@ async function executeConfiguredSearch(foundId=null){
     foundButton.textContent="Replay found board";
     foundButton.disabled=!$("foundConfiguration").value;
     updateCancelControls("idle");
+    $("clearResearchHistory").disabled=false;
   }
 }
 $("runSolver").addEventListener("click",()=>executeConfiguredSearch());
