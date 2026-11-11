@@ -25,12 +25,10 @@ import {windTierMaximum,clampWindTier,windTierAfterPreparedChange} from "./wind-
 import {detectSushiProgress} from "./sushi-progression.mjs?v=1.17.0";
 import {initializeSushiLab} from "./lab-ui.mjs?v=1.19.10";
 import {sushiTierIconPath} from "./sushi-reference.mjs?v=1.16.6";
-import {initializeIdleonCloudUI} from "./idleon-cloud-ui.mjs?v=1.20.3";
 import {countOverviewPlates,overviewTileInfo} from "./overview-helpers.mjs?v=1.19.9";
 import {getPreparedBoardSections,hasSlotLayoutChanges,preparedSectionOutlinePath,preparedOutlineCoordinates} from "./prepared-sections.mjs?v=1.17.1";
 const COLUMNS=BOARD_COLUMNS;
 let imported=null;
-let importedMode="none";
 const sushiLab=initializeSushiLab(()=>imported);
 let customBoard=null;
 let replayCleanup=()=>{};
@@ -248,27 +246,19 @@ function renderBoard(tiles,perfecto,slots,fires){
   $("boardStatus").textContent=filled+" sushi tiles";
   $("boardDetails").textContent=filled+" occupied slots · "+slots.filter(n=>n>=0).length+" / 100 unlocked slots across an 8×15 board · "+fires.filter(n=>n>=0).length+" fireplaces. Select a plate to inspect it, or hover over a fireplace for details.";
 }
-function importSave(data,label,{mode="manual"}={}){
+function importSave(data,label){
   const parsed=decodeSave(data);
-  if(mode==="cloud")parsed.source="Idleon Firebase cloud save";
-  // A manual JSON import replaces the account being displayed and closes
-  // any previous Steam connection rather than silently mixing accounts.
-  if(mode==="manual"&&cloudUI.isConnected())
-   void cloudUI.disconnect({clearData:false});
-  importedMode=mode;
   cancelRunningSearch();
   disposeReplay();
   imported=parsed;customBoard=null;applyImportedLimits();$("importError").classList.add("hidden");
   renderBoard(parsed.tiles,parsed.perfecto,parsed.slots,parsed.fires);
   if($("baseTier").value==="custom")renderCustomEditor();
   $("solver").classList.remove("hidden");
-  $("solverNote").textContent=(mode==="cloud"?"Cloud save loaded. ":"JSON loaded. ")+
-   "Click Run optimizer to calculate a suggested preparation and merge sequence.";
+  $("solverNote").textContent="JSON loaded. Click Run optimizer to calculate a suggested preparation and merge sequence.";
   $("solverScoreBubble").classList.add("hidden");
   $("solverScoreLabel").textContent="Estimated combo score:";
   $("solverScore").textContent="—";$("solverMoves").textContent="—";$("solverSteps").replaceChildren();
-  $("importStatus").textContent=mode==="cloud"?"Cloud save synced":"JSON imported";
-  $("importStatus").classList.add("success");
+  $("importStatus").textContent="JSON imported";$("importStatus").classList.add("success");
   const tierProgress=detectSushiProgress(parsed);
   $("importSummary").textContent=label+" · "+parsed.source+" · "+parsed.tiles.filter(n=>n>=0).length+" occupied sushi slots decoded · Tier "+tierProgress.highest+" detected ("+tierProgress.source+") · Wind limit "+tierProgress.windCap+". If the player has unlocked higher tiers not present on the board, correct the Maximum prepared tier field.";
   $("importSummary").classList.remove("hidden");
@@ -279,7 +269,7 @@ function importSave(data,label,{mode="manual"}={}){
   catch(e){dashboardError=e;console.error("Sushi Lab dashboard rendering failed",e);}
   $("jsonPreview").textContent=JSON.stringify({source:parsed.source,sushiArrayLengths:parsed.sushi.map(x=>Array.isArray(x)?x.length:null),firstTiles:parsed.tiles.slice(0,30),slotTypes:parsed.slots,fireTypes:parsed.fires,perfectoFlags:parsed.perfecto?.slice(0,70)??null},null,2);
   if(dashboardError){
-    $("importStatus").textContent=(mode==="cloud"?"Cloud save synced":"JSON imported")+" · dashboard incomplete";
+    $("importStatus").textContent="JSON imported · dashboard incomplete";
     $("importError").textContent="Your JSON loaded successfully, but the dashboard could not finish updating: "+
       String(dashboardError.message??dashboardError)+
       ". Refresh the page to load the latest interface.";
@@ -291,7 +281,7 @@ $("pasteToggle").addEventListener("click",()=>{const open=$("pasteArea").classLi
 $("parseJson").addEventListener("click",()=>{try{importSave(JSON.parse($("jsonInput").value),"Pasted JSON");}catch(e){error(e);}});
 $("jsonFile").addEventListener("change",async e=>{const f=e.target.files?.[0];if(!f)return;try{importSave(JSON.parse(await f.text()),f.name);}catch(err){error(err);}});
 function clearImportedSave(){
- cancelRunningSearch();disposeReplay();imported=null;importedMode="none";customBoard=null;
+ cancelRunningSearch();disposeReplay();imported=null;customBoard=null;
  $("solver").classList.add("hidden");
  $("jsonInput").value="";$("jsonFile").value="";
  $("board").replaceChildren();$("fireplaces").replaceChildren();
@@ -307,14 +297,7 @@ function clearImportedSave(){
  $("boardSelection").classList.add("hidden");$("boardSelection").replaceChildren();
  renderPlateBreakdown(null);sushiLab.clearImported();
 }
-const cloudUI=initializeIdleonCloudUI({
- onSave:importSave,
- onDisconnect:()=>{if(importedMode==="cloud")clearImportedSave();}
-});
-$("clearImport").addEventListener("click",()=>{
- clearImportedSave();
- void cloudUI.disconnect({clearData:false});
-});
+$("clearImport").addEventListener("click",clearImportedSave);
 
 // The Overview shows the same plate colors even before a save is imported.
 renderPlateBreakdown(null);
