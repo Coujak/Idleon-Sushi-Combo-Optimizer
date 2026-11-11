@@ -116,3 +116,62 @@ export async function resetResearchHistory(){
  await Promise.all(["checked","best"].map(name=>
   transactionResult(db,name,"readwrite",store=>store.clear())));
 }
+
+
+export async function exportResearchData(){
+ const db=await openResearchDatabase();
+ if(!db){
+  return {format:"idleon-sushi-research",version:1,exportedAt:new Date().toISOString(),
+   checked:[...fallbackChecked].flatMap(([context,keys])=>[...keys].map(key=>({context,key}))),
+   best:[...fallbackBest].map(([context,candidate])=>({context,candidate}))};
+ }
+ const checked=await transactionResult(db,"checked","readonly",(store,done)=>{
+  const req=store.getAllKeys();req.onsuccess=()=>done(req.result);
+ });
+ const best=await transactionResult(db,"best","readonly",(store,done)=>{
+  const req=store.getAll();const keys=store.getAllKeys();
+  let values=null,ids=null;
+  const collect=()=>{if(values&&ids)done(ids.map((context,i)=>({context,candidate:values[i]})));};
+  req.onsuccess=()=>{values=req.result;collect();};
+  keys.onsuccess=()=>{ids=keys.result;collect();};
+ });
+ return {format:"idleon-sushi-research",version:1,exportedAt:new Date().toISOString(),
+  checked:checked.map(raw=>{const cut=raw.lastIndexOf("|");
+   return {context:raw.slice(0,cut),key:raw.slice(cut+1)};}),
+  best};
+}
+export async function importResearchData(data,validateBest){
+ if(data?.format!=="idleon-sushi-research"||data.version!==1||
+  !Array.isArray(data.checked)||!Array.isArray(data.best))
+  throw Error("Not an Idleon Sushi research history export");
+ if(data.checked.length>500000||data.best.length>10000)
+  throw Error("Research export is too large to safely import");
+ const contextValid=context=>{
+  if(typeof context!=="string"||context.length>2500)return false;
+  try{const parts=JSON.parse(context);
+   return Array.isArray(parts)&&parts.length===7&&
+    parts[0]===RESEARCH_RULES_VERSION&&Array.isArray(parts[6])&&
+    parts[6].length<=1000;
+  }catch{return false;}
+ };
+ const boardValid=key=>typeof key==="string"&&key.length<7000&&
+  /^\\d+(,\\d+)*$/.test(key);
+ for(const {context,key} of data.checked){
+  if(!contextValid(context)||!boardValid(key))
+   throw Error("Research export contains an invalid board or settings");
+ }
+ // Treat uploaded scores as untrusted: validate each replay before saving it.
+ const accepted=[];
+ for(const entry of data.best){
+  if(!contextValid(entry.context)||!entry.candidate||
+   !validateBest(entry.context,entry.candidate))
+   throw Error("Research export contains an invalid or incompatible winning replay");
+  accepted.push(entry);
+ }
+ const chunk=1000;
+ for(let i=0;i<data.checked.length;i+=chunk)
+  await rememberEvaluatedBoards(data.checked.slice(i,i+chunk));
+ for(const {context,candidate} of accepted)
+  await rememberBestCandidate(context,candidate);
+ return {checked:data.checked.length,best:accepted.length};
+}
