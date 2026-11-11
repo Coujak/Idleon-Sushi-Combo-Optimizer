@@ -2,9 +2,9 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {MODE_CATALOG,getModeInfo,modeOptionLabel,modeDisplayLabel} from "../src/mode-catalog.mjs";
 test("All 13 historical experimental modes retain stable score-board IDs and benchmarks",()=>{
- assert.equal(MODE_CATALOG.length,15);
- assert.equal(new Set(MODE_CATALOG.map(m=>m.id)).size,15);
- assert.equal(new Set(MODE_CATALOG.map(m=>m.name)).size,15);
+ assert.equal(MODE_CATALOG.length,20);
+ assert.equal(new Set(MODE_CATALOG.map(m=>m.id)).size,20);
+ assert.equal(new Set(MODE_CATALOG.map(m=>m.name)).size,20);
  const historic=MODE_CATALOG.filter(m=>m.id.startsWith("experimental"));
  assert.equal(historic.length,13);
  for(let i=1;i<=13;i++){
@@ -33,4 +33,15 @@ test("Adaptive strategy mode is not assigned an experiment number or T64 benchma
  assert.match(modeOptionLabel(adaptive),/^Adaptive —/);
  assert.match(modeDisplayLabel(adaptive),/^Adaptive ·/);
  assert.match(adaptive.summary,/available tier/);
+});
+
+test("Simple and four split search modes are unnumbered, keeping historic experiments intact",()=>{
+ const split=MODE_CATALOG.filter(m=>m.kind==="split");
+ assert.deepEqual(split.map(m=>m.id),
+  ["simple","optimizer1","optimizer2","optimizer3","optimizer4"]);
+ assert.ok(split.every(m=>m.number===null&&m.benchmark===null));
+ for(const mode of split){
+  assert.ok(modeOptionLabel(mode).includes(mode.name));
+  assert.ok(!modeOptionLabel(mode).includes("Exp "));
+ }
 });
