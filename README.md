@@ -5,25 +5,11 @@ Browser-based Sushi Station account dashboard, reference guides and Combo Meter 
 **Site:** https://coujak.github.io/Idleon-Sushi-Combo-Optimizer/
 
 
-## Google sign-in research (from Toolbox recording)
+## Account data import
 
-The recorded Toolbox login uses **Google's device authorization flow**, not Steam and not a generic Google pop-up: the site requests a short code, the player approves it at `google.com/device`, the app polls Google for an ID token, then exchanges that ID token for the authenticated **Idleon Firebase** session. The Google ID token must be issued for an OAuth client allowed by Idleon's Firebase configuration; a different Google client can cause `INVALID_IDP_RESPONSE` even after successful Google approval.
+Sushi Station Lab currently uses **local JSON import only**. Choose a file or paste exported game data in Overview. The imported save stays in browser memory; there is no active account-login or Firebase integration.
 
-`src/google-device-flow.mjs` contains the reusable device-code state machine, polling/backoff, expiration, cancellation and Firebase handoff adapter with corresponding unit tests. It deliberately **has no hardcoded OAuth client ID, client secret or real token exchange**. Before enabling Google login, we need a properly authorized Google device OAuth client and supported access to Idleon's Firebase project (or cooperation from the Idleon operator); we should not copy/reuse another application's OAuth credentials merely because they're visible in its source. The dev UI continues to expose only the experimental Steam flow until that integration is ready. Do not paste Google device codes, ID tokens or Steam callback addresses into issues, screenshots or chat.
-
-## Experimental Idleon cloud login (development branch only)
-
-The Overview now includes an optional **Connect Idleon account · Steam** panel. This is an early proof of concept; do not consider it production-verified until a real Steam sign-in is tested from the GitHub Pages origin.
-
-1. Open Steam's official sign-in page using the button in the panel.
-2. After Steam redirects to `www.legendsofidleon.com/steamsso/`, copy the full address.
-3. Paste the return address into Sushi Station Lab and click **Connect**. The input is cleared immediately.
-4. A successful sign-in reads **only your own** Firestore `_data/{authenticated uid}` cloud save and passes only `Sushi`, `Spelunk`, `Menagerie`, `Research`, and `BundlesReceived` to the existing game-save parser.
-5. **Refresh cloud save** fetches an updated snapshot; **Disconnect** signs out and clears data imported from the cloud session.
-
-Security/privacy: this uses the existing Idleon authentication backend and Firebase client app configuration, not a server controlled by Sushi Station Lab. Steam credentials are entered on Steam, never here; the Steam redirect URL is a short-lived, sensitive signed assertion. Firebase auth is configured for **in-memory persistence only** (no login persistence across refreshes). The client never writes to the game's database, stores no credentials/tokens in local storage, and does not include them in research exports. Steam SSO requests are sent only to the official Idleon Cloud Function, and cloud-save reads go directly to Firebase. Manual JSON import remains available without any sign-in.
-
-Known limitations: cross-origin access to Idleon's Steam token-exchange service and Firestore permissions are controlled by Idleon and **have not been end-to-end verified from GitHub Pages**. The service may refuse this origin or change its interface. Google sign-in was previously rejected due to an incompatible OAuth token audience and is intentionally not exposed in this prototype. Never paste the Steam return URL into messages or screenshots.
+Early experiments for Steam/Firebase and Google device-code authentication are retained as **unconnected research modules** in `src/idleon-cloud-auth.mjs`, `src/idleon-cloud-ui.mjs`, and `src/google-device-flow.mjs` with unit tests. They are not loaded by the website and should not be treated as supported sign-in functionality. Revisit this only if an authorized account-login method becomes available.
 
 ## Combo Meter progressive search (beta)
 
