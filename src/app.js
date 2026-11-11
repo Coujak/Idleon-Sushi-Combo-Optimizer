@@ -451,7 +451,11 @@ async function showSolver(signal){
   $("solverMoves").textContent=verified.merges;
   $("solverRepositions").textContent=verified.repositions;
   $("solverNote").textContent=(custom?"Custom board · staircase recycling, greedy, beam, and tactical reposition searches tested. ":"Best of "+solution.testedCandidates+" preparations (base Tier "+solution.base+", "+solution.shape+"). ")+result.remaining+" occupied sushi remain. Heat model: "+mode+". Scores remain estimates, not a guaranteed maximum.";
-  $("solverNote").textContent+=" Mode: "+optimizerModeLabel+". Winning strategy: "+result.strategy+". Slot arrangement: "+(solution.layoutName??"Current positions")+". Prepared tier cap: "+maxTier+"; East Wind limit: "+cap+".";
+  $("solverNote").textContent+=" Mode: "+optimizerModeLabel+". Winning strategy: "+result.strategy+". Slot arrangement: "+(solution.layoutName??"Current positions")+". Available prepared tier: "+maxTier+"; East Wind limit: "+cap+".";
+  if(solution.adaptive)$("solverNote").textContent+=" Adaptive "+solution.shape+
+   " (working tier T"+solution.workingTier+
+   (solution.referenceExperiment?", learned from historical Exp "+solution.referenceExperiment:"")+
+   "). Historical scores do not transfer to these settings.";
   if(!custom&&protectTier64)$("solverNote").textContent+=" The protected Tier "+(maxTier>=64?maxTier:64)+" is placed in the first unlocked slot of the suggested layout."; 
   preparedOutlineCleanup();preparedOutlineCleanup=()=>{};
   const root=$("solverSteps");root.replaceChildren();
@@ -480,7 +484,9 @@ async function showSolver(signal){
       supply=document.createElement("div");supply.className="prepared-section-guide-item prepared-guide-supply";
       const supplyTitle=document.createElement("strong");supplyTitle.textContent="Supply / tools";
       const supplyText=document.createElement("p");
-      supplyText.textContent="The protected Tier 64 stays first. Other sushi here are arranged highest to lowest to make preparation easier. They are mainly merge supplies for the chain, not the fixed Wind engine.";
+      const protectedTier=sectionInfo.protectedPosition===null?null:values[sectionInfo.protectedPosition];
+      supplyText.textContent=(protectedTier?"The protected Tier "+protectedTier+" stays first. ":"")+
+       "Supply sushi are arranged highest to lowest for easier preparation. They feed merge triggers into the Wind engine.";
       supply.append(supplyTitle,supplyText);
       chainGuide=document.createElement("div");chainGuide.className="prepared-section-guide-item prepared-guide-chain";
       const chainTitle=document.createElement("strong");chainTitle.textContent="Heat of the East Wind chain";
@@ -494,7 +500,9 @@ async function showSolver(signal){
       }
       guide.append(supply,chainGuide);root.append(guide);
       const key=document.createElement("p");key.className="hint prepared-section-key";
-      key.textContent="Rose border = supply / tools (including protected Tier 64) · Mint border = fixed chain. Hover or focus a guide card to spotlight its section; click to pin it.";
+      key.textContent="Rose border = merge supplies and tools"+
+       (protectedTier?" (including protected Tier "+protectedTier+")":"")+
+       " · Mint border = fixed Wind engine. Hover or focus a guide card to spotlight its section; click to pin it.";
       root.append(key);
     }
     const legend=document.createElement("p");legend.className="hint";legend.textContent="Green: Regular · Red: Hot · Blue: Cold · Gold: Milktoast. Hover over a tile for its slot type and position.";root.append(legend);
@@ -509,7 +517,7 @@ async function showSolver(signal){
       if(sectionInfo?.firstEnginePosition===i)cell.classList.add("prepared-engine-start");
       if(slot>=0&&showTiers&&tier>0){addSushiVisual(cell,tier);}
       else if(slot>=0&&!showTiers){const dot=document.createElement("span");dot.className="slot-marker";dot.textContent="•";cell.append(dot);}
-      const role=sectionInfo?.roles[i]==="supply"?(i===sectionInfo.protectedPosition?" · Protected anchor / supply section":" · Supply / tools"):sectionInfo?.roles[i]==="chain"?" · Fixed Wind chain":"";
+      const role=sectionInfo?.roles[i]==="supply"?(sectionInfo.protectedPosition!==null&&i===sectionInfo.protectedPosition?" · Protected anchor / supply section":" · Supply / tools"):sectionInfo?.roles[i]==="chain"?" · Fixed Wind chain":"";
       cell.title="Position "+(i+1)+" · "+(SLOT_NAMES[slot]??"Locked")+(showTiers&&tier>0?" · Tier "+tier:"")+role;
       grid.append(cell);
     }
