@@ -8,6 +8,7 @@ import {comboSplitPercentages} from "./combo-split-strategies.mjs?v=1.18.0";
 import {FOUND_CONFIGURATIONS,buildFoundConfiguration} from "./found-configurations.mjs?v=1.18.0";
 import {searchLookaheadCombos} from "./lookahead-search.mjs?v=1.9.9";
 import {throwIfCancelled,yieldToUI} from "./optimizer-run.mjs?v=1.8.1";
+import {scanSplitDirectionsInParallel} from "./split-search-parallel.mjs?v=1.18.3";
 import {searchCombos} from "./merge-search.mjs?v=1.9.9";
 import {MODE_CATALOG,getModeInfo,modeOptionLabel,modeDisplayLabel} from "./mode-catalog.mjs?v=1.17.1";
 const $=id=>document.getElementById(id);
@@ -454,18 +455,45 @@ async function showSolver(signal,foundId=null){
     updateLiveScore();
     progress(1);
   }else{
-    for(let i=0;i<candidates.length;i++){
-      throwIfCancelled(signal);
-      const candidate=candidates[i];
-      const greedy=searchCombos(candidate.board,cap,chain,4,positions.length-1,mode,maxTier);
-      const search=searchStaircaseCombos(candidate.board,cap,chain,candidate.slots,greedy,{maximumTier:maxTier});
-      if(!solution||search.score>solution.search.score||(search.score===solution.search.score&&search.remaining<solution.search.remaining)){
-        solution={...candidate,search};
-        updateLiveScore();
+    if(dualSplit&&typeof Worker!=="undefined"){
+      let evaluated=0;
+      await scanSplitDirectionsInParallel(candidates,
+       {cap,chain,mode,maxTier},signal,({direction,processed,splitPercent,improved})=>{
+        const track=tracks[direction];
+        track.done+=processed;
+        track.progress.value=track.done;
+        track.status.textContent=splitPercent+"/"+(100-splitPercent)+" · "+
+         Math.round(track.done/Math.max(1,track.total)*100)+"% ("+
+         track.done+"/"+track.total+")";
+        evaluated+=processed;
+        $("optimizerProgressBar").value=evaluated;
+        $("optimizerProgressBar").max=total;
+        $("optimizerProgressText").textContent=optimizerModeLabel+" · "+
+         evaluated+" / "+total+" layouts evaluated concurrently";
+        if(improved&&(!solution||improved.search.score>solution.search.score||
+         (improved.search.score===solution.search.score&&
+          improved.search.remaining<solution.search.remaining))){
+          solution=improved;
+          updateLiveScore();
+        }
+      });
+    }else{
+      // Non-split planners and browsers lacking module Workers retain the
+      // original single-thread evaluation as a compatible fallback.
+      for(let i=0;i<candidates.length;i++){
+        throwIfCancelled(signal);
+        const candidate=candidates[i];
+        const greedy=searchCombos(candidate.board,cap,chain,4,positions.length-1,mode,maxTier);
+        const search=searchStaircaseCombos(candidate.board,cap,chain,candidate.slots,greedy,{maximumTier:maxTier});
+        if(!solution||search.score>solution.search.score||(search.score===solution.search.score&&search.remaining<solution.search.remaining)){
+          solution={...candidate,search};
+          updateLiveScore();
+        }
+        progress(i+1,candidate);
+        await yieldToUI(signal);
       }
-      progress(i+1,candidate);
-      await yieldToUI(signal);
     }
+    throwIfCancelled(signal);
     solution={...solution,testedCandidates:candidates.length};
     $("optimizerProgressText").textContent="Refining the best preparation…";
     await yieldToUI(signal);
