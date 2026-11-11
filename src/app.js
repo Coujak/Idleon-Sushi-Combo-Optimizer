@@ -855,6 +855,21 @@ async function showSolver(signal,foundId=null,savedOnly=false){
   const stepButtons=[];
   let flightTimer=null,flightAnimation=null,flightGhost=null,flightEpoch=0;
   const prefersReducedMotion=()=>window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  function updateActionGuide(inFlight=false){
+    const detail=inFlight?replayGuide[selected-1]:replayGuide[selected];
+    actionGuide.classList.toggle("is-complete",!detail);
+    if(!detail){
+      actionLabel.textContent="ALL STEPS COMPLETE";
+      actionText.textContent="Your simulated combo sequence is finished.";
+      actionOutcome.textContent="Final simulated score: "+cumulative[selected].toLocaleString()+
+        " points. Return to Step 0 to follow it again.";
+      return;
+    }
+    actionLabel.textContent=(inFlight?"REPLAYING":"DO THIS NEXT")+" · Step "+
+      detail.step+" of "+result.moves.length;
+    actionText.textContent=detail.instruction;
+    actionOutcome.textContent=detail.outcome;
+  }
   function cancelFlight(){
     flightEpoch++;
     if(flightTimer!==null){window.clearTimeout(flightTimer);flightTimer=null;}
@@ -863,6 +878,8 @@ async function showSolver(signal,foundId=null,savedOnly=false){
   }
   function drawFrame(board,move,{resolved=false,timing=null}={}){
     const changes=new Map(),windOrder=new Map();
+    const nextMove=(!move||resolved)&&previewCheck.checked?
+      result.moves[selected]:null;
     if(move){
       changes.set(move.src,"source");
       changes.set(move.dst,"destination");
@@ -894,11 +911,22 @@ async function showSolver(signal,foundId=null,savedOnly=false){
         }else tile.classList.add("dim-tile");
       }
       if(type>=0&&tier>0)addSushiVisual(tile,tier);
+      if(type>=0&&nextMove&&(i===nextMove.src||i===nextMove.dst)){
+        const isFrom=i===nextMove.src;
+        tile.classList.remove("dim-tile");
+        tile.classList.add("focus-tile",isFrom?"merge-next-from":"merge-next-to");
+        const marker=document.createElement("span");
+        marker.className="merge-next-marker";
+        marker.textContent=isFrom?"FROM":"TO";
+        marker.setAttribute("aria-hidden","true");
+        tile.append(marker);
+      }
       if(resolved&&move&&i===move.dst&&type>=0&&!prefersReducedMotion())
         tile.classList.add("merge-landed");
       tile.title="Position "+(i+1)+" · "+(SLOT_NAMES[type]??"Locked")+
         (tier?" · Tier "+tier:" · Empty")+
-        (changes.has(i)?" · "+changes.get(i):"");
+        (changes.has(i)?" · "+changes.get(i):"")+
+        (nextMove&&i===nextMove.src?" · Next source":nextMove&&i===nextMove.dst?" · Next destination":"");
       boardGrid.append(tile);
     }
   }
@@ -918,6 +946,7 @@ async function showSolver(signal,foundId=null,savedOnly=false){
       {reducedMotion:prefersReducedMotion()});
     drawFrame(move.board,move,{resolved:true,timing});
     completedScore(move);
+    updateActionGuide();
   }
   function displayStep(step){
     cancelFlight();
@@ -928,10 +957,12 @@ async function showSolver(signal,foundId=null,savedOnly=false){
     first.disabled=selected===0;previous.disabled=selected===0;
     next.disabled=selected===result.moves.length;
     lastStep.disabled=selected===result.moves.length;
+    nextWind.disabled=nextWindReplayStep(result.moves,selected)===null;
     const move=selected>0?result.moves[selected-1]:null;
     if(!move){
       drawFrame(solution.board,null);
       completedScore(null);
+      updateActionGuide();
     }else{
       const timing=replayMotionTiming(move,Number(speedSelect.value),
         {reducedMotion:prefersReducedMotion()});
@@ -941,7 +972,9 @@ async function showSolver(signal,foundId=null,savedOnly=false){
       if(!canAnimate){
         drawFrame(move.board,move,{resolved:true,timing});
         completedScore(move);
+        updateActionGuide();
       }else{
+        updateActionGuide(true);
         // Leave the pre-action board in place until the animated source lands.
         drawFrame(before,move);
         const sourceTile=boardGrid.children[move.src],destTile=boardGrid.children[move.dst];
@@ -978,9 +1011,20 @@ async function showSolver(signal,foundId=null,savedOnly=false){
     }
     stepButtons.forEach((button,i)=>{
       button.classList.toggle("selected",i===selected);
+      button.classList.toggle("completed",i>0&&i<selected);
+      button.classList.toggle("up-next",i===selected+1);
       button.setAttribute("aria-current",i===selected?"step":"false");
     });
-    stepButtons[selected]?.scrollIntoView({block:"nearest",behavior:"auto"});
+    // Only scroll the checklist, not the entire page while autoplay runs.
+    const active=stepButtons[selected];
+    if(active){
+      const listBounds=right.getBoundingClientRect();
+      const itemBounds=active.getBoundingClientRect();
+      if(itemBounds.top<listBounds.top+45)
+        right.scrollTop+=itemBounds.top-listBounds.top-70;
+      else if(itemBounds.bottom>listBounds.bottom)
+        right.scrollTop+=itemBounds.bottom-listBounds.bottom+12;
+    }
   }
   function addStep(title,detail,index){
     const button=document.createElement("button");button.type="button";button.className="merge-step";
@@ -990,10 +1034,11 @@ async function showSolver(signal,foundId=null,savedOnly=false){
     right.append(button);stepButtons.push(button);
   }
   addStep("Step 0 · Prepared board","All sushi positioned; combo not started",0);
-  result.moves.forEach((m,i)=>{
-    const isMove=m.kind==="move";
-    addStep("Step "+(i+1)+" · "+(isMove?"Move":"Merge")+" · "+(m.src+1)+" → "+(m.dst+1),
-      (isMove?"Move Tier "+m.tier+" to an empty slot · +0 points":"+"+m.score+" points · "+m.events.filter(e=>e.kind==="wind").length+" Wind upgrades")+" · Total "+cumulative[i+1]+" · "+(timing.events[i].safe?"Timing OK":"Timeout risk"),i+1);
+  replayGuide.forEach((item,i)=>{
+    addStep("Step "+item.step+" · "+item.action+" · "+item.short,
+      "+"+item.score.toLocaleString()+" pts · "+item.windUpgrades+
+      " Wind · Total "+cumulative[i+1].toLocaleString()+
+      " · "+(timing.events[i].safe?"Timing OK":"Timeout risk"),item.step);
   });
   function showPlaybackState(playing){
     playButton.textContent=playing?"⏸ Pause":"▶ Play";
