@@ -19,9 +19,9 @@ import {buildExperimental13Candidates} from "./experimental13-preparation.mjs?v=
 
 export function getModeCandidates(positions,maxTier,cap,selectedBase,chainLimit,protectTier64,mode="default"){
   const candidates=buildCandidates(positions,maxTier,cap,selectedBase,chainLimit,protectTier64);
-  // Adapt the underlying reserve/engine strategies at ANY available tier.
-  // Historical score boards remain separately gated to their exact settings.
-  candidates.push(...buildAdaptiveComboCandidates(
+  // Adaptive is deliberately independent from the numbered score showcases:
+  // Experiment 2 must not silently select an Experiment 13-derived board.
+  if(mode==="adaptive")candidates.push(...buildAdaptiveComboCandidates(
     positions,maxTier,cap,chainLimit,selectedBase,protectTier64));
   if(["experimental","experimental2","experimental3","experimental4","experimental5","experimental6","experimental7","experimental8","experimental9","experimental10","experimental11","experimental12","experimental13"].includes(mode)&&(!selectedBase||selectedBase===cap-27)){
     candidates.push(...buildLayeredCandidates(positions,maxTier,cap,chainLimit,protectTier64));
