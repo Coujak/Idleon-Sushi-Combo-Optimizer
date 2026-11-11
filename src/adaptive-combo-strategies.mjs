@@ -41,7 +41,7 @@ function available(positions,maxTier,cap,chain){
  return Array.isArray(positions)&&positions.length>=2&&positions.length<=100&&
   positions.every(p=>Number.isInteger(p)&&p>=0&&p<120)&&
   Number.isSafeInteger(maxTier)&&maxTier>=2&&
-  Number.isSafeInteger(cap)&&cap>=0&&cap<=maxTier-6&&
+  Number.isSafeInteger(cap)&&cap>=0&&cap<=Math.max(0,maxTier-6)&&
   Number.isSafeInteger(chain)&&chain>=0&&chain<=25;
 }
 function workingTops(maxTier,cap){
