@@ -15,7 +15,7 @@ import {buildNovelSplitCandidates} from "./split-research-round.mjs?v=1.18.6";
 import {researchContext,loadResearchHistory,rememberEvaluatedBoards,rememberBestCandidate,
  resetResearchHistory,exportResearchData,importResearchData} from "./research-memory.mjs?v=1.18.6";
 import {comparePreparedBoard,chooseCandidatesByBudget} from "./combo-qol.mjs?v=1.18.6";
-import {renderComboReport,decoratePreparedCell} from "./combo-qol-ui.mjs?v=1.18.6";
+import {renderComboReport,decoratePreparedCell} from "./combo-qol-ui.mjs?v=1.18.8";
 import {searchCombos} from "./merge-search.mjs?v=1.9.9";
 import {MODE_CATALOG,getModeInfo,modeOptionLabel,modeDisplayLabel} from "./mode-catalog.mjs?v=1.17.1";
 const $=id=>document.getElementById(id);
