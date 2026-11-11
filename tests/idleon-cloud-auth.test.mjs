@@ -37,7 +37,8 @@ test("Steam callback only accepts legitimate-shaped official redirect addresses"
   "https://evil.example/steamsso/?openid.sig=x",
   validCallback().replace("https://www.legendsofidleon.com","http://www.legendsofidleon.com"),
   validCallback().replace("https://www.legendsofidleon.com","https://www.legendsofidleon.com.evil.example"),
-  validCallback().replace("steamcommunity.com/openid/id/","steamcommunity.com/other/id/"),
+  (()=>{const u=new URL(validCallback());u.searchParams.set(
+   "openid.claimed_id","https://steamcommunity.com/other/id/76561198012345678");return u.toString();})(),
   validCallback().replace("openid.sig=base64signed","openid.sig=")
  ])assert.throws(()=>parseSteamCallback(value));
 });
