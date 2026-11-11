@@ -1339,3 +1339,14 @@ details summary{cursor:pointer;font-size:12px;font-weight:700;color:#9eb7c9}
  font:inherit;font-size:12px;border:1px solid #537982;border-radius:8px;padding:9px 10px}
 .lab-advisor-calibration-grid input:focus-visible{outline:2px solid #79e0c1;outline-offset:2px}
 @media(max-width:710px){.lab-advisor-calibration-grid{grid-template-columns:1fr}}
+
+/* Real two-direction research progress for the split search modes. */
+.optimizer-dual-progress{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.optimizer-dual-progress.hidden,.optimizer-single-progress.hidden{display:none}
+.optimizer-track{min-width:0;padding:12px;background:#172f39;border:1px solid #3b6370;border-radius:10px}
+.optimizer-track-header{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:9px}
+.optimizer-track-header strong{font-size:12px;color:#daeee8}
+.optimizer-track-header span{font-size:12px;color:#aacfd1;font-variant-numeric:tabular-nums}
+.optimizer-track-engine progress::-webkit-progress-value{background:linear-gradient(90deg,#5588d3,#90b9f4)}
+.optimizer-track-engine progress::-moz-progress-bar{background:#90b9f4}
+@media(max-width:650px){.optimizer-dual-progress{grid-template-columns:1fr}}
