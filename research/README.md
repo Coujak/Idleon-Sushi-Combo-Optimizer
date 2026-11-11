@@ -20,7 +20,7 @@ Evaluating | 29/71 | [###########                             ]  27.5% - Split b
 Evaluating | 10/90 | [##############                          ]  35.0% - Split best: 66,850
 ```
 
-The percentages are **cumulative per-split progress** (including earlier checkpoint work), not independent parallel workers. The sweep still evaluates one candidate at a time, round-robin across splits. New records print above the dashboard and it immediately redraws. `--report-every=25` controls how frequently a row can refresh; updates are rate-limited to protect throughput during million-board searches. Redirected output and CI logs use ordinary text instead of terminal cursor control.
+In terminals that support ANSI colors, **split labels are cyan**, **filled bars are green**, **best scores are gold**, and **new-record announcements are green**. Color is automatically disabled when output is redirected or `NO_COLOR` is set.\n\nThe percentages are **cumulative per-split progress** (including earlier checkpoint work), not independent parallel workers. The sweep still evaluates one candidate at a time, round-robin across splits. New records print above the dashboard and it immediately redraws. `--report-every=25` controls how frequently a row can refresh; updates are rate-limited to protect throughput during million-board searches. Redirected output and CI logs use ordinary text instead of terminal cursor control.
 
 Press **Ctrl+C** to save and exit, then rerun the same command to resume. Increase the budget to continue farther:
 
