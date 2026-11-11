@@ -14,7 +14,7 @@ import {scanSplitDirectionsInParallel} from "./split-search-parallel.mjs?v=1.18.
 import {buildNovelSplitCandidates} from "./split-research-round.mjs?v=1.18.6";
 import {researchContext,loadResearchHistory,rememberEvaluatedBoards,rememberBestCandidate,
  resetResearchHistory,exportResearchData,importResearchData} from "./research-memory.mjs?v=1.18.6";
-import {comparePreparedBoard,chooseCandidatesByBudget} from "./combo-qol.mjs?v=1.18.6";
+import {comparePreparedBoard} from "./combo-qol.mjs?v=1.18.6";
 import {renderComboReport,decoratePreparedCell} from "./combo-qol-ui.mjs?v=1.18.8";
 import {searchCombos} from "./merge-search.mjs?v=1.9.9";
 import {MODE_CATALOG,getModeInfo,modeOptionLabel,modeDisplayLabel} from "./mode-catalog.mjs?v=1.17.1";
@@ -385,14 +385,12 @@ async function showSolver(signal,foundId=null,savedOnly=false){
   const custom=!foundInfo&&$("baseTier").value==="custom";
   if(savedOnly&&(!["optimizer1","optimizer2","optimizer3","optimizer4","optimizer5"].includes(optimizerMode)||custom))
    throw Error("Select Fast, Mid, Slow, Max, or Custom to view its saved research best.");
-  // Optional stopping/budget controls belong exclusively to Optimizer 5
-  // (Custom), not to the built-in Fast, Mid, Slow or Max modes.
+  // Optional score stopping applies only to Custom. Configurations per
+  // unique split is now the single search-size control.
   const customOptimizer=optimizerMode==="optimizer5";
   const goal=customOptimizer?Number($("scoreTarget").value):0;
-  const limit=customOptimizer?Number($("configurationLimit").value):0;
-  if(customOptimizer&&(!Number.isSafeInteger(goal)||goal<0||
-     !Number.isSafeInteger(limit)||limit<0||limit>100000))
-   throw Error("Custom score target must be nonnegative and max configurations must be 0–100,000.");
+  if(customOptimizer&&(!Number.isSafeInteger(goal)||goal<0))
+   throw Error("Custom score target must be a nonnegative integer.");
   const protectTier64=maxTier>=64||imported.tiles.includes(63);
   const highestIngredient=protectTier64&&maxTier>=64?maxTier-1:maxTier;
   const selectedBase=custom||foundInfo?0:($("baseTier").value==="manual"?
@@ -445,8 +443,7 @@ async function showSolver(signal,foundId=null,savedOnly=false){
   }));
   // Historical fixed boards are replayed once, never used as research seeds.
   const allCandidates=generated?.flat()??null;
-  const candidates=foundInfo?allCandidates.slice(0,1):
-   dualSplit&&limit>0?chooseCandidatesByBudget(allCandidates,limit):allCandidates;
+  const candidates=foundInfo?allCandidates.slice(0,1):allCandidates;
   const total=custom?1:candidates.length;
   if(total<1&&!researchState.best)throw Error(savedOnly?
    "There is no saved best yet for these game settings. Run a split optimizer first.":
