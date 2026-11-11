@@ -531,8 +531,10 @@ async function showSolver(signal,foundId=null,savedOnly=false){
     if(next&&(next.score>solution.search.score||
      (next.score===solution.search.score&&next.remaining<solution.search.remaining))){
      solution.search=next;
-     if(dualSplit&&!winningIsFromCache)
-      runBest=Math.max(runBest??0,next.score);
+     if(dualSplit&&!winningIsFromCache){
+      currentRunSolution={...solution,search:next};
+      runBest=next.score;
+     }
     }
     updateLiveScore();
   };
@@ -645,23 +647,37 @@ async function showSolver(signal,foundId=null,savedOnly=false){
     if(solution!==overallWinner)winningIsFromCache=false;
     solution={...solution,testedCandidates:dualSplit?evaluatedCount:candidates.length};
     if(!winningIsFromCache&&!activeSearch?.keepBestRequested){
+     try{
       $("optimizerProgressText").textContent="Refining the best preparation…";
-    await yieldToUI(signal);
-    keepBetterSearch(beamSearchCombos(solution.board,cap,chain,solution.board.filter(v=>v>0).length-1,solution.search,maxTier));
-    await yieldToUI(signal);
-    keepBetterSearch(searchStaircaseCombos(solution.board,cap,chain,solution.slots,solution.search,{maximumTier:maxTier}));
-    $("optimizerProgressText").textContent="Checking tactical Wind setups…";
-    await yieldToUI(signal);
-    keepBetterSearch(searchTacticalCombos(solution.board,cap,chain,solution.slots,solution.search,{depth:12,width:12,branchLimit:16,maximumTier:maxTier}));
-    await yieldToUI(signal);
-    if(foundInfo||optimizerMode==="adaptive"||optimizerMode==="experimental12"||optimizerMode==="experimental13"){
-      $("optimizerProgressText").textContent="Exploring deeper merge orders…";
       await yieldToUI(signal);
-      keepBetterSearch(searchLookaheadCombos(solution.board,cap,chain,solution.search,
-        {maxPasses:3,maxBranches:18,maxEvaluations:3500,maximumTier:maxTier}));
+      keepBetterSearch(beamSearchCombos(solution.board,cap,chain,solution.board.filter(v=>v>0).length-1,solution.search,maxTier));
       await yieldToUI(signal);
-    }
+      keepBetterSearch(searchStaircaseCombos(solution.board,cap,chain,solution.slots,solution.search,{maximumTier:maxTier}));
+      $("optimizerProgressText").textContent="Checking tactical Wind setups…";
+      await yieldToUI(signal);
+      keepBetterSearch(searchTacticalCombos(solution.board,cap,chain,solution.slots,solution.search,{depth:12,width:12,branchLimit:16,maximumTier:maxTier}));
+      await yieldToUI(signal);
+      if(foundInfo||optimizerMode==="adaptive"||optimizerMode==="experimental12"||optimizerMode==="experimental13"){
+       $("optimizerProgressText").textContent="Exploring deeper merge orders…";
+       await yieldToUI(signal);
+       keepBetterSearch(searchLookaheadCombos(solution.board,cap,chain,solution.search,
+         {maxPasses:3,maxBranches:18,maxEvaluations:3500,maximumTier:maxTier}));
+       await yieldToUI(signal);
+      }
+     }catch(error){
+      // A Stop & Continue click during refinement must still show the last
+      // completed candidate rather than being treated like Cancel.
+      if(!(error?.name==="AbortError"&&activeSearch?.keepBestRequested))
+       throw error;
+     }
     } // A cached winner is already verified; don't recompute its merge search.
+    if(dualSplit&&activeSearch?.keepBestRequested){
+     solution={...selectDisplayedSearchResult(overallWinner,currentRunSolution,true),
+      testedCandidates:evaluatedCount};
+    }else{
+     // A normal finish can improve the all-time score during refinement.
+     overallWinner=solution;
+    }
   }
   if(signal.aborted&&!activeSearch?.keepBestRequested)throwIfCancelled(signal);
   if(!solution||!solution.search)throw Error("No valid preparations for these tier settings.");
@@ -680,7 +696,8 @@ async function showSolver(signal,foundId=null,savedOnly=false){
   if(verified.score!==result.score||!verified.board.every((t,i)=>t===result.board[i])){
     throw Error("Combo replay validation disagrees with the optimizer result.");
   }
-  // Persist final beam/tactical improvements only after full replay validation.
+  // The saved-best store only replaces records with a higher validated score.
+  // Displaying a weaker current-run result does not overwrite historical best.
   if(dualSplit)await persistWinner(solution);
   const timeout=Math.max(.1,Number($("comboTimeout").value)||5.5);
   const moveTime=Math.max(.1,Number($("mergeTime").value)||1.5);
