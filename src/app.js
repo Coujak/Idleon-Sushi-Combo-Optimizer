@@ -25,7 +25,7 @@ import {windTierMaximum,clampWindTier,windTierAfterPreparedChange} from "./wind-
 import {detectSushiProgress} from "./sushi-progression.mjs?v=1.17.0";
 import {initializeSushiLab} from "./lab-ui.mjs?v=1.19.10";
 import {sushiTierIconPath} from "./sushi-reference.mjs?v=1.16.6";
-import {initializeIdleonCloudUI} from "./idleon-cloud-ui.mjs?v=1.20.1";
+import {initializeIdleonCloudUI} from "./idleon-cloud-ui.mjs?v=1.20.3";
 import {countOverviewPlates,overviewTileInfo} from "./overview-helpers.mjs?v=1.19.9";
 import {getPreparedBoardSections,hasSlotLayoutChanges,preparedSectionOutlinePath,preparedOutlineCoordinates} from "./prepared-sections.mjs?v=1.17.1";
 const COLUMNS=BOARD_COLUMNS;
