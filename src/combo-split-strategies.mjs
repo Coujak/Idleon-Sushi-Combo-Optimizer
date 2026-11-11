@@ -142,6 +142,15 @@ export function buildSplitComboCandidates(positions,maxTier,cap,chainLimit=25,
  if(mode==="simple")
   return simpleCascade(sorted,maxTier,cap,chainLimit,selectedBase,protectHighest);
  const candidates=[];
+ const profiles=[
+  {label:"balanced",peakFactor:.56,stages:3,stageBias:"equal",reserveCurve:"linear"},
+  {label:"deep",peakFactor:.72,stages:3,stageBias:"equal",reserveCurve:"linear"},
+ ];
+ for(const stages of [2,3])for(const stageBias of ["front","back"])
+  for(const peakFactor of [.40,.56,.72])
+   for(const reserveCurve of ["high","low"])
+    profiles.push({label:stages+" stages "+stageBias+" "+peakFactor+" "+reserveCurve,
+     stages,stageBias,peakFactor,reserveCurve});
  const supplyTrack=comboSplitPercentages(mode,"supply");
  const engineTrack=comboSplitPercentages(mode,"engine");
  // Interleave both real searches so neither progress bar stays frozen
@@ -152,15 +161,6 @@ export function buildSplitComboCandidates(positions,maxTier,cap,chainLimit=25,
    if(percentage===undefined)continue;
    // Identical configuration families at every sampled boundary. The mode
    // controls ONLY which boundaries are visited, never the candidate profiles.
-   const profiles=[
-    {label:"balanced",peakFactor:.56,stages:3,stageBias:"equal",reserveCurve:"linear"},
-    {label:"deep",peakFactor:.72,stages:3,stageBias:"equal",reserveCurve:"linear"},
-   ];
-   for(const stages of [2,3])for(const stageBias of ["front","back"])
-    for(const peakFactor of [.40,.56,.72])
-     for(const reserveCurve of ["high","low"])
-      profiles.push({label:stages+" stages "+stageBias+" "+peakFactor+" "+reserveCurve,
-       stages,stageBias,peakFactor,reserveCurve});
    for(let variant=0;variant<profiles.length;variant++){
     const candidate=makeSplit(sorted,maxTier,cap,chainLimit,
      selectedBase,protectHighest,percentage,variant%2,profiles[variant]);
