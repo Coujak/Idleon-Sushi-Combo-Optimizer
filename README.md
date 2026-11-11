@@ -86,6 +86,16 @@ This is a preparation convenience change, not a new scoring strategy. Historical
 - Enter action times to estimate combo-time feasibility. **Only merges reset the combo timer** in the timing estimate.
 - Follow each merge or relocation in a larger replay board with highlighted actions, dimmed inactive tiles, and a staggered East Wind animation.
 
+## Adaptive Combo Meter strategy planner (v1.17.0)
+
+**The Combo Planner now starts in Adaptive mode.** It no longer assumes that a player has reached the T64/T58 research configuration or has 100 contiguous unlocked slots. From an imported Idleon Toolbox game save it reads the **highest discovered Sushi tier** using Sushi discovery flags (rather than just the highest currently on the board), plus the player's unlocked plates. The maximum Wind tier is derived from the selected prepared tier, and the player's chosen Wind limit is respected.
+
+Adaptive mode compares reusable **supply + Wind engine** strategy families rather than claiming every account can reproduce a fixed historical score. These include transformed 100-slot board shapes from Experiments 2–13 at several working tiers and procedural one-, two-, and three-wave boards that adapt their supply/engine split to shorter contiguous layouts. It tries lower working tiers alongside the player's available maximum, scores the actual legal merges and validates the winning replay. No score is copied from a T64 record.
+
+**Historical experiments remain unchanged and selectable separately.** Experiment 1–13 modes retain their original candidate sets and their original T64 benchmark score labels; the adaptive generator does not silently substitute Experiment 13 into an earlier numbered mode. The existing legacy Default is also still selectable, but Adaptive is the recommended everyday mode.
+
+Read [Combo strategy audit](research/combo-strategy-audit.md) for the experiment-by-experiment structural findings and known limitations. This is a first strategy-family implementation, **not a global optimization guarantee**. Notably, noncontiguous layouts still need stronger support, and merge-order refinement currently focuses on the highest-scoring initial candidate.
+
 ## Combo Meter milestone research (after Experiment 13.0)
 
 The next planned showcase targets are **Experiment 14.0 ≥ 80,000**, **15.0 ≥ 85,000**, **16.0 ≥ 90,000**, then increments of **5,000 points**. The numbers describe verified *score floors*, not algorithm versions. These are proposals until the game-mechanics replay passes the threshold; no unsupported benchmark may be published as a new experiment.
