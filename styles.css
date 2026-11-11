@@ -1527,9 +1527,6 @@ details summary{cursor:pointer;font-size:12px;font-weight:700;color:#9eb7c9}
 }
 #lab-overview .overview-board-selection strong{color:#e7f5ea}
 #lab-overview .overview-board-selection span{color:#afcbd2}
-@media(max-width:1150px) and (min-width:901px){
- #lab-overview .lab-shaker-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
-}
 @media(max-width:550px){
  #lab-overview .lab-stat-grid{gap:8px}
  #lab-overview .lab-stat{padding:12px}
