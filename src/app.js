@@ -1059,12 +1059,73 @@ async function showSolver(signal,foundId=null,savedOnly=false){
   first.addEventListener("click",()=>player.goTo(0));
   previous.addEventListener("click",()=>player.goTo(player.step-1));
   next.addEventListener("click",()=>player.goTo(player.step+1));
+  nextWind.addEventListener("click",()=>{
+    const windStep=nextWindReplayStep(result.moves,player.step);
+    if(windStep!==null)player.goTo(windStep);
+  });
   lastStep.addEventListener("click",()=>player.goTo(result.moves.length));
   playButton.addEventListener("click",()=>player.toggle());
   seek.addEventListener("input",()=>player.goTo(Number(seek.value)));
   speedSelect.addEventListener("change",()=>{
     finishFlight();
     player.reschedule();
+  });
+  previewCheck.addEventListener("change",()=>{
+    // Redraw the fully resolved board when changing guide visibility.
+    finishFlight();
+    const move=selected>0?result.moves[selected-1]:null;
+    const frame=move?.board??solution.board;
+    const frameTiming=move?replayMotionTiming(move,Number(speedSelect.value),
+      {reducedMotion:true}):null;
+    drawFrame(frame,move,{resolved:Boolean(move),timing:frameTiming});
+    completedScore(move);
+    updateActionGuide();
+  });
+  layout.addEventListener("pointerdown",event=>{
+    if(event.target.closest?.("button,input,select,textarea,label"))return;
+    layout.focus({preventScroll:true});
+  });
+  layout.addEventListener("keydown",event=>{
+    if(event.altKey||event.ctrlKey||event.metaKey||
+      event.target.closest?.("button,input,select,textarea,[contenteditable='true']"))return;
+    let handled=true;
+    switch(event.key){
+      case "ArrowRight":player.goTo(player.step+1);break;
+      case "ArrowLeft":player.goTo(player.step-1);break;
+      case "Home":player.goTo(0);break;
+      case "End":player.goTo(result.moves.length);break;
+      case " ":player.toggle();break;
+      case "w":case "W":{
+        const nextWindStep=nextWindReplayStep(result.moves,player.step);
+        if(nextWindStep!==null)player.goTo(nextWindStep);
+        break;
+      }
+      default:handled=false;
+    }
+    if(handled)event.preventDefault();
+  });
+  copySteps.addEventListener("click",async()=>{
+    const lines=["Sushi Station · Combo Meter replay",
+      "Starting prepared board: "+solution.board.join(","),
+      "Total simulated score: "+result.score.toLocaleString()+" points",""];
+    replayGuide.forEach((item,index)=>{
+      lines.push("Step "+item.step+": "+item.instruction);
+      lines.push("  "+item.outcome+" · Running total: "+
+        cumulative[index+1].toLocaleString()+" points");
+    });
+    const body=lines.join("\n");
+    try{
+      if(!navigator.clipboard?.writeText)throw Error("Clipboard unavailable");
+      await navigator.clipboard.writeText(body);
+      copySteps.textContent="Copied ✓";
+    }catch{
+      const blob=new Blob([body],{type:"text/plain;charset=utf-8"});
+      const url=URL.createObjectURL(blob),link=document.createElement("a");
+      link.href=url;link.download="sushi-combo-steps.txt";
+      document.body.append(link);link.click();link.remove();
+      URL.revokeObjectURL(url);
+      copySteps.textContent="Downloaded steps";
+    }
   });
   const pauseWhenHidden=()=>{
     if(document.hidden){player.pause();finishFlight();}
