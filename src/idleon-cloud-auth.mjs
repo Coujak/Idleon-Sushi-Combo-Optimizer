@@ -22,33 +22,33 @@ const FIREBASE_CONFIG={
 
 export function parseSteamCallback(value){
  if(typeof value!=="string"||value.trim().length>8192)
-  throw Error("Paste the Steam sign-in return address from legendsofidleon.com.");
+  throw safeError("Paste the Steam sign-in return address from legendsofidleon.com.");
  let url;
  try{
   const raw=value.trim();
-  url=new URL(/^(?:www\.)?legendsofidleon\.com\/steamsso\//i.test(raw)?
-   "https://"+raw.replace(/^www\./i,"www."):raw);
+  url=new URL(/^[a-z][a-z\d+.-]*:\/\//i.test(raw)?raw:"https://"+raw);
+  if(url.hostname==="legendsofidleon.com")url.hostname="www.legendsofidleon.com";
  }catch{
-  throw Error("Paste the return-page address from the official Idleon Steam sign-in.");
+  throw safeError("Paste the return-page address from the official Idleon Steam sign-in.");
  }
  if(url.protocol!=="https:"||url.hostname!=="www.legendsofidleon.com"||
   url.port||url.username||url.password||url.pathname!=="/steamsso/")
-  throw Error("Only the official legendsofidleon.com/steamsso/ return address is accepted.");
+  throw safeError("Only the official legendsofidleon.com/steamsso/ return address is accepted.");
  const params=url.searchParams;
  const claimed=params.get("openid.claimed_id");
  let idUrl;
  try{idUrl=new URL(claimed);}catch{
-  throw Error("That return address is missing Steam's signed OpenID information.");
+  throw safeError("That return address is missing Steam's signed OpenID information.");
  }
  if(idUrl.protocol!=="https:"&&idUrl.protocol!=="http:"||
-  idUrl.hostname!=="steamcommunity.com"||
+  idUrl.hostname!=="steamcommunity.com"||idUrl.username||idUrl.password||idUrl.port||
   !/^\/openid\/id\/\d{12,20}$/.test(idUrl.pathname))
-  throw Error("That return address does not contain a valid Steam identity.");
+  throw safeError("That return address does not contain a valid Steam identity.");
  const nonce=params.get("openid.response_nonce");
  const sig=params.get("openid.sig");
  const signed=params.get("openid.signed");
  if(!nonce||!sig||!signed)
-  throw Error("That Steam return address is incomplete or expired. Sign in again.");
+  throw safeError("That Steam return address is incomplete or expired. Sign in again.");
  return {
   claimedId:idUrl.pathname.split("/").at(-1),nonce,
   assocHandle:params.get("openid.assoc_handle")??"",
@@ -61,7 +61,7 @@ export function parseSteamCallback(value){
 export function selectSushiCloudData(save){
  const fields=save?.data&&typeof save.data==="object"?save.data:save;
  if(!fields||typeof fields!=="object"||fields.Sushi==null)
-  throw Error("This Idleon cloud save has no Sushi Station data yet.");
+  throw safeError("This Idleon cloud save has no Sushi Station data yet.");
  const chosen={};
  for(const field of ["Sushi","Spelunk","Menagerie","Research","BundlesReceived"])
   if(Object.prototype.hasOwnProperty.call(fields,field))chosen[field]=fields[field];
