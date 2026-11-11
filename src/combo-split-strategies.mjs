@@ -4,13 +4,16 @@
 export const COMBO_SPLIT_MODE_STEPS=Object.freeze({
  simple:null,optimizer1:20,optimizer2:10,optimizer3:5,optimizer4:1
 });
-export function comboSplitPercentages(mode){
- if(!(mode in COMBO_SPLIT_MODE_STEPS))return [];
+export function comboSplitPercentages(mode,direction="supply"){
+ if(!Object.hasOwn(COMBO_SPLIT_MODE_STEPS,mode))return [];
  const step=COMBO_SPLIT_MODE_STEPS[mode];
- if(step===null)return [];
+ if(step===null||!["supply","engine"].includes(direction))return [];
  const result=[];
- for(let percentage=50;percentage<=99;percentage+=step)
-  result.push(percentage);
+ if(direction==="supply"){
+  for(let percentage=50;percentage<=99;percentage+=step)result.push(percentage);
+ }else{
+  for(let percentage=50;percentage>=1;percentage-=step)result.push(percentage);
+ }
  return result;
 }
 export function isSplitOptimizerMode(mode){
@@ -132,11 +135,23 @@ export function buildSplitComboCandidates(positions,maxTier,cap,chainLimit=25,
  if(mode==="simple")
   return simpleCascade(sorted,maxTier,cap,chainLimit,selectedBase,protectHighest);
  const candidates=[];
- for(const percentage of comboSplitPercentages(mode)){
-  for(let variant=0;variant<2;variant++){
-   const candidate=makeSplit(sorted,maxTier,cap,chainLimit,
-    selectedBase,protectHighest,percentage,variant);
-   if(candidate)candidates.push(candidate);
+ const supplyTrack=comboSplitPercentages(mode,"supply");
+ const engineTrack=comboSplitPercentages(mode,"engine");
+ // Interleave both real searches so neither progress bar stays frozen
+ // while the other direction completes. Both intentionally test 50/50.
+ for(let i=0;i<Math.max(supplyTrack.length,engineTrack.length);i++){
+  for(const [direction,track] of [["supply",supplyTrack],["engine",engineTrack]]){
+   const percentage=track[i];
+   if(percentage===undefined)continue;
+   for(let variant=0;variant<2;variant++){
+    const candidate=makeSplit(sorted,maxTier,cap,chainLimit,
+     selectedBase,protectHighest,percentage,variant);
+    if(candidate){
+     candidate.splitDirection=direction;
+     candidate.splitStepIndex=i;
+     candidates.push(candidate);
+    }
+   }
   }
  }
  return candidates;
