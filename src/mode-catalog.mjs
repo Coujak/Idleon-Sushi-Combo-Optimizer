@@ -121,14 +121,61 @@ export const MODE_CATALOG=Object.freeze([
     "difficulty": "Grandmaster",
     "benchmark": 76532,
     "summary": "Rebalances high-tier reserve sushi for stronger repeated Wind cascades; verified under Tier 64 settings."
+  },
+  {
+    "id": "simple",
+    "number": null,
+    "kind": "split",
+    "name": "Simple Cascade",
+    "difficulty": "Quick",
+    "benchmark": null,
+    "summary": "One basic descending East Wind cascade with the player's actual tier and Wind cap. No supply/engine split search."
+  },
+  {
+    "id": "optimizer1",
+    "number": null,
+    "kind": "split",
+    "name": "Optimizer 1 (Fast)",
+    "difficulty": "Fast",
+    "benchmark": null,
+    "summary": "Search supply/engine divisions 50/50, 70/30 and 90/10; 20-point jumps."
+  },
+  {
+    "id": "optimizer2",
+    "number": null,
+    "kind": "split",
+    "name": "Optimizer 2 (Mid)",
+    "difficulty": "Mid",
+    "benchmark": null,
+    "summary": "Search supply/engine divisions 50/50 through 90/10; 10-point jumps."
+  },
+  {
+    "id": "optimizer3",
+    "number": null,
+    "kind": "split",
+    "name": "Optimizer 3 (Slow)",
+    "difficulty": "Slow",
+    "benchmark": null,
+    "summary": "Search supply/engine divisions 50/50 through 95/5; 5-point jumps."
+  },
+  {
+    "id": "optimizer4",
+    "number": null,
+    "kind": "split",
+    "name": "Optimizer 4 (Max)",
+    "difficulty": "Max",
+    "benchmark": null,
+    "summary": "Search every supply/engine division 50/50 through 99/1; 1-point jumps."
   }
 ]);
 export function getModeInfo(id){return MODE_CATALOG.find(m=>m.id===id)??MODE_CATALOG[0];}
 export function modeOptionLabel(m){
+ if(m.kind==="split")return m.name+" · "+m.difficulty;
  if(m.id==="adaptive")return "Adaptive — "+m.name;
  return m.number===0?"Legacy Default — "+m.name:"Exp "+m.number+".0 — "+m.name+" · "+m.difficulty;
 }
 export function modeDisplayLabel(m){
+ if(m.kind==="split")return m.name;
  if(m.id==="adaptive")return "Adaptive · "+m.name;
  return m.number===0?"Legacy Default · "+m.name:"Experimental "+m.number+".0 · "+m.name;
 }
