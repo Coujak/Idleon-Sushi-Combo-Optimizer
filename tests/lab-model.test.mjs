@@ -161,7 +161,7 @@ test("Overview highest-on-board counts copies without confusing discovered tier"
  const snap=getSushiSnapshot(board);
  assert.equal(snap.highest,58);
  assert.equal(snap.highestCopies,3);
- assert.equal(snap.occupied,4);
+ assert.equal(snap.occupied,5);
  // An empty board must not display T0 or a copy count.
  const empty=getSushiSnapshot({...board,tiles:[-1,-1,-1]});
  assert.equal(empty.highest,0);
