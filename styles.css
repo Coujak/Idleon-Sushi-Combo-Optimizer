@@ -1533,3 +1533,54 @@ details summary{cursor:pointer;font-size:12px;font-weight:700;color:#9eb7c9}
  #lab-overview .overview-plate-summary{gap:8px 13px}
  #lab-overview .lab-section-count{font-size:12px}
 }
+
+/* Shaker cards: icon / identity / compact inline use + daily refill. */
+#lab-overview .lab-shaker-grid{align-items:stretch}
+#lab-overview .lab-shaker-card{
+ display:grid;grid-template-columns:48px minmax(0,1fr) auto;
+ align-items:center;gap:10px;min-height:99px;padding:13px;
+ background:linear-gradient(135deg,#102b36 0%,#12313a 100%);
+ border-color:#3b6570;border-radius:13px;
+}
+#lab-overview .lab-shaker-icon{
+ width:48px;height:48px;flex:none;border-radius:11px;
+ background:#1e4147;border:1px solid #345965;
+}
+#lab-overview .lab-shaker-copy{gap:5px;min-width:0}
+#lab-overview .lab-shaker-copy strong{
+ font-size:14px;line-height:1.2;overflow-wrap:normal;
+}
+#lab-overview .lab-shaker-copy span{font-size:11px;line-height:1.35}
+#lab-overview .lab-shaker-count{
+ display:flex;flex-direction:column;align-items:flex-end;
+ justify-content:center;gap:4px;min-width:max-content;
+}
+#lab-overview .lab-shaker-usage-row{
+ display:flex;align-items:center;justify-content:flex-end;gap:7px;
+}
+#lab-overview .lab-shaker-count .lab-shaker-count-value{
+ font-size:29px;line-height:1.05;color:#b3f4d3;
+}
+#lab-overview .lab-shaker-count .lab-shaker-daily{
+ margin:0;padding:4px 7px;font-size:10px;line-height:1.1;
+}
+#lab-overview .lab-shaker-count .lab-shaker-count-caption{
+ font-size:10px;line-height:1.25;letter-spacing:.02em;
+ color:#afc6cf;
+}
+@media(max-width:1100px) and (min-width:901px){
+ #lab-overview .lab-shaker-card{grid-template-columns:40px minmax(0,1fr) auto;gap:7px;padding:10px}
+ #lab-overview .lab-shaker-icon{width:40px;height:40px}
+ #lab-overview .lab-shaker-copy strong{font-size:12px}
+ #lab-overview .lab-shaker-usage-row{gap:5px}
+ #lab-overview .lab-shaker-count .lab-shaker-count-value{font-size:25px}
+ #lab-overview .lab-shaker-count .lab-shaker-daily{padding:4px 6px}
+}
+@media(max-width:550px){
+ #lab-overview .lab-shaker-card{grid-template-columns:48px minmax(0,1fr) auto;gap:8px;padding:12px}
+ #lab-overview .lab-shaker-icon{width:48px;height:48px}
+ #lab-overview .lab-shaker-copy strong{font-size:13px}
+ #lab-overview .lab-shaker-count .lab-shaker-count-value{font-size:26px}
+}
+/* The longer discovery label wraps cleanly without changing card height. */
+#lab-overview .lab-stat-label{overflow-wrap:break-word}
