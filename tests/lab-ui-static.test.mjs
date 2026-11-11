@@ -40,14 +40,20 @@ test("Imported IT JSON is not rejected when cached Advisor markup lacks optional
  assert.match(app,/try\{sushiLab\.refresh\(\);\}/);
  assert.match(app,/JSON imported · dashboard incomplete/);
  assert.match(app,/Your JSON loaded successfully, but the dashboard could not finish updating/);
- assert.match(html,/src\/app\.js\?v=1\.17\.0/);
+ assert.match(html,/src\/app\.js\?v=1\.17\.1/);
  assert.match(app,/lab-ui\.mjs\?v=1\.16\.7/);
 });
 
-test("Combo strategy UI starts in progression-aware mode and imports actual discovery data",()=>{
+test("Combo strategy UI starts in Simple mode with real dual-direction split bars",()=>{
  const html=readFileSync(new URL("../index.html",import.meta.url),"utf8");
  const code=readFileSync(new URL("../src/app.js",import.meta.url),"utf8");
- assert.match(html,/id="optimizerMode"><option value="adaptive" selected>/);
+ assert.match(html,/id="optimizerMode"><option value="simple" selected>/);
+ assert.match(html,/id="optimizerSingleProgress"/);
+ assert.match(html,/id="optimizerDualProgress"/);
+ assert.match(html,/id="optimizerSupplyProgress"/);
+ assert.match(html,/id="optimizerEngineProgress"/);
+ assert.match(code,/candidate\?\.splitDirection/);
+ assert.match(code,/tracks\[candidate\.splitDirection\]/);
  assert.match(code,/getModeCandidates\(layoutPositions,maxTier,cap/);
  assert.match(code,/detectSushiProgress\(imported\)/);
  assert.match(code,/if\(optimizerMode==="adaptive"\|\|/);
