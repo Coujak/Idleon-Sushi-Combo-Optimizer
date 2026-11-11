@@ -2,6 +2,7 @@ import {simulateMerge,validateComboReplay,searchStaircaseCombos} from "./optimiz
 import {searchTacticalCombos} from "./tactical-search.mjs?v=1.9.9";
 import {createReplayController} from "./replay-controller.mjs?v=1.7.4";
 import {replayMotionTiming} from "./merge-motion.mjs?v=1.15.6";
+import {replayFlightGeometry} from "./replay-flight-geometry.mjs?v=1.18.8";
 import {buildReplayGuide,nextWindReplayStep} from "./replay-guide.mjs?v=1.18.7";
 import {buildCandidates} from "./preparation-core.mjs?v=1.9.9";
 import {getModeCandidates} from "./optimizer-modes.mjs?v=1.18.6";
@@ -955,16 +956,20 @@ async function showSolver(signal,foundId=null,savedOnly=false){
         const sourceRect=sourceTile.getBoundingClientRect();
         const destRect=destTile.getBoundingClientRect();
         const gridRect=boardGrid.getBoundingClientRect();
-        const dx=destRect.left-sourceRect.left,dy=destRect.top-sourceRect.top;
+        const {left,top,width,height,dx,dy}=replayFlightGeometry(
+          sourceRect,destRect,gridRect,boardGrid.clientLeft,boardGrid.clientTop);
         flightGhost=sourceTile.cloneNode(true);
         flightGhost.classList.remove("focus-tile","merge-source","dim-tile","wind-active");
         flightGhost.classList.add("merge-flying-sushi");
         flightGhost.removeAttribute("title");
         flightGhost.setAttribute("aria-hidden","true");
-        flightGhost.style.left=(sourceRect.left-gridRect.left)+"px";
-        flightGhost.style.top=(sourceRect.top-gridRect.top)+"px";
-        flightGhost.style.width=sourceRect.width+"px";
-        flightGhost.style.height=sourceRect.height+"px";
+        // Absolute positioning starts at the board's inner border edge.
+        // Match source size, then travel from center to center at the
+        // destination even if responsive tile sizes differ fractionally.
+        flightGhost.style.left=left+"px";
+        flightGhost.style.top=top+"px";
+        flightGhost.style.width=width+"px";
+        flightGhost.style.height=height+"px";
         sourceTile.classList.add("merge-source-lifted");
         boardGrid.append(flightGhost);
         const epoch=flightEpoch;
