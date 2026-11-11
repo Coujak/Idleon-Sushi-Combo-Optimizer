@@ -1,6 +1,6 @@
 // Optional Idleon cloud-login interface. Does not replace manual JSON import.
 import {createIdleonCloudClient,cloudLoginError,STEAM_LOGIN_URL}
- from "./idleon-cloud-auth.mjs?v=1.20.1";
+ from "./idleon-cloud-auth.mjs?v=1.20.3";
 
 const $=id=>document.getElementById(id);
 
