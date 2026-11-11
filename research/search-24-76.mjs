@@ -35,15 +35,13 @@ const checkpointNow=()=>{
  writeFileSync(checkpoint,JSON.stringify({config,tested,best,complete:false},null,2)+"\n");
 };
 process.on("SIGINT",()=>{checkpointNow();console.log("Saved checkpoint");process.exit(130);});
+let seen=0;
 for(const candidate of enumerateSplitTierBoards({
- positions,supplyCount:24,maxTier:maxTier+1,minTier,protectedTier:64
+ positions,supplyCount:24,maxTier:64,minTier,protectedTier:64,ingredientMaxTier:maxTier
 })){
  // This iterator enumerates tier multisets only, and may have a massive
  // search space. offset/limit and checkpoint permit reproducible batches.
- if(offset>0){ // Offset handled below using a monotonically increasing index.
- }
- if(!globalThis.__seen)globalThis.__seen=0;
- const index=globalThis.__seen++;
+ const index=seen++;
  if(index<offset+tested)continue;
  if(tested>=limit)break;
  const result=searchCombos(candidate.board,58,25,4,99,"descending domino",64);
