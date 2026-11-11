@@ -5,6 +5,12 @@ Browser-based Sushi Station account dashboard, reference guides and Combo Meter 
 **Site:** https://coujak.github.io/Idleon-Sushi-Combo-Optimizer/
 
 
+## Google sign-in research (from Toolbox recording)
+
+The recorded Toolbox login uses **Google's device authorization flow**, not Steam and not a generic Google pop-up: the site requests a short code, the player approves it at `google.com/device`, the app polls Google for an ID token, then exchanges that ID token for the authenticated **Idleon Firebase** session. The Google ID token must be issued for an OAuth client allowed by Idleon's Firebase configuration; a different Google client can cause `INVALID_IDP_RESPONSE` even after successful Google approval.
+
+`src/google-device-flow.mjs` contains the reusable device-code state machine, polling/backoff, expiration, cancellation and Firebase handoff adapter with corresponding unit tests. It deliberately **has no hardcoded OAuth client ID, client secret or real token exchange**. Before enabling Google login, we need a properly authorized Google device OAuth client and supported access to Idleon's Firebase project (or cooperation from the Idleon operator); we should not copy/reuse another application's OAuth credentials merely because they're visible in its source. The dev UI continues to expose only the experimental Steam flow until that integration is ready. Do not paste Google device codes, ID tokens or Steam callback addresses into issues, screenshots or chat.
+
 ## Experimental Idleon cloud login (development branch only)
 
 The Overview now includes an optional **Connect Idleon account · Steam** panel. This is an early proof of concept; do not consider it production-verified until a real Steam sign-in is tested from the GitHub Pages origin.
