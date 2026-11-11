@@ -3,18 +3,18 @@ import {searchTacticalCombos} from "./tactical-search.mjs?v=1.9.9";
 import {createReplayController} from "./replay-controller.mjs?v=1.7.4";
 import {replayMotionTiming} from "./merge-motion.mjs?v=1.15.6";
 import {buildCandidates} from "./preparation-core.mjs?v=1.9.9";
-import {getModeCandidates} from "./optimizer-modes.mjs?v=1.10.4";
+import {getModeCandidates} from "./optimizer-modes.mjs?v=1.17.0";
 import {searchLookaheadCombos} from "./lookahead-search.mjs?v=1.9.9";
 import {throwIfCancelled,yieldToUI} from "./optimizer-run.mjs?v=1.8.1";
 import {searchCombos} from "./merge-search.mjs?v=1.9.9";
-import {MODE_CATALOG,getModeInfo,modeOptionLabel,modeDisplayLabel} from "./mode-catalog.mjs?v=1.9.11";
+import {MODE_CATALOG,getModeInfo,modeOptionLabel,modeDisplayLabel} from "./mode-catalog.mjs?v=1.17.0";
 const $=id=>document.getElementById(id);
 import {BOARD_COLUMNS,BOARD_CELLS,normalizeBoardData,layoutOptions} from "./board-geometry.mjs?v=1.8.4";
 import {windTierMaximum,clampWindTier,windTierAfterPreparedChange} from "./wind-limit.mjs?v=1.9.10";
 import {detectSushiProgress} from "./sushi-progression.mjs?v=1.17.0";
 import {initializeSushiLab} from "./lab-ui.mjs?v=1.16.7";
 import {sushiTierIconPath} from "./sushi-reference.mjs?v=1.16.6";
-import {getPreparedBoardSections,hasSlotLayoutChanges,preparedSectionOutlinePath,preparedOutlineCoordinates} from "./prepared-sections.mjs?v=1.10.7";
+import {getPreparedBoardSections,hasSlotLayoutChanges,preparedSectionOutlinePath,preparedOutlineCoordinates} from "./prepared-sections.mjs?v=1.17.0";
 const COLUMNS=BOARD_COLUMNS;
 let imported=null;
 const sushiLab=initializeSushiLab(()=>imported);
@@ -799,7 +799,7 @@ function initModePicker(){
   }
   rows.append(row);
  }
- selector.value=MODE_CATALOG.some(mode=>mode.id===old)?old:"default";
+ selector.value=MODE_CATALOG.some(mode=>mode.id===old)?old:"adaptive";
 }
 function updateOptimizerModeHint(){
  const info=getModeInfo($("optimizerMode").value);
@@ -807,12 +807,14 @@ function updateOptimizerModeHint(){
  const difficulty=$("optimizerDifficulty");
  difficulty.textContent=info.difficulty;
  difficulty.className="mode-difficulty mode-difficulty-"+info.difficulty.toLowerCase();
- const preview=Number($("seedTier").value)>64;
+ const tier=Number($("seedTier").value);
+ const discovered=imported?detectSushiProgress(imported).highest:0;
+ const preview=tier>64&&tier>discovered;
  $("optimizerModeBenchmark").textContent=info.benchmark===null?
-  (preview?"Future-tier preview":"Flexible setups"):
-  (preview?"Tier 64 benchmark: ":"")+info.benchmark.toLocaleString()+" simulated pts";
+  (info.id==="adaptive"?"Simulated at your settings":preview?"Future-tier preview":"Flexible setups"):
+  (preview?"Historical T64 benchmark: ":"")+info.benchmark.toLocaleString()+" simulated pts";
  $("optimizerModeHint").textContent=info.summary+(preview?
-  " Higher tiers are hypothetical future-update previews. All record research remains at Tier 64, Wind cap 58, chain 25 and 100 unlocked slots.":"");
+  " Above-T64 tiers have not been confirmed in this save. Historical experiment benchmarks remain T64/T58 only.":"");
  for(const row of $("modeComparisonRows").rows)row.classList.toggle("is-selected",row.dataset.mode===info.id);
 }
 initModePicker();
