@@ -662,7 +662,9 @@ async function showSolver(signal,foundId=null,savedOnly=false){
   setComboScoreBubble(false,result.score);
   $("solverMoves").textContent=verified.merges;
   $("solverRepositions").textContent=verified.repositions;
-  $("solverNote").textContent=(custom?"Custom board · staircase recycling, greedy, beam, and tactical reposition searches tested. ":"Best of "+solution.testedCandidates+" preparations (base Tier "+solution.base+", "+solution.shape+"). ")+result.remaining+" occupied sushi remain. Heat model: "+mode+". Scores remain estimates, not a guaranteed maximum.";
+  $("solverNote").textContent=(custom?"Custom board · staircase recycling, greedy, beam, and tactical reposition searches tested. ":
+   solution.testedCandidates===0?"Loaded previously verified best configuration. ":
+   "Best of "+solution.testedCandidates+" new preparations (base Tier "+solution.base+", "+solution.shape+"). ")+result.remaining+" occupied sushi remain. Heat model: "+mode+". Scores remain estimates, not a guaranteed maximum.";
   $("solverNote").textContent+=(foundInfo?" This is a previously found fixed board, not a configuration discovered by an optimizer.":"")+" Mode: "+optimizerModeLabel+". Winning strategy: "+result.strategy+". Slot arrangement: "+(solution.layoutName??"Current positions")+". Available prepared tier: "+maxTier+"; East Wind limit: "+cap+".";
   if(solution.adaptive)$("solverNote").textContent+=" Adaptive "+solution.shape+
    " (working tier T"+solution.workingTier+
@@ -1076,6 +1078,10 @@ updateFoundButton();
 updateOptimizerModeHint();
 function updateCancelControls(state){
  const running=state!=="idle",stopping=state==="stopping";
+ $("stopKeepBest").classList.toggle("hidden",!running);
+ $("stopKeepBest").disabled=stopping||!activeSearch?.hasResult;
+ $("stopKeepBest").textContent=stopping&&activeSearch?.keepBestRequested?
+  "Saving best…":"Stop & keep best";
  for(const button of [$("cancelSolver"),$("cancelSolverProgress")]){
   button.classList.toggle("hidden",!running);
   button.disabled=stopping;
@@ -1091,6 +1097,14 @@ function requestSearchCancellation(){
 }
 $("cancelSolver").addEventListener("click",requestSearchCancellation);
 $("cancelSolverProgress").addEventListener("click",requestSearchCancellation);
+function requestKeepBest(){
+ if(!activeSearch||!activeSearch.hasResult||activeSearch.signal.aborted)return;
+ activeSearch.keepBestRequested=true;
+ cancelRunningSearch();
+ updateCancelControls("stopping");
+ $("optimizerProgressText").textContent="Stopping · preparing the best verified result…";
+}
+$("stopKeepBest").addEventListener("click",requestKeepBest);
 $("clearResearchHistory").addEventListener("click",async()=>{
  if(activeSearch)return;
  if(!window.confirm("Clear previously evaluated optimizer boards and saved best scores from this browser?"))return;
@@ -1103,17 +1117,19 @@ $("clearResearchHistory").addEventListener("click",async()=>{
   $("researchHistoryStatus").textContent="Could not clear local research: "+String(error.message??error);
  }finally{button.disabled=false;}
 });
-async function executeConfiguredSearch(foundId=null){
+async function executeConfiguredSearch(foundId=null,savedOnly=false){
   if(!imported){$("solverNote").textContent="Import a valid game save JSON first.";return;}
   if(activeSearch)return;
   disposeReplay();
   const controller=new AbortController();
   activeSearch=controller;
+  controller.keepBestRequested=false;controller.hasResult=false;
   const runButton=$("runSolver"),foundButton=$("runFoundConfiguration");
   const button=foundId?foundButton:runButton;
   runButton.disabled=true;foundButton.disabled=true;
-  $("clearResearchHistory").disabled=true;
-  button.textContent=foundId?"Replaying…":"Optimizing…";
+  for(const id of ["clearResearchHistory","viewResearchBest","exportResearch","importResearch"])
+   $(id).disabled=true;
+  button.textContent=foundId?"Replaying…":savedOnly?"Loading saved best…":"Optimizing…";
   updateCancelControls("running");
   $("optimizerProgress").classList.remove("hidden");
   $("optimizerSingleProgress").classList.remove("hidden");
@@ -1127,10 +1143,11 @@ async function executeConfiguredSearch(foundId=null){
     // Let the browser paint the Cancel controls before preparing a large
     // candidate catalogue, which otherwise blocks the main JS thread.
     await yieldToUI(controller.signal);
-    await showSolver(controller.signal,foundId);
-    throwIfCancelled(controller.signal);
+    await showSolver(controller.signal,foundId,savedOnly);
+    if(!controller.keepBestRequested)throwIfCancelled(controller.signal);
     $("solverResults").classList.remove("hidden");
-    $("optimizerProgressText").textContent="Complete · Results ready";
+    $("optimizerProgressText").textContent=controller.keepBestRequested?
+     "Stopped early · Best verified result ready":"Complete · Results ready";
     requestAnimationFrame(()=>{
       const target=$("optimizerSlotLayout");
       if(target)target.scrollIntoView({behavior:window.matchMedia("(prefers-reduced-motion: reduce)").matches?"auto":"smooth",block:"start"});
@@ -1151,10 +1168,12 @@ async function executeConfiguredSearch(foundId=null){
     foundButton.textContent="Replay found board";
     foundButton.disabled=!$("foundConfiguration").value;
     updateCancelControls("idle");
-    $("clearResearchHistory").disabled=false;
+    for(const id of ["clearResearchHistory","viewResearchBest","exportResearch","importResearch"])
+     $(id).disabled=false;
   }
 }
 $("runSolver").addEventListener("click",()=>executeConfiguredSearch());
+$("viewResearchBest").addEventListener("click",()=>executeConfiguredSearch(null,true));
 $("runFoundConfiguration").addEventListener("click",()=>{
  const foundId=$("foundConfiguration").value;
  if(foundId)executeConfiguredSearch(foundId);
