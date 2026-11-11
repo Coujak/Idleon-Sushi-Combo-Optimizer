@@ -37,7 +37,7 @@
 <option value="optimizer3">Slow · 5%</option>
 <option value="optimizer4">Max · 1%</option>
 </select></label>
-<label class="custom-optimizer-setting hidden">Distinct configurations per unique split <input id="customPerSplit" type="number" min="1" max="1000" step="1" value="50"></label>
+<label class="custom-optimizer-setting hidden">Boards per split <input id="customPerSplit" type="number" min="1" max="1000" step="1" value="50"></label>
 <label class="custom-optimizer-setting hidden">Stop when score reaches <input id="scoreTarget" type="number" min="0" step="1" value="0" placeholder="0 = no score target"></label>
 <p class="hint custom-search-estimate custom-optimizer-setting hidden" id="customSearchEstimate">Choose a split increment and configuration budget. Larger searches may take a long time or use substantial browser memory.</p><div class="optimizer-run-actions"><button id="runSolver" class="button primary" type="button">Run optimizer</button><button id="cancelSolver" class="button secondary hidden" type="button">Cancel</button></div></div><p class="hint" id="optimizerSearchDisclaimer">Split optimizers explore new configurations on each run and remember previously evaluated boards plus the best verified result in this browser. They do not exhaustively search every board or merge order. History is local to this browser, not shared with other users.</p>
 <div class="mode-overview" id="researchHistoryPanel">
