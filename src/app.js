@@ -852,7 +852,9 @@ function initModePicker(){
  for(const mode of shownModes){
   const option=document.createElement("option");option.value=mode.id;option.textContent=modeOptionLabel(mode);selector.append(option);
   const row=document.createElement("tr");row.dataset.mode=mode.id;
-  for(const value of [modeDisplayLabel(mode),mode.difficulty,mode.benchmark===null?"—":mode.benchmark.toLocaleString()]){
+  const scope={simple:"One cascade",optimizer1:"20%",optimizer2:"10%",
+   optimizer3:"5%",optimizer4:"1%",optimizer5:"User selected"}[mode.id]??"—";
+  for(const value of [modeDisplayLabel(mode),mode.difficulty,scope]){
    const cell=document.createElement("td");cell.textContent=value;row.append(cell);
   }
   rows.append(row);
