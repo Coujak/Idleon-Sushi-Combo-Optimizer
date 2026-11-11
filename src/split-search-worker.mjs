@@ -9,6 +9,7 @@ self.onmessage=({data})=>{
  try{
   const {candidates,cap,chain,mode,maxTier}=data;
   let improved=null;
+  const checked=[];
   for(const candidate of candidates){
    const result=evaluateSplitCandidate(candidate,cap,chain,mode,maxTier);
    if(betterSplitResult(result,best)){
@@ -16,13 +17,15 @@ self.onmessage=({data})=>{
     improved=result;
    }
    processed++;
+   if(candidate.researchContext)
+    checked.push({context:candidate.researchContext,key:candidate.board.join(",")});
   }
   self.postMessage({
    type:"progress",processed:candidates.length,
    splitPercent:candidates.at(-1)?.splitPercent??null,
    bestScore:best?.search?.score??null,
    // Only copy complete action sequences if there is a new best.
-   improved
+   improved,checked
   });
  }catch(error){
   self.postMessage({type:"error",message:String(error?.message??error)});
