@@ -837,8 +837,18 @@ async function showSolver(signal,foundId=null){
 function initModePicker(){
  const selector=$("optimizerMode"),old=selector.value,rows=$("modeComparisonRows");
  selector.replaceChildren();rows.replaceChildren();
- const shownModes=[...MODE_CATALOG.filter(m=>m.kind==="split"),
-  ...MODE_CATALOG.filter(m=>m.kind!=="split")];
+ const shownModes=MODE_CATALOG.filter(m=>m.kind==="split");
+ const found=$("foundConfiguration"),oldFound=found.value;
+ found.replaceChildren();
+ const placeholder=document.createElement("option");
+ placeholder.value="";placeholder.textContent="Choose an Experiment…";found.append(placeholder);
+ for(const entry of FOUND_CONFIGURATIONS){
+  const option=document.createElement("option");
+  option.value=entry.id;
+  option.textContent=entry.name+" · "+entry.benchmark.toLocaleString()+" simulated pts";
+  found.append(option);
+ }
+ found.value=FOUND_CONFIGURATIONS.some(entry=>entry.id===oldFound)?oldFound:"";
  for(const mode of shownModes){
   const option=document.createElement("option");option.value=mode.id;option.textContent=modeOptionLabel(mode);selector.append(option);
   const row=document.createElement("tr");row.dataset.mode=mode.id;
@@ -847,7 +857,7 @@ function initModePicker(){
   }
   rows.append(row);
  }
- selector.value=MODE_CATALOG.some(mode=>mode.id===old)?old:"simple";
+ selector.value=shownModes.some(mode=>mode.id===old)?old:"simple";
 }
 function updateOptimizerModeHint(){
  const info=getModeInfo($("optimizerMode").value);
@@ -863,10 +873,26 @@ function updateOptimizerModeHint(){
   (preview?"Historical T64 benchmark: ":"")+info.benchmark.toLocaleString()+" simulated pts";
  $("optimizerModeHint").textContent=info.summary+(preview?
   " Above-T64 tiers have not been confirmed in this save. Historical experiment benchmarks remain T64/T58 only.":"");
+ const isCustom=info.id==="optimizer5";
+ $("customOptimizerSettings").classList.toggle("hidden",!isCustom);
+ const count=Number($("customPerSplit").value);
+ const budget=Number.isSafeInteger(count)&&count>=1&&count<=1000?count:null;
+ const resolution=$("customSplitMode").value;
+ const ratios=new Set([...comboSplitPercentages(resolution,"supply"),
+  ...comboSplitPercentages(resolution,"engine")]);
+ $("customSearchEstimate").textContent=budget?
+  ratios.size+" unique splits × "+budget+" distinct configurations = up to "+
+  (ratios.size*budget).toLocaleString()+" preparations per slot arrangement. Actual counts can be lower where the search cannot generate enough unique boards.":
+  "Enter a whole number between 1 and 1,000.";
  for(const row of $("modeComparisonRows").rows)row.classList.toggle("is-selected",row.dataset.mode===info.id);
 }
 initModePicker();
 $("optimizerMode").addEventListener("change",updateOptimizerModeHint);
+$("customSplitMode").addEventListener("change",updateOptimizerModeHint);
+$("customPerSplit").addEventListener("input",updateOptimizerModeHint);
+const updateFoundButton=()=>{$("runFoundConfiguration").disabled=!$("foundConfiguration").value;};
+$("foundConfiguration").addEventListener("change",updateFoundButton);
+updateFoundButton();
 updateOptimizerModeHint();
 $("cancelSolver").addEventListener("click",()=>{
   if(!activeSearch)return;
@@ -875,14 +901,16 @@ $("cancelSolver").addEventListener("click",()=>{
   $("cancelSolver").textContent="Stopping…";
   $("optimizerProgressText").textContent="Stopping after the current calculation…";
 });
-$("runSolver").addEventListener("click",async()=>{
+async function executeConfiguredSearch(foundId=null){
   if(!imported){$("solverNote").textContent="Import a valid game save JSON first.";return;}
   if(activeSearch)return;
   disposeReplay();
   const controller=new AbortController();
   activeSearch=controller;
-  const button=$("runSolver"),cancel=$("cancelSolver");
-  button.disabled=true;button.textContent="Optimizing…";
+  const runButton=$("runSolver"),foundButton=$("runFoundConfiguration");
+  const button=foundId?foundButton:runButton,cancel=$("cancelSolver");
+  runButton.disabled=true;foundButton.disabled=true;
+  button.textContent=foundId?"Replaying…":"Optimizing…";
   cancel.classList.remove("hidden");cancel.disabled=false;cancel.textContent="Cancel";
   $("optimizerProgress").classList.remove("hidden");
   $("optimizerSingleProgress").classList.remove("hidden");
@@ -892,7 +920,7 @@ $("runSolver").addEventListener("click",async()=>{
   $("solverResults").classList.add("hidden");
   $("solverNote").textContent="Searching candidate layouts…";
   try{
-    await showSolver(controller.signal);
+    await showSolver(controller.signal,foundId);
     throwIfCancelled(controller.signal);
     $("solverResults").classList.remove("hidden");
     $("optimizerProgressText").textContent="Complete · Results ready";
@@ -910,7 +938,14 @@ $("runSolver").addEventListener("click",async()=>{
     }
   }finally{
     if(activeSearch===controller)activeSearch=null;
-    button.disabled=false;button.textContent="Run optimizer";
+    runButton.disabled=false;runButton.textContent="Run optimizer";
+    foundButton.textContent="Replay found board";
+    foundButton.disabled=!$("foundConfiguration").value;
     cancel.disabled=false;cancel.textContent="Cancel";cancel.classList.add("hidden");
   }
+}
+$("runSolver").addEventListener("click",()=>executeConfiguredSearch());
+$("runFoundConfiguration").addEventListener("click",()=>{
+ const foundId=$("foundConfiguration").value;
+ if(foundId)executeConfiguredSearch(foundId);
 });
