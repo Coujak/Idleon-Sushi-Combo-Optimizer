@@ -798,7 +798,7 @@ async function showSolver(signal,foundId=null,savedOnly=false){
   make(custom?"Your custom starting board":"Recommended prepared sushi tiers (not your current inventory)",solution.board,true,sections);
   renderComboReport(root,{solution,previousBest:dualSplit?previousRecord:null});
   const heading=document.createElement("h3");heading.textContent=sectionNumber+" · Interactive merge sequence";root.append(heading);
-  const intro=document.createElement("p");intro.className="hint";intro.textContent="The board shows the result of your selected step. Blue FROM and green TO markers show what to do next; purple tiles show Wind upgrades from the last move. Select a step, follow the instruction, and press Next when done.";root.append(intro);
+  const intro=document.createElement("p");intro.className="hint";intro.textContent="The board shows the selected step. Blue FROM and green TO labels mark the upcoming move; purple highlights show Wind upgrades. Use the step list or playback controls to follow the sequence.";root.append(intro);
   const layout=document.createElement("div");layout.className="merge-layout";
   layout.tabIndex=0;
   layout.setAttribute("role","region");
