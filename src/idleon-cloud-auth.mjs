@@ -1,6 +1,7 @@
 // Idleon cloud-save read-only connection.
 // Firebase configuration is a public client identifier, not an admin key.
 // Login tokens and Steam callbacks remain in memory and never go into storage.
+// Firebase public web configuration below is not a privileged server key.
 export const STEAM_LOGIN_URL = "https://steamcommunity.com/openid/login?"+
  "openid.ns=http%3A%2F%2Fspecs.openid.net%2Fauth%2F2.0&"+
  "openid.claimed_id=http%3A%2F%2Fspecs.openid.net%2Fauth%2F2.0%2Fidentifier_select&"+
@@ -59,7 +60,7 @@ export function parseSteamCallback(value){
 // Never retain the complete cloud save in our application state. Keep only
 // arrays/records consumed by our existing parser and planners.
 export function selectSushiCloudData(save){
- const fields=save?.data&&typeof save.data==="object"?save.data:save;
+ const fields=save?.data?.Sushi!=null?save.data:save;
  if(!fields||typeof fields!=="object"||fields.Sushi==null)
   throw safeError("This Idleon cloud save has no Sushi Station data yet.");
  const chosen={};
@@ -108,6 +109,8 @@ async function exchangeSteamResponse(signed){
   headers:{"Content-Type":"application/json"},
   body:JSON.stringify({data:signed}),
   cache:"no-store",
+  credentials:"omit",
+  redirect:"error",
   referrerPolicy:"no-referrer"
  });
  if(!response.ok)throw safeError("Idleon rejected the Steam sign-in response. Sign in again.");
