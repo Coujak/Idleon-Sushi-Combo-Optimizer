@@ -219,16 +219,20 @@ export function initializeSushiLab(getSave){
    renderOverview();
   });
  }
- function renderMissingCards(id,list,empty){
+ function renderMissingCards(id,list,empty,trackerAvailable=true){
   const host=$(id),toggle=$(id+"Toggle"),count=$(id+"Count");
   host.replaceChildren();
   const hasSave=!!save();
-  count.textContent=hasSave?"("+list.length+")":"";
-  const canExpand=hasSave&&list.length>missingPreviewCount;
+  count.textContent=hasSave&&trackerAvailable?"("+list.length+")":"";
+  const canExpand=hasSave&&trackerAvailable&&list.length>missingPreviewCount;
   toggle.classList.toggle("hidden",!canExpand);
   toggle.setAttribute("aria-expanded",String(canExpand&&missingListExpanded[id]));
   toggle.textContent=missingListExpanded[id]?"Show fewer":"Show all ("+list.length+")";
   if(!hasSave){addText(host,"hint lab-empty-state","Import a save to see these tiers.");return;}
+  if(!trackerAvailable){
+   addText(host,"hint lab-empty-state","Sushi discovery tracker is unavailable in this save.");
+   return;
+  }
   if(list.length===0){addText(host,"hint lab-empty-state",empty);return;}
   const visible=missingListExpanded[id]?list:list.slice(0,missingPreviewCount);
   for(const k of visible){
@@ -280,14 +284,17 @@ export function initializeSushiLab(getSave){
  function renderOverview(){
   const data=save(),stats=data?getSushiSnapshot(data):null,host=$("labOverviewStats");
   const entries=getKnowledgeRows(data);
-  const progress=stats?overviewTierProgress(entries):null;
+  // Do not mistake missing/incomplete Sushi[5] data for 64 undiscovered tiers.
+  const hasTracker=!!stats&&Array.isArray(data.sushi?.[5])&&
+   data.sushi[5].length>=entries.length;
+  const progress=hasTracker?overviewTierProgress(entries):null;
   host.replaceChildren();
   const values=stats?[
    ["Unlocked slots",stats.unlocked+" / 100"],
    ["Sushi on board",stats.occupied],
    ["Highest on board",stats.highest?"T"+stats.highest:"—"],
-   ["Highest discovered",progress.highestDiscovered?"T"+progress.highestDiscovered:"—"],
-   ["Total Perfectos",progress.perfectos+" / "+progress.total],
+   ["Highest discovered",progress?.highestDiscovered?"T"+progress.highestDiscovered:"—"],
+   ["Total Perfectos",progress?progress.perfectos+" / "+progress.total:"—"],
    ["Knowledge levels",fmt(stats.totalKnowledge)],
    ["Upgrade levels",fmt(stats.totalUpgrades)],
    ["Best in-game combo",fmt(stats.bestCombo)]
@@ -304,9 +311,9 @@ export function initializeSushiLab(getSave){
   }
   renderShakerCards(stats);
   renderMissingCards("labMissingPerfectos",entries.filter(x=>x.discovered&&!x.perfecto),
-   "All discovered sushi have Perfecto.");
+   "All discovered sushi have Perfecto.",hasTracker);
   renderMissingCards("labMissingTiers",entries.filter(x=>!x.discovered),
-   "Every sushi tier has been discovered.");
+   "Every sushi tier has been discovered.",hasTracker);
  }
  function upgradeArtwork(u){
   const img=el("img","lab-upgrade-icon");
