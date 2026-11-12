@@ -121,12 +121,6 @@ test("The configured highest cookable tier is honored through every replay cook"
    "the account recipe should begin at the highest tier it can cook");
   assert.equal(search.cookedSourceTier,tier);
   const replay=createPerfectoInPlaceReplay(save,search,plan,62);
-  if(tier===44&&!replay.available){
-   // A lower cooking cap can imply more than 50,000 actions. Reject that
-   // unvalidated walkthrough rather than silently cook higher-tier sushi.
-   assert.match(replay.reason,/action count cannot be validated/);
-   continue;
-  }
   assert.equal(replay.available,true,replay.reason);
   assert.equal(replay.maxCookTier,tier);
   const actions=Array.isArray(replay.steps)?replay.steps:
