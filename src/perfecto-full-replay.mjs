@@ -272,7 +272,7 @@ function directCookFullReplay(save,search,plan,target){
    completedTargets:count,targetTotal:newPositions.length,
    description:"Directly cook target sushi "+count+" of "+newPositions.length};
  }
- if(!same(final,[...initial.map((t,i)=>t||newPositions.includes(i)?target:0)]))
+ if(!same(final,initial.map((t,i)=>t>0?t:newPositions.includes(i)?target:0)))
   return fail("Direct cooking cannot construct the exact final board.");
  return {available:true,slots,initial:Uint8Array.from(imported),
   final:Uint8Array.from(final),totalSteps,getFrame,
