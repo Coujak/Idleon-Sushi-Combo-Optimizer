@@ -96,29 +96,44 @@
   <div class="perfecto-improvement" aria-live="polite"><strong id="perfectoImprovement">—</strong><span id="perfectoImprovementDetail">—</span></div>
   <p class="hint perfecto-caveat">Your current board comes from your imported game data. The account-specific recommendation uses the first board below. More copies of the target sushi can improve the chance <strong>per Pepper use</strong>. These estimates assume independent Perfecto rolls and may differ from the game.</p>
   <div class="perfecto-section-head"><h3>2 · Compare preparation boards</h3><span class="perfecto-count-label" id="perfectoCopyCount">—</span></div>
-  <p class="hint">Both boards preserve your unlocked slot geometry and existing higher-tier sushi. The first uses your account's estimated cooking capability and Fuel rate; the second assumes access to T46 cooking and enough Fuel capacity. Both use constructible merge/Wind recipes; Blue Campfire tier skips remain optional and are not counted as guaranteed.</p>
-  <div class="perfecto-scenarios">
-   <div class="perfecto-scenario-card is-account">
-    <strong>Current account · Fuel-aware</strong><span id="perfectoAccountScenario">—</span>
-    <small id="perfectoAccountFuel">—</small>
-   </div>
-   <div class="perfecto-scenario-card is-maximum">
-    <strong>Maximum case · T46 benchmark</strong><span id="perfectoMaximumScenario">—</span>
-    <small id="perfectoMaximumFuel">—</small>
-   </div>
+  <p class="hint">Compare your account-specific build with a hypothetical T46 direct-cooking benchmark. Both preserve your unlocked plates and higher-tier sushi. Only target copies improve Pepper odds; other sushi are preparation leftovers. Blue Campfire tier skips are not assumed.</p>
+  <div class="perfecto-legend" aria-label="Board color and symbol legend"><span><i class="perfecto-legend-target"></i> Target copies</span><span><i class="perfecto-legend-new"></i> Needs preparation</span><span><i class="perfecto-legend-ingredient"></i> Other sushi</span><span><i class="perfecto-legend-protected"></i> Protected</span><span><i class="perfecto-legend-locked"></i> Locked</span><span><i class="perfecto-legend-regular"></i> Regular plate</span><span><i class="perfecto-legend-hot"></i> Hot plate</span><span><i class="perfecto-legend-cold"></i> Cold plate</span><span><i class="perfecto-legend-milk"></i> Milktoast plate</span></div>
+  <div class="perfecto-board-comparison">
+   <section class="perfecto-comparison-panel is-account" aria-labelledby="perfectoAccountBoardHeading">
+    <header class="perfecto-comparison-header">
+     <div><span class="perfecto-comparison-eyebrow">Recommended for your save</span><h4 id="perfectoAccountBoardHeading">Current account</h4></div>
+     <span class="perfecto-comparison-tag" id="perfectoAccountBoardTag">Based on imported JSON</span>
+    </header>
+    <div class="perfecto-comparison-metrics">
+     <strong id="perfectoAccountScenario">—</strong><small id="perfectoAccountFuel">—</small>
+    </div>
+    <div class="perfecto-board-note" id="perfectoPreparationSummary">—</div>
+    <div class="board-scroll perfecto-board-scroll"><div id="perfectoBoard" class="perfecto-board" aria-label="Current-account Perfecto preparation board"></div></div>
+    <p class="hint perfecto-board-footnote" id="perfectoProtectedCount">—</p>
+    <details class="perfecto-comparison-guide" open>
+     <summary>How to prepare this board</summary>
+     <ol id="perfectoPreparationSteps"></ol>
+    </details>
+    <p class="hint perfecto-board-footnote" id="perfectoModelNote">The planner uses constructive recipes, not a proven global optimum.</p>
+   </section>
+   <section class="perfecto-comparison-panel is-maximum" aria-labelledby="perfectoMaximumBoardHeading">
+    <header class="perfecto-comparison-header">
+     <div><span class="perfecto-comparison-eyebrow">Hypothetical benchmark</span><h4 id="perfectoMaximumBoardHeading">T46 cooking unlocked</h4></div>
+     <span class="perfecto-comparison-tag" id="perfectoMaximumBoardTag">T46 directly cookable</span>
+    </header>
+    <div class="perfecto-comparison-metrics">
+     <strong id="perfectoMaximumScenario">—</strong><small id="perfectoMaximumFuel">—</small>
+    </div>
+    <div class="perfecto-board-note" id="perfectoMaximumSummary">—</div>
+    <div class="board-scroll perfecto-board-scroll"><div id="perfectoMaxBoard" class="perfecto-board" aria-label="Hypothetical T46 maximum-case Perfecto preparation board"></div></div>
+    <p class="hint perfecto-board-footnote">Extra T46 sushi only fill space after construction; they do not increase Perfecto odds.</p>
+    <details class="perfecto-comparison-guide">
+     <summary>How to build the T46 benchmark</summary>
+     <ol id="perfectoMaxPreparationSteps"></ol>
+    </details>
+   </section>
   </div>
   <p class="hint perfecto-scenario-difference" id="perfectoScenarioDifference">—</p>
-  <div class="perfecto-board-label"><h4>Current account board</h4><span id="perfectoAccountBoardTag">Based on imported JSON</span></div>
-  <div class="perfecto-board-note" id="perfectoPreparationSummary"></div>
-  <div class="perfecto-legend"><span><i class="perfecto-legend-target"></i> Target copies</span><span><i class="perfecto-legend-new"></i> Needs preparation</span><span><i class="perfecto-legend-ingredient"></i> Other sushi</span><span><i class="perfecto-legend-protected"></i> Protected</span><span><i class="perfecto-legend-locked"></i> Locked</span><span><i class="perfecto-legend-regular"></i> Regular plate</span><span><i class="perfecto-legend-hot"></i> Hot plate</span><span><i class="perfecto-legend-cold"></i> Cold plate</span><span><i class="perfecto-legend-milk"></i> Milktoast plate</span></div>
-  <div class="board-scroll perfecto-board-scroll"><div id="perfectoBoard" class="perfecto-board" aria-label="Current-account Perfecto preparation board"></div></div>
-  <p class="hint" id="perfectoProtectedCount">—</p>
-  <div class="perfecto-build-guide"><h4>How to prepare this board</h4><ol id="perfectoPreparationSteps"></ol></div>
-  <p class="hint" id="perfectoModelNote">The planner uses constructive recipes, not a proven global optimum.</p>
-  <div class="perfecto-board-label"><h4>T46 maximum-case board</h4><span id="perfectoMaximumBoardTag">Hypothetical: T46 unlocked and cookable</span></div>
-  <div class="perfecto-board-note" id="perfectoMaximumSummary">—</div>
-  <div class="board-scroll perfecto-board-scroll"><div id="perfectoMaxBoard" class="perfecto-board" aria-label="Hypothetical T46 maximum-case Perfecto preparation board"></div></div>
-  <details class="perfecto-maximum-guide"><summary>Preparation requirements for the T46 benchmark</summary><ol id="perfectoMaxPreparationSteps"></ol></details>
   <div class="perfecto-section-head"><h3>3 · What should I do with my Pepper Shakers?</h3></div>
   <section id="perfectoRecommendation" class="perfecto-recommendation" role="status" aria-label="Your recommended Pepper Shaker action">
    <div class="perfecto-action-eyebrow"><span class="perfecto-action-mark" aria-hidden="true">✓</span><span>YOUR RECOMMENDED NEXT MOVE</span><span class="perfecto-action-label">FOLLOW THIS PLAN</span></div>
