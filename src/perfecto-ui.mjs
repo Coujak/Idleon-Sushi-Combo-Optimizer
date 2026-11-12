@@ -212,7 +212,7 @@ export function initializePerfectoUI(getSave){
   text("perfectoModelNote",proof?
    "Reproducible merge-only recipe. The required cooking totals may be very large; "+
    "the planner does not estimate preparation time and does not claim a global optimum.":
-   search?.reason==="direct-cooking"?
+   result.search?.reason==="direct-cooking"?
    "Direct cooking layout. The slot arrangement can be changed as needed.":
    "Heuristic recipe from "+p.searchAttempts+" evaluated search variants, with "+
    display(p.estimatedManualMerges)+" simulated merges and "+
