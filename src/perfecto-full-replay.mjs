@@ -140,8 +140,12 @@ export function createPerfectoFullBoardReplay(save,search,plan,target){
  if(!same(current,desired))
   return fail("The constructed board does not match the final recommended layout. Replay would be misleading.");
  let supportStart=baseOffset+targetActionCount+1;
+ let windCascadeIndex=null;
  for(const group of supports){
   group.firstIndex=supportStart;
+  if(group.description?.startsWith("Trigger ")&&
+     group.steps[0]?.events?.filter(e=>e.kind==="wind").length>1)
+   windCascadeIndex=supportStart;
   supportStart+=group.steps.length;
  }
  const totalSteps=baseOffset+targetActionCount+
@@ -227,7 +231,7 @@ export function createPerfectoFullBoardReplay(save,search,plan,target){
  }
  return {available:true,initial:Uint8Array.from(imported),slots,
   final:Uint8Array.from(current),totalSteps,getFrame,lastMergesIndex,
-  finalFillIndex,nextCopyIndex,baseOffset,requiresSetup:clearNeeded,
+  finalFillIndex,nextCopyIndex,windCascadeIndex,baseOffset,requiresSetup:clearNeeded,
   setupPositions:originals,templateSteps:template.steps.length,
   copies:requiredCopies,partial:template.partial,sourceTier:activeSource,
   actualCookTier:Number(proof.startingTier),supports:supports.length,
@@ -358,6 +362,8 @@ export function createPerfectoFinalTargetReplay(save,search,plan,target){
   lastMergesIndex:Math.max(0,full.lastMergesIndex-startIndex),
   finalFillIndex:Math.max(0,full.finalFillIndex-startIndex),
   focusPosition:missingTarget,workspacePositions:supports,
+  windCascadeIndex:full.windCascadeIndex===null?null:
+   full.windCascadeIndex-startIndex,
   sourceTier:full.sourceTier,targetTier:target,
   partial:full.partial,windUsed:full.windUsed,
   copies:1,preparedCopies:full.copies-1,
