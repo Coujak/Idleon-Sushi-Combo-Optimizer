@@ -1691,3 +1691,48 @@ details summary{cursor:pointer;font-size:12px;font-weight:700;color:#9eb7c9}
  .perfecto-cook-tier{flex:1 1 180px}
  .perfecto-controls .button{width:100%}
 }
+
+/* Perfecto recipe step navigator and focused board comparison. */
+.perfecto-compare-toolbar{
+ display:flex;align-items:center;justify-content:space-between;
+ flex-wrap:wrap;gap:10px 16px;margin:13px 0 5px
+}
+.perfecto-benchmark-toggle{
+ display:inline-flex;align-items:center;gap:8px;
+ font-size:12px;font-weight:750;color:#d6ede5;cursor:pointer
+}
+.perfecto-benchmark-toggle input{accent-color:#79d5aa;width:16px;height:16px}
+.perfecto-compare-position{font-size:11px;line-height:1.5;color:#a6c5ce}
+.perfecto-board-comparison.is-benchmark-hidden{grid-template-columns:minmax(0,1fr)}
+.perfecto-board-comparison.is-benchmark-hidden .perfecto-comparison-panel.is-maximum{display:none}
+.perfecto-board-comparison.is-benchmark-hidden .perfecto-comparison-panel.is-account{max-width:1020px}
+.perfecto-board .perfecto-tile.perfecto-tile-matched{
+ outline:2px solid #ffdf75!important;outline-offset:-1px;
+ filter:brightness(1.28);z-index:2
+}
+.perfecto-board:focus-visible{outline:2px solid #ffdf75;outline-offset:2px}
+.perfecto-recipe-navigator{
+ padding:10px 12px;background:#172f3c;border:1px solid #416173;
+ border-radius:9px;margin:10px 0
+}
+.perfecto-recipe-heading{
+ display:flex;flex-wrap:wrap;gap:6px 12px;align-items:baseline;
+ justify-content:space-between;margin-bottom:7px
+}
+.perfecto-recipe-heading span{
+ font-size:10px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;
+ color:#94baca
+}
+.perfecto-recipe-heading strong{color:#e2f7e9;font-size:13px}
+.perfecto-recipe-description{margin:0 0 10px;color:#c5dce0;font-size:12px;line-height:1.55}
+.perfecto-recipe-actions{display:flex;flex-wrap:wrap;gap:6px}
+.perfecto-recipe-actions .button{min-height:32px;padding:6px 9px;font-size:11px}
+.perfecto-recipe-actions .button:disabled{opacity:.38;cursor:not-allowed}
+.perfecto-recipe-hint{margin:8px 0 0;font-size:10px;line-height:1.5}
+.perfecto-recipe-notes{border-top:1px solid #33505e;margin-top:10px;padding-top:9px}
+.perfecto-recipe-notes summary{color:#accbc5;font-size:11px;font-weight:650;cursor:pointer}
+.perfecto-recipe-notes ol{margin-top:8px!important}
+@media(max-width:620px){
+ .perfecto-compare-position{flex-basis:100%}
+ .perfecto-recipe-actions .button{flex:1 1 auto}
+}
