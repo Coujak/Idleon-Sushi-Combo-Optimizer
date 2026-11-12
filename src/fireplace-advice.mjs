@@ -11,7 +11,6 @@ export function sparkFireplaceBonus(sparks){
  if(s===null)return null;
  return s>0?.2*Math.log2(s)+Math.log10(s):0;
 }
-const format=value=>Number(value).toLocaleString("en-US",{maximumFractionDigits:0});
 function points(value){
  if(value>=.1)return value.toFixed(2);
  if(value>=.001)return value.toFixed(3);
@@ -58,27 +57,38 @@ export function fireplaceOverviewAdvice(save){
   return {heading:"Potassium: Spark data unavailable",
    summary:"Spark balance is missing, so Purple cannot be assessed yet.",
    detail:alternatives+". "+colors,counts,purple,sparkBalance,weakestCharcoal};
- const start=sparkBalance+purple*RATE_PER_DAY;
- const after=start+RATE_PER_DAY;
- const marginal=sparkFireplaceBonus(after)-sparkFireplaceBonus(start);
- const gainText="One additional Purple fireplace would add about "+
-  points(marginal)+" percentage points to the Spark-based fireplace bonus over 24 hours at the stated +1 Spark/sec rate (assuming continuous generation).";
+ // Compare one MORE Purple fireplace with keeping the current mix.
+ // Existing Purple fires generate Sparks in both scenarios.
+ const timeGains=[
+  {label:"1 hour",seconds:3600},
+  {label:"24 hours",seconds:RATE_PER_DAY},
+  {label:"7 days",seconds:7*RATE_PER_DAY}
+ ].map(({label,seconds})=>{
+  const current=sparkBalance+purple*seconds;
+  const extra=current+seconds;
+  return {label,points:sparkFireplaceBonus(extra)-sparkFireplaceBonus(current)};
+ });
+ const marginal=timeGains[1].points;
+ const gainText="Extra Spark-based fireplace strength from one additional Purple fireplace: "+
+  timeGains.map(item=>item.label+" +"+points(item.points)+" percentage points").join("; ")+
+  ". Assumes continuous +1 Spark/second; losses from replacing another fireplace are not included.";
  let heading,summary;
  if(marginal>=.1){
   heading=purple?"Keep Potassium for passive Spark growth":"Consider one Potassium while idling";
   summary=purple?
-   "Purple is useful for passive Sparks. Keep other firelighters when you need their immediate bonuses.":
-   "Try Potassium in a low-value Charcoal column while idling; switch back when you need Fuel.";
+   "Good for passive Sparks: your Purple fireplaces improve all fireplace bonuses over time. Keep Charcoal for Fuel or other firelighters when you need their immediate effects.":
+   "Worth considering while idling: Purple builds Sparks that boost all fireplaces. It replaces a Fuel, Bucks, or Knowledge benefit, so avoid switching an important column.";
  }else if(marginal>=.01){
   heading="Potassium is optional";
-  summary="Spark gains are slowing. Use Purple for passive growth or other firelighters for immediate bonuses.";
+  summary="Optional: Purple adds Sparks over time, but the strength gained is slowing. Keep Charcoal for Fuel, Barium for Bucks, or Lithium for Knowledge when those matter more.";
  }else{
   heading="Favor productive fireplaces over more Potassium";
   summary=purple?
-   "More Purple gives little extra bonus now. Prefer Charcoal for Fuel, Barium for Bucks, or Lithium for Knowledge.":
-   "More Sparks add little bonus right now. Keep firelighters that support your current activity.";
+   "Avoid adding more Purple for now: the extra Spark bonus is small, while replacing a fireplace loses its immediate effect. Favor Fuel, Bucks, or Knowledge instead.":
+   "Avoid swapping a productive fire to Purple for now: the added Spark bonus is small. Keep Charcoal for Fuel, Barium for Bucks, or Lithium for Knowledge.";
  }
  return {heading,summary,detail:gainText+" "+alternatives+"."+suggestion,
   counts,purple,sparkBalance,weakestCharcoal,marginalSparkPointsPerDay:marginal,
+  timeGains,timeGainCaption:"Extra fireplace-strength bonus from adding 1 Purple · assumes continuous +1 Spark/sec; excludes lost effects from the replaced fireplace.",
   colors};
 }
