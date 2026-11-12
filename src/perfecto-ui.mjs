@@ -45,10 +45,16 @@ function perfectoPreparationSteps(result){
    }
   }
   if(proof.supportingCount){
-   steps.push("After building the targets, use the released workspace to make "+
-    proof.supportingCount+" supporting sushi, highest tier first (T"+
-    proof.supportingHighest+" down to T"+proof.supportingLowest+
-    "). These do not improve your immediate Pepper odds.");
+   if(proof.supportingMode==="direct-source"){
+    steps.push("Once all target copies are complete, you can directly cook T"+
+     proof.startingTier+" into the "+proof.supportingCount+
+     " leftover cells. These are optional filler, not ingredients required for Perfecto.");
+   }else{
+    steps.push("After building the targets, use the released workspace to make "+
+     proof.supportingCount+" supporting sushi, highest tier first (T"+
+     proof.supportingHighest+" down to T"+proof.supportingLowest+
+     "). These do not improve your immediate Pepper odds.");
+   }
   }
  }else if(search?.reason==="direct-cooking"){
   steps.push("Cook T1 directly in the available unlocked spaces. No merges are necessary.");
@@ -196,7 +202,7 @@ export function initializePerfectoUI(getSave){
    " percentage points per Pepper. The benchmark assumes T46 direct cooking and is not your current account.");
   text("perfectoAccountBoardTag",
    cookTier!==null?"Confirmed T"+cookTier+" cooking tier":"Estimated from imported JSON");
-  text("perfectoMaximumBoardTag","Hypothetical T46 cooking unlocked and Fuel-capable");
+  text("perfectoMaximumBoardTag","T46 directly cookable · hypothetical");
   const maxP=maximum.plan;
   text("perfectoMaximumSummary",maxP?
    maxP.copies+" target copies · "+maxP.protected+" protected higher-tier sushi · "+
