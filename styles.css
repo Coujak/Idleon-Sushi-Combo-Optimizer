@@ -1798,7 +1798,7 @@ details summary{cursor:pointer;font-size:12px;font-weight:700;color:#9eb7c9}
  align-items:stretch;gap:11px;margin:12px 0 10px
 }
 .perfecto-milestone-level-card{
- display:grid;grid-template-rows:auto 1fr;gap:12px;
+ display:grid;grid-template-rows:22px minmax(56px,1fr);gap:8px;
  position:relative;min-width:0;padding:14px 16px 15px;
  border:1px solid #436574;border-radius:12px;
  background:linear-gradient(145deg,#193744 0%,#142d39 100%);
@@ -1813,7 +1813,7 @@ details summary{cursor:pointer;font-size:12px;font-weight:700;color:#9eb7c9}
 }
 .perfecto-milestone-card-heading{
  display:grid;grid-template-columns:minmax(0,1fr) auto;
- align-items:center;gap:8px;min-height:18px;margin:0
+ align-items:baseline;gap:8px;min-height:22px;margin:0
 }
 .perfecto-milestone-tier-name{
  font-size:12px;font-weight:800;color:#e5f4f1;
@@ -1826,19 +1826,20 @@ details summary{cursor:pointer;font-size:12px;font-weight:700;color:#9eb7c9}
  color:#c3c9f1
 }
 .perfecto-milestone-level-flow{
- display:grid;grid-template-columns:minmax(0,1fr) 32px minmax(0,1fr);
- gap:8px;align-items:center;justify-items:stretch;min-width:0
+ display:grid;grid-template-columns:minmax(0,1fr) 28px minmax(0,1fr);
+ gap:6px;align-items:center;justify-items:stretch;min-width:0;
+ width:100%;max-width:370px;margin:0 auto
 }
 .perfecto-milestone-current,.perfecto-milestone-goal{
- display:grid;grid-template-rows:14px 33px;justify-items:center;
- align-items:start;gap:4px;min-width:0;text-align:center
+ display:grid;grid-template-rows:16px 36px;justify-items:center;
+ align-items:center;gap:2px;min-width:0;text-align:center
 }
 .perfecto-milestone-current>span,.perfecto-milestone-goal>span{
  color:#9bb8c2;font-size:10px;font-weight:600;
- line-height:14px;white-space:nowrap
+ line-height:16px;white-space:nowrap
 }
 .perfecto-milestone-current strong,.perfecto-milestone-goal strong{
- display:block;font-size:clamp(19px,2.25vw,28px);line-height:33px;
+ display:block;font-size:24px;line-height:36px;
  font-weight:800;font-variant-numeric:tabular-nums;
  letter-spacing:-.025em;white-space:nowrap
 }
@@ -1848,7 +1849,7 @@ details summary{cursor:pointer;font-size:12px;font-weight:700;color:#9eb7c9}
  color:#bccdff
 }
 .perfecto-milestone-flow-arrow{
- display:grid;place-items:center;align-self:end;width:32px;height:33px;
+ display:grid;place-items:center;align-self:end;width:28px;height:36px;
  font-size:22px;line-height:1;text-align:center;
  font-weight:650;color:#83b5b7
 }
