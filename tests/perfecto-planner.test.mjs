@@ -5,7 +5,7 @@ import {
  perfectoSingleChance,perfectoBoardChance,perfectoAttemptsForConfidence,
  sushiDirectCookFuel,chooseNextPerfectoTier,availablePerfectoTargets,
  perfectoBoardPlan,getPerfectoPlanner,perfectoOddsImprovement,
- perfectoKnownFreeUseEstimate
+ perfectoKnownFreeUseEstimate,perfectoKnowledgeMilestones
 } from "../src/perfecto-planner.mjs";
 import {getKnowledgeRows} from "../src/lab-model.mjs";
 import {searchPerfectoBoard,getSushiWindCap} from "../src/perfecto-wind-search.mjs";
@@ -540,36 +540,32 @@ test("Perfecto UI renders both boards, scenario comparison and Wind-specific gui
  assert.match(ui,/renderBoard\(result,maxP,"perfectoMaxBoard"\)/);
 });
 
-test("T46 maximum-case board has no lower-tier filler sushi",()=>{
+test("T46 benchmark uses the verified Wind staircase, not only T46 filler",()=>{
  const save=exampleSave();
  save.sushi[5]=Array(64).fill(0);
  save.sushi[2][29]=1;
  save.slots=Array.from({length:120},(_,i)=>i<100?0:-1);
  save.tiles=Array(120).fill(-1);
- save.tiles[0]=63; // T64 is protected and may move for plate priority.
+ save.tiles[0]=63;
  const result=getPerfectoPlanner(save,{tier:62});
  const benchmark=result.comparisons.maximum;
  assert.equal(benchmark.search.sourceTier,46);
- assert.equal(benchmark.search.certificate.supportingMode,"direct-source");
+ assert.ok(benchmark.search.certificate.windStages.length>0);
+ assert.notEqual(benchmark.search.certificate.supportingMode,"direct-source");
  assert.equal(benchmark.plan.protected,1);
  assert.equal(benchmark.plan.copies,benchmark.search.targetCount);
- assert.ok(benchmark.plan.copies>0);
- const nonTarget=benchmark.plan.board.filter(cell=>cell.role==="ingredient");
- assert.ok(nonTarget.length>0,"benchmark should expose leftover construction workspace");
- assert.ok(nonTarget.every(cell=>cell.preparedTier===45),
-  "every optional filler in the T46 benchmark is T46");
- assert.ok(!benchmark.plan.board.some(cell=>
-  [43,44,45].includes(cell.preparedTier+1)),
-  "never show T43-T45 as unnecessary T46 benchmark filler");
+ const filler=benchmark.plan.board.filter(cell=>cell.role==="ingredient")
+  .map(cell=>cell.preparedTier+1).sort((a,b)=>b-a);
+ assert.deepEqual(filler,Array.from({length:16},(_,i)=>58-i));
+ assert.equal(benchmark.search.certificate.supportingCount,filler.length);
  const proof=benchmark.search.certificate;
- assert.equal(proof.supportingCount,nonTarget.length);
  assert.equal(BigInt(proof.totalCooksExact),
   BigInt(proof.cooksExact)+BigInt(proof.supportingCooksExact));
- assert.equal(proof.totalMergesExact,proof.mergesExact);
+ assert.equal(BigInt(proof.totalMergesExact),
+  BigInt(proof.mergesExact)+BigInt(proof.supportingMergesExact));
  const exactTarget=getPerfectoPlanner(save,{tier:46}).comparisons.maximum;
  assert.ok(exactTarget.plan.board.every(cell=>
-  cell.slot<0||cell.role==="protected"||cell.preparedTier===45),
-  "when targeting T46, the maximum benchmark uses only T46 and protected sushi");
+  cell.slot<0||cell.role==="protected"||cell.preparedTier===45));
 });
 
 test("Perfecto board comparison is side-by-side with responsive fallback",()=>{
@@ -587,4 +583,23 @@ test("Perfecto board comparison is side-by-side with responsive fallback",()=>{
   "UI guide must explain directly cooked T46 leftovers");
  assert.ok(ui.includes("Target recipe Fuel:"),
   "UI must separate required recipe Fuel from optional fillers");
+});
+
+test("Theoretical Knowledge milestones start at the next reachable multiple of five",()=>{
+ const rows=[
+  {tier:50,discovered:true,level:28,bonus:28*263.333333,nextLevelGain:263.333333},
+  {tier:54,discovered:true,level:28,bonus:28*553.333333,nextLevelGain:553.333333}
+ ];
+ const milestones=perfectoKnowledgeMilestones(rows,62,83);
+ assert.equal(milestones.available,true);
+ assert.deepEqual(milestones.rows[0].levels,[{tier:50,level:30},{tier:54,level:30}]);
+ assert.deepEqual(milestones.rows[1].levels,[{tier:50,level:35},{tier:54,level:35}]);
+ assert.ok(milestones.rows[0].chance>milestones.currentChance);
+ const at30=rows.map(row=>({...row,level:30,bonus:30*row.nextLevelGain}));
+ assert.deepEqual(perfectoKnowledgeMilestones(at30,62,83).rows[0].levels,
+  [{tier:50,level:35},{tier:54,level:35}]);
+ const different=rows.map((row,i)=>i?{...row,level:32,bonus:32*row.nextLevelGain}:row);
+ assert.deepEqual(perfectoKnowledgeMilestones(different,62,83).rows[0].levels,
+  [{tier:50,level:30},{tier:54,level:35}]);
+ assert.equal(perfectoKnowledgeMilestones(rows.map(row=>({...row,discovered:false})),62,83).available,false);
 });
