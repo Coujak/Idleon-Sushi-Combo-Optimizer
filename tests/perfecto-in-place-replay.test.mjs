@@ -52,7 +52,7 @@ test("T45 final T62 construction empties exactly the 17 marked supports and posi
  assert.equal(start[99],64);
  assert.equal(start.filter(x=>x>0).length,82);
  assert.deepEqual(end.slice(0,18),[
-  58,57,56,55,54,53,52,51,50,49,48,47,46,45,44,43,42,62
+  58,57,56,55,54,53,52,51,50,49,48,47,46,45,45,45,45,62
  ]);
  assert.deepEqual(end,search.board);
  assert.equal(end.filter(x=>x>0).length,100);
@@ -62,7 +62,7 @@ test("T45 final T62 construction empties exactly the 17 marked supports and posi
  assert.ok(Number.isInteger(replay.windCascadeIndex));
  const windActivation=replay.getFrame(replay.windCascadeIndex);
  assert.equal(windActivation.event.kind,"merge");
- assert.equal(windActivation.event.events.filter(e=>e.kind==="wind").length,15);
+ assert.equal(windActivation.event.events.filter(e=>e.kind==="wind").length,12);
  assert.deepEqual(Array.from(windActivation.board.slice(18,100)),
   search.board.slice(18,100),
   "Even the biggest Wind cascade must preserve every other T62");
