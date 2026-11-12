@@ -70,8 +70,8 @@ test("One automatically chosen final board preserves higher and target sushi",()
  assert.ok(result.plan.copies>=1&&result.plan.copies<=11);
  assert.equal(result.plan.copies,result.search.targetCount);
  assert.equal(result.plan.board.length,120);
- assert.equal(result.plan.board[11].role,"protected");
- assert.equal(result.plan.board[11].preparedTier,15);
+ assert.equal(result.plan.board[0].role,"protected");
+ assert.equal(result.plan.board[0].preparedTier,15);
  assert.equal(result.plan.board.filter(cell=>cell.role==="target").length,result.plan.copies);
  assert.ok(result.plan.board.some(cell=>cell.role==="target"&&cell.preparedTier===1));
  assert.equal(result.plan.board[12].role,"locked");
@@ -133,7 +133,7 @@ test("Account Wind limits and higher-tier preservation still apply to recipe sea
  assert.equal(getSushiWindCap(save),58);
  const economy=estimateSushiFuelEconomy(save);
  const result=searchPerfectoBoard(save,2,economy);
- assert.equal(result.board[11],64); // highest protected tier goes to the last regular slot
+ assert.equal(result.board[0],64); // protected max tier never moves
  assert.equal(result.windCap,58);
  assert.ok(result.targetCount>=1&&result.targetCount<=11);
  assert.ok(result.attempted>=1);
@@ -231,14 +231,14 @@ test("Unused Perfecto construction workspace becomes a buildable 17-tile Wind st
  const expected=Array.from({length:17},(_,i)=>58-i);
  assert.equal(result.sourceTier,45);
  assert.equal(result.targetCount,82);
- assert.deepEqual(result.board.slice(0,17),expected);
- assert.ok(result.board.slice(17,99).every(tier=>tier===62));
- assert.equal(result.board[99],64);
+ assert.equal(result.board[0],64);
+ assert.deepEqual(result.board.slice(1,18),expected);
+ assert.ok(result.board.slice(18,100).every(tier=>tier===62));
  assert.ok(result.board.slice(0,100).every(tier=>tier>0));
  assert.ok(result.board.slice(100).every(tier=>tier===0));
  assert.equal(result.certificate?.supportingCount,17);
  assert.deepEqual(result.certificate.supportingSushi.map(x=>x.position),
-  Array.from({length:17},(_,i)=>1+i));
+  Array.from({length:17},(_,i)=>2+i));
  assert.deepEqual(result.certificate.supportingSushi.map(x=>x.tier),expected);
  for(let i=0;i<result.certificate.supportingSushi.length;i++){
   const item=result.certificate.supportingSushi[i];
