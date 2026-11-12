@@ -77,8 +77,12 @@
  <div class="heading"><div><div class="eyebrow">03 · PERFECTO PLANNER</div><h2>Perfecto preparation and Shaker strategy</h2></div><span class="status">One tier at a time</span></div>
  <p class="hint">Automatically targets the first discovered sushi tier missing Perfecto. Choose any discovered tier to override it. Your imported sushi board is used to suggest preparations without modifying your game save.</p>
  <div class="perfecto-controls">
-  <label class="perfecto-tier-select">Target sushi tier<select id="perfectoTarget"><option value="auto">Auto · next missing tier</option></select></label>
-  <button id="perfectoResetTarget" type="button" class="button quiet">Reset to next missing</button>
+  <div class="perfecto-target-group">
+   <label class="perfecto-tier-select">Target sushi tier
+    <select id="perfectoTarget"><option value="auto">Auto · next missing tier</option></select>
+   </label>
+   <button id="perfectoResetTarget" type="button" class="button quiet">Reset to next missing</button>
+  </div>
   <label class="perfecto-cook-tier">Highest tier you can cook
    <input id="perfectoCookTier" type="number" min="1" max="46" step="1" inputmode="numeric" placeholder="Auto from JSON" aria-describedby="perfectoCookTierHint">
    <small id="perfectoCookTierHint">Optional: correct the estimated direct-cooking limit. Leave empty to use JSON.</small>
