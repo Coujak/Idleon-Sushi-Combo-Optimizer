@@ -510,3 +510,32 @@ test("Perfecto plan exposes improvement and known-source shaker charge estimate"
  assert.ok(ui.includes('text("perfectoImprovement",'));
  assert.ok(ui.includes('text("perfectoKnownFreeChance",'));
 });
+
+test("Confirmed cooking tier can correct JSON estimate up or down",()=>{
+ const save=exampleSave();
+ const base=getPerfectoPlanner(save,{tier:50});
+ const higher=getPerfectoPlanner(save,{tier:50,cookTier:46});
+ const lower=getPerfectoPlanner(save,{tier:50,cookTier:1});
+ assert.equal(higher.observedCookTier,46);
+ assert.equal(higher.economy.maxCookTier,46);
+ assert.ok(higher.economy.capacity>=sushiDirectCookFuel(46));
+ assert.equal(lower.observedCookTier,1);
+ assert.equal(lower.economy.maxCookTier,1);
+ assert.equal(base.observedCookTier,null);
+ assert.equal(higher.comparisons.maximum.economy.hypothetical,true);
+ assert.equal(higher.comparisons.maximum.economy.maxCookTier,46);
+});
+
+test("Perfecto UI renders both boards, scenario comparison and Wind-specific guidance",()=>{
+ const html=readFileSync(new URL("../index.html",import.meta.url),"utf8");
+ const ui=readFileSync(new URL("../src/perfecto-ui.mjs",import.meta.url),"utf8");
+ for(const id of ["perfectoCookTier","perfectoAccountScenario","perfectoAccountFuel",
+  "perfectoMaximumScenario","perfectoMaximumFuel","perfectoScenarioDifference",
+  "perfectoMaxBoard","perfectoMaximumSummary","perfectoMaxPreparationSteps"]){
+  assert.ok(html.includes('id="'+id+'"'),id);
+  assert.ok(ui.includes('"'+id+'"'),"unwired UI ID: "+id);
+ }
+ assert.match(ui,/getPerfectoPlanner\(saved,\{tier:tierChoice,cookTier\}\)/);
+ assert.match(ui,/proof\.windStages\?\.length/);
+ assert.match(ui,/renderBoard\(result,maxP,"perfectoMaxBoard"\)/);
+});
