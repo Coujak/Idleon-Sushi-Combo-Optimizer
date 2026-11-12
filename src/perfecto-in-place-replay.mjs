@@ -2,9 +2,9 @@
 // Only the certified supporting sushi and the ONE adjacent new target may
 // begin empty. All other copies retain their actual recommended positions.
 // Refuse sequences that require a separate or larger temporary workspace.
-import {createPerfectoFinalTargetReplay} from "./perfecto-full-replay.mjs?v=1.27.0";
+import {createPerfectoFinalTargetReplay} from "./perfecto-full-replay.mjs?v=1.36.0";
 import {recycledWindWorkspace} from "./perfecto-recycled-target.mjs?v=1.28.0";
-import {createPerfectoRecycledInPlaceReplay} from "./perfecto-recycled-inplace.mjs?v=1.32.0";
+import {createPerfectoRecycledInPlaceReplay} from "./perfecto-recycled-inplace.mjs?v=1.36.0";
 
 const fail=reason=>({available:false,reason});
 // Verify EVERY cook in the replay against the player's direct-cooking limit.
