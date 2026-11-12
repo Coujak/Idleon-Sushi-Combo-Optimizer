@@ -366,11 +366,11 @@ export function initializePerfectoUI(getSave){
     text(actionId,action);
    }
    btn("Start").disabled=step===0;
-   btn("Prev").disabled=step<=0||blocked;
+   btn("Prev").disabled=step<=0;
    btn("Next").disabled=step<0||step>=replay.totalSteps||blocked;
    btn("NextCopy").disabled=step<0||step>=replay.finalFillIndex||blocked;
-   btn("Final").disabled=step>=replay.lastMergesIndex&&step>=0||blocked;
-   btn("Fill").disabled=step>=replay.finalFillIndex&&step>=0||blocked;
+   btn("Final").disabled=step<0||step>=replay.lastMergesIndex||blocked;
+   btn("Fill").disabled=step<0||step>=replay.finalFillIndex||blocked;
    btn("Done").disabled=step<0;
    highlightComparison();
   }
