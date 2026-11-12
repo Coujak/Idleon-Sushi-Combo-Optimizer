@@ -7,6 +7,22 @@ import {recycledWindWorkspace} from "./perfecto-recycled-target.mjs?v=1.28.0";
 import {createPerfectoRecycledInPlaceReplay} from "./perfecto-recycled-inplace.mjs?v=1.32.0";
 
 const fail=reason=>({available:false,reason});
+// Verify EVERY cook in the replay against the player's direct-cooking limit.
+export function validatePerfectoReplayCooking(replay,cookableTier){
+ const upper=Number(cookableTier);
+ if(!Number.isInteger(upper)||upper<1||upper>46)
+  return {ok:false,reason:"The highest directly cookable tier is unavailable."};
+ if(!replay?.available)return {ok:false,reason:replay?.reason??"Replay is unavailable."};
+ if(Number(replay.sourceTier)>upper)
+  return {ok:false,reason:"The recipe starts above your highest cookable tier."};
+ for(const [i,step] of (replay.steps??[]).entries()){
+  if(step.kind==="cook"&&(!Number.isInteger(step.tier)||
+     step.tier<1||step.tier>upper))
+   return {ok:false,reason:"Step "+(i+1)+" cooks T"+step.tier+
+    " above your configured T"+upper+" limit."};
+ }
+ return {ok:true,maxCookTier:upper};
+}
 export function createPerfectoInPlaceReplay(save,search,plan,target){
  const proof=search?.certificate,board=plan?.board;
  if(!proof||!Array.isArray(board)||board.length!==120)
@@ -35,8 +51,12 @@ export function createPerfectoInPlaceReplay(save,search,plan,target){
   return fail("The required construction positions are locked.");
  // Prefer the user's actual repeated T45 refill + Wind staircase strategy
  // when it can restore ALL 18 final positions without borrowing more slots.
+ const maxCookTier=Number(search?.cookedSourceTier??search?.sourceTier);
  const recycledCandidate=createPerfectoRecycledInPlaceReplay(save,search,plan,target);
- if(recycledCandidate.available)return recycledCandidate;
+ if(recycledCandidate.available){
+  const checked=validatePerfectoReplayCooking(recycledCandidate,maxCookTier);
+  if(checked.ok)return {...recycledCandidate,maxCookTier};
+ }
  // If the account's tier/geometry cannot support that sequence, retain the
  // earlier certified smaller-workspace construction instead of inventing moves.
  const compact=createPerfectoFinalTargetReplay(save,search,plan,target);
@@ -84,7 +104,9 @@ export function createPerfectoInPlaceReplay(save,search,plan,target){
   return milestones.find(item=>item.step>step)?.step??
    compact.finalFillIndex;
  }
- return {...compact,mode:"in-place",workspacePositions:workspace,
+ const checked=validatePerfectoReplayCooking(compact,maxCookTier);
+ if(!checked.ok)return fail(checked.reason);
+ return {...compact,mode:"in-place",maxCookTier,workspacePositions:workspace,
   supportPositions,targetPosition,focusPosition:targetPosition,
   originalTargetCopies:board.filter(cell=>cell.slot>=0&&
    cell.preparedTier+1===target).length,
