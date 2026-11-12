@@ -4,7 +4,7 @@ import {sushiTierIconPath} from "./sushi-reference.mjs?v=1.16.6";
 import {numberText} from "./lab-model.mjs?v=1.16.6";
 import {availablePerfectoTargets,getPerfectoPlanner,perfectoKnowledgeMilestones} from "./perfecto-planner.mjs?v=1.27.0";
 import {perfectoRecipeStages,perfectoFinalMergeIndex,perfectoRecipeIntegrity} from "./perfecto-recipe-guide.mjs?v=1.23.0";
-import {createPerfectoInPlaceReplay} from "./perfecto-in-place-replay.mjs?v=1.30.1";
+import {createPerfectoInPlaceReplay} from "./perfecto-in-place-replay.mjs?v=1.32.1";
 import {perfectoWindAnimationFrames} from "./perfecto-wind-animation.mjs?v=1.31.0";
 
 const $=id=>document.getElementById(id);
@@ -477,10 +477,16 @@ export function initializePerfectoUI(getSave){
     (replay.workspacePositions.at(-1)+1)+" ("+
     replay.requiredSlots+" cells) are used. All other T"+target+
     " copies remain unchanged. "+
-    (replay.recyclingNeeds!==null&&replay.recyclingNeeds>replay.requiredSlots?
-     "The 38-cell-style recycled strategy needs "+
-     replay.recyclingNeeds+" slots and cannot fit here; this uses the "+
-     "certified compact Wind recipe instead. ":"")+
+    (replay.strategy==="recycled-wind"?
+     "RECYCLING VERIFIED · Repeatedly refill T"+replay.sourceTier+
+     ", merge and reuse the Wind staircase until T"+target+
+     " is constructed. The final staircase is then restored. "+
+     display(replay.totalCooks)+" legal cooks, "+
+     display(replay.totalMerges)+" merges, "+
+     display(replay.totalMoves)+" moves. ":
+     replay.recyclingNeeds!==null&&replay.recyclingNeeds>replay.requiredSlots?
+     "The older recycled demonstration needs "+
+     replay.recyclingNeeds+" slots; the certified compact method is used instead. ":"")+
     (wind?"A longer Wind cascade rebuilds the supporting staircase near the end. ":"")+
     "This begins from a prepared near-final board, not your imported save. "+
     "Moves require Movement Mittens; no Salt Shakers are assumed.":
