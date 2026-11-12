@@ -35,8 +35,8 @@ export function createPerfectoInPlaceReplay(save,search,plan,target){
   return fail("The required construction positions are locked.");
  // Prefer the user's actual repeated T45 refill + Wind staircase strategy
  // when it can restore ALL 18 final positions without borrowing more slots.
- const recycled=createPerfectoRecycledInPlaceReplay(save,search,plan,target);
- if(recycled.available)return recycled;
+ const recycledCandidate=createPerfectoRecycledInPlaceReplay(save,search,plan,target);
+ if(recycledCandidate.available)return recycledCandidate;
  // If the account's tier/geometry cannot support that sequence, retain the
  // earlier certified smaller-workspace construction instead of inventing moves.
  const compact=createPerfectoFinalTargetReplay(save,search,plan,target);
