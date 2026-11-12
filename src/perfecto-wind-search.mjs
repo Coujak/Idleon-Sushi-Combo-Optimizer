@@ -317,11 +317,10 @@ export function certifiedCarryBoard(geom,target,economy,windCap=0){
   best=preferred;
  return best;
 }
-// The empty cells left by the certified carry construction are temporary
-// working space. Once the target copies have been completed, fill those cells
-// from highest to lowest with a buildable staircase. Build each ingredient
-// before the next one, so the available workspace shrinks in step with the
-// required merge depth. Prefer starting at the Wind cap when it exists.
+// After finishing the target copies, fill the released workspace with the
+// highest buildable descending staircase. Do not extend below the player's
+// directly cookable source: spare cells are better as extra source sushi for
+// future merges. Always preserve the certified workspace.
 export function finishCertifiedCarryBoard(best,geom,target,windCap,{supportMode="staircase"}={}){
  // The hypothetical T46 benchmark should not imply that low-tier staircase
  // ingredients are needed. Its spare cells can be filled by direct cooking,
@@ -359,7 +358,8 @@ export function finishCertifiedCarryBoard(best,geom,target,windCap,{supportMode=
  const supporting=[];
  let extraCooks=0n,extraMerges=0n,extraWind=0n,extraFuel=0;
  for(let i=0;i<slots.length;i++){
-  const tier=Math.max(1,highest-i);
+  // From T40 across 22 support cells: T58 ... T40, T40, T40, T40.
+  const tier=Math.max(sourceTier,highest-i);
   const free=slots.length-i;
   const aboveSource=Math.max(0,tier-sourceTier);
   const requiredWorkspace=aboveSource+1;
@@ -386,13 +386,23 @@ export function finishCertifiedCarryBoard(best,geom,target,windCap,{supportMode=
  const proof=best.certificate;
  // Prefer a multi-sushi Wind cascade when it is cheaper and the inputs can
  // all be physically constructed in the shrinking contiguous workspace.
+ // Only the strictly descending prefix can be a verified Wind cascade.
+ // Extra directly cookable copies are placed after the cascade finishes.
+ const cascadeLength=Math.min(supporting.length,
+  Math.max(0,highest-sourceTier+1));
+ const directTail=supporting.slice(cascadeLength);
+ const directTailFuel=directTail.reduce((sum,item)=>
+  sum+sushiDirectCookFuel(item.tier),0);
  const cascade=certifiedPerfectoSupportCascade(sourceTier,
-  supporting.map(sushi=>sushi.tier),windCap);
- if(cascade&&cascade.totalFuel<extraFuel*(1-1e-10)){
+  supporting.slice(0,cascadeLength).map(sushi=>sushi.tier),windCap);
+ const cascadeFuel=cascade?cascade.totalFuel+directTailFuel:Infinity;
+ if(cascade&&cascadeFuel<extraFuel*(1-1e-10)){
+  cascade.supportingCount=cascadeLength;
+  cascade.directFillerCount=directTail.length;
   cascade.individualFuel=extraFuel;
-  cascade.fuelSavingPercent=100*(1-cascade.totalFuel/extraFuel);
-  extraFuel=cascade.totalFuel;
-  extraCooks=BigInt(cascade.cooksExact);
+  cascade.fuelSavingPercent=100*(1-cascadeFuel/extraFuel);
+  extraFuel=cascadeFuel;
+  extraCooks=BigInt(cascade.cooksExact)+BigInt(directTail.length);
   extraMerges=BigInt(cascade.mergesExact);
   extraWind=BigInt(cascade.windEventsExact);
   proof.supportingMode="cascade";
@@ -410,7 +420,7 @@ export function finishCertifiedCarryBoard(best,geom,target,windCap,{supportMode=
  proof.totalCooksExact=(BigInt(proof.cooksExact)+extraCooks).toString();
  proof.totalMergesExact=(BigInt(proof.mergesExact)+extraMerges).toString();
  proof.proof+=proof.supportingMode==="cascade"?
-  " After producing the targets, recursively prepare a descending chain and two top trigger sushi, fire a multi-sushi East Wind cascade, shift the upgraded results west, and cook the final low tier. Every merge must pass replay validation.":
+  " After producing the targets, construct a descending Wind chain and trigger the verified cascade. Directly cook spare source-tier sushi into the remaining construction cells; every merge must pass replay validation.":
   " After producing all target copies, use the released workspace to build supporting sushi one at a time, highest first, preserving previous copies. Each next ingredient requires no more than the remaining free cells.";
  best.spent+=extraFuel;
  best.merges+=Number(extraMerges);
