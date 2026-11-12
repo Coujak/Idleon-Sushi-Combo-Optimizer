@@ -16,6 +16,8 @@ export function createPerfectoFullBoardReplay(save,search,plan,target){
  const proof=search?.certificate,finalBoard=plan?.board;
  if(!proof||!Array.isArray(proof.stages)||!Array.isArray(finalBoard))
   return fail("The planner has no certified full-board recipe.");
+ if(!proof.stages.length&&Number(proof.startingTier)===target)
+  return directCookFullReplay(save,search,plan,target);
  const slots=Array.from({length:N},(_,i)=>Number(save?.slots?.[i]??-1));
  const imported=boardOf(save?.tiles);
  for(let i=0;i<N;i++)if(slots[i]<0)imported[i]=0;
@@ -224,4 +226,59 @@ export function createPerfectoFullBoardReplay(save,search,plan,target){
   actualCookTier:Number(proof.startingTier),supports:supports.length,
   windUsed:template.steps.some(x=>x.events?.some(e=>e.kind==="wind"))||
    supports.some(x=>x.steps.some(s=>s.events?.some(e=>e.kind==="wind")))};
+}
+
+function directCookFullReplay(save,search,plan,target){
+ if(target>46)return fail("This sushi tier cannot be cooked directly.");
+ const slots=Array.from({length:N},(_,i)=>Number(save?.slots?.[i]??-1));
+ const imported=boardOf(save?.tiles);
+ for(let i=0;i<N;i++)if(slots[i]<0)imported[i]=0;
+ const final=plan.board.map((cell,i)=>slots[i]<0?0:
+  Math.max(0,Number(cell?.preparedTier??-1)+1));
+ const protectedTiles=imported.map((tier,i)=>slots[i]>=0&&tier>=target?tier:0);
+ const lower=imported.flatMap((tier,i)=>slots[i]>=0&&tier>0&&tier<target?
+  [{position:i,tier}]:[]);
+ const newPositions=[];
+ for(let i=0;i<N;i++){
+  if(slots[i]<0)continue;
+  if(imported[i]>=target&&final[i]!==imported[i])
+   return fail("A protected sushi would need to be moved at position "+(i+1)+".");
+  if(protectedTiles[i]===0&&final[i]===target)newPositions.push(i);
+  if(final[i]!==target&&final[i]!==protectedTiles[i])
+   return fail("Direct-cook board contains an unmodeled supporting sushi.");
+ }
+ if(newPositions.length!==Number(search.certificate?.finalCopies))
+  return fail("Direct-cook count does not match the final plan.");
+ const initial=protectedTiles.slice();
+ const manual=lower.length>0,baseOffset=manual?2:0;
+ const totalSteps=baseOffset+newPositions.length;
+ function getFrame(value){
+  const step=Math.max(0,Math.min(totalSteps,Math.floor(Number(value)||0)));
+  if(step===0)return {board:Uint8Array.from(imported),phase:"imported",
+   event:null,description:"Your imported board, unchanged."};
+  if(manual&&step===1)return {board:Uint8Array.from(imported),
+   phase:"manual",event:{kind:"setup-required",positions:lower.map(x=>x.position)},
+   description:"Clear existing lower-tier sushi from positions "+
+    lower.map(x=>x.position+1).join(", ")+" before continuing."};
+  if(manual&&step===2)return {board:Uint8Array.from(initial),
+   phase:"staging",event:{kind:"setup-confirmed"},
+   description:"Preparation checkpoint confirmed. Protected sushi are unchanged."};
+  const count=Math.max(0,step-baseOffset);
+  const board=initial.slice();
+  for(let i=0;i<count;i++)board[newPositions[i]]=target;
+  const at=newPositions[count-1];
+  return {board:Uint8Array.from(board),phase:"targets",
+   event:Number.isInteger(at)?{kind:"cook",at,tier:target,events:[]}:null,
+   completedTargets:count,targetTotal:newPositions.length,
+   description:"Directly cook target sushi "+count+" of "+newPositions.length};
+ }
+ if(!same(final,[...initial.map((t,i)=>t||newPositions.includes(i)?target:0)]))
+  return fail("Direct cooking cannot construct the exact final board.");
+ return {available:true,slots,initial:Uint8Array.from(imported),
+  final:Uint8Array.from(final),totalSteps,getFrame,
+  lastMergesIndex:baseOffset,finalFillIndex:totalSteps,
+  nextCopyIndex:step=>Math.min(totalSteps,Math.max(baseOffset,step)+1),
+  baseOffset,requiresSetup:manual,setupPositions:lower,
+  templateSteps:1,copies:newPositions.length,partial:false,
+  sourceTier:target,actualCookTier:target,supports:0,windUsed:false};
 }
