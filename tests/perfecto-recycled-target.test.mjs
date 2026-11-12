@@ -125,8 +125,8 @@ test("Perfecto UI offers a true reusable Wind ladder and refill cycle navigation
  const ui=readFileSync(new URL("../src/perfecto-ui.mjs",import.meta.url),"utf8");
  for(const prefix of ["perfecto","perfectoMax"])
   assert.equal(html.split('id="'+prefix+'ReplayCycle"').length-1,1);
- assert.match(ui,/createPerfectoRecycledTargetReplay\(saved,search,plan,target\)/);
- assert.match(ui,/state\.replay\.nextCycle\(state\.step\)/);
- assert.ok(ui.includes('replay.mode==="recycling"'));
- assert.ok(ui.includes("This is a separate teaching board"));
+ assert.ok(ui.includes("createPerfectoInPlaceReplay(saved,search,plan,target)"));
+ assert.ok(ui.includes("state.replay.nextMilestone(state.step)"));
+ assert.ok(!ui.includes("createPerfectoRecycledTargetReplay(saved,search,plan,target)"));
+ assert.ok(ui.includes("The certified compact Wind recipe")||ui.includes("certified compact Wind recipe"));
 });
