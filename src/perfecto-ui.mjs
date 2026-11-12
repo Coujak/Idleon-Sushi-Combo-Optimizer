@@ -520,6 +520,11 @@ export function initializePerfectoUI(getSave){
   if(!milestone.available){
    text("perfectoTheoryLevels","Both T50 and T54 are required.");
    text("perfectoTheoryBonus",milestone.reason);
+   for(const tier of [50,54]){
+    text("perfectoTheoryT"+tier+"Current","—");
+    text("perfectoTheoryT"+tier+"Next","—");
+    text("perfectoTheoryT"+tier+"Delta","—");
+   }
    for(const id of ["perfectoTheoryBefore","perfectoTheoryAfter","perfectoTheoryGain"])text(id,"—");
    return;
   }
@@ -528,6 +533,14 @@ export function initializePerfectoUI(getSave){
   const nextTier=tier=>first.levels.find(x=>x.tier===tier);
   text("perfectoTheoryLevels","T50 Lv "+byTier(50).level+" → "+nextTier(50).level+
    " · T54 Lv "+byTier(54).level+" → "+nextTier(54).level);
+  for(const tier of [50,54]){
+   const current=byTier(tier).level,goal=nextTier(tier).level;
+   const remaining=Math.max(0,goal-current);
+   text("perfectoTheoryT"+tier+"Current",display(current));
+   text("perfectoTheoryT"+tier+"Next",display(goal));
+   text("perfectoTheoryT"+tier+"Delta","+"+display(remaining)+
+    (remaining===1?" level":" levels"));
+  }
   text("perfectoTheoryBonus","Combined Knowledge bonus: +"+display(milestone.currentBonus)+
    "% → +"+display(first.combinedBonus)+"%. Both tiers use their current Perfecto multipliers.");
   text("perfectoTheoryBefore",percent(milestone.currentChance));
