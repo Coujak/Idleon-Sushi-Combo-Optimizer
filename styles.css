@@ -1571,3 +1571,28 @@ details summary{cursor:pointer;font-size:12px;font-weight:700;color:#9eb7c9}
 }
 /* The longer discovery label wraps cleanly without changing card height. */
 #lab-overview .lab-stat-label{overflow-wrap:break-word}
+
+/* Perfecto Planner: concise odds comparison and readable preparation steps. */
+.perfecto-improvement{
+ display:flex;flex-wrap:wrap;align-items:baseline;gap:9px 15px;
+ margin:13px 0 9px;padding:12px 14px;border:1px solid #365d65;
+ background:#122b36;border-radius:10px;
+}
+.perfecto-improvement strong{color:#b4efd0;font-size:13px;line-height:1.4}
+.perfecto-improvement span{color:#b5cbd0;font-size:12px;line-height:1.55;flex:1 1 270px}
+.perfecto-build-guide{
+ background:#102635;border:1px solid #345161;border-radius:11px;
+ padding:12px 17px;margin:15px 0 11px;
+}
+.perfecto-build-guide h4{font-size:14px;color:#d3f0e0;margin:0 0 8px}
+.perfecto-build-guide ol{color:#bdd2da;font-size:12px;line-height:1.65;margin:0;padding-left:23px}
+.perfecto-build-guide li{padding-left:2px;margin:7px 0}
+.perfecto-build-guide li::marker{color:#81d6ac;font-weight:800}
+.perfecto-pepper-stats{grid-template-columns:repeat(2,minmax(0,1fr))}
+.perfecto-pepper-stats strong{font-size:17px;line-height:1.3}
+.perfecto-pepper-stats small{color:#9bb4c2;font-size:10.5px;line-height:1.55}
+@media(max-width:670px){
+ .perfecto-pepper-stats{grid-template-columns:1fr}
+ .perfecto-improvement{padding:11px 12px}
+ .perfecto-build-guide{padding:12px 13px}
+}
