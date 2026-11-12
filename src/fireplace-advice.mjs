@@ -11,7 +11,7 @@ export function sparkFireplaceBonus(sparks){
  if(s===null)return null;
  return s>0?.2*Math.log2(s)+Math.log10(s):0;
 }
-function points(value){
+export function formatSparkBonusPoints(value){
  if(value>=.1)return value.toFixed(2);
  if(value>=.001)return value.toFixed(3);
  if(value>=.00001)return value.toFixed(5);
@@ -70,7 +70,7 @@ export function fireplaceOverviewAdvice(save){
  });
  const marginal=timeGains[1].points;
  const gainText="Extra Spark-based fireplace strength from one additional Purple fireplace: "+
-  timeGains.map(item=>item.label+" +"+points(item.points)+" percentage points").join("; ")+
+  timeGains.map(item=>item.label+" +"+formatSparkBonusPoints(item.points)+" percentage points").join("; ")+
   ". Assumes continuous +1 Spark/second; losses from replacing another fireplace are not included.";
  let heading,summary;
  if(marginal>=.1){
