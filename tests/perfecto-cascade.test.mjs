@@ -93,5 +93,6 @@ test("Both Perfecto boards offer a jump to the real Wind activation",()=>{
   assert.equal(html.split('id="'+prefix+'ReplayCascade"').length-1,1);
  assert.match(ui,/btn\("Cascade"\)\.addEventListener\("click"/);
  assert.ok(ui.includes("replay.windCascadeIndex"));
- assert.ok(ui.includes('windPlan.fuelSavingPercent'));
+ assert.ok(ui.includes('windPlan.windChainLength'));
+ assert.ok(ui.includes('replay.mode==="recycling"'));
 });
