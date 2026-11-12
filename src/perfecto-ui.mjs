@@ -2,7 +2,7 @@
 // The optimizer chooses its own final copy count and prepared arrangement.
 import {sushiTierIconPath} from "./sushi-reference.mjs?v=1.16.6";
 import {numberText} from "./lab-model.mjs?v=1.16.6";
-import {availablePerfectoTargets,getPerfectoPlanner} from "./perfecto-planner.mjs?v=1.16.6";
+import {availablePerfectoTargets,getPerfectoPlanner} from "./perfecto-planner.mjs?v=1.21.0";
 
 const $=id=>document.getElementById(id);
 const node=(tag,css="",value)=>{
@@ -19,6 +19,46 @@ const percent=value=>{
  return (p>=.01?p.toFixed(2):Number(p.toPrecision(3)).toString())+"%";
 };
 const numAttempts=value=>Number.isFinite(value)&&value!==null?display(value):"—";
+function perfectoPreparationSteps(result){
+ const {plan,search,target}=result;
+ const proof=search?.certificate;
+ const steps=[];
+ if(plan.protected){
+  steps.push("Keep all "+plan.protected+" existing sushi above T"+target+
+   ". The target preparation must not consume them.");
+ }
+ if(proof){
+  steps.push("Keep at least "+proof.workspaceSlots+
+   " unlocked cells available while building each target copy. "+
+   "Completed target sushi can then be parked outside the working area.");
+  steps.push("Cook T"+proof.startingTier+" (each cook costs "+
+   display(search.sourceCost)+" Fuel). The exact construction for all "+
+   plan.copies+" target copies requires "+proof.cooksExact+" cooks and "+
+   proof.mergesExact+" merges.");
+  if(proof.startingTier<target){
+   steps.push("Combine equal-tier sushi from east to west, working up from T"+
+    proof.startingTier+" to T"+target+
+    ". Repeat the same sequence for each copy. This recipe does not rely on Wind or Salt luck.");
+  }
+  if(proof.supportingCount){
+   steps.push("After building the targets, use the released workspace to make "+
+    proof.supportingCount+" supporting sushi, highest tier first (T"+
+    proof.supportingHighest+" down to T"+proof.supportingLowest+
+    "). These do not improve your immediate Pepper odds.");
+  }
+ }else if(search?.reason==="direct-cooking"){
+  steps.push("Cook T1 directly in the available unlocked spaces. No merges are necessary.");
+ }else{
+  steps.push("Prepare the non-protected sushi shown in the final board. "+
+   "This is a simulated candidate using valid merge/Wind actions, "+
+   "but an exact step-by-step construction sequence is not available.");
+ }
+ steps.push("Arrange the final sushi to match the board above. Put the "+
+  "highest tiers on available Hot, Cold or Milktoast plates where possible.");
+ steps.push("Once the target copies are ready, activate Pepper one use at a time. "+
+  "Stop as soon as T"+target+" becomes Perfecto.");
+ return steps;
+}
 export function initializePerfectoUI(getSave){
  let plannerTab="combo",tierChoice="auto";
  const targetSelect=$("perfectoTarget");
@@ -130,12 +170,31 @@ export function initializePerfectoUI(getSave){
     (result.current.perfecto?" · Perfecto":" · Not Perfecto")));
   text("perfectoSingleChance",percent(result.singleChance));
   text("perfectoCurrentChance",percent(result.currentChance));
+  text("perfectoCurrentOddsRatio",result.currentChance>0?
+   "1 in "+display(1/result.currentChance):"No target copies yet");
   text("perfectoPlanChance",percent(result.planChance));
   text("perfectoPlanOddsRatio",result.planChance>0?
    "1 in "+display(1/result.planChance):"No target copies yet");
   text("perfectoCurrentCopies",p.currentCopies+" on board");
   text("perfectoPlanCopies",p.copies+" copies");
   text("perfectoExpectedActivations",numAttempts(result.expectedActivations));
+  const delta=result.improvement;
+  text("perfectoImprovement",delta.fromZero?"From no chance to "+percent(result.planChance):
+   !delta.improvement?"Already at recommended target-copy odds":
+   (delta.ratio??1).toLocaleString("en-US",{maximumFractionDigits:2})+
+   "× chance per Pepper use");
+  text("perfectoImprovementDetail",delta.fromZero?
+   "You currently have no T"+result.target+" sushi on the board. "+
+   "Preparing "+p.copies+" copies makes a Pepper attempt possible.":
+   !delta.improvement?
+   "The recommended board does not improve your per-activation Perfecto odds. "+
+   "It may still be useful for arranging your sushi.":
+   "Current "+percent(result.currentChance)+" → optimized "+
+   percent(result.planChance)+" (+"+
+   delta.percentagePointGain.toLocaleString("en-US",{maximumFractionDigits:4})+
+   " percentage points). Estimated attempts until success: "+
+   numAttempts(delta.currentAttempts)+" → "+
+   numAttempts(delta.optimizedAttempts)+".");
   text("perfectoCopyCount",p.copies+" target copies found");
   const proof=result.search?.certificate;
   const bonusSlots=p.board.filter(cell=>cell.slot>=1&&cell.slot<=3);
@@ -148,33 +207,25 @@ export function initializePerfectoUI(getSave){
    (bonusSlots.length?" · Special plates: "+bonusProtected+
     " protected high-tier, "+bonusTargets+" target sushi":""));
   text("perfectoProtectedCount",p.protected+" higher-tier sushi preserved");
+  const list=$("perfectoPreparationSteps");
+  list.replaceChildren(...perfectoPreparationSteps(result).map(step=>node("li","",step)));
   text("perfectoModelNote",proof?
-   "Cook T"+proof.startingTier+" (each costs "+display(result.search.sourceCost)+
-   " fuel, "+percent(proof.capacityShare)+" of fuel capacity), then merge equal tiers "+
-   "westwards until you have "+p.copies+" copies of T"+proof.targetTier+
-   ". Temporarily keep "+proof.workspaceSlots+" positions free while building each target. "+
-   "Making the target copies requires "+proof.cooksExact+" T"+proof.startingTier+
-   " cooks and "+proof.mergesExact+" merges. "+
-   (proof.supportingCount?
-    "After the targets are complete, build the remaining "+proof.supportingCount+
-    " descending support sushi for the top of the regular-plate area: T"+proof.supportingHighest+"–T"+
-    proof.supportingLowest+", built highest first. The final board assigns "+
-    "Hot, Cold and Milktoast plates to the highest tiers first, even above "+
-    "the Perfecto target; supporting sushi use regular plates where possible. "+
-    "On regular plates the support staircase comes first, followed by target copies; protected higher-tier sushi take the last regular slot where possible. Rearrange existing sushi after construction if needed. This adds "+
-    proof.supportingCooksExact+" cooks and "+proof.supportingMergesExact+
-    " merges. These supporting sushi do not increase the immediate Perfecto chance. ":"")+
-   "This proves a reproducible merge-only layout without Salt or Wind luck, "+
-   "not a global maximum.":
-   "Best result from "+p.searchAttempts+" starting recipes and search variants, using "+
+   "Reproducible merge-only recipe. The required cooking totals may be very large; "+
+   "the planner does not estimate preparation time and does not claim a global optimum.":
+   search?.reason==="direct-cooking"?
+   "Direct cooking layout. The slot arrangement can be changed as needed.":
+   "Heuristic recipe from "+p.searchAttempts+" evaluated search variants, with "+
    display(p.estimatedManualMerges)+" simulated merges and "+
-   display(p.windUpgrades)+" Wind upgrades. This bounded Wind recipe is a heuristic candidate, "+
-   "not proof of a global optimum. Higher prepared sushi are charged merge ingredient costs.");
+   display(p.windUpgrades)+" Wind upgrades. This is not an exact move-by-move "+
+   "build guide or a proven global maximum.");
   for(const milestone of result.milestones)
    text("perfectoConfidence"+Math.round(milestone.confidence*100),
     numAttempts(milestone.attempts));
   const pepper=result.preparation.pepperAvailable;
   text("perfectoPepperUses",display(pepper));
+  text("perfectoKnownFreeChance",(result.freeUse.atCap?"":"≥ ")+
+   percent(result.freeUse.knownChance));
+  text("perfectoExpectedSpentUpper",numAttempts(result.freeUse.expectedConsumedUpperBound));
   text("perfectoStoredChance",percent(result.pepperStackChance));
   text("perfectoStoredChanceHint",
    pepper===0?"No Pepper available yet.":
