@@ -5,6 +5,7 @@
 import {simulateRelocation} from "./optimizer-core.mjs";
 import {certifiedWindTierRecipe} from "./perfecto-wind-certificate.mjs";
 import {createPerfectoConstructionReplay} from "./perfecto-construction-replay.mjs";
+import {replayPerfectoSupportCascade} from "./perfecto-cascade-replay.mjs?v=1.27.0";
 
 const N=120;
 const fail=reason=>({available:false,reason});
@@ -93,7 +94,13 @@ export function createPerfectoFullBoardReplay(save,search,plan,target){
  // recommended board position; no magic post-construction rearrangement.
  const supports=[];
  let current=finalAfterCopies.slice();
- for(const item of supporting){
+ if(proof.supportingMode==="cascade"&&proof.supportingCascade){
+  const cascade=replayPerfectoSupportCascade(current,slots,search,
+   supporting,proof.supportingCascade);
+  if(!cascade.available)return fail("Wind cascade is not replayable: "+cascade.reason);
+  current=cascade.board;
+  supports.push(...cascade.groups);
+ }else for(const item of supporting){
   const tier=Number(item.tier),dest=Number(item.position)-1;
   if(!Number.isInteger(tier)||tier<1||tier>=target||
      !Number.isInteger(dest)||dest<0||dest>=N||current[dest]!==0)
@@ -202,8 +209,8 @@ export function createPerfectoFullBoardReplay(save,search,plan,target){
    if(supportAction<cursor+group.steps.length){
     const local=supportAction-cursor;
     return {board:group.steps[local].board,event:group.steps[local],
-     phase:"support",description:"Fill remaining cells: build T"+group.tier+
-      " at position "+(group.dest+1)};
+     phase:"support",description:group.description??
+     ("Fill remaining cells: build T"+group.tier+" at position "+(group.dest+1))};
    }
    cursor+=group.steps.length;
   }
