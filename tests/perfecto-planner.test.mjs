@@ -655,3 +655,27 @@ test("Perfecto target and cooking controls align from the top and stack cleanly 
  assert.match(css,/@media\(max-width:740px\)/);
  assert.match(css,/@media\(max-width:470px\)/);
 });
+
+test("Next Knowledge milestone shows two visually prominent independently updated tier upgrades",()=>{
+ const html=readFileSync(new URL("../index.html",import.meta.url),"utf8");
+ const css=readFileSync(new URL("../styles.css",import.meta.url),"utf8");
+ const ui=readFileSync(new URL("../src/perfecto-ui.mjs",import.meta.url),"utf8");
+ const section=html.slice(html.indexOf('class="perfecto-knowledge-theory"'),
+  html.indexOf('id="perfectoTheoryMilestones"')+1800);
+ assert.ok(section.includes('class="perfecto-milestone-level-grid"'));
+ assert.equal(section.split('class="perfecto-milestone-level-card"').length-1,2);
+ for(const tier of [50,54]){
+  for(const field of ["Current","Next","Delta"]){
+   assert.equal(html.split('id="perfectoTheoryT'+tier+field+'"').length-1,1,
+    "unique "+tier+" "+field+" field");
+  }
+ }
+ assert.match(ui,/text\("perfectoTheoryT"\+tier\+"Current",display\(current\)\)/);
+ assert.match(ui,/text\("perfectoTheoryT"\+tier\+"Next",display\(goal\)\)/);
+ assert.match(ui,/const remaining=Math\.max\(0,goal-current\)/);
+ assert.match(css,/\.perfecto-milestone-level-grid\s*\{\s*display:grid;grid-template-columns:repeat\(2,minmax\(0,1fr\)\)/);
+ assert.match(css,/@media\(max-width:680px\)/);
+ assert.match(css,/\.perfecto-milestone-sr-only\s*\{/);
+ assert.ok(html.includes('id="perfectoMilestoneInfo"'),
+  "keep the full milestone progression in its existing info popover");
+});
