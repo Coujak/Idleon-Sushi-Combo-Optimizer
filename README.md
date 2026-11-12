@@ -47,6 +47,8 @@ An optional expandable **in-game readings** section accepts rates such as `2.5T`
 
 The Perfecto Planner gives an explicit **Save Pepper — prepare the board first** or **Use Pepper now — one activation at a time** decision. Stockpiling Pepper does not change the odds of an individual activation: the quantity of target sushi on the board does. After building the recommended board, use Pepper individually and stop after the first successful Perfecto; the planner shows estimated cumulative odds across the number of activations currently available. "Current Board Chances" compares the current imported target-sushi copies with the optimized board's per-use chance. Confidence milestones are optional details, not a minimum stockpile target. Existing higher-tier sushi are automatically protected, without a manual checkbox. Salt-use information is omitted from the Pepper plan.
 
+The Perfecto comparison now shows the account-specific and hypothetical T46 cooking boards side by side on desktop. Hover or click a cell to highlight the matching position across the two boards, or hide the benchmark when it is not needed. Both boards offer a compact tier-recipe navigator with Previous, Next, Start over and **Skip to final merges** (jumps to the last four tier-building stages), plus ingredient-to-result illustrations. A recursive arithmetic check verifies stage totals; this is **not** an exact move-by-move simulation of all physical merges or a proof of global optimality. Full preparation notes remain available in collapsible details.
+
 The Combo Meter replay also makes moving sushi slightly transparent while it is picked up, dragged across the board, and dropped into the destination.
 
 ## Combo Meter interactive replay (v1.15.6)
