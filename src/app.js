@@ -23,7 +23,7 @@ const $=id=>document.getElementById(id);
 import {BOARD_COLUMNS,BOARD_CELLS,normalizeBoardData,layoutOptions} from "./board-geometry.mjs?v=1.8.4";
 import {windTierMaximum,clampWindTier,windTierAfterPreparedChange} from "./wind-limit.mjs?v=1.9.10";
 import {detectSushiProgress} from "./sushi-progression.mjs?v=1.17.0";
-import {initializeSushiLab} from "./lab-ui.mjs?v=1.21.2";
+import {initializeSushiLab} from "./lab-ui.mjs?v=1.22.2";
 import {sushiTierIconPath} from "./sushi-reference.mjs?v=1.16.6";
 import {countOverviewPlates,overviewTileInfo} from "./overview-helpers.mjs?v=1.19.9";
 import {getPreparedBoardSections,hasSlotLayoutChanges,preparedSectionOutlinePath,preparedOutlineCoordinates} from "./prepared-sections.mjs?v=1.17.1";
