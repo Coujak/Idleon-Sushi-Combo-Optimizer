@@ -271,9 +271,13 @@ function runRecipe(geom,target,reference,seed,recipe,mode,windCap,budget,stepLim
 // One active construction requires only (target-source+1) free slots.
 // The recursion is a compact certificate, not an infeasible 2^depth replay.
 export function certifiedCarryBoard(geom,target,economy,windCap=0){
- let best=null;
+ let best=null,preferred=null;
  const fuelPerHour=Number(economy?.generationPerHour)||0;
- for(const source of affordableSushiCookingTiers(economy,target)){
+ const cookable=affordableSushiCookingTiers(economy,target);
+ // Treat the user's highest directly cookable tier as the preferred
+ // walkthrough ingredient, provided it preserves the max target-copy count.
+ const preferredTier=cookable.at(-1)?.tier??null;
+ for(const source of cookable){
   const proposed=certifiedWindTierRecipe(source.tier,target,windCap);
   // The recursive Wind proof requires a contiguous working area. If this
   // account has scattered locked/protected cells, use ordinary merges instead.
@@ -306,8 +310,11 @@ export function certifiedCarryBoard(geom,target,economy,windCap=0){
      "Use the free workspace to cook two equal-tier sushi recursively, merge east to west, and repeat until the target is made. Store completed targets outside the workspace; no Wind or Salt trigger is required."}
   };
   for(let i=0;i<copies;i++)candidate.board[geom.flex[i]]=target;
+  if(source.tier===preferredTier)preferred=candidate;
   if(!best||better(best.metric,candidate.metric))best=candidate;
  }
+ if(preferred&&best&&preferred.metric.target===best.metric.target)
+  best=preferred;
  return best;
 }
 // The empty cells left by the certified carry construction are temporary
