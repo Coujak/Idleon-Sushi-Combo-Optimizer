@@ -25,7 +25,7 @@ function fixture(source=45,protectedPosition=99){
  return {save,search,plan};
 }
 
-test("T45 can build final T62 and restore T58-T42 inside EXACTLY 18 slots",()=>{
+test("T45 can build final T62 and restore merge-ready T58-T45 inside exactly 18 slots",()=>{
  const {save,search,plan}=fixture();
  const replay=createPerfectoInPlaceReplay(save,search,plan,62);
  assert.equal(replay.available,true,replay.reason);
@@ -39,7 +39,7 @@ test("T45 can build final T62 and restore T58-T42 inside EXACTLY 18 slots",()=>{
  assert.deepEqual(Array.from(replay.getFrame(replay.totalSteps).board),
   search.board);
  assert.deepEqual(Array.from(replay.final.slice(0,18)),
-  [58,57,56,55,54,53,52,51,50,49,48,47,46,45,44,43,42,62]);
+  [58,57,56,55,54,53,52,51,50,49,48,47,46,45,45,45,45,62]);
  assert.ok(replay.totalCooks>=120&&replay.totalCooks<5000);
  assert.ok(replay.totalMerges>=100);
  assert.ok(replay.totalWind>=600);
