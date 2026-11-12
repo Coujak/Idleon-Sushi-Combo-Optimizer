@@ -46,13 +46,21 @@ test("Missing Spark amounts do not produce invented percentages",()=>{
  assert.equal(item.sparkBalance,null);
  assert.equal(fireplaceOverviewAdvice(null),null);
 });
-test("The existing Overview board includes and renders one simple info panel, no new planner",()=>{
+test("Overview puts one brief fireplace recommendation directly below Missing Perfectos",()=>{
  const html=readFileSync(new URL("../index.html",import.meta.url),"utf8");
  const ui=readFileSync(new URL("../src/lab-ui.mjs",import.meta.url),"utf8");
+ const css=readFileSync(new URL("../styles.css",import.meta.url),"utf8");
  for(const id of ["overviewFireplaceAdvice","overviewFireplaceAdviceHeading",
-  "overviewFireplaceAdviceSummary","overviewFireplaceAdviceDetail"]){
+  "overviewFireplaceAdviceSummary"]){
   assert.equal(html.split('id="'+id+'"').length-1,1);
   assert.match(ui,new RegExp(id));
  }
+ assert.equal(html.includes('id="overviewFireplaceAdviceDetail"'),false);
+ assert.ok(html.indexOf('id="labMissingPerfectos"')<
+  html.indexOf('id="overviewFireplaceAdvice"'));
+ assert.ok(html.indexOf('id="overviewFireplaceAdvice"')<
+  html.indexOf('id="labMissingTiers"'));
+ assert.match(html,/<div class="lab-dashboard-column">/);
+ assert.match(css,/#lab-overview \.lab-dashboard-column/);
  assert.match(ui,/fireplaceOverviewAdvice\(data\)/);
 });
