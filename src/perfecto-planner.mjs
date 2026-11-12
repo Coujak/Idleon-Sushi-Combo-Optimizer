@@ -42,6 +42,34 @@ export function perfectoKnowledgeScenario(rows,target,copies,proposedLevels={}){
   singleGainPercentagePoints:100*(afterSingle-beforeSingle),
   relativeBoardGain:beforeBoard>0?(afterBoard/beforeBoard-1)*100:null};
 }
+// Hypothetical "both at level L" table. Levels below a player's real levels
+// are still shown as historical what-if values, not obtainable downgrades.
+// Existing Perfecto multipliers remain unchanged while Knowledge grows.
+export function perfectoKnowledgeMilestones(rows,target,copies,{step=5}={}){
+ const relevant=[50,54].map(tier=>(rows??[]).find(x=>x.tier===tier)).filter(Boolean);
+ if(relevant.length!==2||relevant.some(x=>!x.discovered))
+  return {available:false,reason:"Both T50 and T54 must be discovered before their Knowledge bonuses can be compared.",rows:[]};
+ const currentBonus=relevant.reduce((sum,k)=>sum+Math.max(0,finite(k.bonus)),0);
+ const currentChance=perfectoBoardChance(perfectoSingleChance(target,currentBonus),copies);
+ const actualStep=Number.isInteger(step)&&step>0?Math.min(step,25):5;
+ const maximumCurrent=Math.max(...relevant.map(x=>Math.max(0,Math.floor(finite(x.level)))));
+ const maximumLevel=Math.min(500,Math.max(100,Math.ceil((maximumCurrent+25)/actualStep)*actualStep));
+ const results=[];
+ let previousChance=null;
+ for(let level=actualStep;level<=maximumLevel;level+=actualStep){
+  const combinedBonus=relevant.reduce((sum,k)=>
+   sum+Math.max(0,finite(k.nextLevelGain))*level,0);
+  const chance=perfectoBoardChance(perfectoSingleChance(target,combinedBonus),copies);
+  results.push({level,combinedBonus,chance,
+   differencePercentagePoints:100*(chance-currentChance),
+   previousMilestoneGainPercentagePoints:previousChance===null?null:100*(chance-previousChance)});
+  previousChance=chance;
+ }
+ return {available:true,currentChance,currentBonus,rows:results,
+  currentLevels:relevant.map(k=>({tier:k.tier,level:k.level,perfecto:k.perfecto})),
+  copies};
+}
+
 export function perfectoBoardChance(singleChance,copies){
  const p=clamp(finite(singleChance),0,1);
  const n=Math.max(0,Math.floor(finite(copies)));
