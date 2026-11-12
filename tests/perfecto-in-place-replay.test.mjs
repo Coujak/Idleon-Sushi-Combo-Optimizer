@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import {readFileSync} from "node:fs";
 import {searchPerfectoBoard} from "../src/perfecto-wind-search.mjs";
 import {sushiDirectCookFuel} from "../src/perfecto-fuel.mjs";
-import {createPerfectoInPlaceReplay} from "../src/perfecto-in-place-replay.mjs";
+import {createPerfectoInPlaceReplay,validatePerfectoReplayCooking} from "../src/perfecto-in-place-replay.mjs";
 
 function fixture(source=45){
  const sushi=Array.from({length:8},()=>[]);
@@ -112,4 +112,31 @@ test("The walkthrough uses the main board, not a second fictional workspace",()=
  assert.ok(ui.includes('state.replay.nextMilestone(state.step)'));
  assert.ok(ui.includes('btn("Fill").textContent="Finish board"'));
  assert.ok(!ui.includes("renderWorkspace(replay,frame,event)"));
+});
+
+test("The configured highest cookable tier is honored through every replay cook",()=>{
+ for(const tier of [44,45,46]){
+  const {save,search,plan}=fixture(tier);
+  assert.equal(search.sourceTier,tier,
+   "the account recipe should begin at the highest tier it can cook");
+  assert.equal(search.cookedSourceTier,tier);
+  const replay=createPerfectoInPlaceReplay(save,search,plan,62);
+  assert.equal(replay.available,true,replay.reason);
+  assert.equal(replay.maxCookTier,tier);
+  assert.ok(replay.steps.some(step=>step.kind==="cook"&&step.tier===tier),
+   "a directly cooked base sushi must use the confirmed tier");
+  assert.ok(replay.steps.filter(step=>step.kind==="cook")
+   .every(step=>step.tier<=tier));
+  assert.equal(validatePerfectoReplayCooking(replay,tier).ok,true);
+  assert.equal(validatePerfectoReplayCooking(replay,tier-1).ok,false,
+   "a stale walkthrough must not display cooks above the newly selected limit");
+ }
+});
+
+test("An invalid cook tier never silently authorizes higher-tier cooks",()=>{
+ const {save,search,plan}=fixture(45);
+ const replay=createPerfectoInPlaceReplay(save,search,plan,62);
+ assert.equal(replay.available,true,replay.reason);
+ for(const cap of [0,47,NaN,null])
+  assert.equal(validatePerfectoReplayCooking(replay,cap).ok,false);
 });
