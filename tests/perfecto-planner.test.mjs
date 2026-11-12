@@ -679,3 +679,21 @@ test("Next Knowledge milestone shows two visually prominent independently update
  assert.ok(html.includes('id="perfectoMilestoneInfo"'),
   "keep the full milestone progression in its existing info popover");
 });
+
+test("Knowledge panel aligns both tier rows and all three chance results consistently",()=>{
+ const css=readFileSync(new URL("../styles.css",import.meta.url),"utf8");
+ const html=readFileSync(new URL("../index.html",import.meta.url),"utf8");
+ assert.match(css,/\.perfecto-bonus-grid\{display:grid;grid-template-columns:repeat\(2,minmax\(0,1fr\)\);align-items:stretch/);
+ assert.match(css,/\.perfecto-bonus-item\{display:grid;grid-template-columns:52px minmax\(0,1fr\);align-items:center/);
+ assert.match(css,/\.perfecto-milestone-level-card\{\s*display:grid;grid-template-rows:auto 1fr;gap:12px/);
+ assert.match(css,/\.perfecto-milestone-card-heading\{\s*display:grid;grid-template-columns:minmax\(0,1fr\) auto;\s*align-items:center/);
+ assert.match(css,/\.perfecto-milestone-current,\.perfecto-milestone-goal\{\s*display:grid;grid-template-rows:14px 33px/);
+ assert.match(css,/\.perfecto-milestone-flow-arrow\{\s*display:grid;place-items:center;align-self:end;height:33px/);
+ assert.match(css,/\.perfecto-theory-results\{display:grid;grid-template-columns:repeat\(3,minmax\(0,1fr\)\);align-items:stretch/);
+ assert.match(css,/\.perfecto-theory-results>div\{\s*display:grid;grid-template-rows:minmax\(26px,auto\) auto/);
+ assert.match(css,/@media\(max-width:680px\)\{\s*\.perfecto-bonus-grid,\.perfecto-theory-results\{grid-template-columns:1fr\}/);
+ for(const id of ["perfectoTheoryBefore","perfectoTheoryAfter","perfectoTheoryGain"]){
+  assert.equal(html.split('id="'+id+'"').length-1,1,
+   "preserve "+id+" chance calculation display");
+ }
+});
