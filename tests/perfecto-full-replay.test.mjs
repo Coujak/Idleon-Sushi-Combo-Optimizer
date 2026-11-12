@@ -106,6 +106,11 @@ test("Full-board replay exposes next-copy, final merges, and final-fill navigati
  assert.ok(ui.includes("state.replay?.finalFillIndex"));
  assert.ok(ui.includes("replay.getFrame(step)"));
  assert.ok(ui.includes('confirm.addEventListener("click"'));
+ assert.ok(ui.includes("const blocked=!!(replay.requiresSetup&&!state.setupConfirmed)"));
+ assert.ok(ui.includes('btn("Next").disabled=step<0||step>=replay.totalSteps||(blocked&&step>=1)'));
+ assert.ok(ui.includes('btn("NextCopy").disabled=step<0||step>=replay.finalFillIndex||blocked'));
+ assert.ok(ui.includes('btn("Final").disabled=step<0||step>=replay.lastMergesIndex||blocked'));
+ assert.ok(ui.includes('btn("Fill").disabled=step<0||step>=replay.finalFillIndex||blocked'));
  assert.ok(ui.includes('extra.kind==="wind"'));
 });
 
