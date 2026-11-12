@@ -1801,3 +1801,34 @@ details summary{cursor:pointer;font-size:12px;font-weight:700;color:#9eb7c9}
 .perfecto-knowledge-table tr.is-next td{color:#dbffeb;background:#21503e;font-weight:750}
 .perfecto-theory-note{margin:11px 0 0}
 @media(max-width:690px){.perfecto-theory-results{grid-template-columns:1fr}}
+
+/* Next Knowledge milestone stays compact; the full progression is an
+   accessible info popover (hover, keyboard focus, or tap/click). */
+.perfecto-milestone-info{position:relative;flex:0 0 auto;z-index:8}
+.perfecto-milestone-info summary{
+ display:inline-flex;align-items:center;justify-content:center;
+ width:25px;height:25px;border:1px solid #6f9ca8;border-radius:50%;
+ background:#1a3644;color:#d6eef4;font-size:13px;font-weight:800;
+ font-style:italic;line-height:1;cursor:help;list-style:none;user-select:none
+}
+.perfecto-milestone-info summary::-webkit-details-marker{display:none}
+.perfecto-milestone-info summary:hover{background:#294b5c;border-color:#a8ceda}
+.perfecto-milestone-info summary:focus-visible{outline:2px solid #c9ebf4;outline-offset:3px}
+.perfecto-milestone-popover{
+ display:none;position:absolute;right:0;top:calc(100% + 9px);
+ width:min(660px,calc(100vw - 48px));box-sizing:border-box;
+ max-height:min(70vh,520px);overflow:auto;overscroll-behavior:contain;
+ padding:14px;background:#102632;color:#d5e9eb;
+ border:1px solid #64828e;border-radius:12px;
+ box-shadow:0 12px 36px #0009;text-align:left;z-index:20
+}
+.perfecto-milestone-info:hover .perfecto-milestone-popover,
+.perfecto-milestone-info:focus-within .perfecto-milestone-popover,
+.perfecto-milestone-info[open] .perfecto-milestone-popover{display:block}
+.perfecto-milestone-popover>strong{font-size:13px;font-weight:800}
+.perfecto-milestone-popover>.hint{margin:5px 0 11px;font-size:11px;line-height:1.5}
+.perfecto-milestone-popover .perfecto-knowledge-table th,
+.perfecto-milestone-popover .perfecto-knowledge-table td{font-size:11px}
+@media(max-width:620px){
+ .perfecto-milestone-popover{right:-3px;width:min(600px,calc(100vw - 40px));padding:10px}
+}
