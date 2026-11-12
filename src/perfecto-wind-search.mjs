@@ -30,13 +30,19 @@ function geometry(save,target){
  }
  const fixedTargets=tiles.filter((t,i)=>slots[i]>=0&&t===target).length;
  const protectedCount=[...frozen].filter(i=>tiles[i]>target).length;
+ let longestRun=0,currentRun=0,previous=-2;
+ for(const pos of flex){
+  currentRun=pos===previous+1?currentRun+1:1;
+  longestRun=Math.max(longestRun,currentRun);
+  previous=pos;
+ }
  let bestChain=0;
  for(const dst of flex){
   if(!flex.some(i=>i<dst))continue;
   let k=0;while(k<25&&flex.includes(dst+1+k))k++;
   bestChain=Math.max(bestChain,k);
  }
- return {slots,tiles,flex,frozen,fixedTargets,protectedCount,bestChain};
+ return {slots,tiles,flex,frozen,fixedTargets,protectedCount,bestChain,longestRun};
 }
 function maxCookableTier(economy,target){
  if(!economy)return 1;
@@ -267,7 +273,11 @@ export function certifiedCarryBoard(geom,target,economy,windCap=0){
  let best=null;
  const fuelPerHour=Number(economy?.generationPerHour)||0;
  for(const source of affordableSushiCookingTiers(economy,target)){
-  const recipe=certifiedWindTierRecipe(source.tier,target,windCap);
+  const proposed=certifiedWindTierRecipe(source.tier,target,windCap);
+  // The recursive Wind proof requires a contiguous working area. If this
+  // account has scattered locked/protected cells, use ordinary merges instead.
+  const recipe=proposed.usesWind&&geom.longestRun<proposed.workspaceSlots?
+   certifiedWindTierRecipe(source.tier,target,0):proposed;
   const workspace=recipe.workspaceSlots;
   const copies=source.tier===target?geom.flex.length:
    Math.max(0,geom.flex.length-(workspace-1));
@@ -307,6 +317,7 @@ export function finishCertifiedCarryBoard(best,geom,target,windCap){
  if(!best?.certificate)return best;
  const slots=geom.flex.filter(pos=>best.board[pos]===0);
  const sourceTier=best.sourceTier;
+ const supportWindCap=geom.longestRun<2?0:windCap;
  const highest=Math.min(target-1,windCap>0?windCap:target-1,
   sourceTier+slots.length-1);
  const supporting=[];
@@ -318,7 +329,9 @@ export function finishCertifiedCarryBoard(best,geom,target,windCap){
   const requiredWorkspace=aboveSource+1;
   if(requiredWorkspace>free)throw Error("Unbuildable Perfecto staircase ingredient");
   const direct=tier<=sourceTier;
-  const recipe=direct?null:certifiedWindTierRecipe(sourceTier,tier,windCap);
+  const proposed=direct?null:certifiedWindTierRecipe(sourceTier,tier,supportWindCap);
+  const recipe=proposed?.usesWind&&geom.longestRun<proposed.workspaceSlots?
+   certifiedWindTierRecipe(sourceTier,tier,0):proposed;
   const cooks=direct?1n:BigInt(recipe.cooksExact);
   const merges=direct?0n:BigInt(recipe.mergesExact);
   const wind=direct?0n:BigInt(recipe.windEventsExact);
