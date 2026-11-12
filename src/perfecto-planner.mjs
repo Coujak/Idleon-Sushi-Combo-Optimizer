@@ -77,8 +77,8 @@ function getSearch(save,target,cookTierOverride=null,scenario="account"){
  // Only the account scenario can change its verified cookable limit. The
  // benchmark deliberately assumes a T46 unlock and enough capacity to cook it.
  const modeled=estimateSushiFuelEconomy(save);
- const effective=scenario==="account"&&hasOverride&&modeled?
-  Math.min(selected,modeled.maxCookTier):null;
+ // User-confirmed cooking tiers can correct JSON estimates upward or downward.
+ const effective=scenario==="account"&&hasOverride&&modeled?selected:null;
  const economy=modeled?(scenario==="maximum"?{
   ...modeled,maxCookTier:46,
   capacity:Math.max(modeled.capacity,sushiDirectCookFuel(Math.min(target,46))),
