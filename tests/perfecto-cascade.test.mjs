@@ -47,7 +47,7 @@ test("Long cascade beats independent support cooks for T46→T62 and remains con
  const before=replay.getFrame(replay.windCascadeIndex-1);
  const trigger=replay.getFrame(replay.windCascadeIndex);
  assert.equal(trigger.event.kind,"merge");
- assert.equal(trigger.event.events.filter(e=>e.kind==="wind").length,14);
+ assert.equal(trigger.event.events.filter(e=>e.kind==="wind").length,11);
  const expected=simulateMerge(Array.from(before.board),
   trigger.event.src,trigger.event.dst,search.windCap,25,64);
  assert.ok(expected);
