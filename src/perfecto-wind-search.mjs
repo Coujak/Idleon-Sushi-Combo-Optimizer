@@ -403,6 +403,42 @@ export function finishCertifiedCarryBoard(best,geom,target,windCap,{supportMode=
 const isBonusSushiSlot=slot=>slot===1||slot===2||slot===3;
 export function prioritizePerfectoBonusSlots(board,geom,target,certificate=null){
  if(!Array.isArray(board))return board;
+ // Prefer a physically constructible final arrangement over a cosmetic
+ // reordering that moves protected sushi or splits the construction workspace.
+ // The workspace holds W-1 staircase pieces, plus one completed target at the
+ // right edge. Its special-plate penalty keeps target sushi on bonus plates
+ // whenever a different contiguous workspace can be used.
+ if(certificate&&Array.isArray(certificate.supportingSushi)){
+  const flex=geom.flex.filter(pos=>geom.slots[pos]>=0);
+  const flexible=new Set(flex);
+  const W=Number(certificate.workspaceSlots);
+  const supports=certificate.supportingSushi;
+  if(supports.length===W-1&&Number.isInteger(W)&&W>=1){
+   let candidate=null;
+   for(let start=0;start+W<=board.length;start++){
+    const cells=Array.from({length:W},(_,i)=>start+i);
+    if(!cells.every(pos=>flexible.has(pos)))continue;
+    const penalty=cells.slice(0,W-1).filter(pos=>isBonusSushiSlot(geom.slots[pos])).length;
+    if(!candidate||penalty<candidate.penalty||
+       penalty===candidate.penalty&&start<candidate.start)
+     candidate={start,penalty};
+   }
+   if(candidate){
+    const arranged=geom.tiles.map((value,pos)=>
+     geom.slots[pos]<0?value:geom.frozen.has(pos)?value:0);
+    for(const pos of flex)arranged[pos]=target;
+    for(let i=0;i<supports.length;i++){
+     const pos=candidate.start+i;
+     arranged[pos]=supports[i].tier;
+     supports[i].position=pos+1;
+    }
+    // The remaining workspace cell is the final target copy.
+    arranged[candidate.start+W-1]=target;
+    return arranged;
+   }
+  }
+ }
+
  const unlocked=geom.slots.map((slot,pos)=>slot>=0?pos:-1).filter(pos=>pos>=0);
  const specials=unlocked.filter(pos=>isBonusSushiSlot(geom.slots[pos]));
  const regular=unlocked.filter(pos=>!isBonusSushiSlot(geom.slots[pos]));
