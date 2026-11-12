@@ -1,7 +1,7 @@
 // Sushi Station Lab: lightweight, accessible navigation and account-aware
 // information panels. All imported JSON stays in memory on the user's device.
 import {sushiUpgradeIconPath,sushiTierIconPath} from "./sushi-reference.mjs?v=1.16.6";
-import {initializePerfectoUI} from "./perfecto-ui.mjs?v=1.27.0";
+import {initializePerfectoUI} from "./perfecto-ui.mjs?v=1.28.0";
 import {CATALOG_SORT_OPTIONS,CATALOG_STATUS_OPTIONS,upgradeSummary,readableUpgradeDescription,upgradeDescriptionSegments,catalogHasVariableValues,filterSortCatalog,upgradeCatalogDollarValue} from "./upgrade-catalog.mjs?v=1.16.7";
 import {ADVISOR_GOALS,numberText,getSushiSnapshot,getUpgradeRows,
  getKnowledgeRows,advisorUpgrades,doublerUpgrades,getSushiDoublerCounts,sushiUpgradeExtraText,upgradeAffordability} from "./lab-model.mjs?v=1.19.10";
