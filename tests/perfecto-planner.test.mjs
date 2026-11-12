@@ -262,7 +262,7 @@ test("Filler ingredients never replace protected tiles or invent targets when Wi
  save.slots=Array.from({length:120},(_,i)=>i<100?0:-1);
  const economy={capacity:sushiDirectCookFuel(45)*1.1,generationPerHour:1e13,maxCookTier:46};
  const result=searchPerfectoBoard(save,62,economy);
- assert.equal(result.board[99],64); // higher tier moves to final regular plate
+ assert.equal(result.board[26],64); // protected T64 must never move
  assert.equal(result.targetCount,82);
  assert.equal(result.board.filter(tier=>tier===62).length,82);
  assert.equal(result.certificate?.supportingCount,17);
@@ -319,7 +319,7 @@ test("Special slots are used by T62 even when lower-tier ingredients are more nu
  assert.equal(result.board.filter(x=>x===62).length,result.targetCount);
 });
 
-test("Higher protected sushi outrank Perfecto targets for bonus slots, even if moved",()=>{
+test("Protected T64 remains in its actual position; bonus plates prioritize targets elsewhere",()=>{
  const save=exampleSave();
  save.sushi[2][6]=45;
  save.sushi[2][29]=1;
@@ -334,7 +334,8 @@ test("Higher protected sushi outrank Perfecto targets for bonus slots, even if m
   generationPerHour:1e13,maxCookTier:46};
  const result=searchPerfectoBoard(save,62,economy);
  assert.equal(result.targetCount,82);
- assert.equal(result.board[90],64); // The T64 outranks T62
+ assert.equal(result.board[0],64); // T64 cannot be relocated
+ assert.equal(result.board[90],62);
  assert.equal(result.board[93],62);
  assert.equal(result.board[95],62);
  assert.equal(result.board.filter(t=>t===64).length,1);
@@ -350,7 +351,7 @@ test("Higher protected sushi outrank Perfecto targets for bonus slots, even if m
  }
 });
 
-test("Among supporting sushi, the highest tiers get remaining bonus plates",()=>{
+test("A dense field of bonus plates still keeps a contiguous buildable support workspace",()=>{
  const save=exampleSave();
  save.sushi[2][6]=45;
  save.sushi[2][29]=1;
@@ -363,12 +364,15 @@ test("Among supporting sushi, the highest tiers get remaining bonus plates",()=>
  const result=searchPerfectoBoard(save,62,economy);
  assert.equal(result.targetCount,82);
  assert.equal(result.board[0],64);
- assert.ok(result.board.slice(1,83).every(t=>t===62));
- assert.deepEqual(result.board.slice(83,85),[58,57]);
- assert.deepEqual(result.board.slice(85,100),Array.from({length:15},(_,i)=>56-i));
+ assert.equal(result.board.filter(t=>t===62).length,82);
+ const support=result.certificate.supportingSushi;
+ assert.deepEqual(support.map(x=>x.tier),Array.from({length:17},(_,i)=>58-i));
+ assert.ok(support.every((item,i)=>item.position===support[0].position+i));
+ for(const item of support)assert.equal(result.board[item.position-1],item.tier);
+ assert.ok(result.board.slice(0,100).every(tier=>tier>0));
 });
 
-test("Regular Perfecto boards put the support ladder first and protected T64 bottom-right",()=>{
+test("Regular Perfecto boards keep the protected T64 fixed and place the ladder in contiguous unlocked slots",()=>{
  const save=exampleSave();
  save.sushi[2][6]=45;
  save.sushi[2][29]=1;
@@ -378,15 +382,15 @@ test("Regular Perfecto boards put the support ladder first and protected T64 bot
  save.slots=Array.from({length:120},(_,i)=>i<100?0:-1);
  const economy={capacity:sushiDirectCookFuel(45)*1.1,generationPerHour:1e13,maxCookTier:46};
  const result=searchPerfectoBoard(save,62,economy);
- assert.deepEqual(result.board.slice(0,17),Array.from({length:17},(_,i)=>58-i));
- assert.ok(result.board.slice(17,99).every(tier=>tier===62));
- assert.equal(result.board[99],64);
+ assert.equal(result.board[0],64);
+ assert.deepEqual(result.board.slice(1,18),Array.from({length:17},(_,i)=>58-i));
+ assert.ok(result.board.slice(18,100).every(tier=>tier===62));
  assert.equal(result.board.filter(tier=>tier===62).length,82);
  for(const item of result.certificate.supportingSushi){
   assert.equal(result.board[item.position-1],item.tier);
  }
 });
-test("Last unlocked special plate can host the top tier at the far right",()=>{
+test("Last unlocked special plate takes target sushi when the protected highest tier is fixed elsewhere",()=>{
  const save=exampleSave();
  save.sushi[2][6]=45;
  save.sushi[2][29]=1;
@@ -397,7 +401,8 @@ test("Last unlocked special plate can host the top tier at the far right",()=>{
  save.slots[20]=1;save.slots[30]=2;save.slots[99]=3;
  const economy={capacity:sushiDirectCookFuel(45)*1.1,generationPerHour:1e13,maxCookTier:46};
  const result=searchPerfectoBoard(save,62,economy);
- assert.equal(result.board[99],64);
+ assert.equal(result.board[0],64);
+ assert.equal(result.board[99],62);
  assert.equal(result.board[20],62);
  assert.equal(result.board[30],62);
  assert.deepEqual(result.board.filter(tier=>tier>0).length,100);
