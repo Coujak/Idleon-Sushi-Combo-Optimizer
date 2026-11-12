@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import {readFileSync} from "node:fs";
 import {searchPerfectoBoard} from "../src/perfecto-wind-search.mjs";
 import {sushiDirectCookFuel} from "../src/perfecto-fuel.mjs";
-import {createPerfectoFullBoardReplay} from "../src/perfecto-full-replay.mjs";
+import {createPerfectoFullBoardReplay,createPerfectoFinalTargetReplay} from "../src/perfecto-full-replay.mjs";
 
 function fixture({protectedPosition=99,specials=[],lower=[91,92],existingTarget=null}={}){
  const sushi=Array.from({length:8},()=>[]);
@@ -91,29 +91,73 @@ test("Replay rejects layouts that silently move protected sushi",()=>{
  assert.match(replay.reason,/protected/i);
 });
 
-test("Full-board replay exposes next-copy, final merges, and final-fill navigation",()=>{
- const html=readFileSync(new URL("../index.html",import.meta.url),"utf8");
- const ui=readFileSync(new URL("../src/perfecto-ui.mjs",import.meta.url),"utf8");
- for(const prefix of ["perfecto","perfectoMax"]){
-  for(const name of ["ReplayStart","ReplayPrev","ReplayNext","ReplayNextCopy",
-   "ReplayFinal","ReplayFill","ReplayDone","ReplayConfirmSetup"]){
-   assert.equal(html.split('id="'+prefix+name+'"').length-1,1,
-    prefix+name+" must be unique");
-  }
+test("Focused replay shows one missing target and a prepared support workspace",()=>{
+ for(const config of [
+  {protectedPosition:99,lower:[91,92]},
+  {protectedPosition:0,specials:[1,5,30,55],lower:[]},
+  {protectedPosition:null,specials:[2,10,70],lower:[]},
+  {protectedPosition:99,lower:[],existingTarget:91}
+ ]){
+  const {save,search,plan}=fixture(config);
+  const replay=createPerfectoFinalTargetReplay(save,search,plan,62);
+  assert.equal(replay.available,true,replay.reason);
+  const full=createPerfectoFullBoardReplay(save,search,plan,62);
+  assert.ok(replay.totalSteps<full.totalSteps,
+   "focused replay should skip other target copy constructions");
+  assert.equal(replay.getFrame(0).phase,"staging");
+  assert.equal(replay.getFrame(0).board[replay.focusPosition],0);
+  assert.equal(replay.final[replay.focusPosition],62);
+  for(const pos of replay.workspacePositions)
+   assert.equal(replay.getFrame(0).board[pos],0);
+  const excluded=new Set([replay.focusPosition,...replay.workspacePositions]);
+  for(let i=0;i<120;i++)if(!excluded.has(i))
+   assert.equal(replay.initial[i],replay.final[i],
+    "near-final state must preserve every other recommended sushi");
+  assert.ok(replay.windUsed);
+  assert.ok(replay.finalFillIndex<replay.totalSteps);
+  assert.ok(["cook","prepared"].includes(replay.getFrame(1).event.kind));
+  assert.deepEqual(Array.from(replay.getFrame(replay.totalSteps).board),
+   Array.from(replay.final));
  }
- assert.ok(ui.includes("createPerfectoFullBoardReplay(saved,search,plan,target)"));
- assert.ok(ui.includes("state.replay?.nextCopyIndex(state.step)"));
- assert.ok(ui.includes("state.replay?.finalFillIndex"));
- assert.ok(ui.includes("replay.getFrame(step)"));
- assert.ok(ui.includes('confirm.addEventListener("click"'));
- assert.ok(ui.includes("const blocked=!!(replay.requiresSetup&&!state.setupConfirmed)"));
- assert.ok(ui.includes('btn("Next").disabled=step<0||step>=replay.totalSteps||(blocked&&step>=1)'));
- assert.ok(ui.includes('btn("NextCopy").disabled=step<0||step>=replay.finalFillIndex||blocked'));
- assert.ok(ui.includes('btn("Final").disabled=step<0||step>=replay.lastMergesIndex||blocked'));
- assert.ok(ui.includes('btn("Fill").disabled=step<0||step>=replay.finalFillIndex||blocked'));
- assert.ok(ui.includes('extra.kind==="wind"'));
 });
 
+test("Focused replay supports directly cookable final targets",()=>{
+ const slots=Array.from({length:120},(_,i)=>i<12?0:-1);
+ const tiles=Array(120).fill(-1);tiles[0]=63;tiles[8]=1;
+ const save={slots,tiles};
+ const search={certificate:{startingTier:4,finalCopies:11,stages:[]},targetCount:11};
+ const plan={board:Array.from({length:120},(_,i)=>({
+  preparedTier:i>=12?-1:i===0?63:3
+ }))};
+ const replay=createPerfectoFinalTargetReplay(save,search,plan,4);
+ assert.equal(replay.available,true,replay.reason);
+ assert.equal(replay.totalSteps,1);
+ assert.equal(replay.workspacePositions.length,0);
+ assert.equal(replay.getFrame(0).board[replay.focusPosition],0);
+ assert.equal(replay.getFrame(1).board[replay.focusPosition],4);
+ assert.equal(replay.final[0],64);
+});
+
+test("Focused walkthrough controls emphasize final sushi instead of every target copy",()=>{
+ const html=readFileSync(new URL("../index.html",import.meta.url),"utf8");
+ const ui=readFileSync(new URL("../src/perfecto-ui.mjs",import.meta.url),"utf8");
+ const css=readFileSync(new URL("../styles.css",import.meta.url),"utf8");
+ for(const prefix of ["perfecto","perfectoMax"]){
+  for(const name of ["ReplayStart","ReplayPrev","ReplayNext",
+   "ReplayFinal","ReplayFill","ReplayDone"]){
+   assert.equal(html.split('id="'+prefix+name+'"').length-1,1,prefix+name);
+  }
+  assert.ok(!html.includes('id="'+prefix+'ReplayNextCopy"'));
+  assert.ok(!html.includes('id="'+prefix+'ReplayConfirmSetup"'));
+ }
+ assert.ok(ui.includes("createPerfectoFinalTargetReplay(saved,search,plan,target)"));
+ assert.ok(ui.includes("replay.getFrame(step)"));
+ assert.ok(ui.includes('perfecto-replay-missing'));
+ assert.ok(ui.includes('perfecto-replay-workspace'));
+ assert.ok(html.includes('id="perfectoHeaderTarget"'));
+ assert.ok(css.includes(".perfecto-replay-notice"));
+ assert.ok(css.includes(".perfecto-header-target"));
+});
 test("Directly cookable targets replay every unlocked position without relocating protected sushi",()=>{
  const slots=Array.from({length:120},(_,i)=>i<12?0:-1);
  const tiles=Array(120).fill(-1);tiles[0]=63;tiles[8]=1;
