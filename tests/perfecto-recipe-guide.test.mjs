@@ -56,7 +56,7 @@ test("two navigators, final-tier shortcut and optional T46 benchmark are wired",
  const ui=readFileSync(new URL("../src/perfecto-ui.mjs",import.meta.url),"utf8");
  for(const prefix of ["perfecto","perfectoMax"]){
   for(const suffix of ["RecipeNavigator","RecipeCount","RecipeStage",
-   "RecipeDescription","RecipePrev","RecipeNext","RecipeFinal","RecipeStart"]){
+   "RecipeDescription","RecipeVisual","RecipePrev","RecipeNext","RecipeFinal","RecipeStart"]){
    assert.equal(html.split('id="'+prefix+suffix+'"').length-1,1,
     "expected one element "+prefix+suffix);
   }
@@ -70,4 +70,6 @@ test("two navigators, final-tier shortcut and optional T46 benchmark are wired",
  assert.ok(ui.includes('board.addEventListener("click"'));
  assert.ok(ui.includes('benchmarkToggle.addEventListener("change"'));
  assert.ok(ui.includes("perfectoRecipeIntegrity("));
+ assert.ok(ui.includes('text(prefix+"RecipeDescription",instructions)'));
+ assert.ok(ui.includes('$(prefix+"RecipeVisual")'));
 });
