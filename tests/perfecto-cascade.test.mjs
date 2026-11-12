@@ -28,13 +28,14 @@ test("Long cascade beats independent support cooks for T46→T62 and remains con
  const {save,search,plan}=fixture();
  const cert=search.certificate;
  assert.equal(cert.supportingMode,"cascade");
- assert.equal(cert.supportingCascade.windChainLength,14);
+ assert.equal(cert.supportingCascade.windChainLength,11);
  assert.ok(cert.supportingCascade.fuelSavingPercent>10);
  assert.ok(cert.supportingCascade.totalFuel<cert.supportingCascade.individualFuel);
  assert.equal(cert.supportingCascade.ingredientTiers.length,
-  cert.supportingCount);
+  cert.supportingCascade.supportingCount);
+ assert.equal(cert.supportingCascade.directFillerCount,3);
  assert.equal(BigInt(cert.supportingCooksExact),
-  BigInt(cert.supportingCascade.cooksExact));
+  BigInt(cert.supportingCascade.cooksExact)+3n);
  assert.equal(BigInt(cert.supportingMergesExact),
   BigInt(cert.supportingCascade.mergesExact));
  assert.equal(BigInt(cert.supportingWindEventsExact),
@@ -56,14 +57,15 @@ test("Long cascade beats independent support cooks for T46→T62 and remains con
  assert.equal(last.board[99],64);
 });
 
-test("T45 supports a fifteen-sushi cascade and no-Wind accounts retain fallback",()=>{
+test("T45 supports a descending Wind prefix and three spare T45 cooks",()=>{
  const lower=fixture(45,62);
  assert.equal(lower.search.certificate.supportingMode,"cascade");
- assert.equal(lower.search.certificate.supportingCascade.windChainLength,15);
+ assert.equal(lower.search.certificate.supportingCascade.windChainLength,12);
+ assert.equal(lower.search.certificate.supportingCascade.directFillerCount,3);
  const replay=createPerfectoFinalTargetReplay(lower.save,lower.search,lower.plan,62);
  assert.equal(replay.available,true,replay.reason);
  assert.equal(replay.getFrame(replay.windCascadeIndex).event.events
-  .filter(e=>e.kind==="wind").length,15);
+  .filter(e=>e.kind==="wind").length,12);
  const plain=fixture(46,62,false);
  assert.notEqual(plain.search.certificate.supportingMode,"cascade");
  assert.equal(plain.search.certificate.supportingCascade,undefined);
