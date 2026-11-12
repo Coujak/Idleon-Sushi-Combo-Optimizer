@@ -4,7 +4,7 @@ import {sushiTierIconPath} from "./sushi-reference.mjs?v=1.16.6";
 import {numberText} from "./lab-model.mjs?v=1.16.6";
 import {availablePerfectoTargets,getPerfectoPlanner,perfectoKnowledgeMilestones} from "./perfecto-planner.mjs?v=1.27.0";
 import {perfectoRecipeStages,perfectoFinalMergeIndex,perfectoRecipeIntegrity} from "./perfecto-recipe-guide.mjs?v=1.23.0";
-import {createPerfectoInPlaceReplay} from "./perfecto-in-place-replay.mjs?v=1.32.1";
+import {createPerfectoInPlaceReplay} from "./perfecto-in-place-replay.mjs?v=1.34.0";
 import {perfectoWindAnimationFrames} from "./perfecto-wind-animation.mjs?v=1.31.0";
 
 const $=id=>document.getElementById(id);
@@ -461,10 +461,13 @@ export function initializePerfectoUI(getSave){
    state.result=result;state.plan=plan;state.target=target;state.step=-1;
    state.replay=createPerfectoInPlaceReplay(saved,search,plan,target);
    const replay=state.replay,ready=replay.available;
+   const cookLimit=ready?replay.maxCookTier:
+    (search?.cookedSourceTier??search?.sourceTier??null);
    btn("Cycle").textContent="Next tier milestone";
    btn("Fill").textContent="Finish board";
    text(prefix+"ReplayStatus",ready?
-    "In-place final T"+target+" construction":"Replay unavailable");
+    "In-place final T"+target+" · Cooking from T"+replay.sourceTier:
+    "Replay unavailable");
    text(prefix+"ReplayProgress",ready?display(replay.totalSteps)+" steps":"—");
    text(prefix+"ReplayAction",ready?
     "Clear the "+replay.supportPositions.length+" supporting sushi and the adjacent "+
@@ -472,7 +475,8 @@ export function initializePerfectoUI(getSave){
     "This construction cannot be validated: "+replay.reason);
    const wind=search?.certificate?.supportingCascade;
    text(prefix+"ReplayLimit",ready?
-    "IN-PLACE WALKTHROUGH · Positions "+
+    "IN-PLACE WALKTHROUGH · Highest directly cookable T"+cookLimit+
+    " · Recipe starts from T"+replay.sourceTier+". Positions "+
     (replay.workspacePositions[0]+1)+"–"+
     (replay.workspacePositions.at(-1)+1)+" ("+
     replay.requiredSlots+" cells) are used. All other T"+target+
@@ -587,8 +591,15 @@ export function initializePerfectoUI(getSave){
   targetSelect.value=tierChoice;
   const cookTierValue=cookTierInput?.value.trim()??"";
   const parsedCookTier=Number(cookTierValue);
-  const cookTier=cookTierValue!==""&&Number.isInteger(parsedCookTier)&&
-   parsedCookTier>=1&&parsedCookTier<=46?parsedCookTier:null;
+  const validCookTier=cookTierValue!==""&&Number.isInteger(parsedCookTier)&&
+   parsedCookTier>=1&&parsedCookTier<=46;
+  const cookTier=validCookTier?parsedCookTier:null;
+  const invalidCookTier=cookTierValue!==""&&!validCookTier;
+  cookTierInput?.setAttribute("aria-invalid",String(invalidCookTier));
+  text("perfectoCookTierHint",invalidCookTier?
+   "Choose a whole-number tier from T1 to T46. The JSON estimate is used until corrected.":
+   validCookTier?"Using confirmed T"+cookTier+" as the account's highest cooking tier; the walkthrough will respect it.":
+   "Optional: correct the estimated direct-cooking limit. Leave empty to use JSON.");
   const result=getPerfectoPlanner(saved,{tier:tierChoice,cookTier});
   text("perfectoHeaderTarget",result.target?"CURRENT TARGET · T"+result.target:
    "No active Perfecto target");
