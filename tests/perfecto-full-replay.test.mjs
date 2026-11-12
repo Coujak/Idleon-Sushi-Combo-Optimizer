@@ -106,5 +106,5 @@ test("Full-board replay exposes next-copy, final merges, and final-fill navigati
  assert.ok(ui.includes("state.replay?.finalFillIndex"));
  assert.ok(ui.includes("replay.getFrame(step)"));
  assert.ok(ui.includes('confirm.addEventListener("click"'));
- assert.ok(ui.includes('event.kind==="wind"'));
+ assert.ok(ui.includes('extra.kind==="wind"'));
 });
