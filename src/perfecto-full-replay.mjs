@@ -216,7 +216,7 @@ export function createPerfectoFullBoardReplay(save,search,plan,target){
   const copy=Math.floor(Math.max(0,step-base)/copyLen);
   return Math.min(finalFillIndex,base+(copy+1)*copyLen);
  }
- return {available:true,initial:Uint8Array.from(imported),
+ return {available:true,initial:Uint8Array.from(imported),slots,
   final:Uint8Array.from(current),totalSteps,getFrame,lastMergesIndex,
   finalFillIndex,nextCopyIndex,baseOffset,requiresSetup:clearNeeded,
   setupPositions:originals,templateSteps:template.steps.length,
