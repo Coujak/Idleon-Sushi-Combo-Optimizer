@@ -5,6 +5,7 @@ import {numberText} from "./lab-model.mjs?v=1.16.6";
 import {availablePerfectoTargets,getPerfectoPlanner,perfectoKnowledgeMilestones} from "./perfecto-planner.mjs?v=1.27.0";
 import {perfectoRecipeStages,perfectoFinalMergeIndex,perfectoRecipeIntegrity} from "./perfecto-recipe-guide.mjs?v=1.23.0";
 import {createPerfectoInPlaceReplay} from "./perfecto-in-place-replay.mjs?v=1.30.1";
+import {perfectoWindAnimationFrames} from "./perfecto-wind-animation.mjs?v=1.31.0";
 
 const $=id=>document.getElementById(id);
 const node=(tag,css="",value)=>{
@@ -303,11 +304,47 @@ export function initializePerfectoUI(getSave){
  function bindBoardReplay(prefix,boardId){
   const state={replay:null,plan:null,result:null,target:null,step:-1};
   const btn=id=>$(prefix+"Replay"+id);
+  let cascadeTimer=null,cascadeToken=0,cascadeFrame=null;
+  const cancelCascade=()=>{
+   cascadeToken++;
+   if(cascadeTimer!==null)clearTimeout(cascadeTimer);
+   cascadeTimer=null;cascadeFrame=null;
+  };
+  // Cascades are one merge in the simulator. Animate the Wind upgrade
+  // snapshots automatically WITHOUT advancing the walkthrough step number.
+  function goToStep(next,{animate=false}={}){
+   cancelCascade();
+   const replay=state.replay;
+   if(!replay?.available)return;
+   state.step=Math.max(0,Math.min(replay.totalSteps,Number(next)||0));
+   if(animate&&state.step>0){
+    const current=replay.getFrame(state.step);
+    const previous=replay.getFrame(state.step-1);
+    const frames=perfectoWindAnimationFrames(previous.board,current.event);
+    if(frames.length){
+     const token=cascadeToken;
+     let cursor=0;
+     const play=()=>{
+      if(token!==cascadeToken)return;
+      if(cursor>=frames.length){
+       cascadeFrame=null;cascadeTimer=null;paint();return;
+      }
+      cascadeFrame=frames[cursor++];
+      paint();
+      cascadeTimer=setTimeout(play,cursor===1?160:135);
+     };
+     play();return;
+    }
+   }
+   paint();
+  }
   function paint(){
    const {replay,plan,result,target,step}=state;
    if(!replay?.available||!plan)return;
-   const frame=step>=0?replay.getFrame(step):null;
-   const event=frame?.event??null;
+   const actualFrame=step>=0?replay.getFrame(step):null;
+   const frame=cascadeFrame&&actualFrame?
+    {...actualFrame,board:cascadeFrame.board}:actualFrame;
+   const event=actualFrame?.event??null;
    if(step<0)renderBoard(result,plan,boardId);
    else{
     renderBoard(result,{...plan,board:plan.board.map((cell,i)=>{
@@ -333,16 +370,21 @@ export function initializePerfectoUI(getSave){
       mark(event.src,"perfecto-replay-from");
       mark(event.dst,"perfecto-replay-to");
      }else if(Number.isInteger(event.at))mark(event.at,"perfecto-replay-to");
-     for(const extra of event.events??[])
+     if(cascadeFrame){
+      mark(cascadeFrame.at,"perfecto-replay-wind-live");
+     }else for(const extra of event.events??[])
       if(extra.kind==="wind")mark(extra.at,"perfecto-replay-wind");
     }
    }
    const done=step===replay.totalSteps;
-   text(prefix+"ReplayStatus",step<0?"Final recommended board":
+   text(prefix+"ReplayStatus",cascadeFrame?
+    "Heat of the East Wind · Automatic cascade ("+
+    cascadeFrame.windIndex+"/"+cascadeFrame.windTotal+")":
+    step<0?"Final recommended board":
     step===0?"Construction area empty · Final T"+target+" missing":
     done?"Final T"+target+" and supporting staircase completed":
     step<replay.finalFillIndex?"Building the last T"+target:
-    "Rebuilding the T"+(target-4)+"… support staircase");
+    "Rebuilding the supporting staircase");
    if(step<0)text(prefix+"ReplayProgress",
     display(replay.totalSteps)+" validated steps");
    else{
@@ -368,47 +410,54 @@ export function initializePerfectoUI(getSave){
     if(effects.length)action+=" Heat of the East Wind upgrades "+
      effects.map(e=>"position "+(e.at+1)+" to T"+e.tier).join(", ")+".";
    }
-   text(prefix+"ReplayAction",done?
+   if(cascadeFrame){
+    action=cascadeFrame.phase==="merge"?
+     "Merge completed. Heat of the East Wind is activating automatically.":
+     "Heat of the East Wind automatically upgrades position "+
+     (cascadeFrame.at+1)+" to T"+cascadeFrame.tier+" ("+
+     cascadeFrame.windIndex+"/"+cascadeFrame.windTotal+
+     "). No additional Next click is required.";
+   }
+   text(prefix+"ReplayAction",done&&!cascadeFrame?
     "Completed: the last T"+target+" is in position "+(replay.targetPosition+1)+
     ", all supporting sushi are restored, and every other target stayed in place.":
     action);
    const nextStage=btn("Cycle");
    nextStage.classList.remove("hidden");
-   nextStage.disabled=step<0||step>=replay.finalFillIndex;
-   btn("Start").disabled=step===0;
+   nextStage.disabled=step<0||step>=replay.finalFillIndex||!!cascadeFrame;
+   btn("Start").disabled=step===0&&!cascadeFrame;
    btn("Prev").disabled=step<=0;
-   btn("Next").disabled=step<0||done;
-   btn("Final").disabled=step<0||step>=replay.lastMergesIndex;
+   btn("Next").disabled=step<0||done||!!cascadeFrame;
+   btn("Final").disabled=step<0||step>=replay.lastMergesIndex||!!cascadeFrame;
    btn("Cascade").disabled=step<0||replay.windCascadeIndex===null||
-    step>=replay.windCascadeIndex;
-   btn("Fill").disabled=step<0||done;
+    step>=replay.windCascadeIndex||!!cascadeFrame;
+   btn("Fill").disabled=step<0||done||!!cascadeFrame;
    btn("Done").disabled=step<0;
    highlightComparison();
   }
-  btn("Start").addEventListener("click",()=>{state.step=0;paint();});
-  btn("Prev").addEventListener("click",()=>{
-   state.step=Math.max(0,state.step-1);paint();
-  });
-  btn("Next").addEventListener("click",()=>{
-   state.step=Math.min(state.replay?.totalSteps??0,Math.max(0,state.step)+1);paint();
-  });
+  btn("Start").addEventListener("click",()=>goToStep(0));
+  btn("Prev").addEventListener("click",()=>goToStep(state.step-1));
+  btn("Next").addEventListener("click",()=>goToStep(state.step+1,{animate:true}));
   btn("Cycle").addEventListener("click",()=>{
    if(!state.replay?.available)return;
-   state.step=state.replay.nextMilestone(state.step);paint();
+   goToStep(state.replay.nextMilestone(state.step),{animate:true});
   });
   btn("Final").addEventListener("click",()=>{
-   state.step=state.replay?.lastMergesIndex??0;paint();
+   goToStep(state.replay?.lastMergesIndex??0,{animate:true});
   });
   btn("Cascade").addEventListener("click",()=>{
    const at=state.replay?.windCascadeIndex;
    if(at===null||at===undefined)return;
-   state.step=Math.max(0,at-1);paint();
+   goToStep(Math.max(0,at-1));
   });
   btn("Fill").addEventListener("click",()=>{
-   state.step=state.replay?.totalSteps??0;paint();
+   goToStep(state.replay?.totalSteps??0);
   });
-  btn("Done").addEventListener("click",()=>{state.step=-1;paint();});
+  btn("Done").addEventListener("click",()=>{
+   cancelCascade();state.step=-1;paint();
+  });
   return (saved,result,plan,search,target)=>{
+   cancelCascade();
    state.result=result;state.plan=plan;state.target=target;state.step=-1;
    state.replay=createPerfectoInPlaceReplay(saved,search,plan,target);
    const replay=state.replay,ready=replay.available;
