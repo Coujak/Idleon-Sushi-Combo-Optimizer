@@ -217,6 +217,13 @@ export function initializePerfectoUI(getSave){
    text(prefix+"RecipeCount","Stage "+(state.index+1)+" of "+state.stages.length);
    text(prefix+"RecipeStage","T"+stage.from+
     (stage.direct?" · Direct cook":" → T"+stage.to));
+   const visual=$(prefix+"RecipeVisual");
+   const pieces=Array.from({length:stage.ingredients},()=>node("span",
+    "perfecto-recipe-ingredient","T"+stage.from));
+   visual.replaceChildren(...pieces,node("span","perfecto-recipe-arrow",
+    stage.direct?"Direct cook":"→"),
+    node("span","perfecto-recipe-product","T"+stage.to));
+   visual.classList.toggle("uses-wind",stage.wind);
    const instructions=stage.direct?
     "Cook T"+stage.from+" directly. No merges are needed for this tier.":
     stage.wind?
