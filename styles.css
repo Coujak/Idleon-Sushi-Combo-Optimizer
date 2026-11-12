@@ -1805,15 +1805,15 @@ details summary{cursor:pointer;font-size:12px;font-weight:700;color:#9eb7c9}
 /* Next Knowledge milestone stays compact; the full progression is an
    accessible info popover (hover, keyboard focus, or tap/click). */
 .perfecto-milestone-info{position:relative;flex:0 0 auto;z-index:8}
-.perfecto-milestone-info summary{
+.perfecto-milestone-info .perfecto-milestone-trigger{
  display:inline-flex;align-items:center;justify-content:center;
  width:25px;height:25px;border:1px solid #6f9ca8;border-radius:50%;
  background:#1a3644;color:#d6eef4;font-size:13px;font-weight:800;
  font-style:italic;line-height:1;cursor:help;list-style:none;user-select:none
 }
-.perfecto-milestone-info summary::-webkit-details-marker{display:none}
-.perfecto-milestone-info summary:hover{background:#294b5c;border-color:#a8ceda}
-.perfecto-milestone-info summary:focus-visible{outline:2px solid #c9ebf4;outline-offset:3px}
+
+.perfecto-milestone-info .perfecto-milestone-trigger:hover{background:#294b5c;border-color:#a8ceda}
+.perfecto-milestone-info .perfecto-milestone-trigger:focus-visible{outline:2px solid #c9ebf4;outline-offset:3px}
 .perfecto-milestone-popover{
  display:none;position:absolute;right:0;top:calc(100% + 9px);
  width:min(660px,calc(100vw - 48px));box-sizing:border-box;
@@ -1824,7 +1824,7 @@ details summary{cursor:pointer;font-size:12px;font-weight:700;color:#9eb7c9}
 }
 .perfecto-milestone-info:hover .perfecto-milestone-popover,
 .perfecto-milestone-info:focus-within .perfecto-milestone-popover,
-.perfecto-milestone-info[open] .perfecto-milestone-popover{display:block}
+.perfecto-milestone-info.is-open .perfecto-milestone-popover{display:block}
 .perfecto-milestone-popover>strong{font-size:13px;font-weight:800}
 .perfecto-milestone-popover>.hint{margin:5px 0 11px;font-size:11px;line-height:1.5}
 .perfecto-milestone-popover .perfecto-knowledge-table th,
