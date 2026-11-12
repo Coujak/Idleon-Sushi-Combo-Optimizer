@@ -67,6 +67,12 @@ function perfectoPreparationSteps(result){
      proof.supportingHighest+" down to T"+proof.supportingLowest+
      "). These do not improve your immediate Pepper odds.");
    }
+   if(proof.directCookReserveCount>0){
+    steps.push("Leave "+proof.directCookReserveCount+" extra T"+
+     proof.directCookReserveTier+" sushi in the remaining positions. "+
+     "They are directly cookable merge material for your next construction, "+
+     "not a requirement for the current Pepper chance.");
+   }
   }
  }else if(search?.reason==="direct-cooking"){
   steps.push("Cook T1 directly in the available unlocked spaces. No merges are necessary.");
@@ -701,6 +707,8 @@ export function initializePerfectoUI(getSave){
   text("perfectoPreparationSummary",
    p.copies+" target copies · "+p.additionalCopies+" newly produced in the simulation · "+
    (proof?.supportingCount?proof.supportingCount+" supporting sushi · ":"")+
+   (proof?.directCookReserveCount?proof.directCookReserveCount+" spare T"+
+    proof.directCookReserveTier+" for future merges · ":"")+
    p.protected+" protected higher-tier sushi · "+p.unlocked+" unlocked slots"+
    (bonusSlots.length?" · Special plates: "+bonusProtected+
     " protected high-tier, "+bonusTargets+" target sushi":""));
