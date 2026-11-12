@@ -102,7 +102,7 @@ test("Full-board replay exposes next-copy, final merges, and final-fill navigati
   }
  }
  assert.ok(ui.includes("createPerfectoFullBoardReplay(saved,search,plan,target)"));
- assert.ok(ui.includes("replay.nextCopyIndex(state.step)"));
+ assert.ok(ui.includes("state.replay?.nextCopyIndex(state.step)"));
  assert.ok(ui.includes("state.replay?.finalFillIndex"));
  assert.ok(ui.includes("replay.getFrame(step)"));
  assert.ok(ui.includes('confirm.addEventListener("click"'));
