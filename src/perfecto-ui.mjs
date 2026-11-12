@@ -466,17 +466,20 @@ export function initializePerfectoUI(getSave){
    btn("Cycle").textContent="Next tier milestone";
    btn("Fill").textContent="Finish board";
    text(prefix+"ReplayStatus",ready?
-    "In-place final T"+target+" · Cooking from T"+replay.sourceTier:
+    "In-place final T"+target+" · "+(replay.partial?
+     "Prepared T"+replay.sourceTier+" checkpoint":"Cooking from T"+replay.sourceTier):
     "Replay unavailable");
    text(prefix+"ReplayProgress",ready?display(replay.totalSteps)+" steps":"—");
    text(prefix+"ReplayAction",ready?
     "Clear the "+replay.supportPositions.length+" supporting sushi and the adjacent "+
     "T"+target+", then follow verified moves in those exact board positions.":
-    "This construction cannot be validated: "+replay.reason);
+    "This construction cannot be validated for T"+cookLimit+": "+replay.reason);
    const wind=search?.certificate?.supportingCascade;
    text(prefix+"ReplayLimit",ready?
     "IN-PLACE WALKTHROUGH · Highest directly cookable T"+cookLimit+
-    " · Recipe starts from T"+replay.sourceTier+". Positions "+
+    (replay.partial?" · Starts from pre-prepared T"+replay.sourceTier+
+     " ingredients; earlier cooking and merging must be completed separately.":
+     " · Direct cooking starts at T"+replay.sourceTier+".")+" Positions "+
     (replay.workspacePositions[0]+1)+"–"+
     (replay.workspacePositions.at(-1)+1)+" ("+
     replay.requiredSlots+" cells) are used. All other T"+target+
