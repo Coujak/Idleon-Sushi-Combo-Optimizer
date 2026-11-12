@@ -215,7 +215,22 @@
   <div class="perfecto-section-head"><h3>Additional info · Perfecto chance Knowledge</h3><span class="perfecto-count-label">Combined <strong id="perfectoBonusTotal">—</strong></span></div>
   <div class="perfecto-bonus-grid" id="perfectoBonusCards"></div>
   <div class="perfecto-knowledge-theory">
-   <div class="perfecto-theory-heading"><strong>Next Knowledge milestones · Every 5 levels</strong><span class="hint">Calculated from your imported Knowledge levels</span></div>
+   <div class="perfecto-theory-heading">
+    <strong>Next Knowledge milestone</strong>
+    <details class="perfecto-milestone-info">
+     <summary aria-label="View upcoming T50 and T54 Knowledge milestones" title="View future milestones">i</summary>
+     <div class="perfecto-milestone-popover">
+      <strong>Upcoming Knowledge milestones</strong>
+      <p class="hint">Future T50 and T54 Knowledge levels, with the same target sushi and board size.</p>
+      <div class="perfecto-knowledge-table-scroll">
+       <table class="perfecto-knowledge-table" aria-label="Future T50 and T54 Knowledge milestone progression">
+        <thead><tr><th>T50 Level</th><th>T54 Level</th><th>Combined bonus</th><th>Perfecto chance</th><th>Gain vs current</th></tr></thead>
+        <tbody id="perfectoTheoryMilestones"></tbody>
+       </table>
+      </div>
+     </div>
+    </details>
+   </div>
    <p class="perfecto-theory-example" id="perfectoTheoryLevels">Next T50 / T54 milestones</p>
    <p id="perfectoTheoryBonus" class="hint">Import a save to calculate future Perfecto chance.</p>
    <div class="perfecto-theory-results">
@@ -223,13 +238,8 @@
     <div><span>At next Knowledge milestones</span><strong id="perfectoTheoryAfter">—</strong></div>
     <div><span>Increase from current</span><strong id="perfectoTheoryGain">—</strong></div>
    </div>
-   <div class="perfecto-knowledge-table-scroll">
-    <table class="perfecto-knowledge-table" aria-label="Next 5-level T50 and T54 Knowledge milestones">
-     <thead><tr><th>T50 Level</th><th>T54 Level</th><th>Combined bonus</th><th>Perfecto chance</th><th>Gain vs current</th></tr></thead>
-     <tbody id="perfectoTheoryMilestones"></tbody>
-    </table>
-   </div>
-   <p class="hint perfecto-theory-note">Only future 5-level milestones are shown. Both Knowledge bonuses retain their current Perfecto doubling. Chance assumes the same selected sushi tier and target-copy count as your recommended board; no Salt Shakers or additional rolls are assumed.</p>
+
+   <p class="hint perfecto-theory-note">Hover or tap the info icon to view later 5-level milestones. Both Knowledge bonuses retain their current Perfecto doubling. Chance assumes the same selected sushi tier and target-copy count as your recommended board; no Salt Shakers or additional rolls are assumed.</p>
   </div>
   <p class="hint">Tier 50 and Tier 54 boost the chance to Perfecto sushi. Their existing Knowledge levels and Perfecto status are included automatically. Knowledge leveling recommendations belong to the future Knowledge Leveling Planner.</p>
  </div>
