@@ -539,3 +539,52 @@ test("Perfecto UI renders both boards, scenario comparison and Wind-specific gui
  assert.match(ui,/proof\.windStages\?\.length/);
  assert.match(ui,/renderBoard\(result,maxP,"perfectoMaxBoard"\)/);
 });
+
+test("T46 maximum-case board has no lower-tier filler sushi",()=>{
+ const save=exampleSave();
+ save.sushi[5]=Array(64).fill(0);
+ save.sushi[2][29]=1;
+ save.slots=Array.from({length:120},(_,i)=>i<100?0:-1);
+ save.tiles=Array(120).fill(-1);
+ save.tiles[0]=63; // T64 is protected and may move for plate priority.
+ const result=getPerfectoPlanner(save,{tier:62});
+ const benchmark=result.comparisons.maximum;
+ assert.equal(benchmark.search.sourceTier,46);
+ assert.equal(benchmark.search.certificate.supportingMode,"direct-source");
+ assert.equal(benchmark.plan.protected,1);
+ assert.equal(benchmark.plan.copies,benchmark.search.targetCount);
+ assert.ok(benchmark.plan.copies>0);
+ const nonTarget=benchmark.plan.board.filter(cell=>cell.role==="ingredient");
+ assert.ok(nonTarget.length>0,"benchmark should expose leftover construction workspace");
+ assert.ok(nonTarget.every(cell=>cell.preparedTier===45),
+  "every optional filler in the T46 benchmark is T46");
+ assert.ok(!benchmark.plan.board.some(cell=>
+  [43,44,45].includes(cell.preparedTier+1)),
+  "never show T43-T45 as unnecessary T46 benchmark filler");
+ const proof=benchmark.search.certificate;
+ assert.equal(proof.supportingCount,nonTarget.length);
+ assert.equal(BigInt(proof.totalCooksExact),
+  BigInt(proof.cooksExact)+BigInt(proof.supportingCooksExact));
+ assert.equal(proof.totalMergesExact,proof.mergesExact);
+ const exactTarget=getPerfectoPlanner(save,{tier:46}).comparisons.maximum;
+ assert.ok(exactTarget.plan.board.every(cell=>
+  cell.slot<0||cell.role==="protected"||cell.preparedTier===45),
+  "when targeting T46, the maximum benchmark uses only T46 and protected sushi");
+});
+
+test("Perfecto board comparison is side-by-side with responsive fallback",()=>{
+ const html=readFileSync(new URL("../index.html",import.meta.url),"utf8");
+ const css=readFileSync(new URL("../styles.css",import.meta.url),"utf8");
+ const ui=readFileSync(new URL("../src/perfecto-ui.mjs",import.meta.url),"utf8");
+ const wrapper=html.indexOf('class="perfecto-board-comparison"');
+ const account=html.indexOf('id="perfectoBoard"',wrapper);
+ const maximum=html.indexOf('id="perfectoMaxBoard"',wrapper);
+ assert.ok(wrapper>=0&&account>wrapper&&maximum>account,
+  "the two boards must be rendered inside the same comparison container");
+ assert.match(css,/\.perfecto-board-comparison\s*\{\s*display:grid;grid-template-columns:repeat\(2,minmax\(0,1fr\)\)/);
+ assert.match(css,/@media\(max-width:1120px\)/);
+ assert.ok(ui.includes('proof.supportingMode==="direct-source"'),
+  "UI guide must explain directly cooked T46 leftovers");
+ assert.ok(ui.includes("Target recipe Fuel:"),
+  "UI must separate required recipe Fuel from optional fillers");
+});
