@@ -128,5 +128,5 @@ test("Perfecto UI offers a true reusable Wind ladder and refill cycle navigation
  assert.ok(ui.includes("createPerfectoInPlaceReplay(saved,search,plan,target)"));
  assert.ok(ui.includes("state.replay.nextMilestone(state.step)"));
  assert.ok(!ui.includes("createPerfectoRecycledTargetReplay(saved,search,plan,target)"));
- assert.ok(ui.includes("The certified compact Wind recipe")||ui.includes("certified compact Wind recipe"));
+ assert.ok(ui.includes('replay.strategy==="recycled-wind"'));
 });
