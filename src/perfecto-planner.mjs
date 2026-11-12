@@ -42,9 +42,11 @@ export function perfectoKnowledgeScenario(rows,target,copies,proposedLevels={}){
   singleGainPercentagePoints:100*(afterSingle-beforeSingle),
   relativeBoardGain:beforeBoard>0?(afterBoard/beforeBoard-1)*100:null};
 }
-// Every five levels after each tier's imported Knowledge level. For example,
-// T50 Lv28 and T54 Lv28 first show Lv30 / Lv30, then 35 / 35.
-// Existing Perfecto multipliers stay unchanged across the scenarios.
+// Start with BOTH tiers at their next five-level milestone. Later rows show
+// the next attainable milestone by relative levels gained since the import:
+// T50 Lv32 / T54 Lv28 => 35/30, 35/35, 40/35, 40/40, ...
+// Equal progress costs advance both tiers together. Existing Perfecto
+// multipliers stay unchanged across the hypothetical scenarios.
 export function perfectoKnowledgeMilestones(rows,target,copies,{step=5,count=10}={}){
  const relevant=[50,54].map(tier=>(rows??[]).find(x=>x.tier===tier));
  if(relevant.some(x=>!x?.discovered))
@@ -57,14 +59,24 @@ export function perfectoKnowledgeMilestones(rows,target,copies,{step=5,count=10}
  const currentBonus=relevant.reduce((sum,k)=>sum+Math.max(0,finite(k.bonus)),0);
  const currentChance=perfectoBoardChance(perfectoSingleChance(target,currentBonus),copies);
  const results=[];let previousChance=currentChance;
+ const levels=currentLevels.map(k=>({
+  tier:k.tier,level:(Math.floor(k.level/actualStep)+1)*actualStep
+ }));
  for(let i=0;i<actualCount;i++){
-  const levels=currentLevels.map(k=>({
-   tier:k.tier,level:(Math.floor(k.level/actualStep)+1+i)*actualStep
-  }));
+  // After the first joint milestone, advance whichever tier reaches its next
+  // multiple of five with the fewest cumulative levels gained from the save.
+  if(i>0){
+   const nextDistances=levels.map((k,j)=>
+    (k.level+actualStep)-currentLevels[j].level);
+   const nearest=Math.min(...nextDistances);
+   for(let j=0;j<levels.length;j++)
+    if(nextDistances[j]===nearest)levels[j].level+=actualStep;
+  }
+  const milestoneLevels=levels.map(k=>({...k}));
   const combinedBonus=relevant.reduce((sum,k,j)=>
-   sum+Math.max(0,finite(k.nextLevelGain))*levels[j].level,0);
+   sum+Math.max(0,finite(k.nextLevelGain))*milestoneLevels[j].level,0);
   const chance=perfectoBoardChance(perfectoSingleChance(target,combinedBonus),copies);
-  results.push({levels,combinedBonus,chance,
+  results.push({levels:milestoneLevels,combinedBonus,chance,
    differencePercentagePoints:100*(chance-currentChance),
    previousMilestoneGainPercentagePoints:100*(chance-previousChance)});
   previousChance=chance;
