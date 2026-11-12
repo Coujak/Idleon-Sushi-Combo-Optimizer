@@ -47,7 +47,16 @@ function perfectoPreparationSteps(result){
    }
   }
   if(proof.supportingCount){
-   if(proof.supportingMode==="direct-source"){
+   if(proof.supportingMode==="cascade"){
+    const wind=proof.supportingCascade;
+    steps.push("Long Heat of the East Wind cascade: prepare "+
+     wind.ingredientTiers.length+" arranged sushi, merge two T"+
+     wind.triggerTier+" triggers and upgrade "+wind.windChainLength+
+     " descending sushi in one activation. Shift the upgraded chain west "+
+     "and cook the final T"+wind.finalCookTier+
+     ". Estimated supporting Fuel savings: "+display(wind.fuelSavingPercent)+
+     "% versus separate construction; no Salt Shakers are assumed.");
+   }else if(proof.supportingMode==="direct-source"){
     steps.push("Once all target copies are complete, you can directly cook T"+
      proof.startingTier+" into the "+proof.supportingCount+
      " leftover cells. These are optional filler, not ingredients required for Perfecto.");
@@ -359,6 +368,8 @@ export function initializePerfectoUI(getSave){
    btn("Prev").disabled=step<=0;
    btn("Next").disabled=step<0||done;
    btn("Final").disabled=step<0||step>=replay.lastMergesIndex;
+   btn("Cascade").disabled=step<0||replay.windCascadeIndex===null||
+    step>=replay.windCascadeIndex;
    btn("Fill").disabled=step<0||step>=replay.finalFillIndex;
    btn("Done").disabled=step<0;
    highlightComparison();
@@ -373,6 +384,11 @@ export function initializePerfectoUI(getSave){
   btn("Final").addEventListener("click",()=>{
    state.step=state.replay?.lastMergesIndex??0;paint();
   });
+  btn("Cascade").addEventListener("click",()=>{
+   const at=state.replay?.windCascadeIndex;
+   if(at===null||at===undefined)return;
+   state.step=Math.max(0,at-1);paint();
+  });
   btn("Fill").addEventListener("click",()=>{
    state.step=state.replay?.finalFillIndex??0;paint();
   });
@@ -386,7 +402,11 @@ export function initializePerfectoUI(getSave){
    text(prefix+"ReplayAction",ready?
     "Watch how to construct the final T"+target+" from the recommended board.":
     "This example cannot be verified: "+replay.reason);
+   const windPlan=search?.certificate?.supportingCascade;
    text(prefix+"ReplayLimit",ready?
+    (windPlan?"LONG WIND CASCADE · "+windPlan.windChainLength+
+     " sushi upgraded in one merge · "+
+     display(windPlan.fuelSavingPercent)+"% less support Fuel than separate construction. ":"")+
     "PREPARED STAGING BOARD: "+replay.preparedCopies+
     " other new target copies are assumed complete. One T"+target+
     " and "+replay.workspacePositions.length+" construction cells start empty."+
@@ -394,7 +414,7 @@ export function initializePerfectoUI(getSave){
     (replay.partial?" Some T"+replay.sourceTier+
      " ingredients must be prepared separately before the shown late merges.":""):
     "No unverified construction actions are displayed.");
-   for(const id of ["Start","Prev","Next","Final","Fill","Done"])
+   for(const id of ["Start","Prev","Next","Final","Cascade","Fill","Done"])
     btn(id).disabled=!ready||id!=="Start";
    return replay;
   };
