@@ -282,3 +282,76 @@ function directCookFullReplay(save,search,plan,target){
   templateSteps:1,copies:newPositions.length,partial:false,
   sourceTier:target,actualCookTier:target,supports:0,windUsed:false};
 }
+
+// Focused walkthrough: start from an explicitly hypothetical near-final board,
+// leave exactly one newly crafted target missing, then construct that copy and
+// restore every supporting sushi. Unlike full preparation, no imported sushi
+// is removed during playback; the prepared staging state is disclosed up front.
+export function createPerfectoFinalTargetReplay(save,search,plan,target){
+ const full=createPerfectoFullBoardReplay(save,search,plan,target);
+ if(!full.available)return full;
+ if(!Number.isInteger(full.copies)||full.copies<1)
+  return fail("There is no new target sushi to construct.");
+ const copyLen=full.templateSteps+1;
+ const startIndex=full.baseOffset+(full.copies-1)*copyLen;
+ if(!Number.isSafeInteger(startIndex)||startIndex>=full.totalSteps)
+  return fail("The final target construction cannot be indexed safely.");
+ const final=Array.from(full.final);
+ // The actual missing position is the one inside the reserved workspace.
+ const support=new Set(search.certificate?.supportingSushi?.map(x=>Number(x.position)-1)??[]);
+ const workspaceSlot=Number(search.certificate?.workspaceSlots);
+ const supports=[...support].sort((a,b)=>a-b);
+ let missingTarget=-1;
+ if(supports.length){
+  const candidates=[supports[0]-1,supports.at(-1)+1];
+  missingTarget=candidates.find(pos=>pos>=0&&pos<N&&final[pos]===target&&
+   !supports.includes(pos))??-1;
+  if(missingTarget<0)return fail("The final target has no adjacent construction workspace.");
+ }else{
+  // Direct-cook plans do not require a merge workspace. Use the final
+  // newly produced target, never an existing target from the imported save.
+  const original=boardOf(save?.tiles);
+  missingTarget=final.findLastIndex((tier,i)=>tier===target&&original[i]!==target);
+ }
+ if(missingTarget<0||final[missingTarget]!==target)
+  return fail("No newly constructed target can be isolated.");
+ const staged=final.slice();
+ for(const pos of support)staged[pos]=0;
+ staged[missingTarget]=0;
+ const available=full.totalSteps-startIndex;
+ if(available<=0)return fail("No final-target construction actions are available.");
+ // Verify that the first actual action is consistent with our staged board.
+ const first=full.getFrame(startIndex+1);
+ if(first.phase==="error")return fail(first.description);
+ const after=Array.from(first.board);
+ const differences=after.flatMap((value,i)=>value!==staged[i]?[i]:[]);
+ if(differences.length!==1||first.event?.kind!=="cook"&&
+    first.event?.kind!=="prepared")
+  return fail("The near-final staging board does not align with the first construction action.");
+ if(differences[0]!==first.event.at)return fail("Staging recipe begins at an unexpected location.");
+ const totalSteps=available;
+ function getFrame(value){
+  const step=Math.max(0,Math.min(totalSteps,Math.floor(Number(value)||0)));
+  if(step===0)return {
+   board:Uint8Array.from(staged),phase:"staging",event:null,
+   description:"All other target sushi are already complete. The last T"+target+
+    " and the temporary construction workspace are empty."
+  };
+  const frame=full.getFrame(startIndex+step);
+  if(step===totalSteps)return {...frame,phase:"complete",
+   description:"The final T"+target+" and all supporting sushi are complete."};
+  return frame;
+ }
+ const finalFrame=getFrame(totalSteps);
+ if(!same(Array.from(finalFrame.board),final))
+  return fail("The last-copy demonstration did not finish at the recommended board.");
+ return {available:true,totalSteps,getFrame,slots:full.slots,
+  initial:Uint8Array.from(staged),final:Uint8Array.from(final),
+  lastMergesIndex:Math.max(0,full.lastMergesIndex-startIndex),
+  finalFillIndex:Math.max(0,full.finalFillIndex-startIndex),
+  focusPosition:missingTarget,workspacePositions:supports,
+  sourceTier:full.sourceTier,targetTier:target,
+  partial:full.partial,windUsed:full.windUsed,
+  copies:1,preparedCopies:full.copies-1,
+  preparedScenario:true,actualCookTier:full.actualCookTier};
+}
