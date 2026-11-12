@@ -150,12 +150,12 @@ test("Focused walkthrough controls emphasize final sushi instead of every target
   assert.ok(!html.includes('id="'+prefix+'ReplayNextCopy"'));
   assert.ok(!html.includes('id="'+prefix+'ReplayConfirmSetup"'));
  }
- assert.ok(ui.includes("createPerfectoFinalTargetReplay(saved,search,plan,target)"));
+ assert.ok(ui.includes("createPerfectoInPlaceReplay(saved,search,plan,target)"));
  assert.ok(ui.includes("replay.getFrame(step)"));
  assert.ok(ui.includes('perfecto-replay-missing'));
- assert.ok(ui.includes('perfectoReplayWorkspacePositions(replay)'));
- assert.ok(ui.includes('renderWorkspace(replay,frame,event)'));
- assert.ok(html.includes('id="perfectoReplayWorkspacePanel"'));
+ assert.ok(ui.includes('for(const pos of replay.supportPositions)'));
+ assert.ok(ui.includes('const frame=step>=0?replay.getFrame(step):null'));
+ assert.ok(!html.includes('id="perfectoReplayWorkspacePanel"'));
  assert.ok(html.includes('id="perfectoHeaderTarget"'));
  assert.ok(css.includes(".perfecto-replay-notice"));
  assert.ok(css.includes(".perfecto-header-target"));
