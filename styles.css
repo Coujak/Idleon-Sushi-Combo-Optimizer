@@ -1980,11 +1980,8 @@ details summary{cursor:pointer;font-size:12px;font-weight:700;color:#9eb7c9}
 }
 
 /* Brief fireplace recommendation under Missing Perfectos. */
-#lab-overview .lab-dashboard-column{
- display:flex;flex-direction:column;gap:12px;min-width:0;
-}
 #lab-overview .overview-fireplace-advice{
- margin:0;padding:12px 14px;
+ margin:18px 0 0;padding:12px 14px;
  background:#132c35;border:1px solid #315767;border-radius:11px;
 }
 #lab-overview .overview-fireplace-advice strong{
