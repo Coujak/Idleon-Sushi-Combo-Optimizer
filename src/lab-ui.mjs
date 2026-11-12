@@ -9,7 +9,7 @@ import {getProgressionAdvice,PROGRESSION_SORT_OPTIONS,PROGRESSION_FILTER_OPTIONS
 import {buildProgressionPurchasePlan} from "./progression-roadmap.mjs?v=1.16.7";
 import {parseGameQuantity} from "./progression-calibration.mjs?v=1.16.3";
 import {overviewTierProgress,importAgeText} from "./overview-helpers.mjs?v=1.19.9";
-import {fireplaceOverviewAdvice} from "./fireplace-advice.mjs?v=1.1.0";
+import {fireplaceOverviewAdvice,formatSparkBonusPoints} from "./fireplace-advice.mjs?v=1.2.0";
 
 const $=id=>document.getElementById(id);
 const el=(tag,css="",value)=>{
@@ -320,6 +320,23 @@ export function initializeSushiLab(getSave){
   if(fireAdvice){
    $("overviewFireplaceAdviceHeading").textContent=fireAdvice.heading;
    $("overviewFireplaceAdviceSummary").textContent=fireAdvice.summary;
+   const icon=$("overviewFireplaceAdviceIcon");
+   if(!icon.getAttribute("src")){
+    const src=sushiUpgradeIconPath(25);
+    if(src)icon.src=src;
+    else icon.classList.add("hidden");
+   }
+   const gains=$("overviewFireplaceAdviceGains");
+   gains.replaceChildren();
+   const hasGains=Array.isArray(fireAdvice.timeGains)&&fireAdvice.timeGains.length>0;
+   for(const item of fireAdvice.timeGains??[]){
+    const gain=el("div","overview-fireplace-advice-gain");
+    gain.append(el("span","",item.label),
+     el("strong","", "+"+formatSparkBonusPoints(item.points)+" pp"));
+    gains.append(gain);
+   }
+   gains.classList.toggle("hidden",!hasGains);
+   $("overviewFireplaceAdviceNote").classList.toggle("hidden",!hasGains);
   }
   renderMissingCards("labMissingPerfectos",entries.filter(x=>x.discovered&&!x.perfecto),
    "All discovered sushi have Perfecto.",hasTracker);
