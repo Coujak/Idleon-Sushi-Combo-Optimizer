@@ -320,7 +320,6 @@ export function initializeSushiLab(getSave){
   if(fireAdvice){
    $("overviewFireplaceAdviceHeading").textContent=fireAdvice.heading;
    $("overviewFireplaceAdviceSummary").textContent=fireAdvice.summary;
-   $("overviewFireplaceAdviceDetail").textContent=fireAdvice.detail;
   }
   renderMissingCards("labMissingPerfectos",entries.filter(x=>x.discovered&&!x.perfecto),
    "All discovered sushi have Perfecto.",hasTracker);
