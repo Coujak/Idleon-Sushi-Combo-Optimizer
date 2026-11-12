@@ -5,6 +5,7 @@ import {numberText} from "./lab-model.mjs?v=1.16.6";
 import {availablePerfectoTargets,getPerfectoPlanner,perfectoKnowledgeMilestones} from "./perfecto-planner.mjs?v=1.27.0";
 import {perfectoRecipeStages,perfectoFinalMergeIndex,perfectoRecipeIntegrity} from "./perfecto-recipe-guide.mjs?v=1.23.0";
 import {createPerfectoFinalTargetReplay} from "./perfecto-full-replay.mjs?v=1.27.0";
+import {createPerfectoRecycledTargetReplay} from "./perfecto-recycled-target.mjs?v=1.28.0";
 
 const $=id=>document.getElementById(id);
 const node=(tag,css="",value)=>{
@@ -323,7 +324,7 @@ export function initializePerfectoUI(getSave){
     };
     if(step===0){
      mark(replay.focusPosition,"perfecto-replay-missing");
-     for(const pos of replay.workspacePositions)mark(pos,"perfecto-replay-workspace");
+     for(const pos of replay.workspacePositions??[])mark(pos,"perfecto-replay-workspace");
     }
     if(event){
      if(event.kind==="merge"||event.kind==="move"){
@@ -334,8 +335,11 @@ export function initializePerfectoUI(getSave){
     }
    }
    const done=step===replay.totalSteps;
+   const isRecycled=replay.mode==="recycling";
    const phrase=step<0?"Final recommended board":step===0?
-    "Last T"+target+" missing":done?"Recommended board complete":
+    (isRecycled?"Prepared T"+replay.sourceTier+" recycling workspace":"Last T"+target+" missing"):
+    done?(isRecycled?"Recycled Wind target completed":"Recommended board complete"):
+    isRecycled?"Refill · Merge · Recycle toward T"+target:
     step<replay.finalFillIndex?"Constructing final T"+target:
     "Finishing supporting sushi";
    text(prefix+"ReplayStatus",phrase);
@@ -348,7 +352,7 @@ export function initializePerfectoUI(getSave){
     text(prefix+"ReplayProgress",display(step)+" / "+display(replay.totalSteps)+
      " · "+filled+" / "+unlocked+" slots filled");
    }
-   let action=step<0?"Start to see the final T"+target+" constructed from a near-final board.":
+   let action=step<0?"Start the verified Wind-recycling walkthrough for T"+target+".":
     frame.description??"";
    if(event?.kind==="cook")action+=" Cook T"+event.tier+
     " at position "+(event.at+1)+".";
@@ -363,7 +367,12 @@ export function initializePerfectoUI(getSave){
      winds.map(x=>"position "+(x.at+1)+" to T"+x.tier).join(", ")+".";
    }
    text(prefix+"ReplayAction",done?
-    "The final T"+target+" and supporting sushi match the recommended board.":action);
+    (isRecycled?"T"+target+" constructed using recycled sushi and Wind cascades. "+
+     "This teaching board is not the final recommended layout; use Show final board to return to it.":
+     "The final T"+target+" and supporting sushi match the recommended board."):action);
+   const cycle=btn("Cycle");
+   cycle.classList.toggle("hidden",!isRecycled);
+   cycle.disabled=!isRecycled||step<0||done;
    btn("Start").disabled=step===0;
    btn("Prev").disabled=step<=0;
    btn("Next").disabled=step<0||done;
@@ -384,37 +393,59 @@ export function initializePerfectoUI(getSave){
   btn("Final").addEventListener("click",()=>{
    state.step=state.replay?.lastMergesIndex??0;paint();
   });
+  btn("Cycle").addEventListener("click",()=>{
+   if(state.replay?.mode!=="recycling")return;
+   state.step=state.replay.nextCycle(state.step);paint();
+  });
   btn("Cascade").addEventListener("click",()=>{
    const at=state.replay?.windCascadeIndex;
    if(at===null||at===undefined)return;
    state.step=Math.max(0,at-1);paint();
   });
   btn("Fill").addEventListener("click",()=>{
-   state.step=state.replay?.finalFillIndex??0;paint();
+   state.step=state.replay?.mode==="recycling"?
+    state.replay.totalSteps:state.replay?.finalFillIndex??0;
+   paint();
   });
   btn("Done").addEventListener("click",()=>{state.step=-1;paint();});
   return (saved,result,plan,search,target)=>{
    state.result=result;state.plan=plan;state.target=target;state.step=-1;
-   state.replay=createPerfectoFinalTargetReplay(saved,search,plan,target);
+   const recycled=createPerfectoRecycledTargetReplay(saved,search,plan,target);
+   state.replay=recycled.available?recycled:
+    createPerfectoFinalTargetReplay(saved,search,plan,target);
    const replay=state.replay,ready=replay.available;
-   text(prefix+"ReplayStatus",ready?"Final target walkthrough · T"+target:"Replay unavailable");
+   const recycling=ready&&replay.mode==="recycling";
+   btn("Fill").textContent=recycling?"Finish target":"Finish supporting sushi";
+   text(prefix+"ReplayStatus",ready?
+    (recycling?"Recycled Wind ladder · T"+target:"Final target walkthrough · T"+target):
+    "Replay unavailable");
    text(prefix+"ReplayProgress",ready?display(replay.totalSteps)+" steps":"—");
    text(prefix+"ReplayAction",ready?
-    "Watch how to construct the final T"+target+" from the recommended board.":
+    (recycling?"Follow the T"+replay.sourceTier+" → T"+target+
+     " Wind ladder: refill, merge, reposition, and repeat until the target is made.":
+     "Watch how to construct the final T"+target+" from the recommended board."):
     "This example cannot be verified: "+replay.reason);
    const windPlan=search?.certificate?.supportingCascade;
-   text(prefix+"ReplayLimit",ready?
-    (windPlan?"LONG WIND CASCADE · "+windPlan.windChainLength+
-     " sushi upgraded in one merge · "+
-     display(windPlan.fuelSavingPercent)+"% less support Fuel than separate construction. ":"")+
-    "PREPARED STAGING BOARD: "+replay.preparedCopies+
-    " other new target copies are assumed complete. One T"+target+
-    " and "+replay.workspacePositions.length+" construction cells start empty."+
-    " This is a near-final example, not your imported board."+
+   const notice=ready&&recycling?
+    "WIND RECYCLING · Cook T"+replay.sourceTier+" "+display(replay.totalCooks)+
+    " times, make "+display(replay.totalMerges)+" merges and "+
+    display(replay.totalMoves)+" legal moves. "+
+    display(replay.totalWind)+" sushi are upgraded by Wind across the sequence. "+
+    "This is a separate teaching board reserving "+replay.requiredSlots+
+    " contiguous unlocked cells; it is NOT the final Perfecto copy-maximizing board. "+
+    "No Salt Shakers or higher-tier cooking are assumed.":
+    ready?
+    (windPlan?"SUPPORT WIND CASCADE · "+windPlan.windChainLength+
+     " sushi upgraded in one merge. ":"")+
+    "PREPARED STAGING BOARD · "+replay.preparedCopies+
+    " other target copies are complete; "+replay.workspacePositions.length+
+    " temporary support cells start empty. "+
+    "This is an illustrative setup, not the imported board."+
     (replay.partial?" Some T"+replay.sourceTier+
-     " ingredients must be prepared separately before the shown late merges.":""):
-    "No unverified construction actions are displayed.");
-   for(const id of ["Start","Prev","Next","Final","Cascade","Fill","Done"])
+     " ingredients must be prepared before the late merges.":""):
+    "No verified construction replay is available: "+replay.reason;
+   text(prefix+"ReplayLimit",notice);
+   for(const id of ["Start","Prev","Next","Cycle","Final","Cascade","Fill","Done"])
     btn(id).disabled=!ready||id!=="Start";
    return replay;
   };
