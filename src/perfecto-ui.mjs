@@ -122,6 +122,7 @@ export function initializePerfectoUI(getSave){
   for(const cell of plan.board){
    const div=node("div","perfecto-tile perfecto-"+cell.role);
    div.dataset.position=String(cell.index);
+   div.dataset.tier=String(cell.preparedTier>=0?cell.preparedTier+1:0);
    if(cell.slot>=0)div.classList.add("slot-"+cell.slot);
    else div.classList.add("locked");
    if(cell.preparedTier!==null&&cell.preparedTier>=0){
@@ -159,8 +160,15 @@ export function initializePerfectoUI(getSave){
     "Hover a cell to inspect its position. Enable the benchmark to compare.";
    return;
   }
-  const current=cellLabel(accountPlan?.board?.[index]);
-  const benchmark=cellLabel(benchmarkPlan?.board?.[index]);
+  const shownTier=hostId=>{
+   const tile=$(hostId).querySelector('.perfecto-tile[data-position="'+index+'"]');
+   const value=Number(tile?.dataset.tier);
+   if(!tile)return null;
+   if(tile.classList.contains("locked"))return "Locked";
+   return value>0?"T"+value:"Empty";
+  };
+  const current=shownTier("perfectoBoard")??cellLabel(accountPlan?.board?.[index]);
+  const benchmark=shownTier("perfectoMaxBoard")??cellLabel(benchmarkPlan?.board?.[index]);
   comparisonStatus.textContent="Position "+(index+1)+" · Account: "+current+
    (benchmarkToggle.checked?" · T46: "+benchmark:"")+
    (pinnedPosition===index?" · Selected":"");
@@ -331,7 +339,7 @@ export function initializePerfectoUI(getSave){
    }
    btn("Start").disabled=step===0;
    btn("Prev").disabled=step<=0;
-   btn("Next").disabled=step>=replay.steps.length;
+   btn("Next").disabled=step<0||step>=replay.steps.length;
    btn("Final").disabled=step>=replay.lastMergesIndex&&step>=0;
    btn("Done").disabled=step<0;
    highlightComparison();
