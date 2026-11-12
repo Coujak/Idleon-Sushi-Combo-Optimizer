@@ -4,7 +4,7 @@
 // The final sushi is parked next to the workspace, and the exact support
 // staircase is rebuilt using a separately verified cascading construction.
 import {simulateMerge,simulateRelocation} from "./optimizer-core.mjs";
-import {replayPerfectoSupportCascade} from "./perfecto-cascade-replay.mjs?v=1.27.0";
+import {replayPerfectoSupportCascadeWithExtras} from "./perfecto-cascade-replay.mjs?v=1.36.0";
 
 const SIZE=120;
 const fail=reason=>({available:false,reason});
@@ -134,7 +134,7 @@ export function createPerfectoRecycledInPlaceReplay(save,search,plan,target,
   relocate(first,finalTarget,"Park the completed target at its final position");
   finalFillIndex=steps.length;
   // Restore support T58→T42 in the original red-lined positions.
-  const rebuilt=replayPerfectoSupportCascade(board,slots,search,
+  const rebuilt=replayPerfectoSupportCascadeWithExtras(board,slots,search,
    supports,proof.supportingCascade);
   if(!rebuilt.available)
    throw Error("Supporting staircase could not be restored: "+rebuilt.reason);
