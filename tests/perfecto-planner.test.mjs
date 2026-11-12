@@ -601,5 +601,36 @@ test("Theoretical Knowledge milestones start at the next reachable multiple of f
  const different=rows.map((row,i)=>i?{...row,level:32,bonus:32*row.nextLevelGain}:row);
  assert.deepEqual(perfectoKnowledgeMilestones(different,62,83).rows[0].levels,
   [{tier:50,level:30},{tier:54,level:35}]);
+ const userExample=[
+  {...rows[0],level:32,bonus:32*rows[0].nextLevelGain},rows[1]
+ ];
+ const sequence=perfectoKnowledgeMilestones(userExample,62,83);
+ const expected=[
+  [35,30],[35,35],[40,35],[40,40],[45,40],[45,45]
+ ];
+ assert.deepEqual(sequence.rows.slice(0,expected.length).map(row=>
+  row.levels.map(x=>x.level)),expected,
+  "next joint threshold, then the closest independent threshold");
+ assert.ok(sequence.rows.every((row,i)=>
+  i===0||row.chance>=sequence.rows[i-1].chance),
+  "increasing Knowledge must never lower Perfecto chance");
  assert.equal(perfectoKnowledgeMilestones(rows.map(row=>({...row,discovered:false})),62,83).available,false);
+});
+
+test("Additional info shows only the next milestone, with later levels in an info popover",()=>{
+ const html=readFileSync(new URL("../index.html",import.meta.url),"utf8");
+ const css=readFileSync(new URL("../styles.css",import.meta.url),"utf8");
+ const ui=readFileSync(new URL("../src/perfecto-ui.mjs",import.meta.url),"utf8");
+ assert.equal(html.split('id="perfectoMilestoneInfo"').length-1,1);
+ assert.equal(html.split('id="perfectoTheoryMilestones"').length-1,1);
+ const popover=html.indexOf('id="perfectoMilestonePopover"');
+ const list=html.indexOf('id="perfectoTheoryMilestones"');
+ assert.ok(popover>0&&list>popover,
+  "all future milestone rows belong inside the hidden info popover");
+ assert.ok(html.includes('aria-controls="perfectoMilestonePopover"'));
+ assert.match(css,/\.perfecto-milestone-info:hover \.perfecto-milestone-popover/);
+ assert.match(css,/\.perfecto-milestone-info:focus-within \.perfecto-milestone-popover/);
+ assert.match(ui,/infoTrigger\.addEventListener\("click"/);
+ assert.match(ui,/infoTrigger\.setAttribute\("aria-expanded"/);
+ assert.ok(ui.includes('if(event.key==="Escape")closeMilestoneInfo()'));
 });
