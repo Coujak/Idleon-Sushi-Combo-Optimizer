@@ -247,8 +247,32 @@
      </div>
     </div>
    </div>
-   <p class="perfecto-theory-example" id="perfectoTheoryLevels">Next T50 / T54 milestones</p>
-   <p id="perfectoTheoryBonus" class="hint">Import a save to calculate future Perfecto chance.</p>
+   <div class="perfecto-milestone-level-grid" role="group" aria-label="Next Knowledge level upgrades">
+    <div class="perfecto-milestone-level-card" data-knowledge-tier="50">
+     <div class="perfecto-milestone-card-heading">
+      <span class="perfecto-milestone-tier-name">T50 Knowledge</span>
+      <span class="perfecto-milestone-level-difference" id="perfectoTheoryT50Delta">—</span>
+     </div>
+     <div class="perfecto-milestone-level-flow">
+      <div class="perfecto-milestone-current"><span>Current</span><strong>Lv <span id="perfectoTheoryT50Current">—</span></strong></div>
+      <span class="perfecto-milestone-flow-arrow" aria-hidden="true">→</span>
+      <div class="perfecto-milestone-goal"><span>Next milestone</span><strong>Lv <span id="perfectoTheoryT50Next">—</span></strong></div>
+     </div>
+    </div>
+    <div class="perfecto-milestone-level-card" data-knowledge-tier="54">
+     <div class="perfecto-milestone-card-heading">
+      <span class="perfecto-milestone-tier-name">T54 Knowledge</span>
+      <span class="perfecto-milestone-level-difference" id="perfectoTheoryT54Delta">—</span>
+     </div>
+     <div class="perfecto-milestone-level-flow">
+      <div class="perfecto-milestone-current"><span>Current</span><strong>Lv <span id="perfectoTheoryT54Current">—</span></strong></div>
+      <span class="perfecto-milestone-flow-arrow" aria-hidden="true">→</span>
+      <div class="perfecto-milestone-goal"><span>Next milestone</span><strong>Lv <span id="perfectoTheoryT54Next">—</span></strong></div>
+     </div>
+    </div>
+   </div>
+   <p id="perfectoTheoryLevels" class="perfecto-milestone-sr-only">Next T50 / T54 milestones</p>
+   <p id="perfectoTheoryBonus" class="hint perfecto-milestone-bonus-note">Import a save to calculate future Perfecto chance.</p>
    <div class="perfecto-theory-results">
     <div><span>Current Perfecto chance</span><strong id="perfectoTheoryBefore">—</strong></div>
     <div><span>At next Knowledge milestones</span><strong id="perfectoTheoryAfter">—</strong></div>
