@@ -2,7 +2,7 @@
 // The optimizer chooses its own final copy count and prepared arrangement.
 import {sushiTierIconPath} from "./sushi-reference.mjs?v=1.16.6";
 import {numberText} from "./lab-model.mjs?v=1.16.6";
-import {availablePerfectoTargets,getPerfectoPlanner} from "./perfecto-planner.mjs?v=1.23.0";
+import {availablePerfectoTargets,getPerfectoPlanner,perfectoKnowledgeMilestones} from "./perfecto-planner.mjs?v=1.23.0";
 import {perfectoRecipeStages,perfectoFinalMergeIndex,perfectoRecipeIntegrity} from "./perfecto-recipe-guide.mjs?v=1.23.0";
 
 const $=id=>document.getElementById(id);
@@ -279,6 +279,46 @@ export function initializePerfectoUI(getSave){
   }
   text("perfectoBonusTotal",display(result.bonus.knowledgeMultiplier)+"×");
  }
+ function renderKnowledgeTheory(result){
+  const host=$("perfectoTheoryMilestones");host.replaceChildren();
+  const milestone=perfectoKnowledgeMilestones(result.bonus.rows,result.target,result.plan?.copies??0);
+  if(!milestone.available){
+   text("perfectoTheoryLevels","Both T50 and T54 are required.");
+   text("perfectoTheoryBonus",milestone.reason);
+   for(const id of ["perfectoTheoryBefore","perfectoTheoryAfter","perfectoTheoryGain"])text(id,"—");
+   return;
+  }
+  const first=milestone.rows[0];
+  const byTier=tier=>milestone.currentLevels.find(x=>x.tier===tier);
+  const nextTier=tier=>first.levels.find(x=>x.tier===tier);
+  text("perfectoTheoryLevels","T50 Lv "+byTier(50).level+" → "+nextTier(50).level+
+   " · T54 Lv "+byTier(54).level+" → "+nextTier(54).level);
+  text("perfectoTheoryBonus","Combined Knowledge bonus: +"+display(milestone.currentBonus)+
+   "% → +"+display(first.combinedBonus)+"%. Both tiers use their current Perfecto multipliers.");
+  text("perfectoTheoryBefore",percent(milestone.currentChance));
+  text("perfectoTheoryAfter",percent(first.chance));
+  const relative=milestone.currentChance>0?
+   100*(first.chance/milestone.currentChance-1):null;
+  text("perfectoTheoryGain",relative!==null?
+   "+"+display(relative)+"% relative":"—");
+  function deltaText(chance){
+   const relativeGain=milestone.currentChance>0?
+    100*(chance/milestone.currentChance-1):null;
+   return relativeGain===null?"—":"+"+display(relativeGain)+"%";
+  }
+  for(const entry of milestone.rows){
+   const tr=node("tr");
+   if(entry===first)tr.classList.add("is-next");
+   const t50=entry.levels.find(x=>x.tier===50);
+   const t54=entry.levels.find(x=>x.tier===54);
+   for(const value of ["Lv "+t50.level,"Lv "+t54.level,
+    "+"+display(entry.combinedBonus)+"%",percent(entry.chance),
+    deltaText(entry.chance)]){
+    tr.append(node("td","",value));
+   }
+   host.append(tr);
+  }
+ }
  function render(){
   if(plannerTab!=="perfecto")return;
   const saved=getSave();
@@ -316,6 +356,7 @@ export function initializePerfectoUI(getSave){
     "Import your game save JSON on Overview to plan your Perfecto board.");
    return;
   }
+  renderKnowledgeTheory(result);
   const p=result.plan;
   const account=result.comparisons.account;
   const maximum=result.comparisons.maximum;
