@@ -47,10 +47,11 @@ export function recycledWindWorkspace(sourceTier,targetTier,windCap){
  const copies=2**gap;
  if(!Number.isSafeInteger(copies)||copies>48)return null;
  maxWidth=Math.max(maxWidth,2*(cap-base)+3);
- const extra=highest===plateau&&(plateau-bootstrap)%2===1?1:0;
+ const extra=(plateau-bootstrap)%2===1?1:0;
+ const parkingSlots=Math.max(2,copies)+extra;
  return {sourceTier:base,targetTier:target,windCap:cap,
-  workspaceSlots:maxWidth,parkingSlots:copies+extra,
-  requiredSlots:maxWidth+copies+extra,
+  workspaceSlots:maxWidth,parkingSlots,
+  requiredSlots:maxWidth+parkingSlots,
   highTargetTier:cap+1,highCopies:copies,
   extraPlateau:extra};
 }
@@ -195,7 +196,8 @@ export function createPerfectoRecycledTargetReplay(save,search,plan,target,
    }
    active=next;tier++;
   }
-  if(active.length!==1||board[begin+active[0]]!==target)
+  if(!active.length||board[begin+active[0]]!==target||
+     (target>cap+1&&active.length!==1))
    throw Error("The fallback merges did not produce the target tier.");
   return begin+active[0];
  }
@@ -243,6 +245,7 @@ export function createPerfectoRecycledTargetReplay(save,search,plan,target,
   initial:Uint8Array.from(initial),final,slots,steps,cycles,
   totalSteps:steps.length,sourceTier:source,targetTier:target,
   requiredSlots:spec.requiredSlots,workspaceSlots:width,
+  workspacePositions:Array.from({length:width},(_,i)=>begin+i),
   stagingStart:begin,focusPosition:resultingTargetPosition,
   windCap:cap,windUsed:totalWind>0,windCascadeIndex,
   lastMergesIndex,finalFillIndex:steps.length,
