@@ -15,7 +15,7 @@ const allowedTier=(n)=>Number.isInteger(n)&&n>=1&&n<=64;
 
 export function recycledWindWorkspace(sourceTier,targetTier,windCap){
  const base=Number(sourceTier),target=Number(targetTier),cap=Number(windCap);
- if(!allowedTier(base)||base>46||!allowedTier(target)||target<=base+4||
+ if(!allowedTier(base)||base>46||!allowedTier(target)||target<base+4||
     !Number.isInteger(cap)||cap<base+4||cap>58)
   return null;
  // A complete staircase requires at most 25 successive Wind upgrades.
@@ -92,7 +92,6 @@ export function createPerfectoRecycledTargetReplay(save,search,plan,target,
  });
  const board=initial.slice();
  const steps=[],cycles=[],harvested=[];
- const sourceCost=Number(search?.sourceCost);
  let totalCooks=0,totalMerges=0,totalWind=0,totalMoves=0;
  let high=source+4;
  const maxActions=Math.max(50,Math.floor(Number(maxSteps)||3500));
@@ -152,10 +151,8 @@ export function createPerfectoRecycledTargetReplay(save,search,plan,target,
    description:description??"Refill and promote the retained staircase"});
   fill(k,end,"Refill the staircase with T"+source);
   merge(k,k+1,"Seed a new two-sushi Wind carrier:");
-  for(let i=k-1;i>=0;i--){
-   const n=merge;
-   n(i,k+1,"Feed the existing T"+(high-i)+" staircase into the carrier:");
-  }
+  for(let i=k-1;i>=0;i--)
+   merge(i,k+1,"Feed the existing T"+(high-i)+" staircase into the carrier:");
   if(complete){
    merge(k+1,k+2,"Combine the promoted pair and upgrade its descending tail:");
    for(let i=0;i<k+2;i++)move(k+2+i,i,"Recycle the upgraded staircase:");
