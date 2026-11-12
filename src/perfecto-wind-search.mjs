@@ -445,6 +445,8 @@ export function searchPerfectoBoard(save,target,economy,{effortMultiplier=16,cer
  const stepLimit=Math.min(3000,Math.max(120,Math.ceil(budget*4)));
  const recipes=["uniform","ladder","double-ladder","high-pair","apex","existing"];
  let best=certifiedCarryBoard(geom,target,economy,windCap),attempted=0;
+ // A certified recipe is also one evaluated construction candidate.
+ if(best)attempted++;
  let bestUnverified=null;
  // The user-facing dual-board comparison needs only constructive recipes.
  // The bounded exploratory search remains available to research/tests but is
