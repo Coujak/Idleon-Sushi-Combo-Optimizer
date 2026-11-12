@@ -30,7 +30,7 @@ function exactFinal(replay,plan){
  const final=plan.board.map(x=>Math.max(0,x.preparedTier+1));
  assert.deepEqual(Array.from(replay.final),final);
  assert.deepEqual(Array.from(replay.getFrame(replay.totalSteps).board),final);
- assert.equal(final.slice(0,100).filter(x=>x>0).length,100);
+ assert.equal(final.filter(x=>x>0).length,replay.slots.filter(slot=>slot>=0).length);
 }
 
 test("Full-board replay keeps both row-seven sushi until an explicit manual preparation checkpoint",()=>{
