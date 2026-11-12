@@ -13,10 +13,16 @@ export function validatePerfectoReplayCooking(replay,cookableTier){
  if(!Number.isInteger(upper)||upper<1||upper>46)
   return {ok:false,reason:"The highest directly cookable tier is unavailable."};
  if(!replay?.available)return {ok:false,reason:replay?.reason??"Replay is unavailable."};
- if(Number(replay.sourceTier)>upper)
+ // A partial replay can start with previously prepared higher-tier ingredients.
+ // Those are explicitly labeled as prepared checkpoints, NOT direct cooks.
+ if(Number(replay.sourceTier)>upper&&!replay.partial)
   return {ok:false,reason:"The recipe starts above your highest cookable tier."};
+ if(replay.partial&&Number(replay.actualCookTier)>upper)
+  return {ok:false,reason:"The underlying recipe exceeds your cooking limit."};
  const length=Number(replay.totalSteps);
- if(!Number.isSafeInteger(length)||length<0||length>50000)
+ // Allow long but finite, lazily generated sequences; the previous 50k cap
+ // rejected valid manually selected T44 preparations despite valid steps.
+ if(!Number.isSafeInteger(length)||length<0||length>200000)
   return {ok:false,reason:"The walkthrough action count cannot be validated."};
  if(!Array.isArray(replay.steps)&&typeof replay.getFrame!=="function")
   return {ok:false,reason:"No construction steps are available to validate."};
