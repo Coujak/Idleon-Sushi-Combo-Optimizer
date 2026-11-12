@@ -206,7 +206,7 @@ export function getPerfectoPlanner(save,{tier=null,cookTier=null}={}){
  if(current.perfecto)recommendation={state:"completed",title:"ALREADY PERFECTO — STOP",
   text:"This tier is already Perfecto. Save your Pepper for a different unfinished tier."};
  else if(!plan?.eligible)recommendation={state:"blocked",title:"NO AVAILABLE SLOTS — REVIEW YOUR BOARD",
-  text:"All positions are protected. Change the higher-tier protection setting or choose another unfinished tier."};
+  text:"All available positions are occupied by higher-tier sushi that must be preserved. Choose another unfinished tier or free up board space without sacrificing protected sushi."};
  else if(!plan?.copies)recommendation={state:"prepare",title:"SAVE PEPPER — BUILD TARGET SUSHI FIRST",
   text:"The planner could not construct a target copy. Do not use Pepper for this tier until at least one target sushi is placed."};
  else if(plan.currentCopies<plan.copies)recommendation={state:"save",title:"SAVE PEPPER — PREPARE THE BOARD FIRST",
