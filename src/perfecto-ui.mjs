@@ -480,6 +480,8 @@ export function initializePerfectoUI(getSave){
   const cookTier=cookTierValue!==""&&Number.isInteger(parsedCookTier)&&
    parsedCookTier>=1&&parsedCookTier<=46?parsedCookTier:null;
   const result=getPerfectoPlanner(saved,{tier:tierChoice,cookTier});
+  text("perfectoHeaderTarget",result.target?"CURRENT TARGET · T"+result.target:
+   "No active Perfecto target");
   renderBonuses(result);
   const ready=!!result.target&&!!result.plan;
   $("perfectoCalculator").classList.toggle("hidden",!ready);
@@ -585,8 +587,9 @@ export function initializePerfectoUI(getSave){
    accountCheck&&!accountCheck.valid?
    "Recipe counts did not pass internal consistency checks. Do not rely on this preparation estimate.":
    "Recursive "+(proof.windStages?.length?"Wind-assisted":"merge-only")+
-   " tier recipe. Counts match its stage arithmetic, but every physical movement has not "+
-   "been replayed. This is not a proven global optimum.":
+   " construction recipe. The walkthrough demonstrates the last target copy using a "+
+   "prepared staging board; it does not replay preparation from your imported save. "+
+   "This is not a proven global optimum.":
    result.search?.reason==="direct-cooking"?
    "Direct cooking layout. The slot arrangement can be changed as needed.":
    "Heuristic recipe from "+p.searchAttempts+" evaluated search variants, with "+
