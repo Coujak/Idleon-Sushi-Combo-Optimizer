@@ -639,3 +639,19 @@ test("Additional info shows only the next milestone, with later levels in an inf
  assert.match(ui,/infoTrigger\.setAttribute\("aria-expanded"/);
  assert.ok(ui.includes('if(event.key==="Escape")closeMilestoneInfo()'));
 });
+
+test("Perfecto target and cooking controls align from the top and stack cleanly on mobile",()=>{
+ const html=readFileSync(new URL("../index.html",import.meta.url),"utf8");
+ const css=readFileSync(new URL("../styles.css",import.meta.url),"utf8");
+ const controls=html.slice(html.indexOf('class="perfecto-controls"'),
+  html.indexOf('id="perfectoNoData"'));
+ assert.ok(controls.includes('class="perfecto-target-group"'));
+ assert.ok(controls.includes('class="perfecto-tier-select"'));
+ assert.ok(controls.includes('class="perfecto-cook-tier"'));
+ for(const id of ["perfectoTarget","perfectoResetTarget","perfectoCookTier",
+  "perfectoCookTierHint"])assert.ok(controls.includes('id="'+id+'"'),id);
+ assert.match(css,/\.perfecto-controls\s*\{\s*display:grid;grid-template-columns:minmax\(0,1fr\) minmax\(205px,225px\);\s*align-items:start/);
+ assert.match(css,/\.perfecto-target-group\s*\{display:grid;grid-template-columns:minmax\(0,1fr\) auto;gap:10px;align-items:end/);
+ assert.match(css,/@media\(max-width:740px\)/);
+ assert.match(css,/@media\(max-width:470px\)/);
+});
