@@ -1884,3 +1884,60 @@ details summary{cursor:pointer;font-size:12px;font-weight:700;color:#9eb7c9}
  .lab-perfecto-panel .heading .perfecto-header-target{font-size:12px;padding:7px 10px}
  .lab-perfecto-panel .perfecto-target-summary{font-size:12px}
 }
+
+/* The recommended Perfecto board keeps all sushi except the last target.
+   Wind/recycling construction happens in a separate teaching workspace. */
+.perfecto-replay-workspace-panel{
+ display:flex;flex-direction:column;gap:7px;
+ padding:12px;background:#112b38;border:1px solid #476b79;
+ border-radius:10px;margin:4px 0 7px
+}
+.perfecto-replay-workspace-panel.hidden{display:none}
+.perfecto-replay-workspace-heading{
+ display:flex;justify-content:space-between;align-items:center;
+ flex-wrap:wrap;gap:5px 10px
+}
+.perfecto-replay-workspace-heading strong{font-size:12px;color:#d5f9df}
+.perfecto-replay-workspace-heading span{
+ font-size:10px;color:#b3d3de;font-variant-numeric:tabular-nums
+}
+.perfecto-replay-workspace-panel>p{
+ font-size:11px;color:#abc9d2;line-height:1.5;margin:0
+}
+.perfecto-replay-workspace-scroll{width:100%;overflow-x:auto;padding:2px 0 5px}
+.perfecto-replay-workspace-grid{
+ display:grid;grid-template-columns:repeat(15,minmax(0,1fr));
+ gap:2px;min-width:380px;max-width:100%;
+ padding:5px;background:#0a1d25;border:2px solid #426e61;
+ border-radius:8px
+}
+.perfecto-workspace-cell{
+ display:flex;position:relative;align-items:center;justify-content:center;
+ flex-direction:column;gap:0;aspect-ratio:.92;min-width:0;
+ border-radius:3px;border:1px solid #3f5e60;
+ background:#19382f;color:#d1fff1;overflow:hidden
+}
+.perfecto-workspace-cell.is-empty{
+ border-style:dashed;border-color:#547a75;
+ background:#172b2b;color:#5e9991
+}
+.perfecto-workspace-icon{width:76%;height:65%;object-fit:contain;min-height:0}
+.perfecto-workspace-tier{font-size:8px;font-weight:850;line-height:1}
+.perfecto-workspace-empty{font-size:10px}
+.perfecto-workspace-number{
+ position:absolute;top:0;left:2px;font-size:7px;
+ font-weight:650;color:#a6c8bb;line-height:1
+}
+.perfecto-workspace-cell.perfecto-replay-from{
+ outline:2px solid #f6d777!important;outline-offset:-1px;z-index:2
+}
+.perfecto-workspace-cell.perfecto-replay-to{
+ outline:2px solid #86e1ff!important;outline-offset:-1px;z-index:3
+}
+.perfecto-workspace-cell.perfecto-replay-wind{
+ outline:2px solid #dca8ff!important;outline-offset:-1px;z-index:4
+}
+@media(max-width:650px){
+ .perfecto-replay-workspace-panel{padding:10px}
+ .perfecto-replay-workspace-grid{min-width:350px}
+}
