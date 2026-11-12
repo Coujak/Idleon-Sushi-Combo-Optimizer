@@ -90,7 +90,7 @@ function getSearch(save,target,cookTierOverride=null,scenario="account"){
   correctedCapacity:modeled.capacity<sushiDirectCookFuel(effective)
  }:modeled):null;
  const run=searchPerfectoBoard(save,target,economy,{certifiedOnly:true,
-  supportMode:scenario==="maximum"?"direct-source":"staircase"});
+  supportMode:"staircase"});
  const result={economy,run,observedCookTier:effective,
   suggestedCookTier:modeled?.maxCookTier??null,scenario};
  byTarget.set(key,result);
