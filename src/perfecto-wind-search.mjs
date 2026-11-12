@@ -382,6 +382,8 @@ export function finishCertifiedCarryBoard(best,geom,target,windCap,{supportMode=
  const cascade=certifiedPerfectoSupportCascade(sourceTier,
   supporting.map(sushi=>sushi.tier),windCap);
  if(cascade&&cascade.totalFuel<extraFuel*(1-1e-10)){
+  cascade.individualFuel=extraFuel;
+  cascade.fuelSavingPercent=100*(1-cascade.totalFuel/extraFuel);
   extraFuel=cascade.totalFuel;
   extraCooks=BigInt(cascade.cooksExact);
   extraMerges=BigInt(cascade.mergesExact);
