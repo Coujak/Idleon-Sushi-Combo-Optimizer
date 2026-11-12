@@ -1,8 +1,8 @@
 // Perfecto probability and automatic buildable-board plan.
 // This planner does not depend on the user's time, pace, or desired copy count.
 import {getKnowledgeRows,getSushiSnapshot,getUpgradeRows} from "./lab-model.mjs?v=1.16.6";
-import {estimateSushiFuelEconomy} from "./perfecto-fuel.mjs?v=1.16.6";
-import {searchPerfectoBoard} from "./perfecto-wind-search.mjs?v=1.16.6";
+import {estimateSushiFuelEconomy,sushiDirectCookFuel} from "./perfecto-fuel.mjs?v=1.16.6";
+import {searchPerfectoBoard} from "./perfecto-wind-search.mjs?v=1.21.1";
 export {sushiDirectCookFuel} from "./perfecto-fuel.mjs?v=1.15.1";
 
 const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
@@ -66,16 +66,27 @@ export function availablePerfectoTargets(save){
 export function chooseNextPerfectoTier(save){
  return availablePerfectoTargets(save)[0]?.tier??null;
 }
-function getSearch(save,target){
+function getSearch(save,target,cookTierOverride=null){
  let byTarget=cache.get(save);
  if(!byTarget){byTarget=new Map();cache.set(save,byTarget);}
- const key=String(target);
+ const selected=Number(cookTierOverride);
+ const hasOverride=cookTierOverride!==null&&cookTierOverride!==""&&
+  Number.isInteger(selected)&&selected>=1&&selected<=46;
+ const key=String(target)+":"+(hasOverride?selected:"auto");
  if(byTarget.has(key))return byTarget.get(key);
- // Fuel cap determines which sushi the player can cook directly. It never
- // imposes a preparation deadline or a user-controlled rate.
- const economy=estimateSushiFuelEconomy(save);
+ // Fuel cap estimates can miss account-specific bonuses. When the player
+ // explicitly confirms they can cook Tn, trust that direct-cook capability,
+ // but never extrapolate to higher tiers.
+ const modeled=estimateSushiFuelEconomy(save);
+ const effective=hasOverride&&modeled?Math.min(selected,modeled.maxCookTier):null;
+ const economy=effective!==null?{
+  ...modeled,maxCookTier:effective,
+  capacity:Math.max(modeled.capacity,sushiDirectCookFuel(effective)),
+  observedCookTier:effective,modeledCapacity:modeled.capacity
+ }:modeled;
  const run=searchPerfectoBoard(save,target,economy);
- const result={economy,run};
+ const result={economy,run,observedCookTier:effective,
+  suggestedCookTier:modeled?.maxCookTier??null};
  byTarget.set(key,result);
  if(byTarget.size>30)byTarget.delete(byTarget.keys().next().value);
  return result;
@@ -119,7 +130,7 @@ function visualBoard(save,tier,run){
 export function perfectoBoardPlan(save,tier,options={}){
  return getPerfectoPlanner(save,{...options,tier}).plan??null;
 }
-export function getPerfectoPlanner(save,{tier=null}={}){
+export function getPerfectoPlanner(save,{tier=null,cookTier=null}={}){
  const knowledge=getKnowledgeRows(save);
  const next=chooseNextPerfectoTier(save);
  const requested=Number(tier);
@@ -130,7 +141,7 @@ export function getPerfectoPlanner(save,{tier=null}={}){
  if(!save||!target)return {target:null,next,bonus,reason:save?"complete":"import"};
  const current=knowledge[target-1];
  if(!current?.discovered)return {target:null,next,bonus,reason:"undiscovered"};
- const {economy,run}=getSearch(save,target);
+ const {economy,run,observedCookTier,suggestedCookTier}=getSearch(save,target,cookTier);
  const plan=visualBoard(save,target,run);
  const snapshot=getSushiSnapshot(save);
  const singleChance=perfectoSingleChance(target,knownBonus);
@@ -165,6 +176,7 @@ export function getPerfectoPlanner(save,{tier=null}={}){
   text:"Your current board already has "+plan.currentCopies+" target copies, as many as the recommendation. Use Pepper now and stop as soon as this tier becomes Perfecto."};
  return {
   target,current,bonus,next,plan,snapshot,economy,search:run,
+  observedCookTier,suggestedCookTier,
   singleChance,currentChance,planChance,expectedActivations,pepperStackChance,
   improvement,
   milestones:[.5,.9,.99].map(confidence=>({
