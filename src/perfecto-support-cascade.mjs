@@ -30,7 +30,8 @@ export function certifiedPerfectoSupportCascade(sourceTier,finalTiers,windCap){
    recipe=certifiedWindTierRecipe(source,tier,cap);
    // Already positioned higher-tier ingredients cannot be disturbed while
    // constructing this one. This is a hard, physical workspace bound.
-   if(recipe.workspaceSlots>count-i)return null;
+   if(recipe.workspaceSlots>count-i||
+      BigInt(recipe.cooksExact)>50000n)return null;
   }
   const ingredientCost=sushiDirectCookFuel(direct?tier:source);
   if(!Number.isFinite(ingredientCost))return null;
