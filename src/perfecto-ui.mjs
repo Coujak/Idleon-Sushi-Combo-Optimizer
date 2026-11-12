@@ -2,9 +2,9 @@
 // The optimizer chooses its own final copy count and prepared arrangement.
 import {sushiTierIconPath} from "./sushi-reference.mjs?v=1.16.6";
 import {numberText} from "./lab-model.mjs?v=1.16.6";
-import {availablePerfectoTargets,getPerfectoPlanner,perfectoKnowledgeMilestones} from "./perfecto-planner.mjs?v=1.25.0";
+import {availablePerfectoTargets,getPerfectoPlanner,perfectoKnowledgeMilestones} from "./perfecto-planner.mjs?v=1.27.0";
 import {perfectoRecipeStages,perfectoFinalMergeIndex,perfectoRecipeIntegrity} from "./perfecto-recipe-guide.mjs?v=1.23.0";
-import {createPerfectoFinalTargetReplay} from "./perfecto-full-replay.mjs?v=1.26.0";
+import {createPerfectoFinalTargetReplay} from "./perfecto-full-replay.mjs?v=1.27.0";
 
 const $=id=>document.getElementById(id);
 const node=(tag,css="",value)=>{
