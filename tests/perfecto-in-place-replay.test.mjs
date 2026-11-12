@@ -148,3 +148,20 @@ test("An invalid cook tier never silently authorizes higher-tier cooks",()=>{
  for(const cap of [0,47,NaN,null])
   assert.equal(validatePerfectoReplayCooking(replay,cap).ok,false);
 });
+
+
+test("Manual cooking ceilings accept prepared checkpoints but never higher direct cooks",()=>{
+ const checkpoint={available:true,partial:true,sourceTier:46,actualCookTier:44,
+  totalSteps:2,steps:[{kind:"prepared",tier:46},{kind:"cook",tier:44}]};
+ assert.equal(validatePerfectoReplayCooking(checkpoint,44).ok,true);
+ assert.equal(validatePerfectoReplayCooking(checkpoint,43).ok,false);
+ assert.equal(validatePerfectoReplayCooking({...checkpoint,partial:false},44).ok,false);
+ assert.equal(validatePerfectoReplayCooking({...checkpoint,steps:[
+  {kind:"prepared",tier:46},{kind:"cook",tier:45}]},44).ok,false);
+});
+
+test("A long verified manual-tier replay is not rejected by the former 50k ceiling",()=>{
+ const streamed={available:true,sourceTier:44,actualCookTier:44,
+  totalSteps:50001,getFrame:()=>({event:{kind:"cook",tier:44}})};
+ assert.equal(validatePerfectoReplayCooking(streamed,44).ok,true);
+});
