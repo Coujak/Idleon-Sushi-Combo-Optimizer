@@ -32,9 +32,9 @@ function perfectoPreparationSteps(result){
    " unlocked cells available while building each target copy. "+
    "Completed target sushi can then be parked outside the working area.");
   steps.push("Cook T"+proof.startingTier+" (each cook costs "+
-   display(search.sourceCost)+" Fuel). The exact construction for all "+
-   plan.copies+" target copies requires "+proof.cooksExact+" cooks and "+
-   proof.mergesExact+" merges.");
+   display(search.sourceCost)+" Fuel). Producing "+
+   proof.finalCopies+" new T"+target+" sushi requires "+proof.cooksExact+
+   " cooks and "+proof.mergesExact+" merges; existing target sushi are preserved.");
   if(proof.startingTier<target){
    if(proof.windStages?.length){
     steps.push("This certified recipe uses Heat of the East Wind. Prepare three equal-tier sushi in a contiguous workspace for each Wind stage. Merge left into middle (Wind upgrades the right), then right into middle. Other stages use ordinary two-to-one merges. Repeat for each target copy; no Salt luck is assumed.");
@@ -189,10 +189,11 @@ export function initializePerfectoUI(getSave){
   function scenarioFuel(comparison){
    const econ=comparison.economy;
    const source=comparison.search?.sourceTier;
+   const optionalFuel=Number(econ?.totalFuel)-Number(econ?.targetFuel);
    return "Cook from "+(source?"T"+source:"unknown tier")+
-    " · Recipe Fuel: "+display(econ?.totalFuel)+
-    (Number.isFinite(econ?.generationHours)&&econ.generationHours!==null?
-     " · "+display(econ.generationHours)+" hours of modeled Fuel generation":"");
+    " · Target recipe Fuel: "+display(econ?.targetFuel)+
+    (Number.isFinite(optionalFuel)&&optionalFuel>0?
+     " · Optional filler: "+display(optionalFuel)+" Fuel":"");
   }
   text("perfectoAccountFuel",scenarioFuel(account));
   text("perfectoMaximumFuel",scenarioFuel(maximum));
