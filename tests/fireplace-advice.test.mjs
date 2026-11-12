@@ -1,7 +1,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import {readFileSync} from "node:fs";
-import {fireplaceOverviewAdvice,sparkFireplaceBonus} from "../src/fireplace-advice.mjs";
+import {readFileSync,existsSync} from "node:fs";
+import {fireplaceOverviewAdvice,sparkFireplaceBonus,formatSparkBonusPoints} from "../src/fireplace-advice.mjs";
+import {sushiUpgradeIconPath} from "../src/sushi-reference.mjs";
 
 function saveWith({sparks=100,fires=[0,1,2,3,4],potassium=1}={}){
  const upgrades=Array(45).fill(0);upgrades[25]=potassium;
@@ -27,7 +28,7 @@ test("Overview explains Potassium when it is not unlocked",()=>{
 test("Low Spark accounts see idle-growth guidance instead of a universal all-purple rule",()=>{
  const item=fireplaceOverviewAdvice(saveWith({sparks:100,fires:[0,0,0]}));
  assert.match(item.heading,/Consider one Potassium/);
- assert.match(item.summary,/low-value Charcoal column/);
+ assert.match(item.summary,/Worth considering while idling/);
  assert.equal(item.weakestCharcoal.column,3);
 });
 test("High Spark accounts see diminishing returns and relevant alternatives",()=>{
@@ -63,4 +64,34 @@ test("Overview puts one brief fireplace recommendation directly below Missing Pe
  assert.match(html,/<div class="lab-dashboard-column">/);
  assert.match(css,/#lab-overview \.lab-dashboard-column/);
  assert.match(ui,/fireplaceOverviewAdvice\(data\)/);
+});
+
+
+test("One additional Potassium shows the extra strength gained after 1h, 24h and 7d",()=>{
+ const save=saveWith({sparks:100_000,fires:[0,4,1,2,3]});
+ const advice=fireplaceOverviewAdvice(save);
+ assert.deepEqual(advice.timeGains.map(x=>x.label),["1 hour","24 hours","7 days"]);
+ for(const [i,seconds] of [3600,86400,604800].entries()){
+  const baseline=100_000+seconds; // one existing Purple
+  const gained=sparkFireplaceBonus(baseline+seconds)-sparkFireplaceBonus(baseline);
+  assert.ok(Math.abs(advice.timeGains[i].points-gained)<1e-12);
+  assert.ok(gained>0);
+ }
+ assert.match(advice.summary,/Charcoal|Barium|Lithium|Fuel|Bucks|Knowledge/);
+ assert.ok(advice.timeGains[0].points<advice.timeGains[1].points);
+ assert.match(advice.timeGainCaption,/excludes lost effects/);
+ assert.match(formatSparkBonusPoints(.001234),/^0\.001/);
+});
+test("Potassium image uses the actual installed upgrade icon",()=>{
+ const path=sushiUpgradeIconPath(25);
+ assert.equal(path,
+  "assets/upgrades/Potassium%20Firelighter%20(Upgrade%2042).png");
+ assert.ok(existsSync(new URL("../assets/upgrades/Potassium Firelighter (Upgrade 42).png",import.meta.url)));
+ const ui=readFileSync(new URL("../src/lab-ui.mjs",import.meta.url),"utf8");
+ const html=readFileSync(new URL("../index.html",import.meta.url),"utf8");
+ assert.match(html,/id="overviewFireplaceAdviceIcon"/);
+ assert.match(html,/id="overviewFireplaceAdviceGains"/);
+ assert.match(html,/id="overviewFireplaceAdviceNote"/);
+ assert.match(ui,/sushiUpgradeIconPath\(25\)/);
+ assert.match(ui,/fireAdvice\.timeGains/);
 });
