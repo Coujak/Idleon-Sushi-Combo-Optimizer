@@ -329,7 +329,7 @@ export function initializePerfectoUI(getSave){
       if(extra.kind==="wind")mark(extra.at,"perfecto-replay-wind");
     }
    }
-   const blocked=!!(replay.requiresSetup&&!state.setupConfirmed&&step>=1);
+   const blocked=!!(replay.requiresSetup&&!state.setupConfirmed);
    const manual=frame?.phase==="manual";
    confirm.classList.toggle("hidden",!manual);
    confirm.disabled=!manual;
@@ -367,7 +367,7 @@ export function initializePerfectoUI(getSave){
    }
    btn("Start").disabled=step===0;
    btn("Prev").disabled=step<=0;
-   btn("Next").disabled=step<0||step>=replay.totalSteps||blocked;
+   btn("Next").disabled=step<0||step>=replay.totalSteps||(blocked&&step>=1);
    btn("NextCopy").disabled=step<0||step>=replay.finalFillIndex||blocked;
    btn("Final").disabled=step<0||step>=replay.lastMergesIndex||blocked;
    btn("Fill").disabled=step<0||step>=replay.finalFillIndex||blocked;
