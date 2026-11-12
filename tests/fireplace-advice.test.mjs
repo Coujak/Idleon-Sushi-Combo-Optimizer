@@ -47,7 +47,7 @@ test("Missing Spark amounts do not produce invented percentages",()=>{
  assert.equal(item.sparkBalance,null);
  assert.equal(fireplaceOverviewAdvice(null),null);
 });
-test("Overview puts one brief fireplace recommendation directly below Missing Perfectos",()=>{
+test("Overview puts the Fireplace card at the bottom of the whole Account Dashboard",()=>{
  const html=readFileSync(new URL("../index.html",import.meta.url),"utf8");
  const ui=readFileSync(new URL("../src/lab-ui.mjs",import.meta.url),"utf8");
  const css=readFileSync(new URL("../styles.css",import.meta.url),"utf8");
@@ -57,12 +57,15 @@ test("Overview puts one brief fireplace recommendation directly below Missing Pe
   assert.match(ui,new RegExp(id));
  }
  assert.equal(html.includes('id="overviewFireplaceAdviceDetail"'),false);
- assert.ok(html.indexOf('id="labMissingPerfectos"')<
-  html.indexOf('id="overviewFireplaceAdvice"'));
- assert.ok(html.indexOf('id="overviewFireplaceAdvice"')<
-  html.indexOf('id="labMissingTiers"'));
- assert.match(html,/<div class="lab-dashboard-column">/);
- assert.match(css,/#lab-overview \.lab-dashboard-column/);
+ const perfectos=html.indexOf('id="labMissingPerfectos"');
+ const tiers=html.indexOf('id="labMissingTiers"');
+ const card=html.indexOf('id="overviewFireplaceAdvice"');
+ const board=html.indexOf('id="boardStatus"');
+ assert.ok(perfectos>=0&&perfectos<tiers&&tiers<card&&card<board);
+ // The card is outside and after the two-column missing-sushi grid.
+ assert.match(html,/<section class="lab-dashboard-section" aria-labelledby="labMissingTiersTitle">[^\n]*<\/section>\s*<\/div>\s*<div id="overviewFireplaceAdvice"/);
+ assert.equal(html.includes('class="lab-dashboard-column"'),false);
+ assert.match(css,/#lab-overview \.overview-fireplace-advice\{/);
  assert.match(ui,/fireplaceOverviewAdvice\(data\)/);
 });
 
