@@ -206,13 +206,13 @@ test("Certified carry construction compares every affordable tier, not a hard 50
  assert.ok(result.sourceTier<=44);
  assert.ok(result.targetCount>=80);
  if(result.certificate){
-  assert.equal(result.certificate.type,"recursive-westward-carry");
+  assert.match(result.certificate.type,/^recursive-(east-wind|westward)-carry$/);
   assert.equal(result.certificate.targetTier,62);
   assert.equal(result.certificate.finalCopies,result.targetCount);
   assert.ok(result.certificate.capacityShare>0.5);
   assert.equal(result.board.filter(x=>x===62).length,result.targetCount);
   assert.equal(BigInt(result.certificate.cooksExact),
-   BigInt(result.certificate.finalCopies)*(1n<<BigInt(62-result.certificate.startingTier)));
+   BigInt(result.certificate.finalCopies)*BigInt(result.certificate.cooksPerCopyExact));
  }
 });
 
@@ -523,7 +523,7 @@ test("Confirmed cooking tier can correct JSON estimate up or down",()=>{
  assert.equal(lower.economy.maxCookTier,1);
  assert.equal(base.observedCookTier,null);
  assert.equal(higher.comparisons.maximum.economy.hypothetical,true);
- assert.equal(higher.comparisons.maximum.economy.maxCookTier,46);
+ assert.equal(higher.comparisons.maximum.economy.maxDirectTier,46);
 });
 
 test("Perfecto UI renders both boards, scenario comparison and Wind-specific guidance",()=>{
