@@ -292,7 +292,8 @@ export function createPerfectoFinalTargetReplay(save,search,plan,target){
  if(!full.available)return full;
  if(!Number.isInteger(full.copies)||full.copies<1)
   return fail("There is no new target sushi to construct.");
- const copyLen=full.templateSteps+1;
+ const isDirectCook=!(search.certificate?.stages?.length);
+ const copyLen=isDirectCook?1:full.templateSteps+1;
  const startIndex=full.baseOffset+(full.copies-1)*copyLen;
  if(!Number.isSafeInteger(startIndex)||startIndex>=full.totalSteps)
   return fail("The final target construction cannot be indexed safely.");
