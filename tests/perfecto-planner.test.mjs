@@ -228,7 +228,7 @@ test("Unused Perfecto construction workspace becomes a buildable 17-tile Wind st
  const cost=sushiDirectCookFuel(45);
  const economy={capacity:cost*1.1,generationPerHour:1e13,maxCookTier:46};
  const result=searchPerfectoBoard(save,62,economy);
- const expected=Array.from({length:17},(_,i)=>58-i);
+ const expected=Array.from({length:17},(_,i)=>Math.max(45,58-i));
  assert.equal(result.sourceTier,45);
  assert.equal(result.targetCount,82);
  assert.equal(result.board[0],64);
@@ -295,7 +295,7 @@ test("Perfecto targets take Hot, Cold and Milktoast plates before ordinary ones"
  assert.ok(result.board.slice(1,100).every(tier=>tier>0));
  assert.equal(result.certificate.supportingCount,17);
  const supporting=result.certificate.supportingSushi;
- assert.deepEqual(supporting.map(x=>x.tier),Array.from({length:17},(_,i)=>58-i));
+ assert.deepEqual(supporting.map(x=>x.tier),Array.from({length:17},(_,i)=>Math.max(45,58-i)));
  for(const item of supporting)assert.equal(result.board[item.position-1],item.tier);
  assert.ok(supporting.every(item=>save.slots[item.position-1]===0),
   "All lower supporting sushi fit on ordinary plates");
@@ -344,7 +344,7 @@ test("Protected T64 remains in its actual position; bonus plates prioritize targ
  assert.ok(result.board.slice(100).every(t=>t===0));
  assert.ok(result.certificate);
  assert.deepEqual(result.certificate.supportingSushi.map(x=>x.tier),
-  Array.from({length:17},(_,i)=>58-i));
+  Array.from({length:17},(_,i)=>Math.max(45,58-i)));
  for(const item of result.certificate.supportingSushi){
   assert.equal(result.board[item.position-1],item.tier);
   assert.equal(save.slots[item.position-1],0);
@@ -366,7 +366,7 @@ test("A dense field of bonus plates still keeps a contiguous buildable support w
  assert.equal(result.board[0],64);
  assert.equal(result.board.filter(t=>t===62).length,82);
  const support=result.certificate.supportingSushi;
- assert.deepEqual(support.map(x=>x.tier),Array.from({length:17},(_,i)=>58-i));
+ assert.deepEqual(support.map(x=>x.tier),Array.from({length:17},(_,i)=>Math.max(45,58-i)));
  assert.ok(support.every((item,i)=>item.position===support[0].position+i));
  for(const item of support)assert.equal(result.board[item.position-1],item.tier);
  assert.ok(result.board.slice(0,100).every(tier=>tier>0));
@@ -383,7 +383,7 @@ test("Regular Perfecto boards keep the protected T64 fixed and place the ladder 
  const economy={capacity:sushiDirectCookFuel(45)*1.1,generationPerHour:1e13,maxCookTier:46};
  const result=searchPerfectoBoard(save,62,economy);
  assert.equal(result.board[0],64);
- assert.deepEqual(result.board.slice(1,18),Array.from({length:17},(_,i)=>58-i));
+ assert.deepEqual(result.board.slice(1,18),Array.from({length:17},(_,i)=>Math.max(45,58-i)));
  assert.ok(result.board.slice(18,100).every(tier=>tier===62));
  assert.equal(result.board.filter(tier=>tier===62).length,82);
  for(const item of result.certificate.supportingSushi){
@@ -408,7 +408,7 @@ test("Last unlocked special plate takes target sushi when the protected highest 
  assert.deepEqual(result.board.filter(tier=>tier>0).length,100);
  assert.deepEqual(result.board.filter(tier=>tier===62).length,82);
  const support=result.certificate.supportingSushi;
- assert.deepEqual(support.map(x=>x.tier),Array.from({length:17},(_,i)=>58-i));
+ assert.deepEqual(support.map(x=>x.tier),Array.from({length:17},(_,i)=>Math.max(45,58-i)));
  assert.ok(support.every(x=>result.board[x.position-1]===x.tier));
 });
 test("Perfecto role indicators and real plate colors are not overridden by sushi backgrounds",()=>{
@@ -561,7 +561,7 @@ test("T46 benchmark uses the verified Wind staircase, not only T46 filler",()=>{
  assert.equal(benchmark.plan.copies,benchmark.search.targetCount);
  const filler=benchmark.plan.board.filter(cell=>cell.role==="ingredient")
   .map(cell=>cell.preparedTier+1).sort((a,b)=>b-a);
- assert.deepEqual(filler,Array.from({length:16},(_,i)=>58-i));
+ assert.deepEqual(filler,Array.from({length:16},(_,i)=>Math.max(46,58-i)));
  assert.equal(benchmark.search.certificate.supportingCount,filler.length);
  const proof=benchmark.search.certificate;
  assert.equal(BigInt(proof.totalCooksExact),
