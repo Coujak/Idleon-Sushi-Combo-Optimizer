@@ -870,18 +870,20 @@ details summary{cursor:pointer;font-size:12px;font-weight:700;color:#9eb7c9}
 .lab-planner-navigation{margin:14px 0 16px}
 .lab-perfecto-panel .heading{margin-bottom:10px}
 .perfecto-controls{
- display:flex;align-items:flex-end;flex-wrap:wrap;gap:11px;
+ display:grid;grid-template-columns:minmax(0,1fr) minmax(205px,225px);
+ align-items:start;gap:16px;
  background:#112534;border:1px solid #334e61;border-radius:13px;
  padding:14px;margin:18px 0 16px;
 }
 .perfecto-controls label{font-size:12px;color:#b6d3d6;font-weight:700}
-.perfecto-tier-select{display:flex;flex-direction:column;gap:6px;flex:1 1 300px;min-width:225px}
+.perfecto-target-group{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:end;min-width:0}
+.perfecto-tier-select{display:flex;flex-direction:column;gap:6px;min-width:0}
 .perfecto-tier-select select{
  min-height:43px;width:100%;max-width:100%;
  font:inherit;font-size:13px;color:#e5f5e9;background:#0c1e2d;
  border:1px solid #416675;border-radius:10px;padding:9px 10px
 }
-.perfecto-controls .button{font-size:12px;min-height:43px;padding:9px 12px}
+.perfecto-controls .button{font-size:12px;min-height:43px;padding:9px 12px;white-space:nowrap}
 .perfecto-checkbox{display:inline-flex;align-items:center;gap:8px;flex:1 1 200px;cursor:pointer}
 .perfecto-checkbox input{width:17px;height:17px;accent-color:#66cda0}
 .perfecto-section-head{
@@ -1678,7 +1680,7 @@ details summary{cursor:pointer;font-size:12px;font-weight:700;color:#9eb7c9}
 }
 
 /* Keep the optional direct-cook correction aligned with the target selector. */
-.perfecto-cook-tier{display:flex;flex-direction:column;gap:6px;flex:0 1 225px;min-width:180px}
+.perfecto-cook-tier{display:flex;flex-direction:column;gap:6px;min-width:0}
 .perfecto-cook-tier input{
  box-sizing:border-box;width:100%;min-height:43px;background:#0c1e2d;
  border:1px solid #416675;border-radius:10px;color:#e5f5e9;
@@ -1687,9 +1689,14 @@ details summary{cursor:pointer;font-size:12px;font-weight:700;color:#9eb7c9}
 .perfecto-cook-tier input:focus-visible,
 .perfecto-tier-select select:focus-visible{outline:2px solid #80cfb0;outline-offset:2px}
 .perfecto-cook-tier small{font-size:10px;color:#93b6c2;line-height:1.45;font-weight:400}
-@media(max-width:620px){
- .perfecto-cook-tier{flex:1 1 180px}
- .perfecto-controls .button{width:100%}
+@media(max-width:740px){
+ .lab-perfecto-panel .perfecto-controls{grid-template-columns:minmax(0,1fr)}
+ .lab-perfecto-panel .perfecto-target-group .button{width:auto;white-space:nowrap}
+ .perfecto-cook-tier{max-width:none}
+}
+@media(max-width:470px){
+ .perfecto-target-group{grid-template-columns:minmax(0,1fr)}
+ .lab-perfecto-panel .perfecto-target-group .button{width:100%}
 }
 
 /* Perfecto recipe step navigator and focused board comparison. */
