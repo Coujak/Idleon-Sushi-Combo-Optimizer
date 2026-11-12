@@ -15,7 +15,14 @@ export function validatePerfectoReplayCooking(replay,cookableTier){
  if(!replay?.available)return {ok:false,reason:replay?.reason??"Replay is unavailable."};
  if(Number(replay.sourceTier)>upper)
   return {ok:false,reason:"The recipe starts above your highest cookable tier."};
- for(const [i,step] of (replay.steps??[]).entries()){
+ const length=Number(replay.totalSteps);
+ if(!Number.isSafeInteger(length)||length<0||length>50000)
+  return {ok:false,reason:"The walkthrough action count cannot be validated."};
+ if(!Array.isArray(replay.steps)&&typeof replay.getFrame!=="function")
+  return {ok:false,reason:"No construction steps are available to validate."};
+ for(let i=0;i<length;i++){
+  const step=replay.steps?.[i]??replay.getFrame(i+1)?.event;
+  if(!step)return {ok:false,reason:"A construction step could not be validated."};
   if(step.kind==="cook"&&(!Number.isInteger(step.tier)||
      step.tier<1||step.tier>upper))
    return {ok:false,reason:"Step "+(i+1)+" cooks T"+step.tier+
