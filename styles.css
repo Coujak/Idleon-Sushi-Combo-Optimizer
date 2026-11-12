@@ -1879,8 +1879,8 @@ details summary{cursor:pointer;font-size:12px;font-weight:700;color:#9eb7c9}
 .perfecto-knowledge-table td{text-align:center;color:#c5dfdf;border-top:1px solid #31515d;padding:9px 7px}
 .perfecto-knowledge-table tr.is-next td{color:#dbffeb;background:#21503e;font-weight:750}
 .perfecto-theory-note{margin:11px 0 0}
-@media(max-width:690px){
- .perfecto-theory-results{grid-template-columns:1fr}
+@media(max-width:680px){
+ .perfecto-bonus-grid,.perfecto-theory-results{grid-template-columns:1fr}
  .perfecto-theory-results>div{min-height:65px;grid-template-rows:auto auto}
 }
 
