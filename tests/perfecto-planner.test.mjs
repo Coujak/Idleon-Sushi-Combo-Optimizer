@@ -4,7 +4,8 @@ import {readFileSync} from "node:fs";
 import {
  perfectoSingleChance,perfectoBoardChance,perfectoAttemptsForConfidence,
  sushiDirectCookFuel,chooseNextPerfectoTier,availablePerfectoTargets,
- perfectoBoardPlan,getPerfectoPlanner
+ perfectoBoardPlan,getPerfectoPlanner,perfectoOddsImprovement,
+ perfectoKnownFreeUseEstimate
 } from "../src/perfecto-planner.mjs";
 import {getKnowledgeRows} from "../src/lab-model.mjs";
 import {searchPerfectoBoard,getSushiWindCap} from "../src/perfecto-wind-search.mjs";
@@ -453,4 +454,59 @@ test("Public HTML removes technical source names, Salt controls, and protection 
  assert.ok(css.includes(".tile.merge-flying-sushi"));
  assert.ok(app.includes("opacity:.78"));
  assert.ok(app.includes("opacity:.66"));
+});
+
+
+test("Preparation comparison reports per-use odds and expected Pepper attempt savings",()=>{
+ const result=perfectoOddsImprovement(.2,.6);
+ assert.equal(result.before,.2);
+ assert.equal(result.after,.6);
+ assert.ok(Math.abs(result.ratio-3)<1e-12);
+ assert.ok(Math.abs(result.percentagePointGain-40)<1e-12);
+ assert.ok(Math.abs(result.currentAttempts-5)<1e-12);
+ assert.ok(Math.abs(result.optimizedAttempts-5/3)<1e-12);
+ assert.ok(Math.abs(result.savedAttempts-10/3)<1e-12);
+ assert.equal(result.improvement,true);
+ assert.equal(result.fromZero,false);
+ const fromEmpty=perfectoOddsImprovement(0,.4);
+ assert.equal(fromEmpty.ratio,null);
+ assert.equal(fromEmpty.currentAttempts,null);
+ assert.equal(fromEmpty.fromZero,true);
+ const unchanged=perfectoOddsImprovement(.3,.3);
+ assert.equal(unchanged.improvement,false);
+ assert.equal(unchanged.savedAttempts,0);
+});
+
+test("Known shaker refunds give a conservative cap-aware charge estimate",()=>{
+ const partial=perfectoKnownFreeUseEstimate(.2,.25);
+ assert.equal(partial.knownChance,.25);
+ assert.equal(partial.atCap,false);
+ assert.ok(Math.abs(partial.expectedConsumedUpperBound-3.75)<1e-12);
+ const capped=perfectoKnownFreeUseEstimate(.5,.99);
+ assert.equal(capped.knownChance,.6);
+ assert.equal(capped.atCap,true);
+ assert.ok(Math.abs(capped.expectedConsumedUpperBound-.8)<1e-12);
+ assert.equal(perfectoKnownFreeUseEstimate(0,.3).expectedConsumedUpperBound,null);
+ assert.equal(perfectoKnownFreeUseEstimate(1,0).expectedConsumedUpperBound,1);
+});
+
+test("Perfecto plan exposes improvement and known-source shaker charge estimate",()=>{
+ const save=exampleSave();
+ save.sushi[2][21]=4; // Bottomless Shakers contributes 4 percentage points
+ const p=getPerfectoPlanner(save,{tier:2});
+ assert.ok(Math.abs(p.improvement.after-p.planChance)<1e-12);
+ assert.ok(Math.abs(p.improvement.before-p.currentChance)<1e-12);
+ assert.equal(p.freeUse.knownChance,.04);
+ assert.equal(p.freeUse.atCap,false);
+ assert.ok(Math.abs(p.freeUse.expectedConsumedUpperBound-
+  p.expectedActivations*.96)<1e-10);
+ const html=readFileSync(new URL("../index.html",import.meta.url),"utf8");
+ const ui=readFileSync(new URL("../src/perfecto-ui.mjs",import.meta.url),"utf8");
+ for(const id of [
+  "perfectoCurrentOddsRatio","perfectoImprovement","perfectoImprovementDetail",
+  "perfectoPreparationSteps","perfectoKnownFreeChance","perfectoExpectedSpentUpper"
+ ])assert.ok(html.includes('id="'+id+'"'),"Expected Perfecto UI "+id);
+ assert.ok(ui.includes("perfectoPreparationSteps(result)"));
+ assert.ok(ui.includes('text("perfectoImprovement",'));
+ assert.ok(ui.includes('text("perfectoKnownFreeChance",'));
 });
