@@ -391,6 +391,8 @@ export function finishCertifiedCarryBoard(best,geom,target,windCap,{supportMode=
  const cascadeLength=Math.min(supporting.length,
   Math.max(0,highest-sourceTier+1));
  const directTail=supporting.slice(cascadeLength);
+ proof.directCookReserveCount=directTail.length;
+ proof.directCookReserveTier=sourceTier;
  const directTailFuel=directTail.reduce((sum,item)=>
   sum+sushiDirectCookFuel(item.tier),0);
  const cascade=certifiedPerfectoSupportCascade(sourceTier,
