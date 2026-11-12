@@ -115,7 +115,19 @@
     <div class="board-scroll perfecto-board-scroll"><div id="perfectoBoard" class="perfecto-board" aria-label="Current-account Perfecto preparation board"></div></div>
     <p class="hint perfecto-board-footnote" id="perfectoProtectedCount">—</p>
     <details class="perfecto-comparison-guide" open>
-     <summary>How to prepare this board</summary>
+     <summary>Step-by-step construction replay · Current account</summary>
+     <div id="perfectoReplayControls" class="perfecto-replay-controls">
+      <div class="perfecto-replay-top"><strong id="perfectoReplayStatus">Preparing replay…</strong><span id="perfectoReplayProgress">—</span></div>
+      <p id="perfectoReplayAction" class="perfecto-replay-action">Use Start replay to follow validated cooks, merges, Wind upgrades and moves on the board above.</p>
+      <div class="perfecto-replay-buttons">
+       <button id="perfectoReplayStart" type="button" class="button secondary">Start replay</button>
+       <button id="perfectoReplayPrev" type="button" class="button quiet">Previous</button>
+       <button id="perfectoReplayNext" type="button" class="button secondary">Next</button>
+       <button id="perfectoReplayFinal" type="button" class="button secondary">Skip to final merges</button>
+       <button id="perfectoReplayDone" type="button" class="button quiet">Show final board</button>
+      </div>
+      <p id="perfectoReplayLimit" class="hint perfecto-replay-limit">Replays the last target copy; completed copies are staged beforehand.</p>
+     </div>
      <div id="perfectoRecipeNavigator" class="perfecto-recipe-navigator hidden">
       <div class="perfecto-recipe-heading"><span id="perfectoRecipeCount">Stage —</span><strong id="perfectoRecipeStage">—</strong></div>
       <div id="perfectoRecipeVisual" class="perfecto-recipe-visual" aria-hidden="true"></div>
@@ -144,7 +156,19 @@
     <div class="board-scroll perfecto-board-scroll"><div id="perfectoMaxBoard" class="perfecto-board" aria-label="Hypothetical T46 maximum-case Perfecto preparation board"></div></div>
     <p class="hint perfecto-board-footnote">The T46 benchmark uses Heat of the East Wind when your account has it unlocked, with a lower-tier preparation staircase. No Salt Shakers or random tier skips are assumed.</p>
     <details class="perfecto-comparison-guide">
-     <summary>How to build the T46 benchmark</summary>
+     <summary>Step-by-step construction replay · T46 benchmark</summary>
+     <div id="perfectoMaxReplayControls" class="perfecto-replay-controls">
+      <div class="perfecto-replay-top"><strong id="perfectoMaxReplayStatus">Preparing replay…</strong><span id="perfectoMaxReplayProgress">—</span></div>
+      <p id="perfectoMaxReplayAction" class="perfecto-replay-action">Use Start replay to follow validated cooks, merges, Wind upgrades and moves on the board above.</p>
+      <div class="perfecto-replay-buttons">
+       <button id="perfectoMaxReplayStart" type="button" class="button secondary">Start replay</button>
+       <button id="perfectoMaxReplayPrev" type="button" class="button quiet">Previous</button>
+       <button id="perfectoMaxReplayNext" type="button" class="button secondary">Next</button>
+       <button id="perfectoMaxReplayFinal" type="button" class="button secondary">Skip to final merges</button>
+       <button id="perfectoMaxReplayDone" type="button" class="button quiet">Show final board</button>
+      </div>
+      <p id="perfectoMaxReplayLimit" class="hint perfecto-replay-limit">Replays the last target copy; completed copies are staged beforehand.</p>
+     </div>
      <div id="perfectoMaxRecipeNavigator" class="perfecto-recipe-navigator hidden">
       <div class="perfecto-recipe-heading"><span id="perfectoMaxRecipeCount">Stage —</span><strong id="perfectoMaxRecipeStage">—</strong></div>
       <div id="perfectoMaxRecipeVisual" class="perfecto-recipe-visual" aria-hidden="true"></div>
