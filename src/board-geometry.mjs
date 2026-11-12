@@ -28,7 +28,7 @@ export function normalizeBoardData(rawTiles,rawSlots){
   return {tiles,slots,unlocked};
 }
 
-export function layoutOptions(sourceSlots){
+export function layoutOptions(sourceSlots,{movementMittens=false}={}){
   const current=Array.from({length:BOARD_CELLS},(_,i)=>{
     const type=Number(sourceSlots[i]??-1);
     return Number.isInteger(type)&&type>=0?type:-1;
@@ -36,6 +36,10 @@ export function layoutOptions(sourceSlots){
   const types=current.filter(type=>type>=0);
   if(types.length>MAX_UNLOCKED_SLOTS)throw Error("Cannot prepare more than 100 unlocked slots.");
   const layouts=[{name:"Current positions",slots:current}];
+  // Without Movement Mittens (Sushi upgrade #15, save index 42), players
+  // cannot reposition the plates themselves. Never recommend an impossible
+  // plate layout even when a score search could hypothetically prefer it.
+  if(!movementMittens)return layouts;
   const count=types.length;
   const options=[
     {name:"Left-packed",positions:Array.from({length:count},(_,i)=>i)},
