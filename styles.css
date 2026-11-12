@@ -1736,3 +1736,17 @@ details summary{cursor:pointer;font-size:12px;font-weight:700;color:#9eb7c9}
  .perfecto-compare-position{flex-basis:100%}
  .perfecto-recipe-actions .button{flex:1 1 auto}
 }
+
+.perfecto-recipe-visual{
+ display:flex;align-items:center;flex-wrap:wrap;gap:5px;
+ margin:9px 0 10px
+}
+.perfecto-recipe-ingredient,.perfecto-recipe-product{
+ display:inline-flex;align-items:center;justify-content:center;
+ min-width:34px;padding:6px 9px;border-radius:7px;
+ font-size:11px;font-weight:850;font-variant-numeric:tabular-nums
+}
+.perfecto-recipe-ingredient{background:#214555;border:1px solid #4b7586;color:#d3eaf2}
+.perfecto-recipe-product{background:#245a48;border:1px solid #5eaf8b;color:#c6ffe2}
+.perfecto-recipe-visual.uses-wind .perfecto-recipe-product{background:#473e69;border-color:#8474b1;color:#f0deff}
+.perfecto-recipe-arrow{color:#9abfc8;font-size:11px;font-weight:750}
