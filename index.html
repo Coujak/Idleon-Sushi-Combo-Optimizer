@@ -74,7 +74,7 @@
 <p class="hint mode-comparison-note">Fast, Mid, Slow and Max evaluate 50 distinct profiles per split where possible. Custom evaluates its chosen budget per unique split. No mode examines every possible tier arrangement or merge sequence; results are simulator estimates, not proven global maxima. Historical benchmark boards are listed separately under Found Configurations.</p>
 </details><div id="customEditor" class="custom-editor hidden"><h3>Build your custom sushi board</h3><p class="hint">Choose a tier, then click any unlocked slot to place it. Tier 0 erases a slot. The editor uses your imported slot layout; The configured top tier is preserved by Fill and Clear; lower tiers may be edited.</p><div class="actions"><label>Paint tier <input id="paintTier" type="number" min="0" step="1" value="41"></label><button type="button" id="customFromSave" class="button secondary">Load imported board</button><button type="button" id="customFill" class="button secondary">Fill unlocked slots</button><button type="button" id="customClear" class="button quiet">Clear except top tier</button></div><p id="customStatus" class="hint"></p><div class="board-scroll"><div id="customBoard" class="board custom-board" aria-label="Editable sushi tier board"></div></div><p class="hint">When finished, click Run optimizer above to search this exact board.</p></div><div id="optimizerProgress" class="optimizer-progress hidden" role="status" aria-live="polite"><div class="optimizer-progress-heading"><strong>Optimizing sushi layout…</strong><span id="optimizerProgressText">Preparing search…</span><button id="stopKeepBest" class="button secondary" type="button" title="Stop searching and open the best configuration found during this run, even if your saved record is higher">Stop &amp; Continue</button><button id="cancelSolverProgress" class="button secondary optimizer-progress-cancel" type="button" aria-label="Cancel current optimization">Cancel optimization</button></div><div id="optimizerSingleProgress" class="optimizer-single-progress"><progress id="optimizerProgressBar" max="1" value="0" aria-label="Optimizer progress"></progress></div><div id="optimizerDualProgress" class="optimizer-dual-progress hidden" aria-label="Two-direction supply and Wind engine research"><div class="optimizer-track optimizer-track-supply"><div class="optimizer-track-header"><strong>Supply-heavy search</strong><span id="optimizerSupplyStatus">50/50 · 0%</span></div><progress id="optimizerSupplyProgress" max="1" value="0" aria-label="Supply-heavy split research progress"></progress></div><div class="optimizer-track optimizer-track-engine"><div class="optimizer-track-header"><strong>Engine-heavy search</strong><span id="optimizerEngineStatus">50/50 · 0%</span></div><progress id="optimizerEngineProgress" max="1" value="0" aria-label="Engine-heavy split research progress"></progress></div></div></div><div id="solverScoreBubble" class="solver-score-bubble hidden" role="status" aria-live="polite"><strong id="solverScoreLabel">Estimated combo score:</strong><span id="solverScore">—</span></div><div id="solverResults" class="hidden"><p><strong>Manual merges:</strong> <span id="solverMoves">—</span> · <strong>Repositions:</strong> <span id="solverRepositions">—</span></p><p id="solverNote" class="hint">Import JSON to start.</p><p><strong id="timingStatus">Timing not evaluated</strong></p><p id="timingDetails" class="hint"></p><div id="solverSteps"></div></div></section>
 <section id="perfectoPlanner" class="panel lab-perfecto-panel hidden" role="tabpanel" aria-label="Perfecto Planner" aria-hidden="true">
- <div class="heading"><div><div class="eyebrow">03 · PERFECTO PLANNER</div><h2>Perfecto preparation and Shaker strategy</h2></div><span class="status">One tier at a time</span></div>
+ <div class="heading"><div><div class="eyebrow">03 · PERFECTO PLANNER</div><h2>Perfecto preparation and Shaker strategy</h2></div><span class="status perfecto-header-target" id="perfectoHeaderTarget">Target · Auto</span></div>
  <p class="hint">Automatically targets the first discovered sushi tier missing Perfecto. Choose any discovered tier to override it. Your imported sushi board is used to suggest preparations without modifying your game save.</p>
  <div class="perfecto-controls">
   <div class="perfecto-target-group">
@@ -119,21 +119,21 @@
     <div class="board-scroll perfecto-board-scroll"><div id="perfectoBoard" class="perfecto-board" aria-label="Current-account Perfecto preparation board"></div></div>
     <p class="hint perfecto-board-footnote" id="perfectoProtectedCount">—</p>
     <details class="perfecto-comparison-guide" open>
-     <summary>Step-by-step construction replay · Current account</summary>
+     <summary>Build the final target · Current account</summary>
      <div id="perfectoReplayControls" class="perfecto-replay-controls">
       <div class="perfecto-replay-top"><strong id="perfectoReplayStatus">Preparing replay…</strong><span id="perfectoReplayProgress">—</span></div>
-      <p id="perfectoReplayAction" class="perfecto-replay-action">Use Start replay to follow validated cooks, merges, Wind upgrades and moves on the board above.</p>
+      <p id="perfectoReplayAction" class="perfecto-replay-action">Start a focused demonstration of constructing the last target sushi, with Wind effects shown on the board.</p>
       <div class="perfecto-replay-buttons">
-       <button id="perfectoReplayStart" type="button" class="button secondary">Start replay</button>
+       <button id="perfectoReplayStart" type="button" class="button secondary">Start walkthrough</button>
        <button id="perfectoReplayPrev" type="button" class="button quiet">Previous</button>
        <button id="perfectoReplayNext" type="button" class="button secondary">Next</button>
-       <button id="perfectoReplayNextCopy" type="button" class="button quiet">Next target copy</button>
+       
        <button id="perfectoReplayFinal" type="button" class="button secondary">Skip to final merges</button>
-       <button id="perfectoReplayFill" type="button" class="button secondary">Skip to board fill</button>
+       <button id="perfectoReplayFill" type="button" class="button secondary">Finish supporting sushi</button>
        <button id="perfectoReplayDone" type="button" class="button quiet">Show final board</button>
-       <button id="perfectoReplayConfirmSetup" type="button" class="button secondary hidden">I've cleared these sushi</button>
+       
       </div>
-      <p id="perfectoReplayLimit" class="hint perfecto-replay-limit">Replays the full preparation to the final filled board. Imported sushi that need manual cleanup are never removed silently.</p>
+      <p id="perfectoReplayLimit" class="perfecto-replay-limit perfecto-replay-notice">Starts from a prepared near-final board with one target missing, then constructs that target and fills the supporting workspace.</p>
      </div>
      <div id="perfectoRecipeNavigator" class="perfecto-recipe-navigator hidden">
       <div class="perfecto-recipe-heading"><span id="perfectoRecipeCount">Stage —</span><strong id="perfectoRecipeStage">—</strong></div>
@@ -163,21 +163,21 @@
     <div class="board-scroll perfecto-board-scroll"><div id="perfectoMaxBoard" class="perfecto-board" aria-label="Hypothetical T46 maximum-case Perfecto preparation board"></div></div>
     <p class="hint perfecto-board-footnote">The T46 benchmark uses Heat of the East Wind when your account has it unlocked, with a lower-tier preparation staircase. No Salt Shakers or random tier skips are assumed.</p>
     <details class="perfecto-comparison-guide">
-     <summary>Step-by-step construction replay · T46 benchmark</summary>
+     <summary>Build the final target · T46 benchmark</summary>
      <div id="perfectoMaxReplayControls" class="perfecto-replay-controls">
       <div class="perfecto-replay-top"><strong id="perfectoMaxReplayStatus">Preparing replay…</strong><span id="perfectoMaxReplayProgress">—</span></div>
-      <p id="perfectoMaxReplayAction" class="perfecto-replay-action">Use Start replay to follow validated cooks, merges, Wind upgrades and moves on the board above.</p>
+      <p id="perfectoMaxReplayAction" class="perfecto-replay-action">Start a focused demonstration of constructing the last target sushi, with Wind effects shown on the board.</p>
       <div class="perfecto-replay-buttons">
-       <button id="perfectoMaxReplayStart" type="button" class="button secondary">Start replay</button>
+       <button id="perfectoMaxReplayStart" type="button" class="button secondary">Start walkthrough</button>
        <button id="perfectoMaxReplayPrev" type="button" class="button quiet">Previous</button>
        <button id="perfectoMaxReplayNext" type="button" class="button secondary">Next</button>
-       <button id="perfectoMaxReplayNextCopy" type="button" class="button quiet">Next target copy</button>
+       
        <button id="perfectoMaxReplayFinal" type="button" class="button secondary">Skip to final merges</button>
-       <button id="perfectoMaxReplayFill" type="button" class="button secondary">Skip to board fill</button>
+       <button id="perfectoMaxReplayFill" type="button" class="button secondary">Finish supporting sushi</button>
        <button id="perfectoMaxReplayDone" type="button" class="button quiet">Show final board</button>
-       <button id="perfectoMaxReplayConfirmSetup" type="button" class="button secondary hidden">I've cleared these sushi</button>
+       
       </div>
-      <p id="perfectoMaxReplayLimit" class="hint perfecto-replay-limit">Replays the full preparation to the final filled board. Imported sushi that need manual cleanup are never removed silently.</p>
+      <p id="perfectoMaxReplayLimit" class="perfecto-replay-limit perfecto-replay-notice">Starts from a prepared near-final board with one target missing, then constructs that target and fills the supporting workspace.</p>
      </div>
      <div id="perfectoMaxRecipeNavigator" class="perfecto-recipe-navigator hidden">
       <div class="perfecto-recipe-heading"><span id="perfectoMaxRecipeCount">Stage —</span><strong id="perfectoMaxRecipeStage">—</strong></div>
