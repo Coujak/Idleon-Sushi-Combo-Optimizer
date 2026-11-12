@@ -3,6 +3,7 @@
 import {sushiTierIconPath} from "./sushi-reference.mjs?v=1.16.6";
 import {numberText} from "./lab-model.mjs?v=1.16.6";
 import {availablePerfectoTargets,getPerfectoPlanner} from "./perfecto-planner.mjs?v=1.22.3";
+import {perfectoRecipeStages,perfectoFinalMergeIndex,perfectoRecipeIntegrity} from "./perfecto-recipe-guide.mjs?v=1.23.0";
 
 const $=id=>document.getElementById(id);
 const node=(tag,css="",value)=>{
@@ -71,6 +72,10 @@ function perfectoPreparationSteps(result){
 }
 export function initializePerfectoUI(getSave){
  let plannerTab="combo",tierChoice="auto";
+ let accountPlan=null,benchmarkPlan=null,hoveredPosition=null,pinnedPosition=null;
+ const benchmarkToggle=$("perfectoShowBenchmark");
+ const comparisonStatus=$("perfectoComparePosition");
+ const comparisonWrap=document.querySelector(".perfecto-board-comparison");
  const targetSelect=$("perfectoTarget");
  const cookTierInput=$("perfectoCookTier");
  const summary=$("perfectoTargetSummary");
@@ -115,6 +120,7 @@ export function initializePerfectoUI(getSave){
   }
   for(const cell of plan.board){
    const div=node("div","perfecto-tile perfecto-"+cell.role);
+   div.dataset.position=String(cell.index);
    if(cell.slot>=0)div.classList.add("slot-"+cell.slot);
    else div.classList.add("locked");
    if(cell.preparedTier!==null&&cell.preparedTier>=0){
@@ -131,6 +137,125 @@ export function initializePerfectoUI(getSave){
    box.append(div);
   }
  }
+
+ // The same position is highlighted in both *final* boards. Hover temporarily,
+ // or click to pin the comparison until clicked again.
+ function cellLabel(cell){
+  return !cell||cell.slot<0?"Locked":cell.preparedTier>=0?
+   "T"+(cell.preparedTier+1):"Empty";
+ }
+ function highlightComparison(){
+  const index=hoveredPosition??pinnedPosition;
+  for(const host of [$("perfectoBoard"),$("perfectoMaxBoard")]){
+   for(const tile of host.querySelectorAll(".perfecto-tile")){
+    tile.classList.toggle("perfecto-tile-matched",
+     index!==null&&Number(tile.dataset.position)===index);
+   }
+  }
+  if(index===null){
+   comparisonStatus.textContent=benchmarkToggle.checked?
+    "Hover or select a board cell to compare its position.":
+    "Hover a cell to inspect its position. Enable the benchmark to compare.";
+   return;
+  }
+  const current=cellLabel(accountPlan?.board?.[index]);
+  const benchmark=cellLabel(benchmarkPlan?.board?.[index]);
+  comparisonStatus.textContent="Position "+(index+1)+" · Account: "+current+
+   (benchmarkToggle.checked?" · T46: "+benchmark:"")+
+   (pinnedPosition===index?" · Selected":"");
+ }
+ function setComparisonVisibility(){
+  const visible=benchmarkToggle.checked;
+  comparisonWrap.classList.toggle("is-benchmark-hidden",!visible);
+  $("perfectoScenarioDifference").classList.toggle("hidden",!visible);
+  highlightComparison();
+ }
+ benchmarkToggle.addEventListener("change",setComparisonVisibility);
+ for(const id of ["perfectoBoard","perfectoMaxBoard"]){
+  const board=$(id);
+  board.tabIndex=0;
+  board.setAttribute("aria-describedby","perfectoComparePosition");
+  const getPosition=event=>{
+   const tile=event.target.closest?.(".perfecto-tile");
+   return tile&&board.contains(tile)?Number(tile.dataset.position):null;
+  };
+  board.addEventListener("mouseover",event=>{
+   const position=getPosition(event);
+   if(position===null)return;
+   if(hoveredPosition!==position){hoveredPosition=position;highlightComparison();}
+  });
+  board.addEventListener("mouseleave",()=>{
+   hoveredPosition=null;highlightComparison();
+  });
+  board.addEventListener("click",event=>{
+   const position=getPosition(event);
+   if(position===null)return;
+   pinnedPosition=pinnedPosition===position?null:position;
+   highlightComparison();
+  });
+  board.addEventListener("keydown",event=>{
+   const jumps={ArrowLeft:-1,ArrowRight:1,ArrowUp:-15,ArrowDown:15};
+   if(Object.hasOwn(jumps,event.key)){
+    event.preventDefault();
+    const initial=hoveredPosition??pinnedPosition??0;
+    pinnedPosition=Math.max(0,Math.min(119,initial+jumps[event.key]));
+    hoveredPosition=null;highlightComparison();
+   }else if(event.key==="Escape"){
+    pinnedPosition=null;hoveredPosition=null;highlightComparison();
+   }
+  });
+ }
+ // Recipe stages are a compact, recursively repeated construction pattern.
+ // A full individual-merge replay is not available from the proof certificate.
+ function bindRecipeNavigator(prefix){
+  const section=$(prefix+"RecipeNavigator");
+  const state={stages:[],index:0};
+  function show(){
+   if(!state.stages.length){section.classList.add("hidden");return;}
+   section.classList.remove("hidden");
+   const stage=state.stages[state.index];
+   text(prefix+"RecipeCount","Stage "+(state.index+1)+" of "+state.stages.length);
+   text(prefix+"RecipeStage","T"+stage.from+
+    (stage.direct?" · Direct cook":" → T"+stage.to));
+   const instructions=stage.direct?
+    "Cook T"+stage.from+" directly. No merges are needed for this tier.":
+    stage.wind?
+    "Prepare three T"+stage.from+" sushi together. Merge left into middle: "+
+    "the merge makes T"+(stage.from+1)+" and Wind upgrades the right sushi. "+
+    "Then merge the right sushi into the middle to produce T"+stage.to+".":
+    "Prepare two T"+stage.from+" sushi. Merge right into left to produce T"+
+    stage.to+". Rebuild the ingredients as often as later stages require.";
+   text(prefix+"RecipeDescription",instructions);
+   $(prefix+"RecipePrev").disabled=state.index===0;
+   $(prefix+"RecipeNext").disabled=state.index===state.stages.length-1;
+   $(prefix+"RecipeFinal").disabled=
+    state.index>=perfectoFinalMergeIndex(state.stages);
+   $(prefix+"RecipeStart").disabled=state.index===0;
+  }
+  $(prefix+"RecipePrev").addEventListener("click",()=>{
+   state.index=Math.max(0,state.index-1);show();
+  });
+  $(prefix+"RecipeNext").addEventListener("click",()=>{
+   state.index=Math.min(state.stages.length-1,state.index+1);show();
+  });
+  $(prefix+"RecipeFinal").addEventListener("click",()=>{
+   state.index=perfectoFinalMergeIndex(state.stages);show();
+  });
+  $(prefix+"RecipeStart").addEventListener("click",()=>{
+   state.index=0;show();
+  });
+  return (search,target)=>{
+   const proof=search?.certificate;
+   const check=proof?perfectoRecipeIntegrity(proof,search.sourceTier,target):null;
+   state.stages=check&&!check.valid?[]:
+    perfectoRecipeStages(proof,search?.sourceTier,
+     search?.reason==="direct-cooking"?target:null);
+   state.index=0;show();
+   return check;
+  };
+ }
+ const accountRecipe=bindRecipeNavigator("perfecto");
+ const maximumRecipe=bindRecipeNavigator("perfectoMax");
  function renderBonuses(result){
   const host=$("perfectoBonusCards");host.replaceChildren();
   for(const k of result.bonus.rows){
@@ -175,6 +300,10 @@ export function initializePerfectoUI(getSave){
   $("perfectoCalculator").classList.toggle("hidden",!ready);
   $("perfectoNoData").classList.toggle("hidden",ready);
   if(!ready){
+   accountPlan=null;benchmarkPlan=null;hoveredPosition=null;pinnedPosition=null;
+   highlightComparison();
+   $("perfectoRecipeNavigator").classList.add("hidden");
+   $("perfectoMaxRecipeNavigator").classList.add("hidden");
    text("perfectoNoData",result.reason==="complete"?
     "All discovered sushi are Perfecto. Import an updated save after discovering more.":
     "Import your game save JSON on Overview to plan your Perfecto board.");
@@ -183,6 +312,10 @@ export function initializePerfectoUI(getSave){
   const p=result.plan;
   const account=result.comparisons.account;
   const maximum=result.comparisons.maximum;
+  accountPlan=p;benchmarkPlan=maximum.plan;
+  hoveredPosition=null;pinnedPosition=null;
+  const accountCheck=accountRecipe(account.search,result.target);
+  maximumRecipe(maximum.search,result.target);
   text("perfectoAccountScenario",p.copies+" target copies · "+percent(account.chance)+" per Pepper");
   text("perfectoMaximumScenario",(maximum.plan?.copies??0)+
    " target copies · "+percent(maximum.chance)+" per Pepper");
@@ -258,8 +391,11 @@ export function initializePerfectoUI(getSave){
   const list=$("perfectoPreparationSteps");
   list.replaceChildren(...perfectoPreparationSteps(result).map(step=>node("li","",step)));
   text("perfectoModelNote",proof?
-   "Reproducible merge-only recipe. The required cooking totals may be very large; "+
-   "the planner does not estimate preparation time and does not claim a global optimum.":
+   accountCheck&&!accountCheck.valid?
+   "Recipe counts did not pass internal consistency checks. Do not rely on this preparation estimate.":
+   "Recursive "+(proof.windStages?.length?"Wind-assisted":"merge-only")+
+   " tier recipe. Counts match its stage arithmetic, but every physical movement has not "+
+   "been replayed. This is not a proven global optimum.":
    result.search?.reason==="direct-cooking"?
    "Direct cooking layout. The slot arrangement can be changed as needed.":
    "Heuristic recipe from "+p.searchAttempts+" evaluated search variants, with "+
@@ -297,6 +433,7 @@ export function initializePerfectoUI(getSave){
     state==="blocked"?"NEXT: REVIEW AVAILABLE SLOTS":
     "NEXT: BUILD THE OPTIMIZED BOARD");
   renderBoard(result,p,"perfectoBoard");
+  setComparisonVisibility();
  }
  setPlannerTab("combo");
  return {refresh:render,activateTab:setPlannerTab};
