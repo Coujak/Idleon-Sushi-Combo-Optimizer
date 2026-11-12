@@ -123,9 +123,11 @@ test("The configured highest cookable tier is honored through every replay cook"
   const replay=createPerfectoInPlaceReplay(save,search,plan,62);
   assert.equal(replay.available,true,replay.reason);
   assert.equal(replay.maxCookTier,tier);
-  assert.ok(replay.steps.some(step=>step.kind==="cook"&&step.tier===tier),
+  const actions=Array.isArray(replay.steps)?replay.steps:
+   Array.from({length:replay.totalSteps},(_,i)=>replay.getFrame(i+1).event);
+  assert.ok(actions.some(step=>step.kind==="cook"&&step.tier===tier),
    "a directly cooked base sushi must use the confirmed tier");
-  assert.ok(replay.steps.filter(step=>step.kind==="cook")
+  assert.ok(actions.filter(step=>step.kind==="cook")
    .every(step=>step.tier<=tier));
   assert.equal(validatePerfectoReplayCooking(replay,tier).ok,true);
   assert.equal(validatePerfectoReplayCooking(replay,tier-1).ok,false,
