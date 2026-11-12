@@ -232,13 +232,13 @@ export function createPerfectoRecycledTargetReplay(save,search,plan,target,
    throw Error("The replay is too large for the available action budget.");
  }catch(error){return unavailable(String(error.message||error));}
  const final=Uint8Array.from(board);
- let lastMergesIndex=0,seen=0,windCascadeIndex=null;
+ let lastMergesIndex=0,seen=0,windCascadeIndex=null,longestWind=0;
  for(let i=steps.length-1;i>=0;i--){
   if(steps[i].kind==="merge"&&++seen===8){lastMergesIndex=i+1;break;}
  }
  for(let i=0;i<steps.length;i++){
   const count=steps[i].events?.filter(e=>e.kind==="wind").length??0;
-  if(count>=3){windCascadeIndex=i+1;break;}
+  if(count>longestWind){longestWind=count;windCascadeIndex=i+1;}
  }
  return {
   available:true,mode:"recycling",preparedScenario:true,
@@ -248,6 +248,7 @@ export function createPerfectoRecycledTargetReplay(save,search,plan,target,
   workspacePositions:Array.from({length:width},(_,i)=>begin+i),
   stagingStart:begin,focusPosition:resultingTargetPosition,
   windCap:cap,windUsed:totalWind>0,windCascadeIndex,
+  longestWind,
   lastMergesIndex,finalFillIndex:steps.length,
   totalCooks,totalMerges,totalWind,totalMoves,
   getFrame(step){
