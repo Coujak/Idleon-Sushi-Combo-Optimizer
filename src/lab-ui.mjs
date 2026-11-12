@@ -9,6 +9,7 @@ import {getProgressionAdvice,PROGRESSION_SORT_OPTIONS,PROGRESSION_FILTER_OPTIONS
 import {buildProgressionPurchasePlan} from "./progression-roadmap.mjs?v=1.16.7";
 import {parseGameQuantity} from "./progression-calibration.mjs?v=1.16.3";
 import {overviewTierProgress,importAgeText} from "./overview-helpers.mjs?v=1.19.9";
+import {fireplaceOverviewAdvice} from "./fireplace-advice.mjs?v=1.0.0";
 
 const $=id=>document.getElementById(id);
 const el=(tag,css="",value)=>{
@@ -313,6 +314,14 @@ export function initializeSushiLab(getSave){
    host.append(card);
   }
   renderShakerCards(stats);
+  const fireAdvice=fireplaceOverviewAdvice(data);
+  const fireBox=$("overviewFireplaceAdvice");
+  fireBox.classList.toggle("hidden",!fireAdvice);
+  if(fireAdvice){
+   $("overviewFireplaceAdviceHeading").textContent=fireAdvice.heading;
+   $("overviewFireplaceAdviceSummary").textContent=fireAdvice.summary;
+   $("overviewFireplaceAdviceDetail").textContent=fireAdvice.detail;
+  }
   renderMissingCards("labMissingPerfectos",entries.filter(x=>x.discovered&&!x.perfecto),
    "All discovered sushi have Perfecto.",hasTracker);
   renderMissingCards("labMissingTiers",entries.filter(x=>!x.discovered),
