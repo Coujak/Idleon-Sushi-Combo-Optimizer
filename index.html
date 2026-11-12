@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Idleon Sushi Station Lab</title><link rel="stylesheet" href="styles.css?v=1.39.0"></head>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Idleon Sushi Station Lab</title><link rel="stylesheet" href="styles.css?v=1.40.0"></head>
 <body><main class="shell"><header class="hero"><div class="hero-copy"><div class="eyebrow hero-eyebrow"><span class="eyebrow-dot"></span> IDLEON · SUSHI STATION TOOLKIT</div><h1>Sushi Station <span>Lab</span></h1><p>Your Sushi Station companion: explore your account, plan the next upgrade, study knowledge tiers, and optimize your Combo Meter.</p><div class="hero-chips"><span>✦ Account overview</span><span>↗ Combo Meter planner</span><span>◈ Upgrade & Knowledge guides</span></div></div><div class="hero-visual" aria-hidden="true"><div class="hero-orbit"></div><img src="assets/sushi/Leviathan%20Roll%20(Tier%2058).png" alt=""><div class="hero-visual-label">TIER 58</div></div></header>
 <nav class="lab-navigation" aria-label="Sushi Station sections" role="tablist">
 <button type="button" class="lab-nav-button" role="tab" data-lab-target="overview" aria-controls="lab-overview" aria-selected="true">Overview</button>
@@ -18,8 +18,11 @@
 <div class="lab-stat-grid" id="labOverviewStats" aria-live="polite"></div>
 <section class="lab-dashboard-section" aria-labelledby="labShakerTitle"><h3 id="labShakerTitle">Available shakers</h3><p class="hint">Current uses and daily refills from your imported save.</p><div id="labShakerCards" class="lab-shaker-grid" aria-live="polite"></div></section>
 <div class="lab-dashboard-lists">
-<div class="lab-dashboard-column">
 <section class="lab-dashboard-section" aria-labelledby="labMissingPerfectosTitle"><h3 id="labMissingPerfectosTitle">Missing Perfectos <span id="labMissingPerfectosCount" class="lab-section-count"></span></h3><p class="hint">Discovered sushi that are not Perfecto yet.</p><div id="labMissingPerfectos" class="lab-sushi-grid" aria-live="polite"></div><button id="labMissingPerfectosToggle" class="button secondary lab-list-toggle hidden" type="button" aria-controls="labMissingPerfectos" aria-expanded="false">Show all</button></section>
+
+</div>
+<section class="lab-dashboard-section" aria-labelledby="labMissingTiersTitle"><h3 id="labMissingTiersTitle">Missing sushi tiers <span id="labMissingTiersCount" class="lab-section-count"></span></h3><p class="hint">Sushi types you have not discovered yet.</p><div id="labMissingTiers" class="lab-sushi-grid" aria-live="polite"></div><button id="labMissingTiersToggle" class="button secondary lab-list-toggle hidden" type="button" aria-controls="labMissingTiers" aria-expanded="false">Show all</button></section>
+</div>
 <div id="overviewFireplaceAdvice" class="overview-fireplace-advice hidden" role="status" aria-live="polite">
 <div class="overview-fireplace-advice-intro">
 <img id="overviewFireplaceAdviceIcon" class="overview-fireplace-advice-icon" width="48" height="48" alt="Potassium Firelighter" loading="lazy">
@@ -27,9 +30,6 @@
 </div>
 <div id="overviewFireplaceAdviceGains" class="overview-fireplace-advice-gains hidden" aria-label="Extra Spark-based fireplace bonus from one additional Purple fireplace"></div>
 <p id="overviewFireplaceAdviceNote" class="overview-fireplace-advice-note hidden">Estimated extra fireplace bonus from adding one Purple. Assumes continuous Spark generation; does not include what the replaced fireplace loses.</p>
-</div>
-</div>
-<section class="lab-dashboard-section" aria-labelledby="labMissingTiersTitle"><h3 id="labMissingTiersTitle">Missing sushi tiers <span id="labMissingTiersCount" class="lab-section-count"></span></h3><p class="hint">Sushi types you have not discovered yet.</p><div id="labMissingTiers" class="lab-sushi-grid" aria-live="polite"></div><button id="labMissingTiersToggle" class="button secondary lab-list-toggle hidden" type="button" aria-controls="labMissingTiers" aria-expanded="false">Show all</button></section>
 </div>
 </section>
 <section class="panel"><div class="heading"><div><div class="eyebrow">02 · SUSHI STATION</div><h2>Your board</h2></div><span id="boardStatus" class="status">Import a save</span></div><p class="hint">The board reflects your imported save. Select any unlocked plate to inspect its sushi, tier, plate type and Perfecto status.</p><div id="boardPlateSummary" class="legend overview-plate-summary" aria-label="Unlocked plates by type"></div><div class="board-scroll"><div id="board" class="board" aria-label="Sushi Station board"></div><div id="fireplaces" aria-label="Fireplaces below the board"></div></div><p id="boardDetails" class="hint">Your imported tiles will appear here.</p><div id="boardSelection" class="overview-board-selection hidden" role="status" aria-live="polite"></div></section>
