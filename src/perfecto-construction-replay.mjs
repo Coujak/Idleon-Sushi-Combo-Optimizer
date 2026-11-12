@@ -5,7 +5,7 @@ import {simulateMerge,simulateRelocation} from "./optimizer-core.mjs";
 
 const LENGTH=120;
 export function createPerfectoConstructionReplay(save,search,target,
- {maxIngredients=6000,maxActions=25000}={}){
+ {maxIngredients=15000,maxActions=45000}={}){
  const proof=search?.certificate;
  if(!proof||!Array.isArray(proof.stages)||!proof.stages.length)
   return {available:false,reason:"No merge recipe is available for this target."};
