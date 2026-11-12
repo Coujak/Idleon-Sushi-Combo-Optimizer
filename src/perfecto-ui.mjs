@@ -36,9 +36,13 @@ function perfectoPreparationSteps(result){
    plan.copies+" target copies requires "+proof.cooksExact+" cooks and "+
    proof.mergesExact+" merges.");
   if(proof.startingTier<target){
-   steps.push("Combine equal-tier sushi from east to west, working up from T"+
-    proof.startingTier+" to T"+target+
-    ". Repeat the same sequence for each copy. This recipe does not rely on Wind or Salt luck.");
+   if(proof.windStages?.length){
+    steps.push("This certified recipe uses Heat of the East Wind. Prepare three equal-tier sushi in a contiguous workspace for each Wind stage. Merge left into middle (Wind upgrades the right), then right into middle. Other stages use ordinary two-to-one merges. Repeat for each target copy; no Salt luck is assumed.");
+   }else{
+    steps.push("Combine equal-tier sushi using regular two-to-one merges, working up from T"+
+     proof.startingTier+" to T"+target+
+     ". Repeat for each copy. This recipe does not rely on Wind or Salt luck.");
+   }
   }
   if(proof.supportingCount){
    steps.push("After building the targets, use the released workspace to make "+
@@ -62,6 +66,7 @@ function perfectoPreparationSteps(result){
 export function initializePerfectoUI(getSave){
  let plannerTab="combo",tierChoice="auto";
  const targetSelect=$("perfectoTarget");
+ const cookTierInput=$("perfectoCookTier");
  const summary=$("perfectoTargetSummary");
  function setPlannerTab(target){
   plannerTab=target==="perfecto"?"perfecto":"combo";
@@ -86,6 +91,7 @@ export function initializePerfectoUI(getSave){
   });
  }
  targetSelect.addEventListener("change",()=>{tierChoice=targetSelect.value;render();});
+ cookTierInput?.addEventListener("change",render);
  $("perfectoResetTarget").addEventListener("click",()=>{tierChoice="auto";render();});
  function text(id,value){$(id).textContent=value;}
  function sushiIcon(tier,css){
@@ -94,14 +100,14 @@ export function initializePerfectoUI(getSave){
   img.alt="";img.loading="lazy";img.onerror=()=>img.remove();
   return img;
  }
- function renderBoard(result){
-  const box=$("perfectoBoard");
+ function renderBoard(result,plan=result.plan,hostId="perfectoBoard"){
+  const box=$(hostId);
   box.replaceChildren();
-  if(!result.plan){
+  if(!plan){
    box.append(node("p","hint","Import an account save to see a recommended board."));
    return;
   }
-  for(const cell of result.plan.board){
+  for(const cell of plan.board){
    const div=node("div","perfecto-tile perfecto-"+cell.role);
    if(cell.slot>=0)div.classList.add("slot-"+cell.slot);
    else div.classList.add("locked");
@@ -153,7 +159,11 @@ export function initializePerfectoUI(getSave){
    tierChoice="auto";
   }
   targetSelect.value=tierChoice;
-  const result=getPerfectoPlanner(saved,{tier:tierChoice});
+  const cookTierValue=cookTierInput?.value.trim()??"";
+  const parsedCookTier=Number(cookTierValue);
+  const cookTier=cookTierValue!==""&&Number.isInteger(parsedCookTier)&&
+   parsedCookTier>=1&&parsedCookTier<=46?parsedCookTier:null;
+  const result=getPerfectoPlanner(saved,{tier:tierChoice,cookTier});
   renderBonuses(result);
   const ready=!!result.target&&!!result.plan;
   $("perfectoCalculator").classList.toggle("hidden",!ready);
@@ -165,6 +175,37 @@ export function initializePerfectoUI(getSave){
    return;
   }
   const p=result.plan;
+  const account=result.comparisons.account;
+  const maximum=result.comparisons.maximum;
+  text("perfectoAccountScenario",p.copies+" target copies · "+percent(account.chance)+" per Pepper");
+  text("perfectoMaximumScenario",(maximum.plan?.copies??0)+
+   " target copies · "+percent(maximum.chance)+" per Pepper");
+  function scenarioFuel(comparison){
+   const econ=comparison.economy;
+   const source=comparison.search?.sourceTier;
+   return "Cook from "+(source?"T"+source:"unknown tier")+
+    " · Recipe Fuel: "+display(econ?.totalFuel)+
+    (Number.isFinite(econ?.generationHours)&&econ.generationHours!==null?
+     " · "+display(econ.generationHours)+" hours of modeled Fuel generation":"");
+  }
+  text("perfectoAccountFuel",scenarioFuel(account));
+  text("perfectoMaximumFuel",scenarioFuel(maximum));
+  text("perfectoScenarioDifference",
+   "Benchmark difference: "+result.comparisons.copyDifference+
+   " target copies · "+result.comparisons.percentagePointGain.toFixed(4)+
+   " percentage points per Pepper. The benchmark assumes T46 direct cooking and is not your current account.");
+  text("perfectoAccountBoardTag",
+   cookTier!==null?"Confirmed T"+cookTier+" cooking tier":"Estimated from imported JSON");
+  text("perfectoMaximumBoardTag","Hypothetical T46 cooking unlocked and Fuel-capable");
+  const maxP=maximum.plan;
+  text("perfectoMaximumSummary",maxP?
+   maxP.copies+" target copies · "+maxP.protected+" protected higher-tier sushi · "+
+   maxP.unlocked+" unlocked slots":"No constructible benchmark board");
+  const maximumGuide=$("perfectoMaxPreparationSteps");
+  maximumGuide.replaceChildren(...(maxP?
+   perfectoPreparationSteps({...result,plan:maxP,search:maximum.search}):
+   ["No benchmark preparation available."]).map(step=>node("li","",step)));
+  renderBoard(result,maxP,"perfectoMaxBoard");
   summary.replaceChildren(sushiIcon(result.target,"perfecto-target-icon"),
    node("span","","T"+result.target+" · "+result.current.name+
     (result.current.perfecto?" · Perfecto":" · Not Perfecto")));
@@ -248,7 +289,7 @@ export function initializePerfectoUI(getSave){
     state==="completed"?"NEXT: CHOOSE ANOTHER TARGET":
     state==="blocked"?"NEXT: REVIEW AVAILABLE SLOTS":
     "NEXT: BUILD THE OPTIMIZED BOARD");
-  renderBoard(result);
+  renderBoard(result,p,"perfectoBoard");
  }
  setPlannerTab("combo");
  return {refresh:render,activateTab:setPlannerTab};
