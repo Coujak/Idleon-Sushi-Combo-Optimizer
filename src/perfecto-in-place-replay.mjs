@@ -55,8 +55,16 @@ export function createPerfectoInPlaceReplay(save,search,plan,target){
  const recyclingNeeds=recycled?.requiredSlots??null;
  const milestones=[];
  let maxTier=source;
- for(let step=1;step<=compact.finalFillIndex;step++){
-  const event=compact.getFrame(step).event;
+ // Validate every intermediate frame too, not only the initial/final board.
+ // No move, cook or Wind effect may alter the finished sushi elsewhere.
+ const outside=final.flatMap((_,i)=>clearing.has(i)?[]:[i]);
+ for(let step=1;step<=compact.totalSteps;step++){
+  const frame=compact.getFrame(step);
+  if(outside.some(i=>frame.board[i]!==final[i]))
+   return fail("Construction step "+step+
+    " unexpectedly changes an already completed sushi outside the workspace.");
+  if(step>compact.finalFillIndex)continue;
+  const event=frame.event;
   if(event?.kind!=="merge")continue;
   const reached=Math.max(event.tier??0,
    ...(event.events??[]).map(e=>e.tier??0));
