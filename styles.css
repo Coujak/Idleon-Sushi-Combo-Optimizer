@@ -1750,3 +1750,54 @@ details summary{cursor:pointer;font-size:12px;font-weight:700;color:#9eb7c9}
 .perfecto-recipe-product{background:#245a48;border:1px solid #5eaf8b;color:#c6ffe2}
 .perfecto-recipe-visual.uses-wind .perfecto-recipe-product{background:#473e69;border-color:#8474b1;color:#f0deff}
 .perfecto-recipe-arrow{color:#9abfc8;font-size:11px;font-weight:750}
+
+/* Actual last-copy construction replay replaces generic recipe chips. */
+.perfecto-comparison-guide>.perfecto-recipe-navigator,
+.perfecto-comparison-guide>.perfecto-recipe-notes{display:none}
+.perfecto-replay-controls{display:flex;flex-direction:column;gap:8px;min-width:0}
+.perfecto-replay-top{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px}
+.perfecto-replay-top strong{color:#d8f8e6;font-size:12px}
+.perfecto-replay-top span{font-size:11px;color:#9abfc7;font-variant-numeric:tabular-nums}
+.perfecto-replay-action{margin:0;min-height:34px;font-size:12px;line-height:1.55;color:#c1dce2}
+.perfecto-replay-buttons{display:flex;flex-wrap:wrap;gap:6px}
+.perfecto-replay-buttons .button{font-size:11px;padding:7px 9px;min-height:33px}
+.perfecto-replay-buttons .button:disabled{opacity:.43;cursor:not-allowed}
+.perfecto-replay-limit{font-size:10px;line-height:1.55;margin:0;color:#9db7c3}
+.perfecto-board .perfecto-tile.perfecto-replay-from{
+ outline:2px solid #f6d777!important;outline-offset:-1px;
+ box-shadow:0 0 0 1px #503f10!important;z-index:4
+}
+.perfecto-board .perfecto-tile.perfecto-replay-to{
+ outline:2px solid #80e8ff!important;outline-offset:-1px;z-index:4;
+ box-shadow:inset 0 0 0 2px #1ec9f7!important
+}
+.perfecto-board .perfecto-tile.perfecto-replay-wind{
+ outline:2px solid #d7a8ff!important;outline-offset:-1px;
+ box-shadow:inset 0 0 0 2px #af7ee3!important;z-index:4
+}
+@media(max-width:620px){
+ .perfecto-replay-buttons .button{flex:1 1 100px}
+}
+.perfecto-knowledge-theory{
+ margin:13px 0;padding:15px;border:1px solid #365465;
+ border-radius:12px;background:#102934
+}
+.perfecto-theory-heading{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;align-items:center}
+.perfecto-theory-heading strong{font-size:14px;color:#d9f6e5}
+.perfecto-theory-heading .hint{font-size:11px}
+.perfecto-theory-example{font-size:13px;color:#e0f4eb;font-weight:750;margin:11px 0 4px}
+.perfecto-knowledge-theory>.hint{font-size:11px;line-height:1.5}
+.perfecto-theory-results{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;margin:12px 0}
+.perfecto-theory-results>div{
+ display:flex;flex-direction:column;gap:7px;
+ background:#172f3c;border:1px solid #3a5b69;border-radius:9px;padding:11px
+}
+.perfecto-theory-results span{font-size:11px;color:#abc7ce}
+.perfecto-theory-results strong{font-size:17px;color:#bdffdc;font-variant-numeric:tabular-nums}
+.perfecto-knowledge-table-scroll{width:100%;overflow-x:auto}
+.perfecto-knowledge-table{width:100%;min-width:530px;border-collapse:collapse;font-size:12px;font-variant-numeric:tabular-nums}
+.perfecto-knowledge-table th{text-align:center;font-weight:700;color:#c0dce2;background:#1c3a47;padding:10px 7px;white-space:nowrap}
+.perfecto-knowledge-table td{text-align:center;color:#c5dfdf;border-top:1px solid #31515d;padding:9px 7px}
+.perfecto-knowledge-table tr.is-next td{color:#dbffeb;background:#21503e;font-weight:750}
+.perfecto-theory-note{margin:11px 0 0}
+@media(max-width:690px){.perfecto-theory-results{grid-template-columns:1fr}}
