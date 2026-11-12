@@ -686,7 +686,7 @@ test("Knowledge panel aligns both tier rows and all three chance results consist
  assert.match(css,/\.perfecto-bonus-grid\{display:grid;grid-template-columns:repeat\(2,minmax\(0,1fr\)\);align-items:stretch/);
  assert.match(css,/\.perfecto-bonus-item\{display:grid;grid-template-columns:52px minmax\(0,1fr\);align-items:center/);
  assert.match(css,/\.perfecto-milestone-level-card\{\s*display:grid;grid-template-rows:22px minmax\(56px,1fr\);gap:8px/);
- assert.match(css,/\.perfecto-milestone-card-heading\{\s*display:grid;grid-template-columns:minmax\(0,1fr\) auto;\s*align-items:center/);
+ assert.match(css,/\.perfecto-milestone-card-heading\{\s*display:grid;grid-template-columns:minmax\(0,1fr\) auto;\s*align-items:baseline/);
  assert.match(css,/\.perfecto-milestone-current,\.perfecto-milestone-goal\{\s*display:grid;grid-template-rows:16px 36px/);
  assert.match(css,/\.perfecto-milestone-flow-arrow\{\s*display:grid;place-items:center;align-self:end;width:28px;height:36px/);
  assert.match(css,/\.perfecto-theory-results\{display:grid;grid-template-columns:repeat\(3,minmax\(0,1fr\)\);align-items:stretch/);
