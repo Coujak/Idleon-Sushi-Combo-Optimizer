@@ -217,9 +217,11 @@
   <div class="perfecto-knowledge-theory">
    <div class="perfecto-theory-heading">
     <strong>Next Knowledge milestone</strong>
-    <details class="perfecto-milestone-info">
-     <summary aria-label="View upcoming T50 and T54 Knowledge milestones" title="View future milestones">i</summary>
-     <div class="perfecto-milestone-popover">
+    <div class="perfecto-milestone-info">
+     <button id="perfectoMilestoneInfo" type="button" class="perfecto-milestone-trigger"
+      aria-label="View upcoming T50 and T54 Knowledge milestones" aria-expanded="false"
+      aria-controls="perfectoMilestonePopover" title="View future milestones">i</button>
+     <div id="perfectoMilestonePopover" class="perfecto-milestone-popover" role="region" aria-label="Future Knowledge milestones">
       <strong>Upcoming Knowledge milestones</strong>
       <p class="hint">Future T50 and T54 Knowledge levels, with the same target sushi and board size.</p>
       <div class="perfecto-knowledge-table-scroll">
@@ -229,7 +231,7 @@
        </table>
       </div>
      </div>
-    </details>
+    </div>
    </div>
    <p class="perfecto-theory-example" id="perfectoTheoryLevels">Next T50 / T54 milestones</p>
    <p id="perfectoTheoryBonus" class="hint">Import a save to calculate future Perfecto chance.</p>
