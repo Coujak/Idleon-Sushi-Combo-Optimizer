@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Idleon Sushi Station Lab</title><link rel="stylesheet" href="styles.css?v=1.21.0"></head>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Idleon Sushi Station Lab</title><link rel="stylesheet" href="styles.css?v=1.21.2"></head>
 <body><main class="shell"><header class="hero"><div class="hero-copy"><div class="eyebrow hero-eyebrow"><span class="eyebrow-dot"></span> IDLEON · SUSHI STATION TOOLKIT</div><h1>Sushi Station <span>Lab</span></h1><p>Your Sushi Station companion: explore your account, plan the next upgrade, study knowledge tiers, and optimize your Combo Meter.</p><div class="hero-chips"><span>✦ Account overview</span><span>↗ Combo Meter planner</span><span>◈ Upgrade & Knowledge guides</span></div></div><div class="hero-visual" aria-hidden="true"><div class="hero-orbit"></div><img src="assets/sushi/Leviathan%20Roll%20(Tier%2058).png" alt=""><div class="hero-visual-label">TIER 58</div></div></header>
 <nav class="lab-navigation" aria-label="Sushi Station sections" role="tablist">
 <button type="button" class="lab-nav-button" role="tab" data-lab-target="overview" aria-controls="lab-overview" aria-selected="true">Overview</button>
@@ -79,7 +79,10 @@
  <div class="perfecto-controls">
   <label class="perfecto-tier-select">Target sushi tier<select id="perfectoTarget"><option value="auto">Auto · next missing tier</option></select></label>
   <button id="perfectoResetTarget" type="button" class="button quiet">Reset to next missing</button>
-
+  <label class="perfecto-cook-tier">Highest tier you can cook
+   <input id="perfectoCookTier" type="number" min="1" max="46" step="1" inputmode="numeric" placeholder="Auto from JSON" aria-describedby="perfectoCookTierHint">
+   <small id="perfectoCookTierHint">Optional: correct the estimated direct-cooking limit. Leave empty to use JSON.</small>
+  </label>
  </div>
  <div id="perfectoNoData" class="lab-empty-state" role="status">Import your game save JSON on Overview to start.</div>
  <div id="perfectoCalculator" class="hidden">
@@ -93,7 +96,7 @@
   <div class="perfecto-improvement" aria-live="polite"><strong id="perfectoImprovement">—</strong><span id="perfectoImprovementDetail">—</span></div>
   <p class="hint perfecto-caveat">Your current board comes from your imported game data. The optimized board uses the recommended layout below. More copies of the target sushi can improve the chance <strong>per Pepper use</strong>. These estimates assume independent Perfecto rolls and may differ from the game.</p>
   <div class="perfecto-section-head"><h3>2 · Optimized final board</h3><span class="perfecto-count-label" id="perfectoCopyCount">—</span></div>
-  <p class="hint">The planner automatically compares buildable starting arrangements and valid merges and Heat of the East Wind cascades. It automatically preserves your existing higher-tier sushi, finds the strongest final board in its search, and shows only that arrangement for you to recreate in-game.</p>
+  <p class="hint">The planner uses a resource-accounted cooking recipe with verified two-to-one merges and Heat of the East Wind. It preserves higher-tier sushi and reserves the workspace needed to construct your targets. Unverified search candidates are not presented as buildable instructions.</p>
   <div class="perfecto-board-note" id="perfectoPreparationSummary"></div>
   <div class="perfecto-legend"><span><i class="perfecto-legend-target"></i> Target copies</span><span><i class="perfecto-legend-new"></i> Needs preparation</span><span><i class="perfecto-legend-ingredient"></i> Other sushi</span><span><i class="perfecto-legend-protected"></i> Protected</span><span><i class="perfecto-legend-locked"></i> Locked</span><span><i class="perfecto-legend-regular"></i> Regular plate</span><span><i class="perfecto-legend-hot"></i> Hot plate</span><span><i class="perfecto-legend-cold"></i> Cold plate</span><span><i class="perfecto-legend-milk"></i> Milktoast plate</span></div>
   <div class="board-scroll perfecto-board-scroll"><div id="perfectoBoard" class="perfecto-board" aria-label="Recommended Perfecto target sushi board"></div></div>
@@ -211,4 +214,4 @@
 <div class="lab-table-wrap"><table class="lab-data-table" aria-label="Sushi knowledge tiers"><thead><tr><th>Tier and knowledge effect</th><th>Knowledge level</th><th>EXP / next</th><th>Current bonus</th><th>Perfecto status</th></tr></thead><tbody id="labKnowledgeRows"></tbody></table></div>
 <p class="hint lab-disclaimer">Values reflect the imported save. Perfecto doubles the relevant knowledge bonus; EXP and bonuses may differ from the game if the rules change in an update.</p>
 </section></div>
-</main><script type="module" src="src/app.js?v=1.21.0"></script></body></html>
+</main><script type="module" src="src/app.js?v=1.21.2"></script></body></html>
