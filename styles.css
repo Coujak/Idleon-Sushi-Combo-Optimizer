@@ -1979,24 +1979,17 @@ details summary{cursor:pointer;font-size:12px;font-weight:700;color:#9eb7c9}
  .perfecto-board .perfecto-tile.perfecto-replay-wind-live{animation:none}
 }
 
-/* Save-aware fireplace guidance, directly below the Overview campfire row. */
+/* Brief fireplace recommendation under Missing Perfectos. */
+#lab-overview .lab-dashboard-column{
+ display:flex;flex-direction:column;gap:12px;min-width:0;
+}
 #lab-overview .overview-fireplace-advice{
- margin-top:16px;padding:13px 15px;
+ margin:0;padding:12px 14px;
  background:#132c35;border:1px solid #315767;border-radius:11px;
 }
-#lab-overview .overview-fireplace-advice-head{
- display:flex;align-items:center;justify-content:space-between;
- flex-wrap:wrap;gap:6px 14px;
-}
-#lab-overview .overview-fireplace-advice-head strong{
- font-size:14px;color:#d7f3ec;
-}
-#lab-overview .overview-fireplace-advice-head span{
- color:#8eafba;font-size:11px;
+#lab-overview .overview-fireplace-advice strong{
+ font-size:13px;color:#d7f3ec;
 }
 #lab-overview .overview-fireplace-advice p{
- margin:7px 0 0;font-size:12px;line-height:1.55;
-}
-#lab-overview .overview-fireplace-advice .hint{
- color:#aac0c7;font-size:11px;
+ margin:5px 0 0;font-size:12px;line-height:1.5;color:#aac0c7;
 }
