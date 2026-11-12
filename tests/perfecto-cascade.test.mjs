@@ -98,3 +98,25 @@ test("Both Perfecto boards offer a jump to the real Wind activation",()=>{
  assert.ok(ui.includes('const wind=search?.certificate?.supportingCascade'));
  assert.ok(ui.includes('createPerfectoInPlaceReplay(saved,search,plan,target)'));
 });
+
+
+test("T40 final board reserves three additional T40 sushi rather than cooking T39/T38/T37",()=>{
+ const {save,search,plan}=fixture(40,62);
+ const support=search.certificate.supportingSushi;
+ assert.equal(search.sourceTier,40);
+ assert.equal(search.targetCount,77);
+ assert.equal(support.length,22);
+ assert.deepEqual(support.map(x=>x.tier),
+  Array.from({length:22},(_,i)=>Math.max(40,58-i)));
+ assert.equal(support.filter(x=>x.tier===40).length,4);
+ assert.ok(support.every(x=>x.tier>=search.sourceTier));
+ assert.equal(search.board.filter(t=>t===62).length,77);
+ assert.equal(search.board.filter(t=>t===64).length,1);
+ assert.equal(search.certificate.supportingCascade?.directFillerCount,3);
+ assert.equal(search.certificate.supportingCascade?.supportingCount,19);
+ const replay=createPerfectoFinalTargetReplay(save,search,plan,62);
+ assert.equal(replay.available,true,replay.reason);
+ assert.deepEqual(Array.from(replay.getFrame(replay.totalSteps).board),search.board);
+ assert.ok(Array.from(replay.getFrame(replay.totalSteps).board)
+  .filter(tier=>tier===40).length===4);
+});
