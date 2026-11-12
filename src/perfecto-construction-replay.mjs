@@ -5,7 +5,7 @@ import {simulateMerge,simulateRelocation} from "./optimizer-core.mjs";
 
 const LENGTH=120;
 export function createPerfectoConstructionReplay(save,search,target,
- {maxIngredients=15000,maxActions=45000}={}){
+ {maxIngredients=15000,maxActions=45000,workspaceStart=null}={}){
  const proof=search?.certificate;
  if(!proof||!Array.isArray(proof.stages)||!proof.stages.length)
   return {available:false,reason:"No merge recipe is available for this target."};
@@ -45,6 +45,13 @@ export function createPerfectoConstructionReplay(save,search,target,
   run=pos===previous+1?run+1:1;
   previous=pos;
   if(run>=workspace){benchStart=pos-workspace+1;break;}
+ }
+ if(workspaceStart!==null){
+  const requested=Number(workspaceStart);
+  if(!Number.isInteger(requested)||requested<0||requested+workspace>LENGTH||
+     !Array.from({length:workspace},(_,i)=>requested+i).every(pos=>flex.includes(pos)))
+   return {available:false,reason:"Requested workspace is blocked or noncontiguous."};
+  benchStart=requested;
  }
  if(benchStart===null)
   return {available:false,reason:"No contiguous workspace for the replay."};
