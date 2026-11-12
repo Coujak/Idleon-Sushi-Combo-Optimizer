@@ -296,7 +296,8 @@ export function certifiedCarryBoard(geom,target,economy,windCap=0){
     startingTier:source.tier,targetTier:target,
     finalCopies:copies,workspaceSlots:workspace,cooksExact:cooks.toString(),
     mergesExact:merges.toString(),windEventsExact:wind.toString(),
-    cooksPerCopyExact:recipe.cooksExact,windStages:recipe.stages.filter(stage=>stage.wind),
+    cooksPerCopyExact:recipe.cooksExact,stages:recipe.stages,
+     windStages:recipe.stages.filter(stage=>stage.wind),
     normalStages:recipe.stages.filter(stage=>!stage.wind),
     estimatedFuel,generationHours:fuelHours,capacityShare:source.share,
     proof:recipe.usesWind?
