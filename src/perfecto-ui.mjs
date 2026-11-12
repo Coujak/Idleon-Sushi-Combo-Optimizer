@@ -2,7 +2,7 @@
 // The optimizer chooses its own final copy count and prepared arrangement.
 import {sushiTierIconPath} from "./sushi-reference.mjs?v=1.16.6";
 import {numberText} from "./lab-model.mjs?v=1.16.6";
-import {availablePerfectoTargets,getPerfectoPlanner} from "./perfecto-planner.mjs?v=1.21.2";
+import {availablePerfectoTargets,getPerfectoPlanner} from "./perfecto-planner.mjs?v=1.22.2";
 
 const $=id=>document.getElementById(id);
 const node=(tag,css="",value)=>{
