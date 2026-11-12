@@ -478,7 +478,11 @@ async function showSolver(signal,foundId=null,savedOnly=false){
     (Number($("baseTier").value)||0));
   // A protected Tier 64 is retained for lower-tier legacy setups. Above
   // Tier 64 the protected preparation anchor becomes the selected maximum.
-  const arrangements=custom?[{name:"Current positions",slots}]:layoutOptions(slots);
+  // The MOVE button for repositioning plates is unlocked by Movement Mittens.
+  // It is not automatically available just because a player has Hot slots.
+  const movementMittens=Number(imported.sushi?.[2]?.[42]??0)>0;
+  const arrangements=custom?[{name:"Current positions",slots}]:
+   layoutOptions(slots,{movementMittens});
   const perSplit=Number($("customPerSplit").value);
   const customSettings={splitMode:$("customSplitMode").value,perSplit};
   if(!custom&&optimizerMode==="optimizer5"&&(!Number.isSafeInteger(perSplit)||perSplit<1||perSplit>1000))
@@ -809,6 +813,7 @@ async function showSolver(signal,foundId=null,savedOnly=false){
   else if(dualSplit)
    $("solverNote").textContent="This is the best completed configuration from the current run. "+$("solverNote").textContent;
   $("solverNote").textContent+=(foundInfo?" This is a previously found fixed board, not a configuration discovered by an optimizer.":"")+" Mode: "+optimizerModeLabel+". Winning strategy: "+result.strategy+". Slot arrangement: "+(solution.layoutName??"Current positions")+". Available prepared tier: "+maxTier+"; East Wind limit: "+cap+".";
+  if(!movementMittens&&!custom)$("solverNote").textContent+=" Slot positions are kept unchanged because Movement Mittens is not unlocked.";
   if(solution.adaptive)$("solverNote").textContent+=" Adaptive "+solution.shape+
    " (working tier T"+solution.workingTier+
    (solution.referenceExperiment?", learned from historical Exp "+solution.referenceExperiment:"")+
