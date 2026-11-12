@@ -433,6 +433,7 @@ export function initializePerfectoUI(getSave){
     display(replay.totalWind)+" sushi are upgraded by Wind across the sequence. "+
     "This is a separate teaching board reserving "+replay.requiredSlots+
     " contiguous unlocked cells; it is NOT the final Perfecto copy-maximizing board. "+
+    "Reposition steps require Movement Mittens. "+
     "No Salt Shakers or higher-tier cooking are assumed.":
     ready?
     (windPlan?"SUPPORT WIND CASCADE · "+windPlan.windChainLength+
