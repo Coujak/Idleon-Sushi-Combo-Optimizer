@@ -31,7 +31,7 @@ test("top row can be entirely empty while bottom rows are occupied",()=>{
   assert.ok(normalized.slots.slice(0,20).every(t=>t<0));
   assert.ok(normalized.slots.slice(105,120).every(t=>t>=0));
   assert.equal(normalized.tiles[20],63);
-  const layouts=layoutOptions(normalized.slots);
+  const layouts=layoutOptions(normalized.slots,{movementMittens:true});
   assert.deepEqual(layouts[0].slots,normalized.slots);
   assert.ok(layouts.some(l=>l.name==="Left-packed"&&l.slots[0]>=0&&l.slots[119]<0));
   assert.ok(layouts.some(l=>l.name==="Centered"&&l.slots[10]>=0&&l.slots[109]>=0));
@@ -51,4 +51,29 @@ test("more than 100 unlocked slots is rejected rather than truncating the bottom
   const {tiles,slots}=mockSave(Array.from({length:101},(_,i)=>i+19));
   assert.throws(()=>normalizeBoardData(tiles,slots),/at most 100/);
   assert.throws(()=>layoutOptions(slots),/more than 100/);
+});
+
+
+test("Early Sushi saves without Movement Mittens cannot receive relocated plate layouts",()=>{
+ const save=mockSave(Array.from({length:34},(_,i)=>i));
+ const normalized=normalizeBoardData(save.tiles,save.slots);
+ const without=layoutOptions(normalized.slots);
+ const disabled=layoutOptions(normalized.slots,{movementMittens:false});
+ assert.equal(without.length,1);
+ assert.equal(disabled.length,1);
+ assert.equal(without[0].name,"Current positions");
+ assert.deepEqual(without[0].slots,normalized.slots);
+ const unlocked=layoutOptions(normalized.slots,{movementMittens:true});
+ assert.ok(unlocked.length>1,"Unlocking Movement Mittens enables alternative layouts");
+ for(const option of unlocked){
+  assert.equal(option.slots.filter(type=>type>=0).length,34);
+  assert.deepEqual(option.slots.filter(x=>x>=0).sort(),normalized.slots.filter(x=>x>=0).sort());
+ }
+});
+
+test("Combo Meter reads the Movement Mittens upgrade from the imported save",()=>{
+ const fs=await import("node:fs");
+ const js=fs.readFileSync(new URL("../src/app.js",import.meta.url),"utf8");
+ assert.match(js,/imported\.sushi\?\.\[2\]\?\.\[42\]/);
+ assert.match(js,/layoutOptions\(slots,\{movementMittens\}\)/);
 });
