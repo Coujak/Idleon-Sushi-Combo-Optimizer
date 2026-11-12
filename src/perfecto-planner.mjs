@@ -28,6 +28,37 @@ export function perfectoAttemptsForConfidence(chance,confidence){
  const n=Math.ceil(Math.log1p(-goal)/Math.log1p(-q));
  return Number.isFinite(n)?Math.max(1,n):null;
 }
+// Compare the exact same per-activation Perfecto model before/after
+// preparation. A free shaker refund changes charge consumption, not odds.
+export function perfectoOddsImprovement(currentChance,optimizedChance){
+ const before=clamp(finite(currentChance),0,1);
+ const after=clamp(finite(optimizedChance),0,1);
+ const currentAttempts=before>0?1/before:null;
+ const optimizedAttempts=after>0?1/after:null;
+ return {
+  before,after,
+  ratio:before>0?after/before:null,
+  percentagePointGain:(after-before)*100,
+  currentAttempts,optimizedAttempts,
+  savedAttempts:currentAttempts!==null&&optimizedAttempts!==null?
+   Math.max(0,currentAttempts-optimizedAttempts):null,
+  improvement:after>before,
+  fromZero:before===0&&after>0
+ };
+}
+
+// The game caps free Shaker refund chance at 60%. The imported Sushi and
+// Knowledge sources are known; other research-grid sources may increase it.
+// Hence the estimate below is an upper bound, not a guaranteed cost.
+export function perfectoKnownFreeUseEstimate(chance,knownRefundChance){
+ const p=clamp(finite(chance),0,1);
+ const free=clamp(finite(knownRefundChance),0,.6);
+ return {
+  knownChance:free,
+  atCap:free>=.6,
+  expectedConsumedUpperBound:p>0?(1-free)/p:null
+ };
+}
 export function availablePerfectoTargets(save){
  if(!save)return [];
  return getKnowledgeRows(save).filter(k=>k.discovered&&!k.perfecto);
@@ -106,11 +137,13 @@ export function getPerfectoPlanner(save,{tier=null}={}){
  const currentChance=perfectoBoardChance(singleChance,plan?.currentCopies??0);
  const planChance=perfectoBoardChance(singleChance,plan?.copies??0);
  const expectedActivations=planChance>0?1/planChance:null;
+ const improvement=perfectoOddsImprovement(currentChance,planChance);
  const upgrades=getUpgradeRows(save);
  const bottomless=upgrades.find(x=>x.id===21)?.rawBonus??0;
  const freeKnowledge=knowledge.filter(k=>k.category===5&&k.discovered)
    .reduce((a,k)=>a+(k.bonus??0),0);
  const freeKnown=clamp((bottomless+freeKnowledge)/100,0,.6);
+ const freeUseEstimate=perfectoKnownFreeUseEstimate(planChance,freeKnown);
  const pepperAvailable=Math.max(0,Math.floor(snapshot.shakers[1]??0));
  // Holding more Pepper enables more attempts; it never increases the odds
  // of a single activation. For best per-use efficiency, prepare the board
@@ -133,11 +166,11 @@ export function getPerfectoPlanner(save,{tier=null}={}){
  return {
   target,current,bonus,next,plan,snapshot,economy,search:run,
   singleChance,currentChance,planChance,expectedActivations,pepperStackChance,
+  improvement,
   milestones:[.5,.9,.99].map(confidence=>({
    confidence,attempts:perfectoAttemptsForConfidence(planChance,confidence)})),
-  freeUse:{knownChance:freeKnown,knownFrom:["Bottomless Shakers","Sushi Knowledge"],
-   researchNotIncluded:true,
-   expectedConsumedUpperBound:expectedActivations===null?null:expectedActivations*(1-freeKnown)},
+  freeUse:{...freeUseEstimate,knownFrom:["Bottomless Shakers","Sushi Knowledge"],
+   researchNotIncluded:true},
   preparation:{pepperAvailable},
   recommendation,independenceAssumption:true,simulatedWind:true,
   ignoresSaltAndCookTierProcs:true
