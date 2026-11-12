@@ -4,6 +4,7 @@
 // Refuse sequences that require a separate or larger temporary workspace.
 import {createPerfectoFinalTargetReplay} from "./perfecto-full-replay.mjs?v=1.27.0";
 import {recycledWindWorkspace} from "./perfecto-recycled-target.mjs?v=1.28.0";
+import {createPerfectoRecycledInPlaceReplay} from "./perfecto-recycled-inplace.mjs?v=1.32.0";
 
 const fail=reason=>({available:false,reason});
 export function createPerfectoInPlaceReplay(save,search,plan,target){
@@ -32,6 +33,12 @@ export function createPerfectoInPlaceReplay(save,search,plan,target){
   return fail("No new target sushi immediately follows the supporting staircase.");
  if(workspace.some(pos=>board[pos]?.slot<0||!Number.isInteger(pos)))
   return fail("The required construction positions are locked.");
+ // Prefer the user's actual repeated T45 refill + Wind staircase strategy
+ // when it can restore ALL 18 final positions without borrowing more slots.
+ const recycled=createPerfectoRecycledInPlaceReplay(save,search,plan,target);
+ if(recycled.available)return recycled;
+ // If the account's tier/geometry cannot support that sequence, retain the
+ // earlier certified smaller-workspace construction instead of inventing moves.
  const compact=createPerfectoFinalTargetReplay(save,search,plan,target);
  if(!compact.available)return fail(compact.reason??"Cannot verify the construction.");
  if(compact.focusPosition!==targetPosition)
