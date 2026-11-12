@@ -80,18 +80,18 @@ test("Do not remove a target that was already on the player's imported board",()
  assert.equal(perfectoReplayPreview(noNew,62,replay,0).available,false);
 });
 
-test("Both board comparisons have a dedicated construction workspace with independently rendered frames",()=>{
+test("Both board comparisons replay directly in recommended cells without an extra grid",()=>{
  const html=readFileSync(new URL("../index.html",import.meta.url),"utf8");
  const ui=readFileSync(new URL("../src/perfecto-ui.mjs",import.meta.url),"utf8");
  const css=readFileSync(new URL("../styles.css",import.meta.url),"utf8");
  for(const prefix of ["perfecto","perfectoMax"]){
   for(const name of ["ReplayWorkspacePanel","ReplayWorkspace","ReplayWorkspaceProgress"]){
-   assert.equal(html.split('id="'+prefix+name+'"').length-1,1,prefix+name);
+   assert.equal(html.split('id="'+prefix+name+'"').length-1,0,prefix+name);
   }
  }
- assert.match(ui,/perfectoReplayPreview\(plan,target,replay,step\)/);
- assert.match(ui,/renderBoard\(result,preview\.available\?preview\.plan:plan,boardId\)/);
- assert.match(ui,/renderWorkspace\(replay,frame,event\)/);
- assert.match(css,/\.perfecto-replay-workspace-grid\s*\{/);
- assert.match(html,/Separate construction demonstration, not additional unlocked game slots/);
+ assert.ok(ui.includes("createPerfectoInPlaceReplay(saved,search,plan,target)"));
+ assert.ok(ui.includes("renderBoard(result,{...plan,board:plan.board.map"));
+ assert.ok(ui.includes("for(const pos of replay.supportPositions)"));
+ assert.match(css,/\.perfecto-tile\.perfecto-replay-workspace/);
+ assert.match(html,/supporting staircase and its adjacent target are the construction workspace/);
 });
