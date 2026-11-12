@@ -411,7 +411,7 @@ export function prioritizePerfectoBonusSlots(board,geom,target,certificate=null)
  }
  return result;
 }
-export function searchPerfectoBoard(save,target,economy,{effortMultiplier=16}={}){
+export function searchPerfectoBoard(save,target,economy,{effortMultiplier=16,certifiedOnly=false}={}){
  if(!save||!Number.isInteger(target)||target<1||target>64)return null;
  const geom=geometry(save,target);
  const currentCopies=geom.fixedTargets;
@@ -446,7 +446,10 @@ export function searchPerfectoBoard(save,target,economy,{effortMultiplier=16}={}
  const recipes=["uniform","ladder","double-ladder","high-pair","apex","existing"];
  let best=certifiedCarryBoard(geom,target,economy,windCap),attempted=0;
  let bestUnverified=null;
- for(const seed of sources){
+ // The user-facing dual-board comparison needs only constructive recipes.
+ // The bounded exploratory search remains available to research/tests but is
+ // intentionally skipped for both live boards to avoid UI stalls.
+ if(!certifiedOnly)for(const seed of sources){
   for(const recipe of recipes){
    for(let mode=0;mode<3;mode++){
     const candidate=runRecipe(geom,target,reference,seed,recipe,mode,windCap,budget,stepLimit);
