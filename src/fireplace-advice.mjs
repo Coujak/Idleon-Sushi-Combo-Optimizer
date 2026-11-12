@@ -52,11 +52,11 @@ export function fireplaceOverviewAdvice(save){
   " Avoid replacing a useful Barium, Copper or Lithium column without considering its purpose.";
  if(potassiumUnlocked===false)
   return {heading:"Potassium is not unlocked yet",
-   summary:"Keep the existing fireplaces for their immediate bonuses. Purple becomes an option once you unlock Potassium Firelighter.",
+   summary:"Potassium is locked. Keep your current fireplace bonuses.",
    detail:alternatives+". "+colors,counts,purple,sparkBalance,weakestCharcoal};
  if(sparkBalance===null)
   return {heading:"Potassium: Spark data unavailable",
-   summary:"Purple fireplaces generate Sparks, but the imported data does not provide a valid Spark balance to judge diminishing returns.",
+   summary:"Spark balance is missing, so Purple cannot be assessed yet.",
    detail:alternatives+". "+colors,counts,purple,sparkBalance,weakestCharcoal};
  const start=sparkBalance+purple*RATE_PER_DAY;
  const after=start+RATE_PER_DAY;
@@ -67,18 +67,16 @@ export function fireplaceOverviewAdvice(save){
  if(marginal>=.1){
   heading=purple?"Keep Potassium for passive Spark growth":"Consider one Potassium while idling";
   summary=purple?
-   "Your "+purple+" Purple fireplace"+(purple===1?" is":"s are")+
-    " useful for long-term Sparks. More Purple may help, but reduces immediate Fuel, Bucks or EXP gains from the columns replaced.":
-   "Potassium can be worth running passively at your current Spark balance. Try a low-value Charcoal column rather than replacing a productive specialty fireplace.";
+   "Purple is useful for passive Sparks. Keep other firelighters when you need their immediate bonuses.":
+   "Try Potassium in a low-value Charcoal column while idling; switch back when you need Fuel.";
  }else if(marginal>=.01){
   heading="Potassium is optional";
-  summary="Spark gains are slowing. Keep or add Purple only if long-term fireplace strength matters more than immediate Fuel, Bucks or EXP.";
+  summary="Spark gains are slowing. Use Purple for passive growth or other firelighters for immediate bonuses.";
  }else{
   heading="Favor productive fireplaces over more Potassium";
   summary=purple?
-   "You already have "+purple+" Purple fireplace"+(purple===1?"":"s")+
-    ". Their Spark growth still works, but another Purple has a small marginal return. Reclaim Purple columns when immediate Fuel, Bucks or Knowledge is more important.":
-   "At your current Sparks, switching a productive fireplace to Purple offers a small marginal gain. Prefer the firelighter that supports your current activity.";
+   "More Purple gives little extra bonus now. Prefer Charcoal for Fuel, Barium for Bucks, or Lithium for Knowledge.":
+   "More Sparks add little bonus right now. Keep firelighters that support your current activity.";
  }
  return {heading,summary,detail:gainText+" "+alternatives+"."+suggestion,
   counts,purple,sparkBalance,weakestCharcoal,marginalSparkPointsPerDay:marginal,
