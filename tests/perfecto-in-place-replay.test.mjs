@@ -33,8 +33,16 @@ test("T45 final T62 construction empties exactly the 17 marked supports and posi
  assert.deepEqual(replay.supportPositions,Array.from({length:17},(_,i)=>i));
  assert.equal(replay.targetPosition,17);
  assert.equal(replay.requiredSlots,18);
- assert.equal(replay.recyclingFits,false);
- assert.ok(replay.recyclingNeeds>18);
+ assert.equal(replay.strategy,"recycled-wind");
+ assert.equal(replay.recyclingFits,true);
+ assert.equal(replay.recyclingNeeds,18);
+ assert.ok(replay.totalCooks>=120);
+ assert.ok(replay.totalWind>600);
+ assert.ok(replay.totalSteps>1000);
+ const afterTarget=replay.getFrame(replay.finalFillIndex).board;
+ assert.equal(afterTarget[17],62);
+ assert.ok(Array.from(afterTarget.slice(0,17)).every(tier=>tier===0),
+  "T62 must be parked before the final supporting staircase is rebuilt");
  assert.equal(replay.originalTargetCopies,82);
  const start=Array.from(replay.getFrame(0).board);
  const end=Array.from(replay.getFrame(replay.totalSteps).board);
@@ -67,6 +75,7 @@ test("T46 benchmark keeps its contiguous supporting sushi and neighboring last t
  const {save,search,plan}=fixture(46);
  const replay=createPerfectoInPlaceReplay(save,search,plan,62);
  assert.equal(replay.available,true,replay.reason);
+ assert.notEqual(replay.strategy,"recycled-wind");
  assert.equal(replay.requiredSlots,17);
  assert.deepEqual(replay.supportPositions,Array.from({length:16},(_,i)=>i));
  assert.equal(replay.targetPosition,16);
