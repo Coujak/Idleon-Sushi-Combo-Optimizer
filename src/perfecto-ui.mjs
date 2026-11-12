@@ -4,9 +4,7 @@ import {sushiTierIconPath} from "./sushi-reference.mjs?v=1.16.6";
 import {numberText} from "./lab-model.mjs?v=1.16.6";
 import {availablePerfectoTargets,getPerfectoPlanner,perfectoKnowledgeMilestones} from "./perfecto-planner.mjs?v=1.27.0";
 import {perfectoRecipeStages,perfectoFinalMergeIndex,perfectoRecipeIntegrity} from "./perfecto-recipe-guide.mjs?v=1.23.0";
-import {createPerfectoFinalTargetReplay} from "./perfecto-full-replay.mjs?v=1.27.0";
-import {createPerfectoRecycledTargetReplay} from "./perfecto-recycled-target.mjs?v=1.28.0";
-import {perfectoReplayPreview,perfectoReplayWorkspacePositions} from "./perfecto-replay-view.mjs?v=1.29.0";
+import {createPerfectoInPlaceReplay} from "./perfecto-in-place-replay.mjs?v=1.30.0";
 
 const $=id=>document.getElementById(id);
 const node=(tag,css="",value)=>{
@@ -299,115 +297,91 @@ export function initializePerfectoUI(getSave){
  }
  const accountRecipe=bindRecipeNavigator("perfecto");
  const maximumRecipe=bindRecipeNavigator("perfectoMax");
- // This demonstration begins near the *recommended* end board: all other
- // target copies are prepared and one final target plus its workspace is empty.
+ // This replay uses the exact contiguous supporting staircase AND the
+ // adjacent target position on the recommended board. Never erase any other
+ // target sushi, and never display an extra fictitious unlocked workspace.
  function bindBoardReplay(prefix,boardId){
   const state={replay:null,plan:null,result:null,target:null,step:-1};
   const btn=id=>$(prefix+"Replay"+id);
-  const workspacePanel=$(prefix+"ReplayWorkspacePanel");
-  const workspaceGrid=$(prefix+"ReplayWorkspace");
-  function renderWorkspace(replay,frame,event){
-   const locations=perfectoReplayWorkspacePositions(replay);
-   workspaceGrid.replaceChildren();
-   let occupied=0;
-   for(let i=0;i<locations.length;i++){
-    const pos=locations[i],tier=Number(frame.board[pos]??0);
-    const cell=node("div","perfecto-workspace-cell "+(tier?"is-filled":"is-empty"));
-    cell.dataset.workspacePosition=String(pos);
-    cell.title="Temporary construction slot "+(i+1)+" · "+(tier?"T"+tier:"Empty");
-    cell.setAttribute("aria-label",cell.title);
-    if(tier){
-     occupied++;
-     cell.append(sushiIcon(tier,"perfecto-workspace-icon"),
-      node("span","perfecto-workspace-tier","T"+tier));
-    }else cell.append(node("span","perfecto-workspace-empty","·"));
-    cell.append(node("span","perfecto-workspace-number",String(i+1)));
-    workspaceGrid.append(cell);
-   }
-   const mark=(pos,kind)=>{
-    if(!Number.isInteger(pos))return;
-    workspaceGrid.querySelector('[data-workspace-position="'+pos+'"]')
-     ?.classList.add("perfecto-replay-"+kind);
-   };
-   if(event){
-    if(event.kind==="merge"||event.kind==="move"){
-     mark(event.src,"from");mark(event.dst,"to");
-    }else if(Number.isInteger(event.at))mark(event.at,"to");
-    for(const extra of event.events??[]){
-     if(extra.kind==="wind")mark(extra.at,"wind");
-    }
-   }
-   workspacePanel.classList.remove("hidden");
-   text(prefix+"ReplayWorkspaceProgress",occupied+" / "+locations.length+" occupied");
-  }
   function paint(){
    const {replay,plan,result,target,step}=state;
    if(!replay?.available||!plan)return;
    const frame=step>=0?replay.getFrame(step):null;
    const event=frame?.event??null;
-   const preview=perfectoReplayPreview(plan,target,replay,step);
-   if(step<0){
-    renderBoard(result,plan,boardId);
-    workspacePanel.classList.add("hidden");
-    workspaceGrid.replaceChildren();
-   }else{
-    // Show just one missing new target on the recommended board.
-    // The 38-slot recycled construction exists only below, in its own view.
-    renderBoard(result,preview.available?preview.plan:plan,boardId);
-    if(preview.available&&!preview.built)
-     $(boardId).querySelector(
-      '.perfecto-tile[data-position="'+preview.missingPosition+'"]'
-     )?.classList.add("perfecto-replay-missing");
-    renderWorkspace(replay,frame,event);
+   if(step<0)renderBoard(result,plan,boardId);
+   else{
+    renderBoard(result,{...plan,board:plan.board.map((cell,i)=>{
+     if(cell.slot<0)return cell;
+     const tier=Number(frame.board[i]??0);
+     return {...cell,preparedTier:tier>0?tier-1:-1,
+      role:tier===target?"target":tier>target?"protected":
+       tier>0?"ingredient":"empty",newCopy:false};
+    })},boardId);
+    const host=$(boardId);
+    const mark=(pos,cls)=>{
+     if(!Number.isInteger(pos)||pos<0||pos>=120)return;
+     host.querySelector('.perfecto-tile[data-position="'+pos+'"]')
+      ?.classList.add(cls);
+    };
+    // The highlighted positions are precisely the red-line support sushi
+    // and the single T62 indicated by the arrow in the proposed layout.
+    for(const pos of replay.supportPositions)mark(pos,"perfecto-replay-workspace");
+    if(frame.board[replay.targetPosition]===0)
+     mark(replay.targetPosition,"perfecto-replay-missing");
+    if(event){
+     if(event.kind==="merge"||event.kind==="move"){
+      mark(event.src,"perfecto-replay-from");
+      mark(event.dst,"perfecto-replay-to");
+     }else if(Number.isInteger(event.at))mark(event.at,"perfecto-replay-to");
+     for(const extra of event.events??[])
+      if(extra.kind==="wind")mark(extra.at,"perfecto-replay-wind");
+    }
    }
    const done=step===replay.totalSteps;
-   const isRecycled=replay.mode==="recycling";
-   const phrase=step<0?"Final recommended board":step===0?
-    "Only final T"+target+" missing":
-    done?"Final T"+target+" constructed · Board restored":
-    isRecycled?"Refill · Merge · Recycle toward T"+target:
-    step<replay.finalFillIndex?"Constructing final T"+target:
-    "Finishing supporting sushi";
-   text(prefix+"ReplayStatus",phrase);
+   text(prefix+"ReplayStatus",step<0?"Final recommended board":
+    step===0?"Construction area empty · Final T"+target+" missing":
+    done?"Final T"+target+" and supporting staircase completed":
+    step<replay.finalFillIndex?"Building the last T"+target:
+    "Rebuilding the T"+(target-4)+"… support staircase");
    if(step<0)text(prefix+"ReplayProgress",
-    display(replay.totalSteps)+" construction actions available");
+    display(replay.totalSteps)+" validated steps");
    else{
-    const filled=preview.available?preview.filled:plan.board.filter(
-     cell=>cell.slot>=0&&cell.preparedTier>=0).length;
-    const unlocked=preview.available?preview.unlocked:plan.unlocked;
+    const filled=Array.from(frame.board).filter((tier,i)=>
+     replay.slots[i]>=0&&tier>0).length;
     text(prefix+"ReplayProgress",display(step)+" / "+display(replay.totalSteps)+
-     " · Recommended board "+filled+" / "+unlocked+" filled");
+     " · "+filled+" / "+replay.slots.filter(x=>x>=0).length+
+     " filled on recommended board");
    }
-   let action=step<0?"Start the verified Wind-recycling walkthrough for T"+target+".":
+   let action=step<0?
+    "Start with the supporting sushi and final T"+target+
+    " cleared, then construct them on the same board.":
     frame.description??"";
-   if(event?.kind==="cook")action+=" Cook T"+event.tier+
+   if(event?.kind==="cook")action+=" · Cook T"+event.tier+
     " at position "+(event.at+1)+".";
-   else if(event?.kind==="prepared")action+=" Use a previously prepared T"+
+   else if(event?.kind==="prepared")action+=" · Place previously prepared T"+
     event.tier+" at position "+(event.at+1)+".";
-   else if(event?.kind==="move")action+=" Move sushi from position "+
-    (event.src+1)+" to "+(event.dst+1)+".";
+   else if(event?.kind==="move")action+=" · Move T"+event.tier+
+    " from position "+(event.src+1)+" to "+(event.dst+1)+".";
    else if(event?.kind==="merge"){
-    action+=" Merge position "+(event.src+1)+" into "+(event.dst+1)+".";
-    const winds=event.events?.filter(e=>e.kind==="wind")??[];
-    if(winds.length)action+=" Heat of the East Wind upgrades "+
-     winds.map(x=>"position "+(x.at+1)+" to T"+x.tier).join(", ")+".";
+    action+=" · Merge position "+(event.src+1)+" into "+(event.dst+1)+".";
+    const effects=event.events?.filter(e=>e.kind==="wind")??[];
+    if(effects.length)action+=" Heat of the East Wind upgrades "+
+     effects.map(e=>"position "+(e.at+1)+" to T"+e.tier).join(", ")+".";
    }
    text(prefix+"ReplayAction",done?
-    (isRecycled?"The final T"+target+" was constructed in the separate Wind workspace. "+
-     "The recommended board above now shows all its target copies. "+
-     "This workspace is illustrative, not additional game space.":
-     "The final T"+target+" and its support construction are complete. "+
-     "The recommended board above is restored."):action);
-   const cycle=btn("Cycle");
-   cycle.classList.toggle("hidden",!isRecycled);
-   cycle.disabled=!isRecycled||step<0||done;
+    "Completed: the last T"+target+" is in position "+(replay.targetPosition+1)+
+    ", all supporting sushi are restored, and every other target stayed in place.":
+    action);
+   const nextStage=btn("Cycle");
+   nextStage.classList.remove("hidden");
+   nextStage.disabled=step<0||step>=replay.finalFillIndex;
    btn("Start").disabled=step===0;
    btn("Prev").disabled=step<=0;
    btn("Next").disabled=step<0||done;
    btn("Final").disabled=step<0||step>=replay.lastMergesIndex;
    btn("Cascade").disabled=step<0||replay.windCascadeIndex===null||
     step>=replay.windCascadeIndex;
-   btn("Fill").disabled=step<0||step>=replay.finalFillIndex;
+   btn("Fill").disabled=step<0||done;
    btn("Done").disabled=step<0;
    highlightComparison();
   }
@@ -418,12 +392,12 @@ export function initializePerfectoUI(getSave){
   btn("Next").addEventListener("click",()=>{
    state.step=Math.min(state.replay?.totalSteps??0,Math.max(0,state.step)+1);paint();
   });
+  btn("Cycle").addEventListener("click",()=>{
+   if(!state.replay?.available)return;
+   state.step=state.replay.nextMilestone(state.step);paint();
+  });
   btn("Final").addEventListener("click",()=>{
    state.step=state.replay?.lastMergesIndex??0;paint();
-  });
-  btn("Cycle").addEventListener("click",()=>{
-   if(state.replay?.mode!=="recycling")return;
-   state.step=state.replay.nextCycle(state.step);paint();
   });
   btn("Cascade").addEventListener("click",()=>{
    const at=state.replay?.windCascadeIndex;
@@ -431,55 +405,37 @@ export function initializePerfectoUI(getSave){
    state.step=Math.max(0,at-1);paint();
   });
   btn("Fill").addEventListener("click",()=>{
-   state.step=state.replay?.mode==="recycling"?
-    state.replay.totalSteps:state.replay?.finalFillIndex??0;
-   paint();
+   state.step=state.replay?.totalSteps??0;paint();
   });
   btn("Done").addEventListener("click",()=>{state.step=-1;paint();});
   return (saved,result,plan,search,target)=>{
    state.result=result;state.plan=plan;state.target=target;state.step=-1;
-   const recycled=createPerfectoRecycledTargetReplay(saved,search,plan,target);
-   state.replay=recycled.available?recycled:
-    createPerfectoFinalTargetReplay(saved,search,plan,target);
-   if(state.replay.available&&!perfectoReplayPreview(plan,target,state.replay,0).available)
-    state.replay={available:false,reason:"No newly produced target sushi can be isolated."};
-   workspacePanel.classList.add("hidden");
-   workspaceGrid.replaceChildren();
+   state.replay=createPerfectoInPlaceReplay(saved,search,plan,target);
    const replay=state.replay,ready=replay.available;
-   const recycling=ready&&replay.mode==="recycling";
-   btn("Fill").textContent=recycling?"Finish target":"Finish supporting sushi";
+   btn("Cycle").textContent="Next tier milestone";
+   btn("Fill").textContent="Finish board";
    text(prefix+"ReplayStatus",ready?
-    (recycling?"Recycled Wind ladder · T"+target:"Final target walkthrough · T"+target):
-    "Replay unavailable");
+    "In-place final T"+target+" construction":"Replay unavailable");
    text(prefix+"ReplayProgress",ready?display(replay.totalSteps)+" steps":"—");
    text(prefix+"ReplayAction",ready?
-    (recycling?"Follow the T"+replay.sourceTier+" → T"+target+
-     " Wind ladder: refill, merge, reposition, and repeat until the target is made.":
-     "Watch how to construct the final T"+target+" from the recommended board."):
-    "This example cannot be verified: "+replay.reason);
-   const windPlan=search?.certificate?.supportingCascade;
-   const notice=ready&&recycling?
-    "WIND RECYCLING · Cook T"+replay.sourceTier+" "+display(replay.totalCooks)+
-    " times, make "+display(replay.totalMerges)+" merges and "+
-    display(replay.totalMoves)+" legal moves. "+
-    display(replay.totalWind)+" sushi are upgraded by Wind across the sequence. "+
-    "This is a separate teaching board reserving "+replay.requiredSlots+
-    " contiguous unlocked cells. The recommended board keeps every other target copy; "+
-    "the separate workspace below is NOT extra in-game space. "+
-    "You must reserve this area before filling the final board. "+
-    "Reposition steps require Movement Mittens. "+
-    "No Salt Shakers or higher-tier cooking are assumed.":
-    ready?
-    (windPlan?"SUPPORT WIND CASCADE · "+windPlan.windChainLength+
-     " sushi upgraded in one merge. ":"")+
-    "PREPARED STAGING BOARD · "+replay.preparedCopies+
-    " other target copies are complete; "+replay.workspacePositions.length+
-    " temporary support cells start empty. "+
-    "This is an illustrative setup, not the imported board."+
-    (replay.partial?" Some T"+replay.sourceTier+
-     " ingredients must be prepared before the late merges.":""):
-    "No verified construction replay is available: "+replay.reason;
-   text(prefix+"ReplayLimit",notice);
+    "Clear the "+replay.supportPositions.length+" supporting sushi and the adjacent "+
+    "T"+target+", then follow verified moves in those exact board positions.":
+    "This construction cannot be validated: "+replay.reason);
+   const wind=search?.certificate?.supportingCascade;
+   text(prefix+"ReplayLimit",ready?
+    "IN-PLACE WALKTHROUGH · Positions "+
+    (replay.workspacePositions[0]+1)+"–"+
+    (replay.workspacePositions.at(-1)+1)+" ("+
+    replay.requiredSlots+" cells) are used. All other T"+target+
+    " copies remain unchanged. "+
+    (replay.recyclingNeeds!==null&&replay.recyclingNeeds>replay.requiredSlots?
+     "The 38-cell-style recycled strategy needs "+
+     replay.recyclingNeeds+" slots and cannot fit here; this uses the "+
+     "certified compact Wind recipe instead. ":"")+
+    (wind?"A longer Wind cascade rebuilds the supporting staircase near the end. ":"")+
+    "This begins from a prepared near-final board, not your imported save. "+
+    "Moves require Movement Mittens; no Salt Shakers are assumed.":
+    "No unverified or oversized workspace will be displayed.");
    for(const id of ["Start","Prev","Next","Cycle","Final","Cascade","Fill","Done"])
     btn(id).disabled=!ready||id!=="Start";
    return replay;
