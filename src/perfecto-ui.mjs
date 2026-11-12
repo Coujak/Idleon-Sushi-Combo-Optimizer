@@ -6,6 +6,7 @@ import {availablePerfectoTargets,getPerfectoPlanner,perfectoKnowledgeMilestones}
 import {perfectoRecipeStages,perfectoFinalMergeIndex,perfectoRecipeIntegrity} from "./perfecto-recipe-guide.mjs?v=1.23.0";
 import {createPerfectoFinalTargetReplay} from "./perfecto-full-replay.mjs?v=1.27.0";
 import {createPerfectoRecycledTargetReplay} from "./perfecto-recycled-target.mjs?v=1.28.0";
+import {perfectoReplayPreview,perfectoReplayWorkspacePositions} from "./perfecto-replay-view.mjs?v=1.29.0";
 
 const $=id=>document.getElementById(id);
 const node=(tag,css="",value)=>{
@@ -303,42 +304,67 @@ export function initializePerfectoUI(getSave){
  function bindBoardReplay(prefix,boardId){
   const state={replay:null,plan:null,result:null,target:null,step:-1};
   const btn=id=>$(prefix+"Replay"+id);
+  const workspacePanel=$(prefix+"ReplayWorkspacePanel");
+  const workspaceGrid=$(prefix+"ReplayWorkspace");
+  function renderWorkspace(replay,frame,event){
+   const locations=perfectoReplayWorkspacePositions(replay);
+   workspaceGrid.replaceChildren();
+   let occupied=0;
+   for(let i=0;i<locations.length;i++){
+    const pos=locations[i],tier=Number(frame.board[pos]??0);
+    const cell=node("div","perfecto-workspace-cell "+(tier?"is-filled":"is-empty"));
+    cell.dataset.workspacePosition=String(pos);
+    cell.title="Temporary construction slot "+(i+1)+" · "+(tier?"T"+tier:"Empty");
+    cell.setAttribute("aria-label",cell.title);
+    if(tier){
+     occupied++;
+     cell.append(sushiIcon(tier,"perfecto-workspace-icon"),
+      node("span","perfecto-workspace-tier","T"+tier));
+    }else cell.append(node("span","perfecto-workspace-empty","·"));
+    cell.append(node("span","perfecto-workspace-number",String(i+1)));
+    workspaceGrid.append(cell);
+   }
+   const mark=(pos,kind)=>{
+    if(!Number.isInteger(pos))return;
+    workspaceGrid.querySelector('[data-workspace-position="'+pos+'"]')
+     ?.classList.add("perfecto-replay-"+kind);
+   };
+   if(event){
+    if(event.kind==="merge"||event.kind==="move"){
+     mark(event.src,"from");mark(event.dst,"to");
+    }else if(Number.isInteger(event.at))mark(event.at,"to");
+    for(const extra of event.events??[]){
+     if(extra.kind==="wind")mark(extra.at,"wind");
+    }
+   }
+   workspacePanel.classList.remove("hidden");
+   text(prefix+"ReplayWorkspaceProgress",occupied+" / "+locations.length+" occupied");
+  }
   function paint(){
    const {replay,plan,result,target,step}=state;
    if(!replay?.available||!plan)return;
    const frame=step>=0?replay.getFrame(step):null;
    const event=frame?.event??null;
-   if(step<0)renderBoard(result,plan,boardId);
-   else{
-    renderBoard(result,{...plan,board:plan.board.map((cell,i)=>{
-     if(cell.slot<0)return cell;
-     const tier=Number(frame.board[i]??0);
-     return {...cell,preparedTier:tier>0?tier-1:-1,
-      role:tier===target?"target":tier>target?"protected":
-       tier>0?"ingredient":"empty",newCopy:false};
-    })},boardId);
-    const host=$(boardId);
-    const mark=(pos,cls)=>{
-     if(Number.isInteger(pos)&&pos>=0&&pos<120)
-      host.querySelector('.perfecto-tile[data-position="'+pos+'"]')?.classList.add(cls);
-    };
-    if(step===0){
-     mark(replay.focusPosition,"perfecto-replay-missing");
-     for(const pos of replay.workspacePositions??[])mark(pos,"perfecto-replay-workspace");
-    }
-    if(event){
-     if(event.kind==="merge"||event.kind==="move"){
-      mark(event.src,"perfecto-replay-from");mark(event.dst,"perfecto-replay-to");
-     }else if(Number.isInteger(event.at))mark(event.at,"perfecto-replay-to");
-     for(const extra of event.events??[])if(extra.kind==="wind")
-      mark(extra.at,"perfecto-replay-wind");
-    }
+   const preview=perfectoReplayPreview(plan,target,replay,step);
+   if(step<0){
+    renderBoard(result,plan,boardId);
+    workspacePanel.classList.add("hidden");
+    workspaceGrid.replaceChildren();
+   }else{
+    // Show just one missing new target on the recommended board.
+    // The 38-slot recycled construction exists only below, in its own view.
+    renderBoard(result,preview.available?preview.plan:plan,boardId);
+    if(preview.available&&!preview.built)
+     $(boardId).querySelector(
+      '.perfecto-tile[data-position="'+preview.missingPosition+'"]'
+     )?.classList.add("perfecto-replay-missing");
+    renderWorkspace(replay,frame,event);
    }
    const done=step===replay.totalSteps;
    const isRecycled=replay.mode==="recycling";
    const phrase=step<0?"Final recommended board":step===0?
-    (isRecycled?"Prepared T"+replay.sourceTier+" recycling workspace":"Last T"+target+" missing"):
-    done?(isRecycled?"Recycled Wind target completed":"Recommended board complete"):
+    "Only final T"+target+" missing":
+    done?"Final T"+target+" constructed · Board restored":
     isRecycled?"Refill · Merge · Recycle toward T"+target:
     step<replay.finalFillIndex?"Constructing final T"+target:
     "Finishing supporting sushi";
@@ -346,11 +372,11 @@ export function initializePerfectoUI(getSave){
    if(step<0)text(prefix+"ReplayProgress",
     display(replay.totalSteps)+" construction actions available");
    else{
-    const filled=Array.from(frame.board).filter((tier,i)=>
-     replay.slots[i]>=0&&tier>0).length;
-    const unlocked=replay.slots.filter(x=>x>=0).length;
+    const filled=preview.available?preview.filled:plan.board.filter(
+     cell=>cell.slot>=0&&cell.preparedTier>=0).length;
+    const unlocked=preview.available?preview.unlocked:plan.unlocked;
     text(prefix+"ReplayProgress",display(step)+" / "+display(replay.totalSteps)+
-     " · "+filled+" / "+unlocked+" slots filled");
+     " · Recommended board "+filled+" / "+unlocked+" filled");
    }
    let action=step<0?"Start the verified Wind-recycling walkthrough for T"+target+".":
     frame.description??"";
@@ -367,9 +393,11 @@ export function initializePerfectoUI(getSave){
      winds.map(x=>"position "+(x.at+1)+" to T"+x.tier).join(", ")+".";
    }
    text(prefix+"ReplayAction",done?
-    (isRecycled?"T"+target+" constructed using recycled sushi and Wind cascades. "+
-     "This teaching board is not the final recommended layout; use Show final board to return to it.":
-     "The final T"+target+" and supporting sushi match the recommended board."):action);
+    (isRecycled?"The final T"+target+" was constructed in the separate Wind workspace. "+
+     "The recommended board above now shows all its target copies. "+
+     "This workspace is illustrative, not additional game space.":
+     "The final T"+target+" and its support construction are complete. "+
+     "The recommended board above is restored."):action);
    const cycle=btn("Cycle");
    cycle.classList.toggle("hidden",!isRecycled);
    cycle.disabled=!isRecycled||step<0||done;
@@ -413,6 +441,10 @@ export function initializePerfectoUI(getSave){
    const recycled=createPerfectoRecycledTargetReplay(saved,search,plan,target);
    state.replay=recycled.available?recycled:
     createPerfectoFinalTargetReplay(saved,search,plan,target);
+   if(state.replay.available&&!perfectoReplayPreview(plan,target,state.replay,0).available)
+    state.replay={available:false,reason:"No newly produced target sushi can be isolated."};
+   workspacePanel.classList.add("hidden");
+   workspaceGrid.replaceChildren();
    const replay=state.replay,ready=replay.available;
    const recycling=ready&&replay.mode==="recycling";
    btn("Fill").textContent=recycling?"Finish target":"Finish supporting sushi";
@@ -432,7 +464,9 @@ export function initializePerfectoUI(getSave){
     display(replay.totalMoves)+" legal moves. "+
     display(replay.totalWind)+" sushi are upgraded by Wind across the sequence. "+
     "This is a separate teaching board reserving "+replay.requiredSlots+
-    " contiguous unlocked cells; it is NOT the final Perfecto copy-maximizing board. "+
+    " contiguous unlocked cells. The recommended board keeps every other target copy; "+
+    "the separate workspace below is NOT extra in-game space. "+
+    "You must reserve this area before filling the final board. "+
     "Reposition steps require Movement Mittens. "+
     "No Salt Shakers or higher-tier cooking are assumed.":
     ready?
