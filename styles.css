@@ -1792,7 +1792,74 @@ details summary{cursor:pointer;font-size:12px;font-weight:700;color:#9eb7c9}
 .perfecto-theory-heading{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;align-items:center}
 .perfecto-theory-heading strong{font-size:14px;color:#d9f6e5}
 .perfecto-theory-heading .hint{font-size:11px}
-.perfecto-theory-example{font-size:13px;color:#e0f4eb;font-weight:750;margin:11px 0 4px}
+/* Put the level upgrades first: two clean milestones, not an inline sentence. */
+.perfecto-milestone-level-grid{
+ display:grid;grid-template-columns:repeat(2,minmax(0,1fr));
+ gap:12px;margin:12px 0 9px
+}
+.perfecto-milestone-level-card{
+ position:relative;min-width:0;padding:15px 16px 16px;
+ border:1px solid #436574;border-radius:12px;
+ background:linear-gradient(145deg,#193744 0%,#142d39 100%);
+ overflow:hidden
+}
+.perfecto-milestone-level-card::before{
+ content:"";position:absolute;inset:0 auto 0 0;width:3px;
+ background:#7dc7b0
+}
+.perfecto-milestone-level-card[data-knowledge-tier="54"]::before{
+ background:#aab9f7
+}
+.perfecto-milestone-card-heading{
+ display:flex;align-items:baseline;justify-content:space-between;
+ gap:8px;margin-bottom:12px;flex-wrap:wrap
+}
+.perfecto-milestone-tier-name{
+ font-size:12px;font-weight:800;color:#e5f4f1;
+ letter-spacing:.015em
+}
+.perfecto-milestone-level-difference{
+ font-size:11px;font-weight:650;color:#9acdc0;white-space:nowrap
+}
+.perfecto-milestone-level-card[data-knowledge-tier="54"] .perfecto-milestone-level-difference{
+ color:#c3c9f1
+}
+.perfecto-milestone-level-flow{
+ display:grid;grid-template-columns:minmax(0,1fr) 29px minmax(0,1fr);
+ gap:8px;align-items:center
+}
+.perfecto-milestone-current,.perfecto-milestone-goal{
+ display:flex;flex-direction:column;gap:4px;min-width:0
+}
+.perfecto-milestone-current>span,.perfecto-milestone-goal>span{
+ color:#9bb8c2;font-size:10px;font-weight:600;white-space:nowrap
+}
+.perfecto-milestone-current strong,.perfecto-milestone-goal strong{
+ font-size:clamp(19px,2.25vw,28px);line-height:1.15;
+ font-weight:800;font-variant-numeric:tabular-nums;
+ letter-spacing:-.025em;white-space:nowrap
+}
+.perfecto-milestone-current strong{color:#d4e8ed}
+.perfecto-milestone-goal strong{color:#a4f3c4}
+.perfecto-milestone-level-card[data-knowledge-tier="54"] .perfecto-milestone-goal strong{
+ color:#bccdff
+}
+.perfecto-milestone-flow-arrow{
+ font-size:22px;line-height:1;text-align:center;
+ font-weight:650;color:#83b5b7
+}
+.perfecto-milestone-bonus-note{margin:7px 0 0;color:#a5c4cc;line-height:1.5}
+.perfecto-milestone-sr-only{
+ position:absolute!important;width:1px!important;height:1px!important;
+ padding:0!important;margin:-1px!important;overflow:hidden!important;
+ clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important
+}
+@media(max-width:680px){
+ .perfecto-milestone-level-grid{grid-template-columns:minmax(0,1fr)}
+ .perfecto-milestone-level-card{padding:13px 15px}
+ .perfecto-milestone-current strong,.perfecto-milestone-goal strong{font-size:25px}
+}
+
 .perfecto-knowledge-theory>.hint{font-size:11px;line-height:1.5}
 .perfecto-theory-results{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;margin:12px 0}
 .perfecto-theory-results>div{
