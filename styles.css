@@ -1839,3 +1839,48 @@ details summary{cursor:pointer;font-size:12px;font-weight:700;color:#9eb7c9}
 @media(max-width:620px){
  .perfecto-milestone-popover{right:-3px;width:min(600px,calc(100vw - 40px));padding:10px}
 }
+
+/* Compact, unmistakable final-target walkthrough. */
+.lab-perfecto-panel .heading .perfecto-header-target{
+ display:inline-flex;align-items:center;justify-content:center;
+ font-size:13px;font-weight:850;letter-spacing:.025em;
+ padding:9px 15px;min-height:39px;box-sizing:border-box;
+ color:#eafff4;background:#18503b;border:2px solid #6cdda6;
+ border-radius:11px;box-shadow:0 0 0 3px #6cdda61c;
+ white-space:nowrap;font-variant-numeric:tabular-nums
+}
+.lab-perfecto-panel .perfecto-target-summary{
+ background:#194938;border:2px solid #6cdaa1;color:#e5ffec;
+ font-size:14px;padding:9px 13px;border-radius:12px;
+ box-shadow:0 0 0 3px #79e6a015
+}
+.lab-perfecto-panel .perfecto-target-icon{width:40px;height:40px}
+.perfecto-replay-notice{
+ margin:10px 0 0;padding:12px 13px;font-size:11px;
+ line-height:1.65;font-weight:650;color:#e0f9e9;
+ background:#194536;border:1px solid #6ab898;
+ border-left:4px solid #9debc5;border-radius:9px
+}
+.perfecto-replay-controls .perfecto-replay-top strong{
+ font-size:14px;color:#d9ffe7
+}
+.perfecto-replay-controls .perfecto-replay-action{
+ font-size:12px;line-height:1.6;font-weight:650;
+ color:#e3f5f3;background:#163544;padding:10px 12px;
+ border-radius:8px;border:1px solid #416878
+}
+.perfecto-board .perfecto-tile.perfecto-replay-missing{
+ outline:3px solid #fbd581!important;outline-offset:-1px;
+ background:#514121!important;z-index:5;position:relative
+}
+.perfecto-board .perfecto-tile.perfecto-replay-missing:after{
+ content:"?";position:absolute;right:1px;top:-3px;
+ color:#ffe4a1;font-weight:900;font-size:15px;line-height:1
+}
+.perfecto-board .perfecto-tile.perfecto-replay-workspace{
+ outline:1px dashed #7bd6b6!important;outline-offset:-2px
+}
+@media(max-width:650px){
+ .lab-perfecto-panel .heading .perfecto-header-target{font-size:12px;padding:7px 10px}
+ .lab-perfecto-panel .perfecto-target-summary{font-size:12px}
+}
