@@ -4,7 +4,7 @@ import {sushiTierIconPath} from "./sushi-reference.mjs?v=1.16.6";
 import {numberText} from "./lab-model.mjs?v=1.16.6";
 import {availablePerfectoTargets,getPerfectoPlanner,perfectoKnowledgeMilestones} from "./perfecto-planner.mjs?v=1.24.1";
 import {perfectoRecipeStages,perfectoFinalMergeIndex,perfectoRecipeIntegrity} from "./perfecto-recipe-guide.mjs?v=1.23.0";
-import {createPerfectoConstructionReplay} from "./perfecto-construction-replay.mjs?v=1.24.0";
+import {createPerfectoFullBoardReplay} from "./perfecto-full-replay.mjs?v=1.25.0";
 
 const $=id=>document.getElementById(id);
 const node=(tag,css="",value)=>{
@@ -288,25 +288,27 @@ export function initializePerfectoUI(getSave){
  }
  const accountRecipe=bindRecipeNavigator("perfecto");
  const maximumRecipe=bindRecipeNavigator("perfectoMax");
- // Board-driven construction replay. This is a simulator-checked build of
- // the LAST target copy on a staging board; it must never masquerade as an
- // entire imported-board-to-optimized-board replay.
+ // A full-board replay uses a single validated, seekable target-copy recipe
+ // repeated as many times as required, followed by every support ingredient.
+ // Imported lower-tier sushi require an explicit cleanup checkpoint because
+ // no legal removal sequence can be inferred from the save alone.
  function bindBoardReplay(prefix,boardId){
-  const state={replay:null,plan:null,result:null,target:null,step:-1};
+  const state={replay:null,plan:null,result:null,target:null,step:-1,setupConfirmed:false};
   const actionId=prefix+"ReplayAction",statusId=prefix+"ReplayStatus";
   const progressId=prefix+"ReplayProgress",limitId=prefix+"ReplayLimit";
   const btn=id=>$(prefix+"Replay"+id);
+  const confirm=btn("ConfirmSetup");
   function paint(){
    const {replay,plan,result,target,step}=state;
    if(!replay?.available||!plan)return;
-   const event=step>0?replay.steps[step-1]:null;
+   const frame=step>=0?replay.getFrame(step):null;
+   const event=frame?.event??null;
    if(step<0){
     renderBoard(result,plan,boardId);
    }else{
-    const snapshot=step===0?replay.initial:event.board;
     const preview={...plan,board:plan.board.map((cell,i)=>{
      if(cell.slot<0)return cell;
-     const tier=Number(snapshot[i]??0);
+     const tier=Number(frame.board[i]??0);
      return {...cell,role:tier===target?"target":
       tier>target?"protected":tier>0?"ingredient":"empty",
       preparedTier:tier>0?tier-1:-1,newCopy:false};
@@ -321,73 +323,99 @@ export function initializePerfectoUI(getSave){
      if(event.kind==="merge"||event.kind==="move"){
       mark(event.src,"perfecto-replay-from");
       mark(event.dst,"perfecto-replay-to");
-     }else mark(event.at,"perfecto-replay-to");
-     for(const extra of event.events??[]){
+     }else if(Number.isInteger(event.at))mark(event.at,"perfecto-replay-to");
+     for(const p of event.positions??[])mark(p,"perfecto-replay-from");
+     for(const extra of event.events??[])
       if(extra.kind==="wind")mark(extra.at,"perfecto-replay-wind");
-     }
     }
    }
+   const blocked=!!(replay.requiresSetup&&!state.setupConfirmed&&step>=1);
+   const manual=frame?.phase==="manual";
+   confirm.classList.toggle("hidden",!manual);
+   confirm.disabled=!manual;
    if(step<0){
     text(statusId,"Final recommended board");
-    text(progressId,display(replay.steps.length)+" validated actions available");
-    text(actionId,"Start replay to follow the physical construction of the last target copy.");
-   }else if(step===0){
-    text(statusId,"Staged construction workspace");
-    text(progressId,"0 / "+display(replay.steps.length));
-    text(actionId,"Earlier target sushi are already parked. The highlighted board is the staging state before constructing the last target copy."+
-     (replay.partial?" Prepare the T"+replay.sourceTier+" ingredients first.":""));
+    text(progressId,display(replay.totalSteps)+" steps available");
+    text(actionId,"Start the replay from your imported board. The complete plan builds every target sushi and fills the supporting staircase.");
    }else{
-    const n=event;
-    let description;
-    if(n.kind==="cook")description="Cook T"+n.tier+" into slot "+(n.at+1)+".";
-    else if(n.kind==="prepared")description="Place a previously prepared T"+n.tier+" in slot "+(n.at+1)+". This tier is not assumed directly cookable.";
-    else if(n.kind==="move")description="Move T"+n.tier+" from slot "+(n.src+1)+" to slot "+(n.dst+1)+". Requires a legal sushi reposition.";
-    else{
-     const wind=n.events?.filter(e=>e.kind==="wind")??[];
-     description="Merge slot "+(n.src+1)+" into slot "+(n.dst+1)+
-      " to make T"+n.tier+".";
-     if(wind.length)description+=" Heat of the East Wind upgrades slot "+
-      wind.map(x=>(x.at+1)+" to T"+x.tier).join(", ")+".";
+    const phaseLabel=frame.phase==="imported"?"Imported board":
+     manual?"Manual preparation required":
+     frame.phase==="staging"?"Workspace ready":
+     frame.phase==="targets"?"Build target sushi":
+     frame.phase==="support"?"Fill the remaining slots":"Board complete";
+    const filled=Array.from(frame.board).filter((tier,i)=>
+     replay.slots[i]>=0&&tier>0).length;
+    const total=replay.slots.filter(slot=>slot>=0).length;
+    text(statusId,step===replay.totalSteps?
+     "Board completely filled · "+filled+" / "+total+" slots":phaseLabel);
+    text(progressId,display(step)+" / "+display(replay.totalSteps)+
+     " · "+filled+" / "+total+" filled");
+    let action=frame.description??"";
+    if(event?.kind==="cook")action+=" · Cook T"+event.tier+" in position "+(event.at+1)+".";
+    else if(event?.kind==="prepared")action+=" · Use previously prepared T"+event.tier+
+     " in position "+(event.at+1)+" (not assumed directly cookable).";
+    else if(event?.kind==="move")action+=" · Move sushi from "+(event.src+1)+
+     " to "+(event.dst+1)+".";
+    else if(event?.kind==="merge"){
+     action+=" · Merge position "+(event.src+1)+" into "+(event.dst+1)+".";
+     const effects=event.events?.filter(e=>e.kind==="wind")??[];
+     if(effects.length)action+=" Heat of the East Wind upgrades "+
+      effects.map(x=>"position "+(x.at+1)+" to T"+x.tier).join(", ")+".";
     }
-    text(statusId,"Action "+display(step)+" of "+display(replay.steps.length));
-    text(progressId,step===replay.steps.length?"Last target completed":"Replaying construction");
-    text(actionId,description);
+    if(step===replay.totalSteps)action="All target sushi and staircase ingredients are placed. The final board matches the recommended layout.";
+    text(actionId,action);
    }
    btn("Start").disabled=step===0;
-   btn("Prev").disabled=step<=0;
-   btn("Next").disabled=step<0||step>=replay.steps.length;
-   btn("Final").disabled=step>=replay.lastMergesIndex&&step>=0;
+   btn("Prev").disabled=step<=0||blocked;
+   btn("Next").disabled=step<0||step>=replay.totalSteps||blocked;
+   btn("NextCopy").disabled=step<0||step>=replay.finalFillIndex||blocked;
+   btn("Final").disabled=step>=replay.lastMergesIndex&&step>=0||blocked;
+   btn("Fill").disabled=step>=replay.finalFillIndex&&step>=0||blocked;
    btn("Done").disabled=step<0;
    highlightComparison();
   }
-  btn("Start").addEventListener("click",()=>{state.step=0;paint();});
-  btn("Prev").addEventListener("click",()=>{
-   state.step=Math.max(0,state.step-1);paint();
-  });
+  btn("Start").addEventListener("click",()=>{state.step=0;state.setupConfirmed=false;paint();});
+  btn("Prev").addEventListener("click",()=>{state.step=Math.max(0,state.step-1);paint();});
   btn("Next").addEventListener("click",()=>{
-   state.step=Math.min(state.replay?.steps.length??0,Math.max(0,state.step)+1);paint();
+   state.step=Math.min(state.replay?.totalSteps??0,Math.max(0,state.step)+1);paint();
+  });
+  btn("NextCopy").addEventListener("click",()=>{
+   state.step=state.replay?.nextCopyIndex(state.step)??0;paint();
   });
   btn("Final").addEventListener("click",()=>{
    state.step=state.replay?.lastMergesIndex??0;paint();
   });
-  btn("Done").addEventListener("click",()=>{state.step=-1;paint();});
+  btn("Fill").addEventListener("click",()=>{
+   state.step=state.replay?.finalFillIndex??0;paint();
+  });
+  btn("Done").addEventListener("click",()=>{state.step=-1;state.setupConfirmed=false;paint();});
+  confirm.addEventListener("click",()=>{
+   if(!state.replay?.requiresSetup||state.step!==1)return;
+   state.setupConfirmed=true;
+   state.step=state.replay.baseOffset;paint();
+  });
   return (saved,result,plan,search,target)=>{
-   state.result=result;state.plan=plan;state.target=target;state.step=-1;
-   state.replay=createPerfectoConstructionReplay(saved,search,target);
+   state.result=result;state.plan=plan;state.target=target;
+   state.step=-1;state.setupConfirmed=false;
+   state.replay=createPerfectoFullBoardReplay(saved,search,plan,target);
    const replay=state.replay,ready=replay.available;
-   text(statusId,ready?"Physical construction replay":"Replay not available");
-   text(progressId,ready?display(replay.steps.length)+" actions":"—");
+   text(statusId,ready?"Validated full-board replay":"Replay not available");
+   text(progressId,ready?display(replay.totalSteps)+" steps":"—");
    text(actionId,ready?
-    "Start replay to watch cooks, merges, Wind upgrades and moves change the board.":
+    "Start replay from your imported board, then follow the build to the fully filled recommendation.":
     replay.reason);
    text(limitId,ready?
+    (replay.requiresSetup?
+     "Some imported lower-tier sushi require manual clearing. They remain visible until you confirm preparation. ":
+     "Your imported protected sushi remain in their original locations. ")+
     (replay.partial?
-     "Late-stage replay: T"+replay.sourceTier+" ingredients must be prepared first. ":
-     "One complete target-copy construction from directly cooked T"+replay.sourceTier+". ")+
-    "Earlier target copies are already parked. This does not replay the entire account preparation or final plate rearrangement.":
-    "The full recipe remains in the summary. No unverified physical moves are displayed.");
-   for(const id of ["Start","Prev","Next","Final","Done"])
-    btn(id).disabled=!ready||id!=="Start"&&id!=="Final";
+     "Long recipes include a prepared-tier checkpoint: ingredients at T"+
+      replay.sourceTier+" must be prepared separately. ":"")+
+    "Repeated copies use validated merge and Wind actions; use Next target copy to jump entire repeated recipes.":
+    "The final layout cannot be demonstrated without inventing unverified moves. It may still be used as a planning reference.");
+   confirm.classList.add("hidden");
+   for(const id of ["Start","Prev","Next","NextCopy","Final","Fill","Done"])
+    btn(id).disabled=!ready||id!=="Start";
    return replay;
   };
  }
