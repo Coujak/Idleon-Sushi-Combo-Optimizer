@@ -97,6 +97,10 @@
   <p class="hint perfecto-caveat">Your current board comes from your imported game data. The account-specific recommendation uses the first board below. More copies of the target sushi can improve the chance <strong>per Pepper use</strong>. These estimates assume independent Perfecto rolls and may differ from the game.</p>
   <div class="perfecto-section-head"><h3>2 · Compare preparation boards</h3><span class="perfecto-count-label" id="perfectoCopyCount">—</span></div>
   <p class="hint">Compare your account-specific build with a hypothetical T46 direct-cooking benchmark. Both preserve your unlocked plates and higher-tier sushi. Only target copies improve Pepper odds; other sushi are preparation leftovers. Blue Campfire tier skips are not assumed.</p>
+  <div class="perfecto-compare-toolbar">
+   <label class="perfecto-benchmark-toggle"><input id="perfectoShowBenchmark" type="checkbox" checked> Show T46 benchmark</label>
+   <span id="perfectoComparePosition" class="perfecto-compare-position" role="status">Hover or select a board cell to compare its position.</span>
+  </div>
   <div class="perfecto-legend" aria-label="Board color and symbol legend"><span><i class="perfecto-legend-target"></i> Target copies</span><span><i class="perfecto-legend-new"></i> Needs preparation</span><span><i class="perfecto-legend-ingredient"></i> Other sushi</span><span><i class="perfecto-legend-protected"></i> Protected</span><span><i class="perfecto-legend-locked"></i> Locked</span><span><i class="perfecto-legend-regular"></i> Regular plate</span><span><i class="perfecto-legend-hot"></i> Hot plate</span><span><i class="perfecto-legend-cold"></i> Cold plate</span><span><i class="perfecto-legend-milk"></i> Milktoast plate</span></div>
   <div class="perfecto-board-comparison">
    <section class="perfecto-comparison-panel is-account" aria-labelledby="perfectoAccountBoardHeading">
@@ -112,7 +116,18 @@
     <p class="hint perfecto-board-footnote" id="perfectoProtectedCount">—</p>
     <details class="perfecto-comparison-guide" open>
      <summary>How to prepare this board</summary>
-     <ol id="perfectoPreparationSteps"></ol>
+     <div id="perfectoRecipeNavigator" class="perfecto-recipe-navigator hidden">
+      <div class="perfecto-recipe-heading"><span id="perfectoRecipeCount">Stage —</span><strong id="perfectoRecipeStage">—</strong></div>
+      <p id="perfectoRecipeDescription" class="perfecto-recipe-description" aria-live="polite">—</p>
+      <div class="perfecto-recipe-actions">
+       <button id="perfectoRecipePrev" type="button" class="button quiet">Previous</button>
+       <button id="perfectoRecipeNext" type="button" class="button secondary">Next</button>
+       <button id="perfectoRecipeFinal" type="button" class="button secondary">Skip to final merges</button>
+       <button id="perfectoRecipeStart" type="button" class="button quiet">Start over</button>
+      </div>
+      <p class="hint perfecto-recipe-hint">Shows the repeating tier recipe, not an exact move-by-move board replay.</p>
+     </div>
+     <details class="perfecto-recipe-notes"><summary>Full preparation notes</summary><ol id="perfectoPreparationSteps"></ol></details>
     </details>
     <p class="hint perfecto-board-footnote" id="perfectoModelNote">The planner uses constructive recipes, not a proven global optimum.</p>
    </section>
@@ -129,7 +144,18 @@
     <p class="hint perfecto-board-footnote">Extra T46 sushi only fill space after construction; they do not increase Perfecto odds.</p>
     <details class="perfecto-comparison-guide">
      <summary>How to build the T46 benchmark</summary>
-     <ol id="perfectoMaxPreparationSteps"></ol>
+     <div id="perfectoMaxRecipeNavigator" class="perfecto-recipe-navigator hidden">
+      <div class="perfecto-recipe-heading"><span id="perfectoMaxRecipeCount">Stage —</span><strong id="perfectoMaxRecipeStage">—</strong></div>
+      <p id="perfectoMaxRecipeDescription" class="perfecto-recipe-description" aria-live="polite">—</p>
+      <div class="perfecto-recipe-actions">
+       <button id="perfectoMaxRecipePrev" type="button" class="button quiet">Previous</button>
+       <button id="perfectoMaxRecipeNext" type="button" class="button secondary">Next</button>
+       <button id="perfectoMaxRecipeFinal" type="button" class="button secondary">Skip to final merges</button>
+       <button id="perfectoMaxRecipeStart" type="button" class="button quiet">Start over</button>
+      </div>
+      <p class="hint perfecto-recipe-hint">Stages show the repeated merge pattern; the benchmark is hypothetical.</p>
+     </div>
+     <details class="perfecto-recipe-notes"><summary>Full preparation notes</summary><ol id="perfectoMaxPreparationSteps"></ol></details>
     </details>
    </section>
   </div>
