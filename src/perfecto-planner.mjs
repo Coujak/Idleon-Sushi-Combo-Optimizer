@@ -14,6 +14,34 @@ export function perfectoSingleChance(tier,knowledgePct=0){
  return clamp(.6*Math.pow(.81,index)/(1+index/8)*
    (1+Math.max(0,finite(knowledgePct))/100),0,1);
 }
+// Knowledge level scenarios use the same per-level bonuses as the imported
+// account model. No XP earning or level-up timing is assumed.
+export function perfectoKnowledgeScenario(rows,target,copies,proposedLevels={}){
+ const relevant=(rows??[]).filter(k=>k?.tier===50||k?.tier===54);
+ let existingBonus=0,futureBonus=0;
+ const tiers=[];
+ for(const row of relevant){
+  const current=Math.max(0,Math.floor(finite(row.level)));
+  const requested=Number(proposedLevels[row.tier]);
+  const future=Number.isFinite(requested)?
+   Math.max(current,Math.floor(requested)):current;
+  const perLevel=row.discovered?Math.max(0,finite(row.nextLevelGain)):0;
+  const before=row.discovered?Math.max(0,finite(row.bonus)):0;
+  const after=before+(future-current)*perLevel;
+  existingBonus+=before;futureBonus+=after;
+  tiers.push({tier:row.tier,discovered:!!row.discovered,
+   currentLevel:current,futureLevel:future,beforeBonus:before,
+   afterBonus:after,bonusGain:after-before,perLevel});
+ }
+ const beforeSingle=perfectoSingleChance(target,existingBonus);
+ const afterSingle=perfectoSingleChance(target,futureBonus);
+ const beforeBoard=perfectoBoardChance(beforeSingle,copies);
+ const afterBoard=perfectoBoardChance(afterSingle,copies);
+ return {tiers,existingBonus,futureBonus,beforeSingle,afterSingle,
+  beforeBoard,afterBoard,boardGainPercentagePoints:100*(afterBoard-beforeBoard),
+  singleGainPercentagePoints:100*(afterSingle-beforeSingle),
+  relativeBoardGain:beforeBoard>0?(afterBoard/beforeBoard-1)*100:null};
+}
 export function perfectoBoardChance(singleChance,copies){
  const p=clamp(finite(singleChance),0,1);
  const n=Math.max(0,Math.floor(finite(copies)));
