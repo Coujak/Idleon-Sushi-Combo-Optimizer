@@ -313,10 +313,37 @@ export function certifiedCarryBoard(geom,target,economy,windCap=0){
 // from highest to lowest with a buildable staircase. Build each ingredient
 // before the next one, so the available workspace shrinks in step with the
 // required merge depth. Prefer starting at the Wind cap when it exists.
-export function finishCertifiedCarryBoard(best,geom,target,windCap){
+export function finishCertifiedCarryBoard(best,geom,target,windCap,{supportMode="staircase"}={}){
+ // The hypothetical T46 benchmark should not imply that low-tier staircase
+ // ingredients are needed. Its spare cells can be filled by direct cooking,
+ // after all target copies are finished and the workspace has been released.
  if(!best?.certificate)return best;
  const slots=geom.flex.filter(pos=>best.board[pos]===0);
  const sourceTier=best.sourceTier;
+ if(supportMode==="direct-source"){
+  const proof=best.certificate;
+  const cost=sushiDirectCookFuel(sourceTier);
+  const extraCooks=BigInt(slots.length);
+  const extraFuel=slots.length*cost;
+  for(const pos of slots)best.board[pos]=sourceTier;
+  proof.supportingMode="direct-source";
+  proof.supportingSushi=slots.map(pos=>({position:pos+1,tier:sourceTier,
+   requiredWorkspace:1,sourceTier,cooksExact:"1",mergesExact:"0",windEventsExact:"0"}));
+  proof.supportingCount=slots.length;
+  proof.supportingHighest=slots.length?sourceTier:null;
+  proof.supportingLowest=slots.length?sourceTier:null;
+  proof.supportingFuel=extraFuel;
+  proof.supportingCooksExact=extraCooks.toString();
+  proof.supportingMergesExact="0";
+  proof.supportingWindEventsExact="0";
+  proof.totalWindEventsExact=proof.windEventsExact;
+  proof.totalCooksExact=(BigInt(proof.cooksExact)+extraCooks).toString();
+  proof.totalMergesExact=proof.mergesExact;
+  proof.proof+=" After all target sushi have been constructed, optionally cook T"+
+   sourceTier+" directly in the remaining workspaces. These are not needed for Pepper odds.";
+  best.spent+=extraFuel;
+  return best;
+ }
  const supportWindCap=geom.longestRun<2?0:windCap;
  const highest=Math.min(target-1,windCap>0?windCap:target-1,
   sourceTier+slots.length-1);
@@ -411,7 +438,7 @@ export function prioritizePerfectoBonusSlots(board,geom,target,certificate=null)
  }
  return result;
 }
-export function searchPerfectoBoard(save,target,economy,{effortMultiplier=16,certifiedOnly=false}={}){
+export function searchPerfectoBoard(save,target,economy,{effortMultiplier=16,certifiedOnly=false,supportMode="staircase"}={}){
  if(!save||!Number.isInteger(target)||target<1||target>64)return null;
  const geom=geometry(save,target);
  const currentCopies=geom.fixedTargets;
@@ -462,7 +489,7 @@ export function searchPerfectoBoard(save,target,economy,{effortMultiplier=16,cer
    }
   }
  }
- if(best?.certificate)finishCertifiedCarryBoard(best,geom,target,windCap);
+ if(best?.certificate)finishCertifiedCarryBoard(best,geom,target,windCap,{supportMode});
  if(best)best.board=prioritizePerfectoBonusSlots(best.board,geom,target,best.certificate);
  const targetCount=best?.metric.target??currentCopies;
  return {
