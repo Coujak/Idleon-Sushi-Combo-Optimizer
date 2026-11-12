@@ -87,3 +87,36 @@ export function replayPerfectoSupportCascade(initial,slots,search,support,cascad
   return fail("The cascade does not match the recommended staircase.");
  return {available:true,board,groups,windCount:wind.length};
 }
+
+
+// A finished board may reserve extra copies of the player's directly cookable
+// source tier after the descending Wind prefix. The cascade certificate covers
+// only its strict descending prefix; these extra copies are regular cooks.
+export function replayPerfectoSupportCascadeWithExtras(initial,slots,search,support,cascade){
+ const fail=reason=>({available:false,reason});
+ if(!Array.isArray(support)||!cascade)
+  return fail("No certified supporting inventory is available.");
+ const prefixCount=Number(cascade.supportingCount??support.length);
+ const expectedExtras=Number(cascade.directFillerCount??0);
+ if(!Number.isInteger(prefixCount)||prefixCount<3||
+    prefixCount>support.length||support.length-prefixCount!==expectedExtras)
+  return fail("The Wind prefix and spare cooking slots do not match the certificate.");
+ const result=replayPerfectoSupportCascade(initial,slots,search,
+  support.slice(0,prefixCount),cascade);
+ if(!result.available)return result;
+ const source=Number(search.sourceTier),board=Array.from(result.board);
+ const groups=[...result.groups];
+ for(const extra of support.slice(prefixCount)){
+  const tier=Number(extra.tier),position=Number(extra.position)-1;
+  if(!Number.isInteger(position)||position<0||position>=board.length||
+     Number(slots[position])<0||board[position]!==0||
+     !Number.isInteger(tier)||tier<1||tier>source||tier>46)
+   return fail("Spare sushi cannot be cooked into its certified final slot.");
+  board[position]=tier;
+  groups.push({tier,dest:position,
+   description:"Cook spare T"+tier+" for future merges",
+   steps:[{kind:"cook",at:position,tier,events:[],
+    board:Uint8Array.from(board)}]});
+ }
+ return {...result,board,groups,extraDirectCooks:expectedExtras};
+}
