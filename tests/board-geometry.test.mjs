@@ -1,5 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import {readFileSync} from "node:fs";
 import {BOARD_CELLS,BOARD_COLUMNS,BOARD_ROWS,MAX_UNLOCKED_SLOTS,
   normalizeBoardData,layoutOptions} from "../src/board-geometry.mjs";
 
@@ -72,8 +73,7 @@ test("Early Sushi saves without Movement Mittens cannot receive relocated plate 
 });
 
 test("Combo Meter reads the Movement Mittens upgrade from the imported save",()=>{
- const fs=await import("node:fs");
- const js=fs.readFileSync(new URL("../src/app.js",import.meta.url),"utf8");
+ const js=readFileSync(new URL("../src/app.js",import.meta.url),"utf8");
  assert.match(js,/imported\.sushi\?\.\[2\]\?\.\[42\]/);
  assert.match(js,/layoutOptions\(slots,\{movementMittens\}\)/);
 });
