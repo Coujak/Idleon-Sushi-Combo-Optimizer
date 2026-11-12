@@ -5,6 +5,7 @@
 // larger ingredient cost is charged against the shared recipe budget.
 import {simulateMerge} from "./optimizer-core.mjs";
 import {sushiDirectCookFuel,affordableSushiCookingTiers} from "./perfecto-fuel.mjs?v=1.16.6";
+import {certifiedWindTierRecipe} from "./perfecto-wind-certificate.mjs?v=1.21.1";
 
 const N=120;
 const clamp=(v,lo,hi)=>Math.max(lo,Math.min(hi,v));
@@ -262,28 +263,35 @@ function runRecipe(geom,target,reference,seed,recipe,mode,windCap,budget,stepLim
 // westwards (to avoid unintended Wind), and retain each completed target.
 // One active construction requires only (target-source+1) free slots.
 // The recursion is a compact certificate, not an infeasible 2^depth replay.
-export function certifiedCarryBoard(geom,target,economy){
+export function certifiedCarryBoard(geom,target,economy,windCap=0){
  let best=null;
  const fuelPerHour=Number(economy?.generationPerHour)||0;
  for(const source of affordableSushiCookingTiers(economy,target)){
-  const depth=target-source.tier;
-  const workspace=depth+1;
-  const copies=depth===0?geom.flex.length:Math.max(0,geom.flex.length-depth);
+  const recipe=certifiedWindTierRecipe(source.tier,target,windCap);
+  const workspace=recipe.workspaceSlots;
+  const copies=source.tier===target?geom.flex.length:
+   Math.max(0,geom.flex.length-(workspace-1));
   if(copies<1)continue;
-  const cooks=BigInt(copies)*(1n<<BigInt(depth));
-  const merges=cooks-BigInt(copies);
+  const cooks=BigInt(copies)*BigInt(recipe.cooksExact);
+  const merges=BigInt(copies)*BigInt(recipe.mergesExact);
+  const wind=BigInt(copies)*BigInt(recipe.windEventsExact);
   const estimatedFuel=Number(cooks)*source.cost;
   const fuelHours=fuelPerHour>0?estimatedFuel/fuelPerHour:Infinity;
   const candidate={
-   metric:{target:geom.fixedTargets+copies,spent:estimatedFuel,merges:Number(merges),wind:0},
-   target:copies,sourceTier:source.tier,recipe:"certified-carry",mode:"exact",
+   metric:{target:geom.fixedTargets+copies,spent:estimatedFuel,merges:Number(merges),wind:Number(wind)},
+   target:copies,sourceTier:source.tier,recipe:recipe.usesWind?"certified-wind-carry":"certified-carry",mode:"exact",
    board:geom.tiles.map((value,i)=>geom.frozen.has(i)?value:geom.slots[i]>=0?0:value),
-   spent:estimatedFuel,merges:Number(merges),wind:0,
-   certificate:{type:"recursive-westward-carry",startingTier:source.tier,targetTier:target,
+   spent:estimatedFuel,merges:Number(merges),wind:Number(wind),
+   certificate:{type:recipe.usesWind?"recursive-east-wind-carry":"recursive-westward-carry",
+    startingTier:source.tier,targetTier:target,
     finalCopies:copies,workspaceSlots:workspace,cooksExact:cooks.toString(),
-    mergesExact:merges.toString(),estimatedFuel,
-    generationHours: fuelHours,capacityShare:source.share,
-    proof:"Use the free workspace to cook two equal-tier sushi recursively, merge east to west, and repeat until the target is made. Store each completed target outside the workspace. No Wind or Salt trigger is required."}
+    mergesExact:merges.toString(),windEventsExact:wind.toString(),
+    cooksPerCopyExact:recipe.cooksExact,windStages:recipe.stages.filter(stage=>stage.wind),
+    normalStages:recipe.stages.filter(stage=>!stage.wind),
+    estimatedFuel,generationHours:fuelHours,capacityShare:source.share,
+    proof:recipe.usesWind?
+     "For each +2 tier stage eligible for Wind, build three equal-tier sushi in adjacent cells. Merge left to middle to trigger one Wind upgrade of the right sushi; merge right to middle and move the new result to the free left cell. For remaining tiers, merge right to left normally. Recursively repeat, storing completed targets outside the working area.":
+     "Use the free workspace to cook two equal-tier sushi recursively, merge east to west, and repeat until the target is made. Store completed targets outside the workspace; no Wind or Salt trigger is required."}
   };
   for(let i=0;i<copies;i++)candidate.board[geom.flex[i]]=target;
   if(!best||better(best.metric,candidate.metric))best=candidate;
@@ -302,7 +310,7 @@ export function finishCertifiedCarryBoard(best,geom,target,windCap){
  const highest=Math.min(target-1,windCap>0?windCap:target-1,
   sourceTier+slots.length-1);
  const supporting=[];
- let extraCooks=0n,extraMerges=0n,extraFuel=0;
+ let extraCooks=0n,extraMerges=0n,extraWind=0n,extraFuel=0;
  for(let i=0;i<slots.length;i++){
   const tier=Math.max(1,highest-i);
   const free=slots.length-i;
@@ -310,18 +318,21 @@ export function finishCertifiedCarryBoard(best,geom,target,windCap){
   const requiredWorkspace=aboveSource+1;
   if(requiredWorkspace>free)throw Error("Unbuildable Perfecto staircase ingredient");
   const direct=tier<=sourceTier;
-  const cooks=direct?1n:1n<<BigInt(aboveSource);
-  const merges=direct?0n:cooks-1n;
+  const recipe=direct?null:certifiedWindTierRecipe(sourceTier,tier,windCap);
+  const cooks=direct?1n:BigInt(recipe.cooksExact);
+  const merges=direct?0n:BigInt(recipe.mergesExact);
+  const wind=direct?0n:BigInt(recipe.windEventsExact);
   const cost=sushiDirectCookFuel(direct?tier:sourceTier);
   const fuel=Number(cooks)*cost;
   if(!Number.isFinite(fuel))throw Error("Non-finite Perfecto staircase fuel cost");
   best.board[slots[i]]=tier;
   extraCooks+=cooks;
   extraMerges+=merges;
+  extraWind+=wind;
   extraFuel+=fuel;
   supporting.push({position:slots[i]+1,tier,requiredWorkspace,
    sourceTier:direct?tier:sourceTier,cooksExact:cooks.toString(),
-   mergesExact:merges.toString()});
+   mergesExact:merges.toString(),windEventsExact:wind.toString()});
  }
  const proof=best.certificate;
  proof.supportingSushi=supporting;
@@ -331,11 +342,14 @@ export function finishCertifiedCarryBoard(best,geom,target,windCap){
  proof.supportingFuel=extraFuel;
  proof.supportingCooksExact=extraCooks.toString();
  proof.supportingMergesExact=extraMerges.toString();
+ proof.supportingWindEventsExact=extraWind.toString();
+ proof.totalWindEventsExact=(BigInt(proof.windEventsExact)+extraWind).toString();
  proof.totalCooksExact=(BigInt(proof.cooksExact)+extraCooks).toString();
  proof.totalMergesExact=(BigInt(proof.mergesExact)+extraMerges).toString();
  proof.proof+=" After producing all target copies, use the released workspace to build supporting sushi one at a time, highest first, preserving previous copies. Each next ingredient requires no more than the remaining free cells.";
  best.spent+=extraFuel;
  best.merges+=Number(extraMerges);
+ best.wind+=Number(extraWind);
  return best;
 }
 // Rearrangement is cosmetic: it does not create, destroy or upgrade sushi.
@@ -417,13 +431,16 @@ export function searchPerfectoBoard(save,target,economy,{effortMultiplier=16}={}
  const budget=Math.max(geom.flex.length*effortMultiplier,geom.flex.length*3);
  const stepLimit=Math.min(3000,Math.max(120,Math.ceil(budget*4)));
  const recipes=["uniform","ladder","double-ladder","high-pair","apex","existing"];
- let best=certifiedCarryBoard(geom,target,economy),attempted=0;
+ let best=certifiedCarryBoard(geom,target,economy,windCap),attempted=0;
+ let bestUnverified=null;
  for(const seed of sources){
   for(const recipe of recipes){
    for(let mode=0;mode<3;mode++){
     const candidate=runRecipe(geom,target,reference,seed,recipe,mode,windCap,budget,stepLimit);
     attempted++;
-    if(better(best?.metric,candidate.metric))best=candidate;
+    // A static count-state is not a replay of the entire cooking sequence.
+    // Do not replace a physically certified recipe with an unverified board.
+    if(better(bestUnverified?.metric,candidate.metric))bestUnverified=candidate;
    }
   }
  }
@@ -443,7 +460,8 @@ export function searchPerfectoBoard(save,target,economy,{effortMultiplier=16}={}
   certificate:best?.certificate??null,
   cookingTiersCompared:affordableSushiCookingTiers(economy,target).length,
   effortBudget:best?.certificate?null:budget,effortBasisTier:reference,
-  reason:targetCount>currentCopies?"simulated":"no-improvement",
-  heuristic:true,searchLimitReached:false
+  reason:targetCount>currentCopies?"certified":"no-improvement",
+  unverifiedTargetCount:bestUnverified?.metric?.target??null,
+  heuristic:false,searchLimitReached:false
  };
 }
