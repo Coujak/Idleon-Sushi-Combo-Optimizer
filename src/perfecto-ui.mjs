@@ -4,6 +4,7 @@ import {sushiTierIconPath} from "./sushi-reference.mjs?v=1.16.6";
 import {numberText} from "./lab-model.mjs?v=1.16.6";
 import {availablePerfectoTargets,getPerfectoPlanner,perfectoKnowledgeMilestones} from "./perfecto-planner.mjs?v=1.23.0";
 import {perfectoRecipeStages,perfectoFinalMergeIndex,perfectoRecipeIntegrity} from "./perfecto-recipe-guide.mjs?v=1.23.0";
+import {createPerfectoConstructionReplay} from "./perfecto-construction-replay.mjs?v=1.24.0";
 
 const $=id=>document.getElementById(id);
 const node=(tag,css="",value)=>{
@@ -263,6 +264,111 @@ export function initializePerfectoUI(getSave){
  }
  const accountRecipe=bindRecipeNavigator("perfecto");
  const maximumRecipe=bindRecipeNavigator("perfectoMax");
+ // Board-driven construction replay. This is a simulator-checked build of
+ // the LAST target copy on a staging board; it must never masquerade as an
+ // entire imported-board-to-optimized-board replay.
+ function bindBoardReplay(prefix,boardId){
+  const state={replay:null,plan:null,result:null,target:null,step:-1};
+  const actionId=prefix+"ReplayAction",statusId=prefix+"ReplayStatus";
+  const progressId=prefix+"ReplayProgress",limitId=prefix+"ReplayLimit";
+  const btn=id=>$(prefix+"Replay"+id);
+  function paint(){
+   const {replay,plan,result,target,step}=state;
+   if(!replay?.available||!plan)return;
+   const event=step>0?replay.steps[step-1]:null;
+   if(step<0){
+    renderBoard(result,plan,boardId);
+   }else{
+    const snapshot=step===0?replay.initial:event.board;
+    const preview={...plan,board:plan.board.map((cell,i)=>{
+     if(cell.slot<0)return cell;
+     const tier=Number(snapshot[i]??0);
+     return {...cell,role:tier===target?"target":
+      tier>target?"protected":tier>0?"ingredient":"empty",
+      preparedTier:tier>0?tier-1:-1,newCopy:false};
+    })};
+    renderBoard(result,preview,boardId);
+    const host=$(boardId);
+    const mark=(pos,className)=>{
+     if(Number.isInteger(pos)&&pos>=0&&pos<120)
+      host.querySelector('.perfecto-tile[data-position="'+pos+'"]')?.classList.add(className);
+    };
+    if(event){
+     if(event.kind==="merge"||event.kind==="move"){
+      mark(event.src,"perfecto-replay-from");
+      mark(event.dst,"perfecto-replay-to");
+     }else mark(event.at,"perfecto-replay-to");
+     for(const extra of event.events??[]){
+      if(extra.kind==="wind")mark(extra.at,"perfecto-replay-wind");
+     }
+    }
+   }
+   if(step<0){
+    text(statusId,"Final recommended board");
+    text(progressId,display(replay.steps.length)+" validated actions available");
+    text(actionId,"Start replay to follow the physical construction of the last target copy.");
+   }else if(step===0){
+    text(statusId,"Staged construction workspace");
+    text(progressId,"0 / "+display(replay.steps.length));
+    text(actionId,"Earlier target sushi are already parked. The highlighted board is the staging state before constructing the last target copy."+
+     (replay.partial?" Prepare the T"+replay.sourceTier+" ingredients first.":""));
+   }else{
+    const n=event;
+    let description;
+    if(n.kind==="cook")description="Cook T"+n.tier+" into slot "+(n.at+1)+".";
+    else if(n.kind==="prepared")description="Place a previously prepared T"+n.tier+" in slot "+(n.at+1)+". This tier is not assumed directly cookable.";
+    else if(n.kind==="move")description="Move T"+n.tier+" from slot "+(n.src+1)+" to slot "+(n.dst+1)+". Requires a legal sushi reposition.";
+    else{
+     const wind=n.events?.filter(e=>e.kind==="wind")??[];
+     description="Merge slot "+(n.src+1)+" into slot "+(n.dst+1)+
+      " to make T"+n.tier+".";
+     if(wind.length)description+=" Heat of the East Wind upgrades slot "+
+      wind.map(x=>(x.at+1)+" to T"+x.tier).join(", ")+".";
+    }
+    text(statusId,"Action "+display(step)+" of "+display(replay.steps.length));
+    text(progressId,step===replay.steps.length?"Last target completed":"Replaying construction");
+    text(actionId,description);
+   }
+   btn("Start").disabled=step===0;
+   btn("Prev").disabled=step<=0;
+   btn("Next").disabled=step>=replay.steps.length;
+   btn("Final").disabled=step>=replay.lastMergesIndex&&step>=0;
+   btn("Done").disabled=step<0;
+   highlightComparison();
+  }
+  btn("Start").addEventListener("click",()=>{state.step=0;paint();});
+  btn("Prev").addEventListener("click",()=>{
+   state.step=Math.max(0,state.step-1);paint();
+  });
+  btn("Next").addEventListener("click",()=>{
+   state.step=Math.min(state.replay?.steps.length??0,Math.max(0,state.step)+1);paint();
+  });
+  btn("Final").addEventListener("click",()=>{
+   state.step=state.replay?.lastMergesIndex??0;paint();
+  });
+  btn("Done").addEventListener("click",()=>{state.step=-1;paint();});
+  return (saved,result,plan,search,target)=>{
+   state.result=result;state.plan=plan;state.target=target;state.step=-1;
+   state.replay=createPerfectoConstructionReplay(saved,search,target);
+   const replay=state.replay,ready=replay.available;
+   text(statusId,ready?"Physical construction replay":"Replay not available");
+   text(progressId,ready?display(replay.steps.length)+" actions":"—");
+   text(actionId,ready?
+    "Start replay to watch cooks, merges, Wind upgrades and moves change the board.":
+    replay.reason);
+   text(limitId,ready?
+    (replay.partial?
+     "Late-stage replay: T"+replay.sourceTier+" ingredients must be prepared first. ":
+     "One complete target-copy construction from directly cooked T"+replay.sourceTier+". ")+
+    "Earlier target copies are already parked. This does not replay the entire account preparation or final plate rearrangement.":
+    "The full recipe remains in the summary. No unverified physical moves are displayed.");
+   for(const id of ["Start","Prev","Next","Final","Done"])
+    btn(id).disabled=!ready||id!=="Start"&&id!=="Final";
+   return replay;
+  };
+ }
+ const accountBoardReplay=bindBoardReplay("perfecto","perfectoBoard");
+ const maximumBoardReplay=bindBoardReplay("perfectoMax","perfectoMaxBoard");
  function renderBonuses(result){
   const host=$("perfectoBonusCards");host.replaceChildren();
   for(const k of result.bonus.rows){
@@ -350,6 +456,8 @@ export function initializePerfectoUI(getSave){
    accountPlan=null;benchmarkPlan=null;hoveredPosition=null;pinnedPosition=null;
    highlightComparison();
    $("perfectoRecipeNavigator").classList.add("hidden");
+   $("perfectoReplayControls").classList.add("hidden");
+   $("perfectoMaxReplayControls").classList.add("hidden");
    $("perfectoMaxRecipeNavigator").classList.add("hidden");
    text("perfectoNoData",result.reason==="complete"?
     "All discovered sushi are Perfecto. Import an updated save after discovering more.":
@@ -357,6 +465,8 @@ export function initializePerfectoUI(getSave){
    return;
   }
   renderKnowledgeTheory(result);
+  $("perfectoReplayControls").classList.remove("hidden");
+  $("perfectoMaxReplayControls").classList.remove("hidden");
   const p=result.plan;
   const account=result.comparisons.account;
   const maximum=result.comparisons.maximum;
@@ -394,6 +504,7 @@ export function initializePerfectoUI(getSave){
    perfectoPreparationSteps({...result,plan:maxP,search:maximum.search}):
    ["No benchmark preparation available."]).map(step=>node("li","",step)));
   renderBoard(result,maxP,"perfectoMaxBoard");
+  maximumBoardReplay(saved,result,maxP,maximum.search,result.target);
   summary.replaceChildren(sushiIcon(result.target,"perfecto-target-icon"),
    node("span","","T"+result.target+" · "+result.current.name+
     (result.current.perfecto?" · Perfecto":" · Not Perfecto")));
@@ -481,6 +592,7 @@ export function initializePerfectoUI(getSave){
     state==="blocked"?"NEXT: REVIEW AVAILABLE SLOTS":
     "NEXT: BUILD THE OPTIMIZED BOARD");
   renderBoard(result,p,"perfectoBoard");
+  accountBoardReplay(saved,result,p,account.search,result.target);
   setComparisonVisibility();
  }
  setPlannerTab("combo");
