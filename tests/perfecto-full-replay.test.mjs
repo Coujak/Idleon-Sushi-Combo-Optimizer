@@ -108,3 +108,22 @@ test("Full-board replay exposes next-copy, final merges, and final-fill navigati
  assert.ok(ui.includes('confirm.addEventListener("click"'));
  assert.ok(ui.includes('extra.kind==="wind"'));
 });
+
+test("Directly cookable targets replay every unlocked position without relocating protected sushi",()=>{
+ const slots=Array.from({length:120},(_,i)=>i<12?0:-1);
+ const tiles=Array(120).fill(-1);tiles[0]=63;tiles[8]=1;
+ const save={slots,tiles};
+ const search={certificate:{startingTier:4,finalCopies:11,stages:[]},targetCount:11};
+ const plan={board:Array.from({length:120},(_,i)=>({
+  preparedTier:i>=12?-1:i===0?63:3
+ }))};
+ const replay=createPerfectoFullBoardReplay(save,search,plan,4);
+ assert.equal(replay.available,true,replay.reason);
+ assert.equal(replay.requiresSetup,true);
+ assert.equal(replay.getFrame(0).board[8],2);
+ assert.equal(replay.getFrame(1).board[8],2);
+ assert.equal(replay.getFrame(2).board[8],0);
+ assert.equal(replay.getFrame(replay.totalSteps).board[0],64);
+ assert.equal(replay.getFrame(replay.totalSteps).board.slice(1,12).every(tier=>tier===4),true);
+ exactFinal(replay,plan);
+});
