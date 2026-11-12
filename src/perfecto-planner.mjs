@@ -42,32 +42,34 @@ export function perfectoKnowledgeScenario(rows,target,copies,proposedLevels={}){
   singleGainPercentagePoints:100*(afterSingle-beforeSingle),
   relativeBoardGain:beforeBoard>0?(afterBoard/beforeBoard-1)*100:null};
 }
-// Hypothetical "both at level L" table. Levels below a player's real levels
-// are still shown as historical what-if values, not obtainable downgrades.
-// Existing Perfecto multipliers remain unchanged while Knowledge grows.
-export function perfectoKnowledgeMilestones(rows,target,copies,{step=5}={}){
- const relevant=[50,54].map(tier=>(rows??[]).find(x=>x.tier===tier)).filter(Boolean);
- if(relevant.length!==2||relevant.some(x=>!x.discovered))
-  return {available:false,reason:"Both T50 and T54 must be discovered before their Knowledge bonuses can be compared.",rows:[]};
+// Every five levels after each tier's imported Knowledge level. For example,
+// T50 Lv28 and T54 Lv28 first show Lv30 / Lv30, then 35 / 35.
+// Existing Perfecto multipliers stay unchanged across the scenarios.
+export function perfectoKnowledgeMilestones(rows,target,copies,{step=5,count=10}={}){
+ const relevant=[50,54].map(tier=>(rows??[]).find(x=>x.tier===tier));
+ if(relevant.some(x=>!x?.discovered))
+  return {available:false,reason:"Discover both T50 and T54 to compare their future Knowledge levels.",rows:[]};
+ const actualStep=Number.isInteger(step)&&step>0?Math.min(step,25):5;
+ const actualCount=Number.isInteger(count)?Math.min(25,Math.max(1,count)):10;
+ const currentLevels=relevant.map(k=>({
+  tier:k.tier,level:Math.max(0,Math.floor(finite(k.level))),perfecto:!!k.perfecto
+ }));
  const currentBonus=relevant.reduce((sum,k)=>sum+Math.max(0,finite(k.bonus)),0);
  const currentChance=perfectoBoardChance(perfectoSingleChance(target,currentBonus),copies);
- const actualStep=Number.isInteger(step)&&step>0?Math.min(step,25):5;
- const maximumCurrent=Math.max(...relevant.map(x=>Math.max(0,Math.floor(finite(x.level)))));
- const maximumLevel=Math.min(500,Math.max(100,Math.ceil((maximumCurrent+25)/actualStep)*actualStep));
- const results=[];
- let previousChance=null;
- for(let level=actualStep;level<=maximumLevel;level+=actualStep){
-  const combinedBonus=relevant.reduce((sum,k)=>
-   sum+Math.max(0,finite(k.nextLevelGain))*level,0);
+ const results=[];let previousChance=currentChance;
+ for(let i=0;i<actualCount;i++){
+  const levels=currentLevels.map(k=>({
+   tier:k.tier,level:(Math.floor(k.level/actualStep)+1+i)*actualStep
+  }));
+  const combinedBonus=relevant.reduce((sum,k,j)=>
+   sum+Math.max(0,finite(k.nextLevelGain))*levels[j].level,0);
   const chance=perfectoBoardChance(perfectoSingleChance(target,combinedBonus),copies);
-  results.push({level,combinedBonus,chance,
+  results.push({levels,combinedBonus,chance,
    differencePercentagePoints:100*(chance-currentChance),
-   previousMilestoneGainPercentagePoints:previousChance===null?null:100*(chance-previousChance)});
+   previousMilestoneGainPercentagePoints:100*(chance-previousChance)});
   previousChance=chance;
  }
- return {available:true,currentChance,currentBonus,rows:results,
-  currentLevels:relevant.map(k=>({tier:k.tier,level:k.level,perfecto:k.perfecto})),
-  copies};
+ return {available:true,currentChance,currentBonus,rows:results,currentLevels,copies};
 }
 
 export function perfectoBoardChance(singleChance,copies){
