@@ -20,10 +20,10 @@ import {renderComboReport,decoratePreparedCell} from "./combo-qol-ui.mjs?v=1.18.
 import {searchCombos} from "./merge-search.mjs?v=1.9.9";
 import {MODE_CATALOG,getModeInfo,modeOptionLabel,modeDisplayLabel} from "./mode-catalog.mjs?v=1.17.1";
 const $=id=>document.getElementById(id);
-import {BOARD_COLUMNS,BOARD_CELLS,normalizeBoardData,layoutOptions} from "./board-geometry.mjs?v=1.8.4";
+import {BOARD_COLUMNS,BOARD_CELLS,normalizeBoardData,layoutOptions} from "./board-geometry.mjs?v=1.42.0";
 import {windTierMaximum,clampWindTier,windTierAfterPreparedChange} from "./wind-limit.mjs?v=1.9.10";
 import {detectSushiProgress} from "./sushi-progression.mjs?v=1.17.0";
-import {initializeSushiLab} from "./lab-ui.mjs?v=1.19.10";
+import {initializeSushiLab} from "./lab-ui.mjs?v=1.39.0";
 import {sushiTierIconPath} from "./sushi-reference.mjs?v=1.16.6";
 import {countOverviewPlates,overviewTileInfo} from "./overview-helpers.mjs?v=1.19.9";
 import {getPreparedBoardSections,hasSlotLayoutChanges,preparedSectionOutlinePath,preparedOutlineCoordinates} from "./prepared-sections.mjs?v=1.17.1";
@@ -280,7 +280,24 @@ function error(e){$("importStatus").textContent="Import failed";$("importStatus"
 $("pasteToggle").addEventListener("click",()=>{const open=$("pasteArea").classList.toggle("hidden")===false;$("pasteToggle").setAttribute("aria-expanded",String(open));if(open)$("jsonInput").focus();});
 $("parseJson").addEventListener("click",()=>{try{importSave(JSON.parse($("jsonInput").value),"Pasted JSON");}catch(e){error(e);}});
 $("jsonFile").addEventListener("change",async e=>{const f=e.target.files?.[0];if(!f)return;try{importSave(JSON.parse(await f.text()),f.name);}catch(err){error(err);}});
-$("clearImport").addEventListener("click",()=>{cancelRunningSearch();disposeReplay();imported=null;customBoard=null;$("solver").classList.add("hidden");$("jsonInput").value="";$("jsonFile").value="";$("board").replaceChildren();$("fireplaces").replaceChildren();$("importSummary").classList.add("hidden");$("importError").classList.add("hidden");$("importError").textContent="";$("pasteArea").classList.add("hidden");$("pasteToggle").setAttribute("aria-expanded","false");$("importStatus").textContent="Waiting for data";$("importStatus").classList.remove("success");$("boardStatus").textContent="Import a save";$("boardDetails").textContent="Your imported tiles will appear here.";$("jsonPreview").textContent="No JSON imported yet.";$("boardSelection").classList.add("hidden");$("boardSelection").replaceChildren();renderPlateBreakdown(null);sushiLab.clearImported();});
+function clearImportedSave(){
+ cancelRunningSearch();disposeReplay();imported=null;customBoard=null;
+ $("solver").classList.add("hidden");
+ $("jsonInput").value="";$("jsonFile").value="";
+ $("board").replaceChildren();$("fireplaces").replaceChildren();
+ $("importSummary").classList.add("hidden");
+ $("importError").classList.add("hidden");$("importError").textContent="";
+ $("pasteArea").classList.add("hidden");
+ $("pasteToggle").setAttribute("aria-expanded","false");
+ $("importStatus").textContent="Waiting for data";
+ $("importStatus").classList.remove("success");
+ $("boardStatus").textContent="Import a save";
+ $("boardDetails").textContent="Your imported tiles will appear here.";
+ $("jsonPreview").textContent="No JSON imported yet.";
+ $("boardSelection").classList.add("hidden");$("boardSelection").replaceChildren();
+ renderPlateBreakdown(null);sushiLab.clearImported();
+}
+$("clearImport").addEventListener("click",clearImportedSave);
 
 // The Overview shows the same plate colors even before a save is imported.
 renderPlateBreakdown(null);
@@ -461,7 +478,11 @@ async function showSolver(signal,foundId=null,savedOnly=false){
     (Number($("baseTier").value)||0));
   // A protected Tier 64 is retained for lower-tier legacy setups. Above
   // Tier 64 the protected preparation anchor becomes the selected maximum.
-  const arrangements=custom?[{name:"Current positions",slots}]:layoutOptions(slots);
+  // The MOVE button for repositioning plates is unlocked by Movement Mittens.
+  // It is not automatically available just because a player has Hot slots.
+  const movementMittens=Number(imported.sushi?.[2]?.[42]??0)>0;
+  const arrangements=custom?[{name:"Current positions",slots}]:
+   layoutOptions(slots,{movementMittens});
   const perSplit=Number($("customPerSplit").value);
   const customSettings={splitMode:$("customSplitMode").value,perSplit};
   if(!custom&&optimizerMode==="optimizer5"&&(!Number.isSafeInteger(perSplit)||perSplit<1||perSplit>1000))
@@ -792,6 +813,7 @@ async function showSolver(signal,foundId=null,savedOnly=false){
   else if(dualSplit)
    $("solverNote").textContent="This is the best completed configuration from the current run. "+$("solverNote").textContent;
   $("solverNote").textContent+=(foundInfo?" This is a previously found fixed board, not a configuration discovered by an optimizer.":"")+" Mode: "+optimizerModeLabel+". Winning strategy: "+result.strategy+". Slot arrangement: "+(solution.layoutName??"Current positions")+". Available prepared tier: "+maxTier+"; East Wind limit: "+cap+".";
+  if(!movementMittens&&!custom)$("solverNote").textContent+=" Slot positions are kept unchanged because Movement Mittens is not unlocked.";
   if(solution.adaptive)$("solverNote").textContent+=" Adaptive "+solution.shape+
    " (working tier T"+solution.workingTier+
    (solution.referenceExperiment?", learned from historical Exp "+solution.referenceExperiment:"")+

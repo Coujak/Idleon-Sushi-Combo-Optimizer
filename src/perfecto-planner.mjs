@@ -1,8 +1,8 @@
 // Perfecto probability and automatic buildable-board plan.
 // This planner does not depend on the user's time, pace, or desired copy count.
 import {getKnowledgeRows,getSushiSnapshot,getUpgradeRows} from "./lab-model.mjs?v=1.16.6";
-import {estimateSushiFuelEconomy} from "./perfecto-fuel.mjs?v=1.16.6";
-import {searchPerfectoBoard} from "./perfecto-wind-search.mjs?v=1.16.6";
+import {estimateSushiFuelEconomy,sushiDirectCookFuel} from "./perfecto-fuel.mjs?v=1.16.6";
+import {searchPerfectoBoard} from "./perfecto-wind-search.mjs?v=1.36.0";
 export {sushiDirectCookFuel} from "./perfecto-fuel.mjs?v=1.15.1";
 
 const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
@@ -14,6 +14,76 @@ export function perfectoSingleChance(tier,knowledgePct=0){
  return clamp(.6*Math.pow(.81,index)/(1+index/8)*
    (1+Math.max(0,finite(knowledgePct))/100),0,1);
 }
+// Knowledge level scenarios use the same per-level bonuses as the imported
+// account model. No XP earning or level-up timing is assumed.
+export function perfectoKnowledgeScenario(rows,target,copies,proposedLevels={}){
+ const relevant=(rows??[]).filter(k=>k?.tier===50||k?.tier===54);
+ let existingBonus=0,futureBonus=0;
+ const tiers=[];
+ for(const row of relevant){
+  const current=Math.max(0,Math.floor(finite(row.level)));
+  const requested=Number(proposedLevels[row.tier]);
+  const future=Number.isFinite(requested)?
+   Math.max(current,Math.floor(requested)):current;
+  const perLevel=row.discovered?Math.max(0,finite(row.nextLevelGain)):0;
+  const before=row.discovered?Math.max(0,finite(row.bonus)):0;
+  const after=before+(future-current)*perLevel;
+  existingBonus+=before;futureBonus+=after;
+  tiers.push({tier:row.tier,discovered:!!row.discovered,
+   currentLevel:current,futureLevel:future,beforeBonus:before,
+   afterBonus:after,bonusGain:after-before,perLevel});
+ }
+ const beforeSingle=perfectoSingleChance(target,existingBonus);
+ const afterSingle=perfectoSingleChance(target,futureBonus);
+ const beforeBoard=perfectoBoardChance(beforeSingle,copies);
+ const afterBoard=perfectoBoardChance(afterSingle,copies);
+ return {tiers,existingBonus,futureBonus,beforeSingle,afterSingle,
+  beforeBoard,afterBoard,boardGainPercentagePoints:100*(afterBoard-beforeBoard),
+  singleGainPercentagePoints:100*(afterSingle-beforeSingle),
+  relativeBoardGain:beforeBoard>0?(afterBoard/beforeBoard-1)*100:null};
+}
+// Start with BOTH tiers at their next five-level milestone. Later rows show
+// the next attainable milestone by relative levels gained since the import:
+// T50 Lv32 / T54 Lv28 => 35/30, 35/35, 40/35, 40/40, ...
+// Equal progress costs advance both tiers together. Existing Perfecto
+// multipliers stay unchanged across the hypothetical scenarios.
+export function perfectoKnowledgeMilestones(rows,target,copies,{step=5,count=10}={}){
+ const relevant=[50,54].map(tier=>(rows??[]).find(x=>x.tier===tier));
+ if(relevant.some(x=>!x?.discovered))
+  return {available:false,reason:"Discover both T50 and T54 to compare their future Knowledge levels.",rows:[]};
+ const actualStep=Number.isInteger(step)&&step>0?Math.min(step,25):5;
+ const actualCount=Number.isInteger(count)?Math.min(25,Math.max(1,count)):10;
+ const currentLevels=relevant.map(k=>({
+  tier:k.tier,level:Math.max(0,Math.floor(finite(k.level))),perfecto:!!k.perfecto
+ }));
+ const currentBonus=relevant.reduce((sum,k)=>sum+Math.max(0,finite(k.bonus)),0);
+ const currentChance=perfectoBoardChance(perfectoSingleChance(target,currentBonus),copies);
+ const results=[];let previousChance=currentChance;
+ const levels=currentLevels.map(k=>({
+  tier:k.tier,level:(Math.floor(k.level/actualStep)+1)*actualStep
+ }));
+ for(let i=0;i<actualCount;i++){
+  // After the first joint milestone, advance whichever tier reaches its next
+  // multiple of five with the fewest cumulative levels gained from the save.
+  if(i>0){
+   const nextDistances=levels.map((k,j)=>
+    (k.level+actualStep)-currentLevels[j].level);
+   const nearest=Math.min(...nextDistances);
+   for(let j=0;j<levels.length;j++)
+    if(nextDistances[j]===nearest)levels[j].level+=actualStep;
+  }
+  const milestoneLevels=levels.map(k=>({...k}));
+  const combinedBonus=relevant.reduce((sum,k,j)=>
+   sum+Math.max(0,finite(k.nextLevelGain))*milestoneLevels[j].level,0);
+  const chance=perfectoBoardChance(perfectoSingleChance(target,combinedBonus),copies);
+  results.push({levels:milestoneLevels,combinedBonus,chance,
+   differencePercentagePoints:100*(chance-currentChance),
+   previousMilestoneGainPercentagePoints:100*(chance-previousChance)});
+  previousChance=chance;
+ }
+ return {available:true,currentChance,currentBonus,rows:results,currentLevels,copies};
+}
+
 export function perfectoBoardChance(singleChance,copies){
  const p=clamp(finite(singleChance),0,1);
  const n=Math.max(0,Math.floor(finite(copies)));
@@ -28,6 +98,37 @@ export function perfectoAttemptsForConfidence(chance,confidence){
  const n=Math.ceil(Math.log1p(-goal)/Math.log1p(-q));
  return Number.isFinite(n)?Math.max(1,n):null;
 }
+// Compare the exact same per-activation Perfecto model before/after
+// preparation. A free shaker refund changes charge consumption, not odds.
+export function perfectoOddsImprovement(currentChance,optimizedChance){
+ const before=clamp(finite(currentChance),0,1);
+ const after=clamp(finite(optimizedChance),0,1);
+ const currentAttempts=before>0?1/before:null;
+ const optimizedAttempts=after>0?1/after:null;
+ return {
+  before,after,
+  ratio:before>0?after/before:null,
+  percentagePointGain:(after-before)*100,
+  currentAttempts,optimizedAttempts,
+  savedAttempts:currentAttempts!==null&&optimizedAttempts!==null?
+   Math.max(0,currentAttempts-optimizedAttempts):null,
+  improvement:after>before,
+  fromZero:before===0&&after>0
+ };
+}
+
+// The game caps free Shaker refund chance at 60%. The imported Sushi and
+// Knowledge sources are known; other research-grid sources may increase it.
+// Hence the estimate below is an upper bound, not a guaranteed cost.
+export function perfectoKnownFreeUseEstimate(chance,knownRefundChance){
+ const p=clamp(finite(chance),0,1);
+ const free=clamp(finite(knownRefundChance),0,.6);
+ return {
+  knownChance:free,
+  atCap:free>=.6,
+  expectedConsumedUpperBound:p>0?(1-free)/p:null
+ };
+}
 export function availablePerfectoTargets(save){
  if(!save)return [];
  return getKnowledgeRows(save).filter(k=>k.discovered&&!k.perfecto);
@@ -35,18 +136,35 @@ export function availablePerfectoTargets(save){
 export function chooseNextPerfectoTier(save){
  return availablePerfectoTargets(save)[0]?.tier??null;
 }
-function getSearch(save,target){
+function getSearch(save,target,cookTierOverride=null,scenario="account"){
  let byTarget=cache.get(save);
  if(!byTarget){byTarget=new Map();cache.set(save,byTarget);}
- const key=String(target);
+ const selected=Number(cookTierOverride);
+ const hasOverride=cookTierOverride!==null&&cookTierOverride!==""&&
+  Number.isInteger(selected)&&selected>=1&&selected<=46;
+ const key=String(target)+":"+scenario+":"+(hasOverride?selected:"auto");
  if(byTarget.has(key))return byTarget.get(key);
- // Fuel cap determines which sushi the player can cook directly. It never
- // imposes a preparation deadline or a user-controlled rate.
- const economy=estimateSushiFuelEconomy(save);
- const run=searchPerfectoBoard(save,target,economy);
- const result={economy,run};
+ // Only the account scenario can change its verified cookable limit. The
+ // benchmark deliberately assumes a T46 unlock and enough capacity to cook it.
+ const modeled=estimateSushiFuelEconomy(save);
+ // User-confirmed cooking tiers can correct JSON estimates upward or downward.
+ const effective=scenario==="account"&&hasOverride&&modeled?selected:null;
+ const economy=modeled?(scenario==="maximum"?{
+  ...modeled,maxCookTier:46,
+  capacity:Math.max(modeled.capacity,sushiDirectCookFuel(Math.min(target,46))),
+  hypotheticalCapacity:true
+ }:effective!==null?{
+  ...modeled,maxCookTier:effective,
+  capacity:Math.max(modeled.capacity,sushiDirectCookFuel(effective)),
+  observedCookTier:effective,modeledCapacity:modeled.capacity,
+  correctedCapacity:modeled.capacity<sushiDirectCookFuel(effective)
+ }:modeled):null;
+ const run=searchPerfectoBoard(save,target,economy,{certifiedOnly:true,
+  supportMode:"staircase"});
+ const result={economy,run,observedCookTier:effective,
+  suggestedCookTier:modeled?.maxCookTier??null,scenario};
  byTarget.set(key,result);
- if(byTarget.size>30)byTarget.delete(byTarget.keys().next().value);
+ if(byTarget.size>35)byTarget.delete(byTarget.keys().next().value);
  return result;
 }
 function visualBoard(save,tier,run){
@@ -85,10 +203,37 @@ function visualBoard(save,tier,run){
   positions:board.filter(x=>x.role==="target").map(x=>x.index)
  };
 }
+// Fuel-generation-equivalent preparation cost. This is NOT a duration
+// forecast: it excludes cooking interactions, shaker luck, time spent at cap
+// and other external fuel bonuses that aren't present in exported JSON.
+export function perfectoPreparationEconomy(run,economy){
+ const proof=run?.certificate;
+ const sourceTier=run?.sourceTier??null;
+ const cost=sushiDirectCookFuel(sourceTier);
+ const targetFuel=Number(proof?.estimatedFuel);
+ const supportFuel=Number(proof?.supportingFuel??0);
+ const totalFuel=Number.isFinite(targetFuel)&&targetFuel>=0&&
+  Number.isFinite(supportFuel)&&supportFuel>=0?targetFuel+supportFuel:null;
+ const fuelRate=Number(economy?.generationPerHour);
+ return {
+  sourceTier,costPerCook:cost,
+  maxDirectTier:economy?.maxCookTier??null,
+  fuelCapacity:economy?.capacity??null,
+  generationPerHour:Number.isFinite(fuelRate)&&fuelRate>0?fuelRate:null,
+  totalFuel,
+  generationHours:totalFuel!==null&&fuelRate>0?totalFuel/fuelRate:null,
+  targetFuel:Number.isFinite(targetFuel)?targetFuel:null,
+  cooksExact:proof?.cooksExact??null,
+  windEventsExact:proof?.windEventsExact??null,
+  workspaceSlots:proof?.workspaceSlots??null,
+  hypothetical:!!economy?.hypotheticalCapacity,
+  uncertainCapacity:!!economy?.excludesEventCapacityBonus
+ };
+}
 export function perfectoBoardPlan(save,tier,options={}){
  return getPerfectoPlanner(save,{...options,tier}).plan??null;
 }
-export function getPerfectoPlanner(save,{tier=null}={}){
+export function getPerfectoPlanner(save,{tier=null,cookTier=null}={}){
  const knowledge=getKnowledgeRows(save);
  const next=chooseNextPerfectoTier(save);
  const requested=Number(tier);
@@ -99,18 +244,30 @@ export function getPerfectoPlanner(save,{tier=null}={}){
  if(!save||!target)return {target:null,next,bonus,reason:save?"complete":"import"};
  const current=knowledge[target-1];
  if(!current?.discovered)return {target:null,next,bonus,reason:"undiscovered"};
- const {economy,run}=getSearch(save,target);
+ const {economy,run,observedCookTier,suggestedCookTier}=getSearch(save,target,cookTier);
+ const {economy:maximumEconomy,run:maximumRun}=getSearch(save,target,null,"maximum");
  const plan=visualBoard(save,target,run);
+ const maximumPlan=visualBoard(save,target,maximumRun);
  const snapshot=getSushiSnapshot(save);
  const singleChance=perfectoSingleChance(target,knownBonus);
  const currentChance=perfectoBoardChance(singleChance,plan?.currentCopies??0);
  const planChance=perfectoBoardChance(singleChance,plan?.copies??0);
+ const maximumChance=perfectoBoardChance(singleChance,maximumPlan?.copies??0);
+ const comparisons={
+  account:{plan,search:run,chance:planChance,economy:perfectoPreparationEconomy(run,economy)},
+  maximum:{plan:maximumPlan,search:maximumRun,chance:maximumChance,
+   economy:perfectoPreparationEconomy(maximumRun,maximumEconomy)},
+  copyDifference:(maximumPlan?.copies??0)-(plan?.copies??0),
+  percentagePointGain:(maximumChance-planChance)*100
+ };
  const expectedActivations=planChance>0?1/planChance:null;
+ const improvement=perfectoOddsImprovement(currentChance,planChance);
  const upgrades=getUpgradeRows(save);
  const bottomless=upgrades.find(x=>x.id===21)?.rawBonus??0;
  const freeKnowledge=knowledge.filter(k=>k.category===5&&k.discovered)
    .reduce((a,k)=>a+(k.bonus??0),0);
  const freeKnown=clamp((bottomless+freeKnowledge)/100,0,.6);
+ const freeUseEstimate=perfectoKnownFreeUseEstimate(planChance,freeKnown);
  const pepperAvailable=Math.max(0,Math.floor(snapshot.shakers[1]??0));
  // Holding more Pepper enables more attempts; it never increases the odds
  // of a single activation. For best per-use efficiency, prepare the board
@@ -120,7 +277,7 @@ export function getPerfectoPlanner(save,{tier=null}={}){
  if(current.perfecto)recommendation={state:"completed",title:"ALREADY PERFECTO — STOP",
   text:"This tier is already Perfecto. Save your Pepper for a different unfinished tier."};
  else if(!plan?.eligible)recommendation={state:"blocked",title:"NO AVAILABLE SLOTS — REVIEW YOUR BOARD",
-  text:"All positions are protected. Change the higher-tier protection setting or choose another unfinished tier."};
+  text:"All available positions are occupied by higher-tier sushi that must be preserved. Choose another unfinished tier or free up board space without sacrificing protected sushi."};
  else if(!plan?.copies)recommendation={state:"prepare",title:"SAVE PEPPER — BUILD TARGET SUSHI FIRST",
   text:"The planner could not construct a target copy. Do not use Pepper for this tier until at least one target sushi is placed."};
  else if(plan.currentCopies<plan.copies)recommendation={state:"save",title:"SAVE PEPPER — PREPARE THE BOARD FIRST",
@@ -132,12 +289,14 @@ export function getPerfectoPlanner(save,{tier=null}={}){
   text:"Your current board already has "+plan.currentCopies+" target copies, as many as the recommendation. Use Pepper now and stop as soon as this tier becomes Perfecto."};
  return {
   target,current,bonus,next,plan,snapshot,economy,search:run,
+  comparisons,maximumPlan,maximumChance,
+  observedCookTier,suggestedCookTier,
   singleChance,currentChance,planChance,expectedActivations,pepperStackChance,
+  improvement,
   milestones:[.5,.9,.99].map(confidence=>({
    confidence,attempts:perfectoAttemptsForConfidence(planChance,confidence)})),
-  freeUse:{knownChance:freeKnown,knownFrom:["Bottomless Shakers","Sushi Knowledge"],
-   researchNotIncluded:true,
-   expectedConsumedUpperBound:expectedActivations===null?null:expectedActivations*(1-freeKnown)},
+  freeUse:{...freeUseEstimate,knownFrom:["Bottomless Shakers","Sushi Knowledge"],
+   researchNotIncluded:true},
   preparation:{pepperAvailable},
   recommendation,independenceAssumption:true,simulatedWind:true,
   ignoresSaltAndCookTierProcs:true

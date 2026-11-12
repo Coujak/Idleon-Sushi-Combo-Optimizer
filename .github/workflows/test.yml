@@ -1,7 +1,7 @@
 name: Optimizer regression tests
 on:
   push:
-    branches: [main]
+    branches: [main, feature/combo-search-redesign]
   workflow_dispatch:
 jobs:
   test:

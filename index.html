@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Idleon Sushi Station Lab</title><link rel="stylesheet" href="styles.css?v=1.20.0"></head>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Idleon Sushi Station Lab</title><link rel="stylesheet" href="styles.css?v=1.40.0"></head>
 <body><main class="shell"><header class="hero"><div class="hero-copy"><div class="eyebrow hero-eyebrow"><span class="eyebrow-dot"></span> IDLEON · SUSHI STATION TOOLKIT</div><h1>Sushi Station <span>Lab</span></h1><p>Your Sushi Station companion: explore your account, plan the next upgrade, study knowledge tiers, and optimize your Combo Meter.</p><div class="hero-chips"><span>✦ Account overview</span><span>↗ Combo Meter planner</span><span>◈ Upgrade & Knowledge guides</span></div></div><div class="hero-visual" aria-hidden="true"><div class="hero-orbit"></div><img src="assets/sushi/Leviathan%20Roll%20(Tier%2058).png" alt=""><div class="hero-visual-label">TIER 58</div></div></header>
 <nav class="lab-navigation" aria-label="Sushi Station sections" role="tablist">
 <button type="button" class="lab-nav-button" role="tab" data-lab-target="overview" aria-controls="lab-overview" aria-selected="true">Overview</button>
@@ -14,12 +14,20 @@
 <div id="pasteArea" class="paste-area hidden"><textarea id="jsonInput" spellcheck="false" placeholder="Paste your game save / raw game JSON here…"></textarea><button id="parseJson" class="button primary" type="button">Import JSON</button></div>
 <p id="importError" class="timing-bad hidden" role="alert"></p><div id="importSummary" class="summary hidden"></div><p class="privacy">🔒 JSON imports are processed locally in your browser. Your save is not uploaded.</p><details><summary>Raw data / parser diagnostics</summary><pre id="jsonPreview">No JSON imported yet.</pre></details></section>
 <section class="panel lab-welcome-panel"><div class="heading"><div><div class="eyebrow">SUSHI STATION · OVERVIEW</div><h2>Account dashboard</h2></div><span id="overviewImportTime" class="status" title="Shows when the JSON was imported into this browser">No save imported</span></div>
-<p class="hint">See your Sushi Station progress from a local save import. Your Combo Meter research and the new guides live in separate tabs.</p>
+<p class="hint">See your Sushi Station progress from a local JSON import. Your Combo Meter research and the new guides live in separate tabs.</p>
 <div class="lab-stat-grid" id="labOverviewStats" aria-live="polite"></div>
-<section class="lab-dashboard-section" aria-labelledby="labShakerTitle"><h3 id="labShakerTitle">Available shakers</h3><p class="hint">Current uses from your imported save.</p><div id="labShakerCards" class="lab-shaker-grid" aria-live="polite"></div></section>
+<section class="lab-dashboard-section" aria-labelledby="labShakerTitle"><h3 id="labShakerTitle">Available shakers</h3><p class="hint">Current uses and daily refills from your imported save.</p><div id="labShakerCards" class="lab-shaker-grid" aria-live="polite"></div></section>
 <div class="lab-dashboard-lists">
 <section class="lab-dashboard-section" aria-labelledby="labMissingPerfectosTitle"><h3 id="labMissingPerfectosTitle">Missing Perfectos <span id="labMissingPerfectosCount" class="lab-section-count"></span></h3><p class="hint">Discovered sushi that are not Perfecto yet.</p><div id="labMissingPerfectos" class="lab-sushi-grid" aria-live="polite"></div><button id="labMissingPerfectosToggle" class="button secondary lab-list-toggle hidden" type="button" aria-controls="labMissingPerfectos" aria-expanded="false">Show all</button></section>
 <section class="lab-dashboard-section" aria-labelledby="labMissingTiersTitle"><h3 id="labMissingTiersTitle">Missing sushi tiers <span id="labMissingTiersCount" class="lab-section-count"></span></h3><p class="hint">Sushi types you have not discovered yet.</p><div id="labMissingTiers" class="lab-sushi-grid" aria-live="polite"></div><button id="labMissingTiersToggle" class="button secondary lab-list-toggle hidden" type="button" aria-controls="labMissingTiers" aria-expanded="false">Show all</button></section>
+</div>
+<div id="overviewFireplaceAdvice" class="overview-fireplace-advice hidden" role="status" aria-live="polite">
+<div class="overview-fireplace-advice-intro">
+<img id="overviewFireplaceAdviceIcon" class="overview-fireplace-advice-icon" width="48" height="48" alt="Potassium Firelighter" loading="lazy">
+<div class="overview-fireplace-advice-copy"><strong id="overviewFireplaceAdviceHeading">Potassium Firelighter</strong><p id="overviewFireplaceAdviceSummary"></p></div>
+</div>
+<div id="overviewFireplaceAdviceGains" class="overview-fireplace-advice-gains hidden" aria-label="Extra Spark-based fireplace bonus from one additional Purple fireplace"></div>
+<p id="overviewFireplaceAdviceNote" class="overview-fireplace-advice-note hidden">Estimated extra fireplace bonus from adding one Purple. Assumes continuous Spark generation; does not include what the replaced fireplace loses.</p>
 </div>
 </section>
 <section class="panel"><div class="heading"><div><div class="eyebrow">02 · SUSHI STATION</div><h2>Your board</h2></div><span id="boardStatus" class="status">Import a save</span></div><p class="hint">The board reflects your imported save. Select any unlocked plate to inspect its sushi, tier, plate type and Perfecto status.</p><div id="boardPlateSummary" class="legend overview-plate-summary" aria-label="Unlocked plates by type"></div><div class="board-scroll"><div id="board" class="board" aria-label="Sushi Station board"></div><div id="fireplaces" aria-label="Fireplaces below the board"></div></div><p id="boardDetails" class="hint">Your imported tiles will appear here.</p><div id="boardSelection" class="overview-board-selection hidden" role="status" aria-live="polite"></div></section>
@@ -74,30 +82,132 @@
 <p class="hint mode-comparison-note">Fast, Mid, Slow and Max evaluate 50 distinct profiles per split where possible. Custom evaluates its chosen budget per unique split. No mode examines every possible tier arrangement or merge sequence; results are simulator estimates, not proven global maxima. Historical benchmark boards are listed separately under Found Configurations.</p>
 </details><div id="customEditor" class="custom-editor hidden"><h3>Build your custom sushi board</h3><p class="hint">Choose a tier, then click any unlocked slot to place it. Tier 0 erases a slot. The editor uses your imported slot layout; The configured top tier is preserved by Fill and Clear; lower tiers may be edited.</p><div class="actions"><label>Paint tier <input id="paintTier" type="number" min="0" step="1" value="41"></label><button type="button" id="customFromSave" class="button secondary">Load imported board</button><button type="button" id="customFill" class="button secondary">Fill unlocked slots</button><button type="button" id="customClear" class="button quiet">Clear except top tier</button></div><p id="customStatus" class="hint"></p><div class="board-scroll"><div id="customBoard" class="board custom-board" aria-label="Editable sushi tier board"></div></div><p class="hint">When finished, click Run optimizer above to search this exact board.</p></div><div id="optimizerProgress" class="optimizer-progress hidden" role="status" aria-live="polite"><div class="optimizer-progress-heading"><strong>Optimizing sushi layout…</strong><span id="optimizerProgressText">Preparing search…</span><button id="stopKeepBest" class="button secondary" type="button" title="Stop searching and open the best configuration found during this run, even if your saved record is higher">Stop &amp; Continue</button><button id="cancelSolverProgress" class="button secondary optimizer-progress-cancel" type="button" aria-label="Cancel current optimization">Cancel optimization</button></div><div id="optimizerSingleProgress" class="optimizer-single-progress"><progress id="optimizerProgressBar" max="1" value="0" aria-label="Optimizer progress"></progress></div><div id="optimizerDualProgress" class="optimizer-dual-progress hidden" aria-label="Two-direction supply and Wind engine research"><div class="optimizer-track optimizer-track-supply"><div class="optimizer-track-header"><strong>Supply-heavy search</strong><span id="optimizerSupplyStatus">50/50 · 0%</span></div><progress id="optimizerSupplyProgress" max="1" value="0" aria-label="Supply-heavy split research progress"></progress></div><div class="optimizer-track optimizer-track-engine"><div class="optimizer-track-header"><strong>Engine-heavy search</strong><span id="optimizerEngineStatus">50/50 · 0%</span></div><progress id="optimizerEngineProgress" max="1" value="0" aria-label="Engine-heavy split research progress"></progress></div></div></div><div id="solverScoreBubble" class="solver-score-bubble hidden" role="status" aria-live="polite"><strong id="solverScoreLabel">Estimated combo score:</strong><span id="solverScore">—</span></div><div id="solverResults" class="hidden"><p><strong>Manual merges:</strong> <span id="solverMoves">—</span> · <strong>Repositions:</strong> <span id="solverRepositions">—</span></p><p id="solverNote" class="hint">Import JSON to start.</p><p><strong id="timingStatus">Timing not evaluated</strong></p><p id="timingDetails" class="hint"></p><div id="solverSteps"></div></div></section>
 <section id="perfectoPlanner" class="panel lab-perfecto-panel hidden" role="tabpanel" aria-label="Perfecto Planner" aria-hidden="true">
- <div class="heading"><div><div class="eyebrow">03 · PERFECTO PLANNER</div><h2>Perfecto preparation and Shaker strategy</h2></div><span class="status">One tier at a time</span></div>
+ <div class="heading"><div><div class="eyebrow">03 · PERFECTO PLANNER</div><h2>Perfecto preparation and Shaker strategy</h2></div><span class="status perfecto-header-target" id="perfectoHeaderTarget">Target · Auto</span></div>
  <p class="hint">Automatically targets the first discovered sushi tier missing Perfecto. Choose any discovered tier to override it. Your imported sushi board is used to suggest preparations without modifying your game save.</p>
  <div class="perfecto-controls">
-  <label class="perfecto-tier-select">Target sushi tier<select id="perfectoTarget"><option value="auto">Auto · next missing tier</option></select></label>
-  <button id="perfectoResetTarget" type="button" class="button quiet">Reset to next missing</button>
-
+  <div class="perfecto-target-group">
+   <label class="perfecto-tier-select">Target sushi tier
+    <select id="perfectoTarget"><option value="auto">Auto · next missing tier</option></select>
+   </label>
+   <button id="perfectoResetTarget" type="button" class="button quiet">Reset to next missing</button>
+  </div>
+  <label class="perfecto-cook-tier">Highest tier you can cook
+   <input id="perfectoCookTier" type="number" min="1" max="46" step="1" inputmode="numeric" placeholder="Auto from JSON" aria-describedby="perfectoCookTierHint">
+   <small id="perfectoCookTierHint">Optional: correct the estimated direct-cooking limit. Leave empty to use JSON.</small>
+  </label>
  </div>
  <div id="perfectoNoData" class="lab-empty-state" role="status">Import your game save JSON on Overview to start.</div>
  <div id="perfectoCalculator" class="hidden">
   <div class="perfecto-section-head"><h3>1 · Target and Perfecto probabilities</h3><span id="perfectoTargetSummary" class="perfecto-target-summary"></span></div>
   <div class="perfecto-probability-grid">
    <div class="perfecto-stat"><span>Single Target Sushi</span><strong id="perfectoSingleChance">—</strong><small>Chance for one target sushi to become Perfecto in a single Pepper use</small></div>
-   <div class="perfecto-stat"><span>Current Board Chances</span><strong id="perfectoCurrentChance">—</strong><small id="perfectoCurrentCopies">—</small><small>Chance per Pepper use with the target sushi already on your imported board</small></div>
-   <div class="perfecto-stat perfecto-stat-primary"><span>Optimized Board Chances</span><strong id="perfectoPlanChance">—</strong><small id="perfectoPlanOddsRatio" class="perfecto-odds-ratio">1 in —</small><small id="perfectoPlanCopies">—</small><small>Chance per Pepper use after preparing the recommended board</small></div>
-   <div class="perfecto-stat"><span>Average Pepper Attempts</span><strong id="perfectoExpectedActivations">—</strong><small>Expected activations on the optimized board before success (not guaranteed)</small></div>
+   <div class="perfecto-stat"><span>Current Board Chances</span><strong id="perfectoCurrentChance">—</strong><small id="perfectoCurrentOddsRatio" class="perfecto-odds-ratio">1 in —</small><small id="perfectoCurrentCopies">—</small><small>Chance per Pepper use with the target sushi already on your imported board</small></div>
+   <div class="perfecto-stat perfecto-stat-primary"><span>Current-account Board Chance</span><strong id="perfectoPlanChance">—</strong><small id="perfectoPlanOddsRatio" class="perfecto-odds-ratio">1 in —</small><small id="perfectoPlanCopies">—</small><small>Chance per Pepper use after preparing your account-specific board</small></div>
+   <div class="perfecto-stat"><span>Average Pepper Attempts</span><strong id="perfectoExpectedActivations">—</strong><small>Expected activations with your account-specific board (not guaranteed)</small></div>
   </div>
-  <p class="hint perfecto-caveat">Your current board comes from your imported game data. The optimized board uses the recommended layout below. More copies of the target sushi can improve the chance <strong>per Pepper use</strong>. These estimates assume independent Perfecto rolls and may differ from the game.</p>
-  <div class="perfecto-section-head"><h3>2 · Optimized final board</h3><span class="perfecto-count-label" id="perfectoCopyCount">—</span></div>
-  <p class="hint">The planner automatically compares buildable starting arrangements and valid merges and Heat of the East Wind cascades. It automatically preserves your existing higher-tier sushi, finds the strongest final board in its search, and shows only that arrangement for you to recreate in-game.</p>
-  <div class="perfecto-board-note" id="perfectoPreparationSummary"></div>
-  <div class="perfecto-legend"><span><i class="perfecto-legend-target"></i> Target copies</span><span><i class="perfecto-legend-new"></i> Needs preparation</span><span><i class="perfecto-legend-ingredient"></i> Other sushi</span><span><i class="perfecto-legend-protected"></i> Protected</span><span><i class="perfecto-legend-locked"></i> Locked</span><span><i class="perfecto-legend-regular"></i> Regular plate</span><span><i class="perfecto-legend-hot"></i> Hot plate</span><span><i class="perfecto-legend-cold"></i> Cold plate</span><span><i class="perfecto-legend-milk"></i> Milktoast plate</span></div>
-  <div class="board-scroll perfecto-board-scroll"><div id="perfectoBoard" class="perfecto-board" aria-label="Recommended Perfecto target sushi board"></div></div>
-  <p class="hint" id="perfectoProtectedCount">—</p>
-  <p class="hint" id="perfectoModelNote">The optimizer compares buildable boards and valid Wind cascades. This is the best result found in its search, not a proven global maximum.</p>
+  <div class="perfecto-improvement" aria-live="polite"><strong id="perfectoImprovement">—</strong><span id="perfectoImprovementDetail">—</span></div>
+  <p class="hint perfecto-caveat">Your current board comes from your imported game data. The account-specific recommendation uses the first board below. More copies of the target sushi can improve the chance <strong>per Pepper use</strong>. These estimates assume independent Perfecto rolls and may differ from the game.</p>
+  <div class="perfecto-section-head"><h3>2 · Compare preparation boards</h3><span class="perfecto-count-label" id="perfectoCopyCount">—</span></div>
+  <p class="hint">Compare your account-specific build with a hypothetical T46 direct-cooking benchmark. Both preserve unlocked plates and higher-tier sushi. The benchmark uses available Heat of the East Wind, but never assumes Salt Shakers, random tier upgrades, or Blue Campfire skips.</p>
+  <div class="perfecto-compare-toolbar">
+   <label class="perfecto-benchmark-toggle"><input id="perfectoShowBenchmark" type="checkbox" checked> Show T46 benchmark</label>
+   <span id="perfectoComparePosition" class="perfecto-compare-position" role="status">Hover or select a board cell to compare its position.</span>
+  </div>
+  <div class="perfecto-legend" aria-label="Board color and symbol legend"><span><i class="perfecto-legend-target"></i> Target copies</span><span><i class="perfecto-legend-new"></i> Needs preparation</span><span><i class="perfecto-legend-ingredient"></i> Other sushi</span><span><i class="perfecto-legend-protected"></i> Protected</span><span><i class="perfecto-legend-locked"></i> Locked</span><span><i class="perfecto-legend-regular"></i> Regular plate</span><span><i class="perfecto-legend-hot"></i> Hot plate</span><span><i class="perfecto-legend-cold"></i> Cold plate</span><span><i class="perfecto-legend-milk"></i> Milktoast plate</span></div>
+  <div class="perfecto-board-comparison">
+   <section class="perfecto-comparison-panel is-account" aria-labelledby="perfectoAccountBoardHeading">
+    <header class="perfecto-comparison-header">
+     <div><span class="perfecto-comparison-eyebrow">Recommended for your save</span><h4 id="perfectoAccountBoardHeading">Current account</h4></div>
+     <span class="perfecto-comparison-tag" id="perfectoAccountBoardTag">Based on imported JSON</span>
+    </header>
+    <div class="perfecto-comparison-metrics">
+     <strong id="perfectoAccountScenario">—</strong><small id="perfectoAccountFuel">—</small>
+    </div>
+    <div class="perfecto-board-note" id="perfectoPreparationSummary">—</div>
+    <div class="board-scroll perfecto-board-scroll"><div id="perfectoBoard" class="perfecto-board" aria-label="Current-account Perfecto preparation board"></div></div>
+    <p class="hint perfecto-board-footnote" id="perfectoProtectedCount">—</p>
+    <details class="perfecto-comparison-guide" open>
+     <summary>Build the final target · Current account</summary>
+     <div id="perfectoReplayControls" class="perfecto-replay-controls">
+      <div class="perfecto-replay-top"><strong id="perfectoReplayStatus">Preparing replay…</strong><span id="perfectoReplayProgress">—</span></div>
+      <p id="perfectoReplayAction" class="perfecto-replay-action">Start a focused demonstration of constructing the last target sushi, with Wind effects shown on the board.</p>
+       <div class="perfecto-replay-buttons">
+       <button id="perfectoReplayStart" type="button" class="button secondary">Start walkthrough</button>
+       <button id="perfectoReplayPrev" type="button" class="button quiet">Previous</button>
+       <button id="perfectoReplayNext" type="button" class="button secondary">Next</button>
+       
+       <button id="perfectoReplayCycle" type="button" class="button quiet">Next tier milestone</button>
+        <button id="perfectoReplayFinal" type="button" class="button secondary">Skip to final merges</button>
+        <button id="perfectoReplayCascade" type="button" class="button secondary">Jump to biggest Wind cascade</button>
+       <button id="perfectoReplayFill" type="button" class="button secondary">Finish board</button>
+       <button id="perfectoReplayDone" type="button" class="button quiet">Show final board</button>
+       
+      </div>
+      <p id="perfectoReplayLimit" class="perfecto-replay-limit perfecto-replay-notice">The supporting staircase and its adjacent target are the construction workspace. All other sushi remain in place.</p>
+     </div>
+     <div id="perfectoRecipeNavigator" class="perfecto-recipe-navigator hidden">
+      <div class="perfecto-recipe-heading"><span id="perfectoRecipeCount">Stage —</span><strong id="perfectoRecipeStage">—</strong></div>
+      <div id="perfectoRecipeVisual" class="perfecto-recipe-visual" aria-hidden="true"></div>
+      <p id="perfectoRecipeDescription" class="perfecto-recipe-description" aria-live="polite">—</p>
+      <div class="perfecto-recipe-actions">
+       <button id="perfectoRecipePrev" type="button" class="button quiet">Previous</button>
+       <button id="perfectoRecipeNext" type="button" class="button secondary">Next</button>
+       <button id="perfectoRecipeFinal" type="button" class="button secondary">Skip to final merges</button>
+       <button id="perfectoRecipeStart" type="button" class="button quiet">Start over</button>
+      </div>
+      <p class="hint perfecto-recipe-hint">Shows the repeating tier recipe, not an exact move-by-move board replay.</p>
+     </div>
+     <details class="perfecto-recipe-notes"><summary>Full preparation notes</summary><ol id="perfectoPreparationSteps"></ol></details>
+    </details>
+    <p class="hint perfecto-board-footnote" id="perfectoModelNote">The planner uses constructive recipes, not a proven global optimum.</p>
+   </section>
+   <section class="perfecto-comparison-panel is-maximum" aria-labelledby="perfectoMaximumBoardHeading">
+    <header class="perfecto-comparison-header">
+     <div><span class="perfecto-comparison-eyebrow">Hypothetical benchmark · No Salt Shakers</span><h4 id="perfectoMaximumBoardHeading">T46 cooking unlocked</h4></div>
+     <span class="perfecto-comparison-tag" id="perfectoMaximumBoardTag">T46 directly cookable</span>
+    </header>
+    <div class="perfecto-comparison-metrics">
+     <strong id="perfectoMaximumScenario">—</strong><small id="perfectoMaximumFuel">—</small>
+    </div>
+    <div class="perfecto-board-note" id="perfectoMaximumSummary">—</div>
+    <div class="board-scroll perfecto-board-scroll"><div id="perfectoMaxBoard" class="perfecto-board" aria-label="Hypothetical T46 maximum-case Perfecto preparation board"></div></div>
+    <p class="hint perfecto-board-footnote">The T46 benchmark uses Heat of the East Wind when your account has it unlocked, with a lower-tier preparation staircase. No Salt Shakers or random tier skips are assumed.</p>
+    <details class="perfecto-comparison-guide">
+     <summary>Build the final target · T46 benchmark</summary>
+     <div id="perfectoMaxReplayControls" class="perfecto-replay-controls">
+      <div class="perfecto-replay-top"><strong id="perfectoMaxReplayStatus">Preparing replay…</strong><span id="perfectoMaxReplayProgress">—</span></div>
+      <p id="perfectoMaxReplayAction" class="perfecto-replay-action">Start a focused demonstration of constructing the last target sushi, with Wind effects shown on the board.</p>
+       <div class="perfecto-replay-buttons">
+       <button id="perfectoMaxReplayStart" type="button" class="button secondary">Start walkthrough</button>
+       <button id="perfectoMaxReplayPrev" type="button" class="button quiet">Previous</button>
+       <button id="perfectoMaxReplayNext" type="button" class="button secondary">Next</button>
+       
+       <button id="perfectoMaxReplayCycle" type="button" class="button quiet">Next tier milestone</button>
+        <button id="perfectoMaxReplayFinal" type="button" class="button secondary">Skip to final merges</button>
+        <button id="perfectoMaxReplayCascade" type="button" class="button secondary">Jump to biggest Wind cascade</button>
+       <button id="perfectoMaxReplayFill" type="button" class="button secondary">Finish board</button>
+       <button id="perfectoMaxReplayDone" type="button" class="button quiet">Show final board</button>
+       
+      </div>
+      <p id="perfectoMaxReplayLimit" class="perfecto-replay-limit perfecto-replay-notice">The supporting staircase and its adjacent target are the construction workspace. All other sushi remain in place.</p>
+     </div>
+     <div id="perfectoMaxRecipeNavigator" class="perfecto-recipe-navigator hidden">
+      <div class="perfecto-recipe-heading"><span id="perfectoMaxRecipeCount">Stage —</span><strong id="perfectoMaxRecipeStage">—</strong></div>
+      <div id="perfectoMaxRecipeVisual" class="perfecto-recipe-visual" aria-hidden="true"></div>
+      <p id="perfectoMaxRecipeDescription" class="perfecto-recipe-description" aria-live="polite">—</p>
+      <div class="perfecto-recipe-actions">
+       <button id="perfectoMaxRecipePrev" type="button" class="button quiet">Previous</button>
+       <button id="perfectoMaxRecipeNext" type="button" class="button secondary">Next</button>
+       <button id="perfectoMaxRecipeFinal" type="button" class="button secondary">Skip to final merges</button>
+       <button id="perfectoMaxRecipeStart" type="button" class="button quiet">Start over</button>
+      </div>
+      <p class="hint perfecto-recipe-hint">Stages show the repeated merge pattern; the benchmark is hypothetical.</p>
+     </div>
+     <details class="perfecto-recipe-notes"><summary>Full preparation notes</summary><ol id="perfectoMaxPreparationSteps"></ol></details>
+    </details>
+   </section>
+  </div>
+  <p class="hint perfecto-scenario-difference" id="perfectoScenarioDifference">—</p>
   <div class="perfecto-section-head"><h3>3 · What should I do with my Pepper Shakers?</h3></div>
   <section id="perfectoRecommendation" class="perfecto-recommendation" role="status" aria-label="Your recommended Pepper Shaker action">
    <div class="perfecto-action-eyebrow"><span class="perfecto-action-mark" aria-hidden="true">✓</span><span>YOUR RECOMMENDED NEXT MOVE</span><span class="perfecto-action-label">FOLLOW THIS PLAN</span></div>
@@ -111,6 +221,8 @@
   <div class="perfecto-resource-grid perfecto-pepper-stats">
    <div><span>Available Pepper Shaker uses</span><strong id="perfectoPepperUses">—</strong></div>
    <div><span>Chance with your Pepper after preparing the board</span><strong id="perfectoStoredChance">—</strong><small id="perfectoStoredChanceHint">—</small></div>
+   <div><span>Known free-use chance</span><strong id="perfectoKnownFreeChance">—</strong><small>Based on Bottomless Shakers and Knowledge; Research Grid bonuses not included</small></div>
+   <div><span>Estimated Pepper charges spent</span><strong id="perfectoExpectedSpentUpper">—</strong><small>Upper estimate until Perfecto, based on known refund bonuses; not a guarantee</small></div>
   </div>
   <details class="perfecto-odds-details">
    <summary>How many Pepper attempts might I need?</summary>
@@ -124,6 +236,59 @@
   </details>
   <div class="perfecto-section-head"><h3>Additional info · Perfecto chance Knowledge</h3><span class="perfecto-count-label">Combined <strong id="perfectoBonusTotal">—</strong></span></div>
   <div class="perfecto-bonus-grid" id="perfectoBonusCards"></div>
+  <div class="perfecto-knowledge-theory">
+   <div class="perfecto-theory-heading">
+    <strong>Next Knowledge milestone</strong>
+    <div class="perfecto-milestone-info">
+     <button id="perfectoMilestoneInfo" type="button" class="perfecto-milestone-trigger"
+      aria-label="View upcoming T50 and T54 Knowledge milestones" aria-expanded="false"
+      aria-controls="perfectoMilestonePopover" title="View future milestones">i</button>
+     <div id="perfectoMilestonePopover" class="perfecto-milestone-popover" role="region" aria-label="Future Knowledge milestones">
+      <strong>Upcoming Knowledge milestones</strong>
+      <p class="hint">Future T50 and T54 Knowledge levels, with the same target sushi and board size.</p>
+      <div class="perfecto-knowledge-table-scroll">
+       <table class="perfecto-knowledge-table" aria-label="Future T50 and T54 Knowledge milestone progression">
+        <thead><tr><th>T50 Level</th><th>T54 Level</th><th>Combined bonus</th><th>Perfecto chance</th><th>Gain vs current</th></tr></thead>
+        <tbody id="perfectoTheoryMilestones"></tbody>
+       </table>
+      </div>
+     </div>
+    </div>
+   </div>
+   <div class="perfecto-milestone-level-grid" role="group" aria-label="Next Knowledge level upgrades">
+    <div class="perfecto-milestone-level-card" data-knowledge-tier="50">
+     <div class="perfecto-milestone-card-heading">
+      <span class="perfecto-milestone-tier-name">T50 Knowledge</span>
+      <span class="perfecto-milestone-level-difference" id="perfectoTheoryT50Delta">—</span>
+     </div>
+     <div class="perfecto-milestone-level-flow">
+      <div class="perfecto-milestone-current"><span>Current</span><strong>Lv <span id="perfectoTheoryT50Current">—</span></strong></div>
+      <span class="perfecto-milestone-flow-arrow" aria-hidden="true">→</span>
+      <div class="perfecto-milestone-goal"><span>Next milestone</span><strong>Lv <span id="perfectoTheoryT50Next">—</span></strong></div>
+     </div>
+    </div>
+    <div class="perfecto-milestone-level-card" data-knowledge-tier="54">
+     <div class="perfecto-milestone-card-heading">
+      <span class="perfecto-milestone-tier-name">T54 Knowledge</span>
+      <span class="perfecto-milestone-level-difference" id="perfectoTheoryT54Delta">—</span>
+     </div>
+     <div class="perfecto-milestone-level-flow">
+      <div class="perfecto-milestone-current"><span>Current</span><strong>Lv <span id="perfectoTheoryT54Current">—</span></strong></div>
+      <span class="perfecto-milestone-flow-arrow" aria-hidden="true">→</span>
+      <div class="perfecto-milestone-goal"><span>Next milestone</span><strong>Lv <span id="perfectoTheoryT54Next">—</span></strong></div>
+     </div>
+    </div>
+   </div>
+   <p id="perfectoTheoryLevels" class="perfecto-milestone-sr-only">Next T50 / T54 milestones</p>
+   <p id="perfectoTheoryBonus" class="hint perfecto-milestone-bonus-note">Import a save to calculate future Perfecto chance.</p>
+   <div class="perfecto-theory-results">
+    <div><span>Current Perfecto chance</span><strong id="perfectoTheoryBefore">—</strong></div>
+    <div><span>At next Knowledge milestones</span><strong id="perfectoTheoryAfter">—</strong></div>
+    <div><span>Increase from current</span><strong id="perfectoTheoryGain">—</strong></div>
+   </div>
+
+   <p class="hint perfecto-theory-note">Hover or tap the info icon to view later 5-level milestones. Both Knowledge bonuses retain their current Perfecto doubling. Chance assumes the same selected sushi tier and target-copy count as your recommended board; no Salt Shakers or additional rolls are assumed.</p>
+  </div>
   <p class="hint">Tier 50 and Tier 54 boost the chance to Perfecto sushi. Their existing Knowledge levels and Perfecto status are included automatically. Knowledge leveling recommendations belong to the future Knowledge Leveling Planner.</p>
  </div>
 </section>
@@ -207,4 +372,4 @@
 <div class="lab-table-wrap"><table class="lab-data-table" aria-label="Sushi knowledge tiers"><thead><tr><th>Tier and knowledge effect</th><th>Knowledge level</th><th>EXP / next</th><th>Current bonus</th><th>Perfecto status</th></tr></thead><tbody id="labKnowledgeRows"></tbody></table></div>
 <p class="hint lab-disclaimer">Values reflect the imported save. Perfecto doubles the relevant knowledge bonus; EXP and bonuses may differ from the game if the rules change in an update.</p>
 </section></div>
-</main><script type="module" src="src/app.js?v=1.19.10"></script></body></html>
+</main><script type="module" src="src/app.js?v=1.42.0"></script></body></html>

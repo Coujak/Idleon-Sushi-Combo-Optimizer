@@ -870,18 +870,20 @@ details summary{cursor:pointer;font-size:12px;font-weight:700;color:#9eb7c9}
 .lab-planner-navigation{margin:14px 0 16px}
 .lab-perfecto-panel .heading{margin-bottom:10px}
 .perfecto-controls{
- display:flex;align-items:flex-end;flex-wrap:wrap;gap:11px;
+ display:grid;grid-template-columns:minmax(0,1fr) minmax(205px,225px);
+ align-items:start;gap:16px;
  background:#112534;border:1px solid #334e61;border-radius:13px;
  padding:14px;margin:18px 0 16px;
 }
 .perfecto-controls label{font-size:12px;color:#b6d3d6;font-weight:700}
-.perfecto-tier-select{display:flex;flex-direction:column;gap:6px;flex:1 1 300px;min-width:225px}
+.perfecto-target-group{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:end;min-width:0}
+.perfecto-tier-select{display:flex;flex-direction:column;gap:6px;min-width:0}
 .perfecto-tier-select select{
  min-height:43px;width:100%;max-width:100%;
  font:inherit;font-size:13px;color:#e5f5e9;background:#0c1e2d;
  border:1px solid #416675;border-radius:10px;padding:9px 10px
 }
-.perfecto-controls .button{font-size:12px;min-height:43px;padding:9px 12px}
+.perfecto-controls .button{font-size:12px;min-height:43px;padding:9px 12px;white-space:nowrap}
 .perfecto-checkbox{display:inline-flex;align-items:center;gap:8px;flex:1 1 200px;cursor:pointer}
 .perfecto-checkbox input{width:17px;height:17px;accent-color:#66cda0}
 .perfecto-section-head{
@@ -976,10 +978,10 @@ details summary{cursor:pointer;font-size:12px;font-weight:700;color:#9eb7c9}
 .perfecto-resource-grid span{color:#a6bdca;font-size:11px}
 .perfecto-resource-grid strong{font-size:12px;color:#ecf8f2;overflow-wrap:anywhere}
 .perfecto-advice{border-left:3px solid #e0c478;padding:10px 12px;background:#302d27;color:#e9ddb1;border-radius:5px;font-size:12px;line-height:1.6}
-.perfecto-bonus-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:11px;margin-bottom:10px}
-.perfecto-bonus-item{display:flex;align-items:center;gap:12px;background:#142d39;border:1px solid #3c5a66;border-radius:11px;padding:12px}
-.perfecto-bonus-icon{width:52px;height:52px;object-fit:contain;image-rendering:pixelated;flex:0 0 52px}
-.perfecto-bonus-copy{display:flex;flex-direction:column;gap:3px;min-width:0}
+.perfecto-bonus-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));align-items:stretch;gap:11px;margin-bottom:10px}
+.perfecto-bonus-item{display:grid;grid-template-columns:52px minmax(0,1fr);align-items:center;gap:12px;min-width:0;min-height:76px;box-sizing:border-box;background:#142d39;border:1px solid #3c5a66;border-radius:11px;padding:11px 13px}
+.perfecto-bonus-icon{display:block;width:52px;height:52px;object-fit:contain;image-rendering:pixelated}
+.perfecto-bonus-copy{display:flex;flex-direction:column;justify-content:center;gap:3px;min-width:0;line-height:1.3}
 .perfecto-bonus-copy strong{font-size:12px;color:#e8f5ec}
 .perfecto-bonus-copy span{font-size:11px;color:#a2bac7}
 .perfecto-bonus-copy .perfecto-bonus-value{color:#a0ebbf;font-weight:850}
@@ -1571,3 +1573,454 @@ details summary{cursor:pointer;font-size:12px;font-weight:700;color:#9eb7c9}
 }
 /* The longer discovery label wraps cleanly without changing card height. */
 #lab-overview .lab-stat-label{overflow-wrap:break-word}
+
+/* Perfecto Planner: concise odds comparison and readable preparation steps. */
+.perfecto-improvement{
+ display:flex;flex-wrap:wrap;align-items:baseline;gap:9px 15px;
+ margin:13px 0 9px;padding:12px 14px;border:1px solid #365d65;
+ background:#122b36;border-radius:10px;
+}
+.perfecto-improvement strong{color:#b4efd0;font-size:13px;line-height:1.4}
+.perfecto-improvement span{color:#b5cbd0;font-size:12px;line-height:1.55;flex:1 1 270px}
+.perfecto-build-guide{
+ background:#102635;border:1px solid #345161;border-radius:11px;
+ padding:12px 17px;margin:15px 0 11px;
+}
+.perfecto-build-guide h4{font-size:14px;color:#d3f0e0;margin:0 0 8px}
+.perfecto-build-guide ol{color:#bdd2da;font-size:12px;line-height:1.65;margin:0;padding-left:23px}
+.perfecto-build-guide li{padding-left:2px;margin:7px 0}
+.perfecto-build-guide li::marker{color:#81d6ac;font-weight:800}
+.perfecto-pepper-stats{grid-template-columns:repeat(2,minmax(0,1fr))}
+.perfecto-pepper-stats strong{font-size:17px;line-height:1.3}
+.perfecto-pepper-stats small{color:#9bb4c2;font-size:10.5px;line-height:1.55}
+@media(max-width:670px){
+ .perfecto-pepper-stats{grid-template-columns:1fr}
+ .perfecto-improvement{padding:11px 12px}
+ .perfecto-build-guide{padding:12px 13px}
+}
+
+/* Perfecto comparison: compact, readable boards on the same row. */
+.lab-perfecto-panel .perfecto-controls{gap:12px;padding:12px 14px}
+.lab-perfecto-panel .perfecto-probability-grid{gap:9px}
+.lab-perfecto-panel .perfecto-section-head{margin-top:22px}
+.lab-perfecto-panel .perfecto-legend{
+ gap:9px 15px;padding:10px 13px;margin:12px 0 14px;
+ background:#102734;border:1px solid #2b4656;border-radius:10px
+}
+.perfecto-board-comparison{
+ display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;align-items:stretch
+}
+.perfecto-comparison-panel{
+ display:flex;flex-direction:column;min-width:0;gap:9px;padding:15px;
+ background:#102632;border:1px solid #345263;border-radius:14px
+}
+.perfecto-comparison-panel.is-account{border-color:#4e8d76}
+.perfecto-comparison-panel.is-maximum{border-color:#47647a}
+.perfecto-comparison-header{
+ display:flex;justify-content:space-between;align-items:flex-start;
+ gap:8px;flex-wrap:wrap;margin-bottom:2px
+}
+.perfecto-comparison-header h4{margin:3px 0 0;color:#e6f5f1;font-size:16px;line-height:1.35}
+.perfecto-comparison-eyebrow{
+ color:#88baad;font-size:10px;font-weight:850;letter-spacing:.075em;text-transform:uppercase
+}
+.perfecto-comparison-panel.is-maximum .perfecto-comparison-eyebrow{color:#93b6d3}
+.perfecto-comparison-tag{
+ border:1px solid #3a6570;background:#183641;color:#b6d8d9;
+ font-size:10px;font-weight:650;border-radius:20px;padding:5px 9px;max-width:100%;
+ overflow-wrap:anywhere
+}
+.perfecto-comparison-metrics{display:flex;flex-direction:column;gap:4px;padding:2px 0 3px}
+.perfecto-comparison-metrics strong{font-size:15px;color:#cef5dd;line-height:1.35}
+.perfecto-comparison-panel.is-maximum .perfecto-comparison-metrics strong{color:#c4e1ff}
+.perfecto-comparison-metrics small{font-size:11px;color:#a1bcc7;line-height:1.5}
+.perfecto-comparison-panel .perfecto-board-note{
+ margin:0;padding:9px 11px;border-left:2px solid #659f8a;
+ background:#172f3a;font-size:11px;line-height:1.5;font-weight:650
+}
+.perfecto-comparison-panel.is-maximum .perfecto-board-note{border-color:#7498bd}
+.perfecto-comparison-panel .perfecto-board-scroll{width:100%;max-width:100%;overflow-x:auto;padding:0 0 5px}
+.perfecto-comparison-panel .perfecto-board{
+ width:100%;max-width:100%;min-width:420px;box-sizing:border-box;
+ grid-template-columns:repeat(15,minmax(0,1fr));grid-auto-rows:auto;
+ gap:2px;padding:5px;border-width:3px;border-radius:9px
+}
+.perfecto-comparison-panel .perfecto-tile{
+ aspect-ratio: .9;min-width:0;min-height:0;overflow:hidden;
+ border-radius:4px;padding:1px
+}
+.perfecto-comparison-panel .perfecto-tile-icon{max-width:75%;max-height:63%;height:auto;width:auto}
+.perfecto-comparison-panel .perfecto-tile-tier{font-size:9px;line-height:1.05;font-weight:800}
+.perfecto-comparison-panel .perfecto-tile.perfecto-new-copy{outline-width:1px;outline-offset:-3px}
+.perfecto-board-footnote{font-size:11px;line-height:1.55;margin:0}
+.perfecto-comparison-guide{
+ margin-top:3px;background:#0d212d;border:1px solid #2b4856;
+ border-radius:9px;padding:10px 12px
+}
+.perfecto-comparison-guide summary{
+ font-size:12px;font-weight:750;color:#d1ebde;cursor:pointer;line-height:1.4
+}
+.perfecto-comparison-guide[open] summary{margin-bottom:9px}
+.perfecto-comparison-guide ol{margin:0;padding-left:19px;color:#adc9d3;font-size:11px;line-height:1.6}
+.perfecto-comparison-guide li{margin:6px 0}
+.perfecto-comparison-guide li::marker{color:#87d5b0}
+.perfecto-scenario-difference{
+ padding:10px 12px;margin:12px 0 0;border-radius:9px;
+ background:#112c39;border:1px solid #315567;font-size:11px;line-height:1.5
+}
+@media(max-width:1120px){
+ .perfecto-board-comparison{grid-template-columns:minmax(0,1fr)}
+ .perfecto-comparison-panel .perfecto-board{min-width:0}
+}
+@media(max-width:620px){
+ .perfecto-comparison-panel{padding:11px;gap:8px}
+ .perfecto-comparison-header h4{font-size:14px}
+ .perfecto-comparison-panel .perfecto-board{min-width:390px}
+ .perfecto-comparison-panel .perfecto-tile-tier{font-size:8px}
+}
+
+/* Keep the optional direct-cook correction aligned with the target selector. */
+.perfecto-cook-tier{display:flex;flex-direction:column;gap:6px;min-width:0}
+.perfecto-cook-tier input{
+ box-sizing:border-box;width:100%;min-height:43px;background:#0c1e2d;
+ border:1px solid #416675;border-radius:10px;color:#e5f5e9;
+ font:inherit;font-size:13px;padding:9px 10px
+}
+.perfecto-cook-tier input:focus-visible,
+.perfecto-tier-select select:focus-visible{outline:2px solid #80cfb0;outline-offset:2px}
+.perfecto-cook-tier small{font-size:10px;color:#93b6c2;line-height:1.45;font-weight:400}
+@media(max-width:740px){
+ .lab-perfecto-panel .perfecto-controls{grid-template-columns:minmax(0,1fr)}
+ .lab-perfecto-panel .perfecto-target-group .button{width:auto;white-space:nowrap}
+ .perfecto-cook-tier{max-width:none}
+}
+@media(max-width:470px){
+ .perfecto-target-group{grid-template-columns:minmax(0,1fr)}
+ .lab-perfecto-panel .perfecto-target-group .button{width:100%}
+}
+
+/* Perfecto recipe step navigator and focused board comparison. */
+.perfecto-compare-toolbar{
+ display:flex;align-items:center;justify-content:space-between;
+ flex-wrap:wrap;gap:10px 16px;margin:13px 0 5px
+}
+.perfecto-benchmark-toggle{
+ display:inline-flex;align-items:center;gap:8px;
+ font-size:12px;font-weight:750;color:#d6ede5;cursor:pointer
+}
+.perfecto-benchmark-toggle input{accent-color:#79d5aa;width:16px;height:16px}
+.perfecto-compare-position{font-size:11px;line-height:1.5;color:#a6c5ce}
+.perfecto-board-comparison.is-benchmark-hidden{grid-template-columns:minmax(0,1fr)}
+.perfecto-board-comparison.is-benchmark-hidden .perfecto-comparison-panel.is-maximum{display:none}
+.perfecto-board-comparison.is-benchmark-hidden .perfecto-comparison-panel.is-account{max-width:1020px}
+.perfecto-board .perfecto-tile.perfecto-tile-matched{
+ outline:2px solid #ffdf75!important;outline-offset:-1px;
+ filter:brightness(1.28);z-index:2
+}
+.perfecto-board:focus-visible{outline:2px solid #ffdf75;outline-offset:2px}
+.perfecto-recipe-navigator{
+ padding:10px 12px;background:#172f3c;border:1px solid #416173;
+ border-radius:9px;margin:10px 0
+}
+.perfecto-recipe-heading{
+ display:flex;flex-wrap:wrap;gap:6px 12px;align-items:baseline;
+ justify-content:space-between;margin-bottom:7px
+}
+.perfecto-recipe-heading span{
+ font-size:10px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;
+ color:#94baca
+}
+.perfecto-recipe-heading strong{color:#e2f7e9;font-size:13px}
+.perfecto-recipe-description{margin:0 0 10px;color:#c5dce0;font-size:12px;line-height:1.55}
+.perfecto-recipe-actions{display:flex;flex-wrap:wrap;gap:6px}
+.perfecto-recipe-actions .button{min-height:32px;padding:6px 9px;font-size:11px}
+.perfecto-recipe-actions .button:disabled{opacity:.38;cursor:not-allowed}
+.perfecto-recipe-hint{margin:8px 0 0;font-size:10px;line-height:1.5}
+.perfecto-recipe-notes{border-top:1px solid #33505e;margin-top:10px;padding-top:9px}
+.perfecto-recipe-notes summary{color:#accbc5;font-size:11px;font-weight:650;cursor:pointer}
+.perfecto-recipe-notes ol{margin-top:8px!important}
+@media(max-width:620px){
+ .perfecto-compare-position{flex-basis:100%}
+ .perfecto-recipe-actions .button{flex:1 1 auto}
+}
+
+.perfecto-recipe-visual{
+ display:flex;align-items:center;flex-wrap:wrap;gap:5px;
+ margin:9px 0 10px
+}
+.perfecto-recipe-ingredient,.perfecto-recipe-product{
+ display:inline-flex;align-items:center;justify-content:center;
+ min-width:34px;padding:6px 9px;border-radius:7px;
+ font-size:11px;font-weight:850;font-variant-numeric:tabular-nums
+}
+.perfecto-recipe-ingredient{background:#214555;border:1px solid #4b7586;color:#d3eaf2}
+.perfecto-recipe-product{background:#245a48;border:1px solid #5eaf8b;color:#c6ffe2}
+.perfecto-recipe-visual.uses-wind .perfecto-recipe-product{background:#473e69;border-color:#8474b1;color:#f0deff}
+.perfecto-recipe-arrow{color:#9abfc8;font-size:11px;font-weight:750}
+
+/* Actual last-copy construction replay replaces generic recipe chips. */
+.perfecto-comparison-guide>.perfecto-recipe-navigator,
+.perfecto-comparison-guide>.perfecto-recipe-notes{display:none}
+.perfecto-replay-controls{display:flex;flex-direction:column;gap:8px;min-width:0}
+.perfecto-replay-top{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px}
+.perfecto-replay-top strong{color:#d8f8e6;font-size:12px}
+.perfecto-replay-top span{font-size:11px;color:#9abfc7;font-variant-numeric:tabular-nums}
+.perfecto-replay-action{margin:0;min-height:34px;font-size:12px;line-height:1.55;color:#c1dce2}
+.perfecto-replay-buttons{display:flex;flex-wrap:wrap;gap:6px}
+.perfecto-replay-buttons .button{font-size:11px;padding:7px 9px;min-height:33px}
+.perfecto-replay-buttons .button:disabled{opacity:.43;cursor:not-allowed}
+.perfecto-replay-limit{font-size:10px;line-height:1.55;margin:0;color:#9db7c3}
+.perfecto-board .perfecto-tile.perfecto-replay-from{
+ outline:2px solid #f6d777!important;outline-offset:-1px;
+ box-shadow:0 0 0 1px #503f10!important;z-index:4
+}
+.perfecto-board .perfecto-tile.perfecto-replay-to{
+ outline:2px solid #80e8ff!important;outline-offset:-1px;z-index:4;
+ box-shadow:inset 0 0 0 2px #1ec9f7!important
+}
+.perfecto-board .perfecto-tile.perfecto-replay-wind{
+ outline:2px solid #d7a8ff!important;outline-offset:-1px;
+ box-shadow:inset 0 0 0 2px #af7ee3!important;z-index:4
+}
+@media(max-width:620px){
+ .perfecto-replay-buttons .button{flex:1 1 100px}
+}
+.perfecto-knowledge-theory{
+ margin:13px 0;padding:15px;border:1px solid #365465;
+ border-radius:12px;background:#102934
+}
+.perfecto-theory-heading{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;align-items:center}
+.perfecto-theory-heading strong{font-size:14px;color:#d9f6e5}
+.perfecto-theory-heading .hint{font-size:11px}
+/* Put the level upgrades first: two clean milestones, not an inline sentence. */
+.perfecto-milestone-level-grid{
+ display:grid;grid-template-columns:repeat(2,minmax(0,1fr));
+ align-items:stretch;gap:11px;margin:12px 0 10px
+}
+.perfecto-milestone-level-card{
+ display:grid;grid-template-rows:22px minmax(56px,1fr);gap:8px;
+ position:relative;min-width:0;padding:14px 16px 15px;
+ border:1px solid #436574;border-radius:12px;
+ background:linear-gradient(145deg,#193744 0%,#142d39 100%);
+ overflow:hidden
+}
+.perfecto-milestone-level-card::before{
+ content:"";position:absolute;inset:0 auto 0 0;width:3px;
+ background:#7dc7b0
+}
+.perfecto-milestone-level-card[data-knowledge-tier="54"]::before{
+ background:#aab9f7
+}
+.perfecto-milestone-card-heading{
+ display:grid;grid-template-columns:minmax(0,1fr) auto;
+ align-items:baseline;gap:8px;min-height:22px;margin:0
+}
+.perfecto-milestone-tier-name{
+ font-size:12px;font-weight:800;color:#e5f4f1;
+ letter-spacing:.015em
+}
+.perfecto-milestone-level-difference{
+ font-size:11px;font-weight:650;color:#9acdc0;white-space:nowrap;text-align:right
+}
+.perfecto-milestone-level-card[data-knowledge-tier="54"] .perfecto-milestone-level-difference{
+ color:#c3c9f1
+}
+.perfecto-milestone-level-flow{
+ display:grid;grid-template-columns:minmax(0,1fr) 28px minmax(0,1fr);
+ gap:6px;align-items:center;justify-items:stretch;min-width:0;
+ width:100%;max-width:370px;margin:0 auto
+}
+.perfecto-milestone-current,.perfecto-milestone-goal{
+ display:grid;grid-template-rows:16px 36px;justify-items:center;
+ align-items:center;gap:2px;min-width:0;text-align:center
+}
+.perfecto-milestone-current>span,.perfecto-milestone-goal>span{
+ color:#9bb8c2;font-size:10px;font-weight:600;
+ line-height:16px;white-space:nowrap
+}
+.perfecto-milestone-current strong,.perfecto-milestone-goal strong{
+ display:block;font-size:24px;line-height:36px;
+ font-weight:800;font-variant-numeric:tabular-nums;
+ letter-spacing:-.025em;white-space:nowrap
+}
+.perfecto-milestone-current strong{color:#d4e8ed}
+.perfecto-milestone-goal strong{color:#a4f3c4}
+.perfecto-milestone-level-card[data-knowledge-tier="54"] .perfecto-milestone-goal strong{
+ color:#bccdff
+}
+.perfecto-milestone-flow-arrow{
+ display:grid;place-items:center;align-self:end;width:28px;height:36px;
+ font-size:22px;line-height:1;text-align:center;
+ font-weight:650;color:#83b5b7
+}
+.perfecto-milestone-bonus-note{margin:7px 0 0;color:#a5c4cc;line-height:1.5}
+.perfecto-milestone-sr-only{
+ position:absolute!important;width:1px!important;height:1px!important;
+ padding:0!important;margin:-1px!important;overflow:hidden!important;
+ clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important
+}
+@media(max-width:680px){
+ .perfecto-milestone-level-grid{grid-template-columns:minmax(0,1fr)}
+ .perfecto-milestone-level-card{padding:13px 15px}
+ .perfecto-milestone-current strong,.perfecto-milestone-goal strong{font-size:25px}
+}
+
+.perfecto-knowledge-theory>.hint{font-size:11px;line-height:1.5}
+.perfecto-theory-results{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));align-items:stretch;gap:11px;margin:11px 0}
+.perfecto-theory-results>div{
+ display:grid;grid-template-rows:minmax(26px,auto) auto;gap:7px;
+ min-width:0;min-height:78px;box-sizing:border-box;
+ background:#172f3c;border:1px solid #3a5b69;border-radius:9px;padding:11px 12px
+}
+.perfecto-theory-results span{align-self:start;font-size:11px;line-height:1.35;color:#abc7ce}
+.perfecto-theory-results strong{align-self:end;font-size:17px;line-height:1.2;color:#bdffdc;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.perfecto-knowledge-table-scroll{width:100%;overflow-x:auto}
+.perfecto-knowledge-table{width:100%;min-width:530px;border-collapse:collapse;font-size:12px;font-variant-numeric:tabular-nums}
+.perfecto-knowledge-table th{text-align:center;font-weight:700;color:#c0dce2;background:#1c3a47;padding:10px 7px;white-space:nowrap}
+.perfecto-knowledge-table td{text-align:center;color:#c5dfdf;border-top:1px solid #31515d;padding:9px 7px}
+.perfecto-knowledge-table tr.is-next td{color:#dbffeb;background:#21503e;font-weight:750}
+.perfecto-theory-note{margin:11px 0 0}
+@media(max-width:680px){
+ .perfecto-bonus-grid,.perfecto-theory-results{grid-template-columns:1fr}
+ .perfecto-theory-results>div{min-height:65px;grid-template-rows:auto auto}
+}
+
+/* Next Knowledge milestone stays compact; the full progression is an
+   accessible info popover (hover, keyboard focus, or tap/click). */
+.perfecto-milestone-info{position:relative;flex:0 0 auto;z-index:8}
+.perfecto-milestone-info .perfecto-milestone-trigger{
+ display:inline-flex;align-items:center;justify-content:center;
+ width:25px;height:25px;border:1px solid #6f9ca8;border-radius:50%;
+ background:#1a3644;color:#d6eef4;font-size:13px;font-weight:800;
+ font-style:italic;line-height:1;cursor:help;list-style:none;user-select:none
+}
+
+.perfecto-milestone-info .perfecto-milestone-trigger:hover{background:#294b5c;border-color:#a8ceda}
+.perfecto-milestone-info .perfecto-milestone-trigger:focus-visible{outline:2px solid #c9ebf4;outline-offset:3px}
+.perfecto-milestone-popover{
+ display:none;position:absolute;right:0;top:calc(100% + 9px);
+ width:min(660px,calc(100vw - 48px));box-sizing:border-box;
+ max-height:min(70vh,520px);overflow:auto;overscroll-behavior:contain;
+ padding:14px;background:#102632;color:#d5e9eb;
+ border:1px solid #64828e;border-radius:12px;
+ box-shadow:0 12px 36px #0009;text-align:left;z-index:20
+}
+.perfecto-milestone-info:hover .perfecto-milestone-popover,
+.perfecto-milestone-info:focus-within .perfecto-milestone-popover,
+.perfecto-milestone-info.is-open .perfecto-milestone-popover{display:block}
+.perfecto-milestone-popover>strong{font-size:13px;font-weight:800}
+.perfecto-milestone-popover>.hint{margin:5px 0 11px;font-size:11px;line-height:1.5}
+.perfecto-milestone-popover .perfecto-knowledge-table th,
+.perfecto-milestone-popover .perfecto-knowledge-table td{font-size:11px}
+@media(max-width:620px){
+ .perfecto-milestone-popover{right:-3px;width:min(600px,calc(100vw - 40px));padding:10px}
+}
+
+/* Compact, unmistakable final-target walkthrough. */
+.lab-perfecto-panel .heading .perfecto-header-target{
+ display:inline-flex;align-items:center;justify-content:center;
+ font-size:13px;font-weight:850;letter-spacing:.025em;
+ padding:9px 15px;min-height:39px;box-sizing:border-box;
+ color:#eafff4;background:#18503b;border:2px solid #6cdda6;
+ border-radius:11px;box-shadow:0 0 0 3px #6cdda61c;
+ white-space:nowrap;font-variant-numeric:tabular-nums
+}
+.lab-perfecto-panel .perfecto-target-summary{
+ background:#194938;border:2px solid #6cdaa1;color:#e5ffec;
+ font-size:14px;padding:9px 13px;border-radius:12px;
+ box-shadow:0 0 0 3px #79e6a015
+}
+.lab-perfecto-panel .perfecto-target-icon{width:40px;height:40px}
+.perfecto-replay-notice{
+ margin:10px 0 0;padding:12px 13px;font-size:11px;
+ line-height:1.65;font-weight:650;color:#e0f9e9;
+ background:#194536;border:1px solid #6ab898;
+ border-left:4px solid #9debc5;border-radius:9px
+}
+.perfecto-replay-controls .perfecto-replay-top strong{
+ font-size:14px;color:#d9ffe7
+}
+.perfecto-replay-controls .perfecto-replay-action{
+ font-size:12px;line-height:1.6;font-weight:650;
+ color:#e3f5f3;background:#163544;padding:10px 12px;
+ border-radius:8px;border:1px solid #416878
+}
+.perfecto-board .perfecto-tile.perfecto-replay-missing{
+ outline:3px solid #fbd581!important;outline-offset:-1px;
+ background:#514121!important;z-index:5;position:relative
+}
+.perfecto-board .perfecto-tile.perfecto-replay-missing:after{
+ content:"?";position:absolute;right:1px;top:-3px;
+ color:#ffe4a1;font-weight:900;font-size:15px;line-height:1
+}
+.perfecto-board .perfecto-tile.perfecto-replay-workspace:not(.perfecto-replay-from):not(.perfecto-replay-to):not(.perfecto-replay-wind){
+ outline:2px dashed #eb8375!important;outline-offset:-2px
+}
+@media(max-width:650px){
+ .lab-perfecto-panel .heading .perfecto-header-target{font-size:12px;padding:7px 10px}
+ .lab-perfecto-panel .perfecto-target-summary{font-size:12px}
+}
+
+
+/* Wind upgrades animate automatically within a single merge step.
+   The walkthrough counter stays fixed until the entire cascade resolves. */
+@keyframes perfecto-wind-impact{
+ 0%{box-shadow:inset 0 0 0 2px #f3dbff,0 0 0 1px #e3a1ff}
+ 55%{box-shadow:inset 0 0 0 4px #dd8dff,0 0 14px 3px #ce70ff}
+ 100%{box-shadow:inset 0 0 0 2px #c87dff,0 0 0 1px #e3a1ff}
+}
+.perfecto-board .perfecto-tile.perfecto-replay-wind-live{
+ outline:2px solid #e2adff!important;
+ outline-offset:-1px;
+ position:relative;z-index:5;
+ animation:perfecto-wind-impact 190ms ease-in-out both
+}
+@media(prefers-reduced-motion:reduce){
+ .perfecto-board .perfecto-tile.perfecto-replay-wind-live{animation:none}
+}
+
+/* Brief fireplace recommendation under Missing Perfectos. */
+#lab-overview .overview-fireplace-advice{
+ margin:18px 0 0;padding:12px 14px;
+ background:#132c35;border:1px solid #315767;border-radius:11px;
+}
+#lab-overview .overview-fireplace-advice strong{
+ font-size:13px;color:#d7f3ec;
+}
+#lab-overview .overview-fireplace-advice p{
+ margin:5px 0 0;font-size:12px;line-height:1.5;color:#aac0c7;
+}
+
+#lab-overview .overview-fireplace-advice-intro{
+ display:flex;align-items:flex-start;gap:12px;
+}
+#lab-overview .overview-fireplace-advice-icon{
+ width:48px;height:48px;flex:0 0 48px;object-fit:contain;
+ border-radius:9px;background:#1d3e49;padding:4px;
+}
+#lab-overview .overview-fireplace-advice-copy{min-width:0}
+#lab-overview .overview-fireplace-advice-gains{
+ display:grid;grid-template-columns:repeat(3,minmax(0,1fr));
+ gap:7px;margin-top:11px;
+}
+#lab-overview .overview-fireplace-advice-gain{
+ display:flex;flex-direction:column;gap:2px;
+ min-width:0;padding:8px 6px;text-align:center;
+ background:#193541;border:1px solid #345461;border-radius:8px;
+ font-variant-numeric:tabular-nums;
+}
+#lab-overview .overview-fireplace-advice-gain span{font-size:10px;color:#9ebdc7}
+#lab-overview .overview-fireplace-advice-gain strong{
+ font-size:12px;line-height:1.3;color:#d0f3df;
+ overflow-wrap:anywhere;
+}
+#lab-overview .overview-fireplace-advice .overview-fireplace-advice-note{
+ font-size:10px;color:#8caab6;margin-top:7px;
+}
+@media(max-width:440px){
+ #lab-overview .overview-fireplace-advice-gains{grid-template-columns:1fr}
+ #lab-overview .overview-fireplace-advice-gain{
+  flex-direction:row;align-items:center;justify-content:space-between;
+  padding:7px 10px;
+ }
+}

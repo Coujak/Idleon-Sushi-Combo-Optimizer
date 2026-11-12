@@ -1,0 +1,100 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import {readFileSync,existsSync} from "node:fs";
+import {fireplaceOverviewAdvice,sparkFireplaceBonus,formatSparkBonusPoints} from "../src/fireplace-advice.mjs";
+import {sushiUpgradeIconPath} from "../src/sushi-reference.mjs";
+
+function saveWith({sparks=100,fires=[0,1,2,3,4],potassium=1}={}){
+ const upgrades=Array(45).fill(0);upgrades[25]=potassium;
+ upgrades[24]=1;upgrades[26]=1;upgrades[27]=1;
+ const tiles=Array(120).fill(-1);
+ tiles[0]=50;tiles[1]=40;tiles[15]=40;
+ return {sushi:[[],[],upgrades,[],[0,0,sparks]],tiles,fires};
+}
+test("A fixed number of Sparks gives diminishing bonus and doubling adds a fixed increment",()=>{
+ const perDouble=sparkFireplaceBonus(2_000)-sparkFireplaceBonus(1_000);
+ assert.ok(Math.abs(perDouble-(.2+Math.log10(2)))<1e-10);
+ assert.ok(Math.abs(perDouble-
+  (sparkFireplaceBonus(2_000_000)-sparkFireplaceBonus(1_000_000)))<1e-10);
+ assert.ok(sparkFireplaceBonus(100+86400)-sparkFireplaceBonus(100)>
+  sparkFireplaceBonus(1_000_000+86400)-sparkFireplaceBonus(1_000_000));
+ assert.equal(sparkFireplaceBonus(undefined),null);
+});
+test("Overview explains Potassium when it is not unlocked",()=>{
+ const item=fireplaceOverviewAdvice(saveWith({potassium:0,sparks:100,fires:[0,1,2]}));
+ assert.match(item.heading,/not unlocked/i);
+ assert.match(item.detail,/Charcoal for Fuel/);
+});
+test("Low Spark accounts see idle-growth guidance instead of a universal all-purple rule",()=>{
+ const item=fireplaceOverviewAdvice(saveWith({sparks:100,fires:[0,0,0]}));
+ assert.match(item.heading,/Consider one Potassium/);
+ assert.match(item.summary,/Worth considering while idling/);
+ assert.equal(item.weakestCharcoal.column,3);
+});
+test("High Spark accounts see diminishing returns and relevant alternatives",()=>{
+ const item=fireplaceOverviewAdvice(saveWith({sparks:1e9,fires:[0,1,2,3,4]}));
+ assert.match(item.heading,/productive fireplaces/);
+ assert.match(item.detail,/Barium for Bucks/);
+ assert.match(item.detail,/Copper for active merges/);
+ assert.match(item.detail,/Lithium for Knowledge EXP/);
+ assert.equal(item.counts[4],1);
+ assert.ok(item.marginalSparkPointsPerDay<.01);
+});
+test("Missing Spark amounts do not produce invented percentages",()=>{
+ const missing=saveWith();missing.sushi[4][2]=undefined;
+ const item=fireplaceOverviewAdvice(missing);
+ assert.match(item.heading,/data unavailable/);
+ assert.equal(item.sparkBalance,null);
+ assert.equal(fireplaceOverviewAdvice(null),null);
+});
+test("Overview puts the Fireplace card at the bottom of the whole Account Dashboard",()=>{
+ const html=readFileSync(new URL("../index.html",import.meta.url),"utf8");
+ const ui=readFileSync(new URL("../src/lab-ui.mjs",import.meta.url),"utf8");
+ const css=readFileSync(new URL("../styles.css",import.meta.url),"utf8");
+ for(const id of ["overviewFireplaceAdvice","overviewFireplaceAdviceHeading",
+  "overviewFireplaceAdviceSummary"]){
+  assert.equal(html.split('id="'+id+'"').length-1,1);
+  assert.match(ui,new RegExp(id));
+ }
+ assert.equal(html.includes('id="overviewFireplaceAdviceDetail"'),false);
+ const perfectos=html.indexOf('id="labMissingPerfectos"');
+ const tiers=html.indexOf('id="labMissingTiers"');
+ const card=html.indexOf('id="overviewFireplaceAdvice"');
+ const board=html.indexOf('id="boardStatus"');
+ assert.ok(perfectos>=0&&perfectos<tiers&&tiers<card&&card<board);
+ // The card is outside and after the two-column missing-sushi grid.
+ assert.match(html,/<section class="lab-dashboard-section" aria-labelledby="labMissingTiersTitle">[^\n]*<\/section>\s*<\/div>\s*<div id="overviewFireplaceAdvice"/);
+ assert.equal(html.includes('class="lab-dashboard-column"'),false);
+ assert.match(css,/#lab-overview \.overview-fireplace-advice\{/);
+ assert.match(ui,/fireplaceOverviewAdvice\(data\)/);
+});
+
+
+test("One additional Potassium shows the extra strength gained after 1h, 24h and 7d",()=>{
+ const save=saveWith({sparks:100_000,fires:[0,4,1,2,3]});
+ const advice=fireplaceOverviewAdvice(save);
+ assert.deepEqual(advice.timeGains.map(x=>x.label),["1 hour","24 hours","7 days"]);
+ for(const [i,seconds] of [3600,86400,604800].entries()){
+  const baseline=100_000+seconds; // one existing Purple
+  const gained=sparkFireplaceBonus(baseline+seconds)-sparkFireplaceBonus(baseline);
+  assert.ok(Math.abs(advice.timeGains[i].points-gained)<1e-12);
+  assert.ok(gained>0);
+ }
+ assert.match(advice.summary,/Charcoal|Barium|Lithium|Fuel|Bucks|Knowledge/);
+ assert.ok(advice.timeGains[0].points<advice.timeGains[1].points);
+ assert.match(advice.timeGainCaption,/excludes lost effects/);
+ assert.match(formatSparkBonusPoints(.001234),/^0\.001/);
+});
+test("Potassium image uses the actual installed upgrade icon",()=>{
+ const path=sushiUpgradeIconPath(25);
+ assert.equal(path,
+  "assets/upgrades/Potassium%20Firelighter%20(Upgrade%2042).png");
+ assert.ok(existsSync(new URL("../assets/upgrades/Potassium Firelighter (Upgrade 42).png",import.meta.url)));
+ const ui=readFileSync(new URL("../src/lab-ui.mjs",import.meta.url),"utf8");
+ const html=readFileSync(new URL("../index.html",import.meta.url),"utf8");
+ assert.match(html,/id="overviewFireplaceAdviceIcon"/);
+ assert.match(html,/id="overviewFireplaceAdviceGains"/);
+ assert.match(html,/id="overviewFireplaceAdviceNote"/);
+ assert.match(ui,/sushiUpgradeIconPath\(25\)/);
+ assert.match(ui,/fireAdvice\.timeGains/);
+});

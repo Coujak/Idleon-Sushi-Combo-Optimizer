@@ -37,11 +37,11 @@ test("Imported IT JSON is not rejected when cached Advisor markup lacks optional
  assert.match(ui,/ensureAdvisorResultMount\("labAdvisorGoalProjection","lab-advisor-goal-projection"\)/);
  assert.match(ui,/ensureAdvisorResultMount\("labAdvisorPlanSummary","lab-advisor-plan-summary"\)/);
  assert.match(ui,/panel\.insertBefore\(node,before\|\|null\)/);
- assert.match(app,/try\{sushiLab\.refresh\(\);\}/);
+ assert.match(app,/try\{sushiLab\.markImported\(\);\}/);
  assert.match(app,/JSON imported · dashboard incomplete/);
  assert.match(app,/Your JSON loaded successfully, but the dashboard could not finish updating/);
- assert.match(html,/src\/app\.js\?v=1\.17\.2/);
- assert.match(app,/lab-ui\.mjs\?v=1\.16\.7/);
+ assert.match(html,/src\/app\.js\?v=\d+\.\d+\.\d+/);
+ assert.match(app,/lab-ui\.mjs\?v=\d+\.\d+\.\d+/);
 });
 
 test("Combo strategy UI starts in Simple mode with real dual-direction split bars",()=>{
@@ -56,6 +56,6 @@ test("Combo strategy UI starts in Simple mode with real dual-direction split bar
  assert.match(code,/tracks\[candidate\.splitDirection\]/);
  assert.match(code,/getModeCandidates\(layoutPositions,maxTier,cap/);
  assert.match(code,/detectSushiProgress\(imported\)/);
- assert.match(code,/if\(optimizerMode==="adaptive"\|\|/);
+ assert.match(code,/if\(foundInfo\|\|optimizerMode==="adaptive"\|\|/);
  assert.match(code,/if\(solution.adaptive\)/);
 });

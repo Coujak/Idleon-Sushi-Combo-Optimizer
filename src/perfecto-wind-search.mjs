@@ -5,6 +5,8 @@
 // larger ingredient cost is charged against the shared recipe budget.
 import {simulateMerge} from "./optimizer-core.mjs";
 import {sushiDirectCookFuel,affordableSushiCookingTiers} from "./perfecto-fuel.mjs?v=1.16.6";
+import {certifiedWindTierRecipe} from "./perfecto-wind-certificate.mjs?v=1.21.1";
+import {certifiedPerfectoSupportCascade} from "./perfecto-support-cascade.mjs?v=1.27.0";
 
 const N=120;
 const clamp=(v,lo,hi)=>Math.max(lo,Math.min(hi,v));
@@ -29,13 +31,19 @@ function geometry(save,target){
  }
  const fixedTargets=tiles.filter((t,i)=>slots[i]>=0&&t===target).length;
  const protectedCount=[...frozen].filter(i=>tiles[i]>target).length;
+ let longestRun=0,currentRun=0,previous=-2;
+ for(const pos of flex){
+  currentRun=pos===previous+1?currentRun+1:1;
+  longestRun=Math.max(longestRun,currentRun);
+  previous=pos;
+ }
  let bestChain=0;
  for(const dst of flex){
   if(!flex.some(i=>i<dst))continue;
   let k=0;while(k<25&&flex.includes(dst+1+k))k++;
   bestChain=Math.max(bestChain,k);
  }
- return {slots,tiles,flex,frozen,fixedTargets,protectedCount,bestChain};
+ return {slots,tiles,flex,frozen,fixedTargets,protectedCount,bestChain,longestRun};
 }
 function maxCookableTier(economy,target){
  if(!economy)return 1;
@@ -262,68 +270,146 @@ function runRecipe(geom,target,reference,seed,recipe,mode,windCap,budget,stepLim
 // westwards (to avoid unintended Wind), and retain each completed target.
 // One active construction requires only (target-source+1) free slots.
 // The recursion is a compact certificate, not an infeasible 2^depth replay.
-export function certifiedCarryBoard(geom,target,economy){
- let best=null;
+export function certifiedCarryBoard(geom,target,economy,windCap=0){
+ let best=null,preferred=null;
  const fuelPerHour=Number(economy?.generationPerHour)||0;
- for(const source of affordableSushiCookingTiers(economy,target)){
-  const depth=target-source.tier;
-  const workspace=depth+1;
-  const copies=depth===0?geom.flex.length:Math.max(0,geom.flex.length-depth);
+ const cookable=affordableSushiCookingTiers(economy,target);
+ // Treat the user's highest directly cookable tier as the preferred
+ // walkthrough ingredient, provided it preserves the max target-copy count.
+ const preferredTier=cookable.at(-1)?.tier??null;
+ for(const source of cookable){
+  const proposed=certifiedWindTierRecipe(source.tier,target,windCap);
+  // The recursive Wind proof requires a contiguous working area. If this
+  // account has scattered locked/protected cells, use ordinary merges instead.
+  const recipe=proposed.usesWind&&geom.longestRun<proposed.workspaceSlots?
+   certifiedWindTierRecipe(source.tier,target,0):proposed;
+  const workspace=recipe.workspaceSlots;
+  const copies=source.tier===target?geom.flex.length:
+   Math.max(0,geom.flex.length-(workspace-1));
   if(copies<1)continue;
-  const cooks=BigInt(copies)*(1n<<BigInt(depth));
-  const merges=cooks-BigInt(copies);
+  const cooks=BigInt(copies)*BigInt(recipe.cooksExact);
+  const merges=BigInt(copies)*BigInt(recipe.mergesExact);
+  const wind=BigInt(copies)*BigInt(recipe.windEventsExact);
   const estimatedFuel=Number(cooks)*source.cost;
   const fuelHours=fuelPerHour>0?estimatedFuel/fuelPerHour:Infinity;
   const candidate={
-   metric:{target:geom.fixedTargets+copies,spent:estimatedFuel,merges:Number(merges),wind:0},
-   target:copies,sourceTier:source.tier,recipe:"certified-carry",mode:"exact",
+   metric:{target:geom.fixedTargets+copies,spent:estimatedFuel,merges:Number(merges),wind:Number(wind)},
+   target:copies,sourceTier:source.tier,recipe:recipe.usesWind?"certified-wind-carry":"certified-carry",mode:"exact",
    board:geom.tiles.map((value,i)=>geom.frozen.has(i)?value:geom.slots[i]>=0?0:value),
-   spent:estimatedFuel,merges:Number(merges),wind:0,
-   certificate:{type:"recursive-westward-carry",startingTier:source.tier,targetTier:target,
+   spent:estimatedFuel,merges:Number(merges),wind:Number(wind),
+   certificate:{type:recipe.usesWind?"recursive-east-wind-carry":"recursive-westward-carry",
+    startingTier:source.tier,targetTier:target,
     finalCopies:copies,workspaceSlots:workspace,cooksExact:cooks.toString(),
-    mergesExact:merges.toString(),estimatedFuel,
-    generationHours: fuelHours,capacityShare:source.share,
-    proof:"Use the free workspace to cook two equal-tier sushi recursively, merge east to west, and repeat until the target is made. Store each completed target outside the workspace. No Wind or Salt trigger is required."}
+    mergesExact:merges.toString(),windEventsExact:wind.toString(),
+    cooksPerCopyExact:recipe.cooksExact,stages:recipe.stages,
+     windStages:recipe.stages.filter(stage=>stage.wind),
+    normalStages:recipe.stages.filter(stage=>!stage.wind),
+    estimatedFuel,generationHours:fuelHours,capacityShare:source.share,
+    proof:recipe.usesWind?
+     "For each +2 tier stage eligible for Wind, build three equal-tier sushi in adjacent cells. Merge left to middle to trigger one Wind upgrade of the right sushi; merge right to middle and move the new result to the free left cell. For remaining tiers, merge right to left normally. Recursively repeat, storing completed targets outside the working area.":
+     "Use the free workspace to cook two equal-tier sushi recursively, merge east to west, and repeat until the target is made. Store completed targets outside the workspace; no Wind or Salt trigger is required."}
   };
   for(let i=0;i<copies;i++)candidate.board[geom.flex[i]]=target;
+  if(source.tier===preferredTier)preferred=candidate;
   if(!best||better(best.metric,candidate.metric))best=candidate;
  }
+ if(preferred&&best&&preferred.metric.target===best.metric.target)
+  best=preferred;
  return best;
 }
-// The empty cells left by the certified carry construction are temporary
-// working space. Once the target copies have been completed, fill those cells
-// from highest to lowest with a buildable staircase. Build each ingredient
-// before the next one, so the available workspace shrinks in step with the
-// required merge depth. Prefer starting at the Wind cap when it exists.
-export function finishCertifiedCarryBoard(best,geom,target,windCap){
+// After finishing the target copies, fill the released workspace with the
+// highest buildable descending staircase. Do not extend below the player's
+// directly cookable source: spare cells are better as extra source sushi for
+// future merges. Always preserve the certified workspace.
+export function finishCertifiedCarryBoard(best,geom,target,windCap,{supportMode="staircase"}={}){
+ // The hypothetical T46 benchmark should not imply that low-tier staircase
+ // ingredients are needed. Its spare cells can be filled by direct cooking,
+ // after all target copies are finished and the workspace has been released.
  if(!best?.certificate)return best;
  const slots=geom.flex.filter(pos=>best.board[pos]===0);
  const sourceTier=best.sourceTier;
+ if(supportMode==="direct-source"){
+  const proof=best.certificate;
+  const cost=sushiDirectCookFuel(sourceTier);
+  const extraCooks=BigInt(slots.length);
+  const extraFuel=slots.length*cost;
+  for(const pos of slots)best.board[pos]=sourceTier;
+  proof.supportingMode="direct-source";
+  proof.supportingSushi=slots.map(pos=>({position:pos+1,tier:sourceTier,
+   requiredWorkspace:1,sourceTier,cooksExact:"1",mergesExact:"0",windEventsExact:"0"}));
+  proof.supportingCount=slots.length;
+  proof.supportingHighest=slots.length?sourceTier:null;
+  proof.supportingLowest=slots.length?sourceTier:null;
+  proof.supportingFuel=extraFuel;
+  proof.supportingCooksExact=extraCooks.toString();
+  proof.supportingMergesExact="0";
+  proof.supportingWindEventsExact="0";
+  proof.totalWindEventsExact=proof.windEventsExact;
+  proof.totalCooksExact=(BigInt(proof.cooksExact)+extraCooks).toString();
+  proof.totalMergesExact=proof.mergesExact;
+  proof.proof+=" After all target sushi have been constructed, optionally cook T"+
+   sourceTier+" directly in the remaining workspaces. These are not needed for Pepper odds.";
+  best.spent+=extraFuel;
+  return best;
+ }
+ const supportWindCap=geom.longestRun<2?0:windCap;
  const highest=Math.min(target-1,windCap>0?windCap:target-1,
   sourceTier+slots.length-1);
  const supporting=[];
- let extraCooks=0n,extraMerges=0n,extraFuel=0;
+ let extraCooks=0n,extraMerges=0n,extraWind=0n,extraFuel=0;
  for(let i=0;i<slots.length;i++){
-  const tier=Math.max(1,highest-i);
+  // From T40 across 22 support cells: T58 ... T40, T40, T40, T40.
+  const tier=Math.max(sourceTier,highest-i);
   const free=slots.length-i;
   const aboveSource=Math.max(0,tier-sourceTier);
   const requiredWorkspace=aboveSource+1;
   if(requiredWorkspace>free)throw Error("Unbuildable Perfecto staircase ingredient");
   const direct=tier<=sourceTier;
-  const cooks=direct?1n:1n<<BigInt(aboveSource);
-  const merges=direct?0n:cooks-1n;
+  const proposed=direct?null:certifiedWindTierRecipe(sourceTier,tier,supportWindCap);
+  const recipe=proposed?.usesWind&&geom.longestRun<proposed.workspaceSlots?
+   certifiedWindTierRecipe(sourceTier,tier,0):proposed;
+  const cooks=direct?1n:BigInt(recipe.cooksExact);
+  const merges=direct?0n:BigInt(recipe.mergesExact);
+  const wind=direct?0n:BigInt(recipe.windEventsExact);
   const cost=sushiDirectCookFuel(direct?tier:sourceTier);
   const fuel=Number(cooks)*cost;
   if(!Number.isFinite(fuel))throw Error("Non-finite Perfecto staircase fuel cost");
   best.board[slots[i]]=tier;
   extraCooks+=cooks;
   extraMerges+=merges;
+  extraWind+=wind;
   extraFuel+=fuel;
   supporting.push({position:slots[i]+1,tier,requiredWorkspace,
    sourceTier:direct?tier:sourceTier,cooksExact:cooks.toString(),
-   mergesExact:merges.toString()});
+   mergesExact:merges.toString(),windEventsExact:wind.toString()});
  }
  const proof=best.certificate;
+ // Prefer a multi-sushi Wind cascade when it is cheaper and the inputs can
+ // all be physically constructed in the shrinking contiguous workspace.
+ // Only the strictly descending prefix can be a verified Wind cascade.
+ // Extra directly cookable copies are placed after the cascade finishes.
+ const cascadeLength=Math.min(supporting.length,
+  Math.max(0,highest-sourceTier+1));
+ const directTail=supporting.slice(cascadeLength);
+ proof.directCookReserveCount=directTail.length;
+ proof.directCookReserveTier=sourceTier;
+ const directTailFuel=directTail.reduce((sum,item)=>
+  sum+sushiDirectCookFuel(item.tier),0);
+ const cascade=certifiedPerfectoSupportCascade(sourceTier,
+  supporting.slice(0,cascadeLength).map(sushi=>sushi.tier),windCap);
+ const cascadeFuel=cascade?cascade.totalFuel+directTailFuel:Infinity;
+ if(cascade&&cascadeFuel<extraFuel*(1-1e-10)){
+  cascade.supportingCount=cascadeLength;
+  cascade.directFillerCount=directTail.length;
+  cascade.individualFuel=extraFuel;
+  cascade.fuelSavingPercent=100*(1-cascadeFuel/extraFuel);
+  extraFuel=cascadeFuel;
+  extraCooks=BigInt(cascade.cooksExact)+BigInt(directTail.length);
+  extraMerges=BigInt(cascade.mergesExact);
+  extraWind=BigInt(cascade.windEventsExact);
+  proof.supportingMode="cascade";
+  proof.supportingCascade=cascade;
+ }
  proof.supportingSushi=supporting;
  proof.supportingCount=supporting.length;
  proof.supportingHighest=supporting[0]?.tier??null;
@@ -331,11 +417,16 @@ export function finishCertifiedCarryBoard(best,geom,target,windCap){
  proof.supportingFuel=extraFuel;
  proof.supportingCooksExact=extraCooks.toString();
  proof.supportingMergesExact=extraMerges.toString();
+ proof.supportingWindEventsExact=extraWind.toString();
+ proof.totalWindEventsExact=(BigInt(proof.windEventsExact)+extraWind).toString();
  proof.totalCooksExact=(BigInt(proof.cooksExact)+extraCooks).toString();
  proof.totalMergesExact=(BigInt(proof.mergesExact)+extraMerges).toString();
- proof.proof+=" After producing all target copies, use the released workspace to build supporting sushi one at a time, highest first, preserving previous copies. Each next ingredient requires no more than the remaining free cells.";
+ proof.proof+=proof.supportingMode==="cascade"?
+  " After producing the targets, construct a descending Wind chain and trigger the verified cascade. Directly cook spare source-tier sushi into the remaining construction cells; every merge must pass replay validation.":
+  " After producing all target copies, use the released workspace to build supporting sushi one at a time, highest first, preserving previous copies. Each next ingredient requires no more than the remaining free cells.";
  best.spent+=extraFuel;
  best.merges+=Number(extraMerges);
+ best.wind+=Number(extraWind);
  return best;
 }
 // Rearrangement is cosmetic: it does not create, destroy or upgrade sushi.
@@ -348,6 +439,42 @@ export function finishCertifiedCarryBoard(best,geom,target,windCap){
 const isBonusSushiSlot=slot=>slot===1||slot===2||slot===3;
 export function prioritizePerfectoBonusSlots(board,geom,target,certificate=null){
  if(!Array.isArray(board))return board;
+ // Prefer a physically constructible final arrangement over a cosmetic
+ // reordering that moves protected sushi or splits the construction workspace.
+ // The workspace holds W-1 staircase pieces, plus one completed target at the
+ // right edge. Its special-plate penalty keeps target sushi on bonus plates
+ // whenever a different contiguous workspace can be used.
+ if(certificate&&Array.isArray(certificate.supportingSushi)){
+  const flex=geom.flex.filter(pos=>geom.slots[pos]>=0);
+  const flexible=new Set(flex);
+  const W=Number(certificate.workspaceSlots);
+  const supports=certificate.supportingSushi;
+  if(supports.length===W-1&&Number.isInteger(W)&&W>=1){
+   let candidate=null;
+   for(let start=0;start+W<=board.length;start++){
+    const cells=Array.from({length:W},(_,i)=>start+i);
+    if(!cells.every(pos=>flexible.has(pos)))continue;
+    const penalty=cells.slice(0,W-1).filter(pos=>isBonusSushiSlot(geom.slots[pos])).length;
+    if(!candidate||penalty<candidate.penalty||
+       penalty===candidate.penalty&&start<candidate.start)
+     candidate={start,penalty};
+   }
+   if(candidate){
+    const arranged=geom.tiles.map((value,pos)=>
+     geom.slots[pos]<0?value:geom.frozen.has(pos)?value:0);
+    for(const pos of flex)arranged[pos]=target;
+    for(let i=0;i<supports.length;i++){
+     const pos=candidate.start+i;
+     arranged[pos]=supports[i].tier;
+     supports[i].position=pos+1;
+    }
+    // The remaining workspace cell is the final target copy.
+    arranged[candidate.start+W-1]=target;
+    return arranged;
+   }
+  }
+ }
+
  const unlocked=geom.slots.map((slot,pos)=>slot>=0?pos:-1).filter(pos=>pos>=0);
  const specials=unlocked.filter(pos=>isBonusSushiSlot(geom.slots[pos]));
  const regular=unlocked.filter(pos=>!isBonusSushiSlot(geom.slots[pos]));
@@ -384,7 +511,7 @@ export function prioritizePerfectoBonusSlots(board,geom,target,certificate=null)
  }
  return result;
 }
-export function searchPerfectoBoard(save,target,economy,{effortMultiplier=16}={}){
+export function searchPerfectoBoard(save,target,economy,{effortMultiplier=16,certifiedOnly=false,supportMode="staircase"}={}){
  if(!save||!Number.isInteger(target)||target<1||target>64)return null;
  const geom=geometry(save,target);
  const currentCopies=geom.fixedTargets;
@@ -417,17 +544,25 @@ export function searchPerfectoBoard(save,target,economy,{effortMultiplier=16}={}
  const budget=Math.max(geom.flex.length*effortMultiplier,geom.flex.length*3);
  const stepLimit=Math.min(3000,Math.max(120,Math.ceil(budget*4)));
  const recipes=["uniform","ladder","double-ladder","high-pair","apex","existing"];
- let best=certifiedCarryBoard(geom,target,economy),attempted=0;
- for(const seed of sources){
+ let best=certifiedCarryBoard(geom,target,economy,windCap),attempted=0;
+ // A certified recipe is also one evaluated construction candidate.
+ if(best)attempted++;
+ let bestUnverified=null;
+ // The user-facing dual-board comparison needs only constructive recipes.
+ // The bounded exploratory search remains available to research/tests but is
+ // intentionally skipped for both live boards to avoid UI stalls.
+ if(!certifiedOnly)for(const seed of sources){
   for(const recipe of recipes){
    for(let mode=0;mode<3;mode++){
     const candidate=runRecipe(geom,target,reference,seed,recipe,mode,windCap,budget,stepLimit);
     attempted++;
-    if(better(best?.metric,candidate.metric))best=candidate;
+    // A static count-state is not a replay of the entire cooking sequence.
+    // Do not replace a physically certified recipe with an unverified board.
+    if(better(bestUnverified?.metric,candidate.metric))bestUnverified=candidate;
    }
   }
  }
- if(best?.certificate)finishCertifiedCarryBoard(best,geom,target,windCap);
+ if(best?.certificate)finishCertifiedCarryBoard(best,geom,target,windCap,{supportMode});
  if(best)best.board=prioritizePerfectoBonusSlots(best.board,geom,target,best.certificate);
  const targetCount=best?.metric.target??currentCopies;
  return {
@@ -443,7 +578,8 @@ export function searchPerfectoBoard(save,target,economy,{effortMultiplier=16}={}
   certificate:best?.certificate??null,
   cookingTiersCompared:affordableSushiCookingTiers(economy,target).length,
   effortBudget:best?.certificate?null:budget,effortBasisTier:reference,
-  reason:targetCount>currentCopies?"simulated":"no-improvement",
-  heuristic:true,searchLimitReached:false
+  reason:targetCount>currentCopies?"certified":"no-improvement",
+  unverifiedTargetCount:bestUnverified?.metric?.target??null,
+  heuristic:false,searchLimitReached:false
  };
 }

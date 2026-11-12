@@ -4,7 +4,8 @@ import {readFileSync} from "node:fs";
 import {
  perfectoSingleChance,perfectoBoardChance,perfectoAttemptsForConfidence,
  sushiDirectCookFuel,chooseNextPerfectoTier,availablePerfectoTargets,
- perfectoBoardPlan,getPerfectoPlanner
+ perfectoBoardPlan,getPerfectoPlanner,perfectoOddsImprovement,
+ perfectoKnownFreeUseEstimate,perfectoKnowledgeMilestones
 } from "../src/perfecto-planner.mjs";
 import {getKnowledgeRows} from "../src/lab-model.mjs";
 import {searchPerfectoBoard,getSushiWindCap} from "../src/perfecto-wind-search.mjs";
@@ -69,8 +70,8 @@ test("One automatically chosen final board preserves higher and target sushi",()
  assert.ok(result.plan.copies>=1&&result.plan.copies<=11);
  assert.equal(result.plan.copies,result.search.targetCount);
  assert.equal(result.plan.board.length,120);
- assert.equal(result.plan.board[11].role,"protected");
- assert.equal(result.plan.board[11].preparedTier,15);
+ assert.equal(result.plan.board[0].role,"protected");
+ assert.equal(result.plan.board[0].preparedTier,15);
  assert.equal(result.plan.board.filter(cell=>cell.role==="target").length,result.plan.copies);
  assert.ok(result.plan.board.some(cell=>cell.role==="target"&&cell.preparedTier===1));
  assert.equal(result.plan.board[12].role,"locked");
@@ -132,7 +133,7 @@ test("Account Wind limits and higher-tier preservation still apply to recipe sea
  assert.equal(getSushiWindCap(save),58);
  const economy=estimateSushiFuelEconomy(save);
  const result=searchPerfectoBoard(save,2,economy);
- assert.equal(result.board[11],64); // highest protected tier goes to the last regular slot
+ assert.equal(result.board[0],64); // protected max tier never moves
  assert.equal(result.windCap,58);
  assert.ok(result.targetCount>=1&&result.targetCount<=11);
  assert.ok(result.attempted>=1);
@@ -205,13 +206,13 @@ test("Certified carry construction compares every affordable tier, not a hard 50
  assert.ok(result.sourceTier<=44);
  assert.ok(result.targetCount>=80);
  if(result.certificate){
-  assert.equal(result.certificate.type,"recursive-westward-carry");
+  assert.match(result.certificate.type,/^recursive-(east-wind|westward)-carry$/);
   assert.equal(result.certificate.targetTier,62);
   assert.equal(result.certificate.finalCopies,result.targetCount);
   assert.ok(result.certificate.capacityShare>0.5);
   assert.equal(result.board.filter(x=>x===62).length,result.targetCount);
   assert.equal(BigInt(result.certificate.cooksExact),
-   BigInt(result.certificate.finalCopies)*(1n<<BigInt(62-result.certificate.startingTier)));
+   BigInt(result.certificate.finalCopies)*BigInt(result.certificate.cooksPerCopyExact));
  }
 });
 
@@ -227,17 +228,17 @@ test("Unused Perfecto construction workspace becomes a buildable 17-tile Wind st
  const cost=sushiDirectCookFuel(45);
  const economy={capacity:cost*1.1,generationPerHour:1e13,maxCookTier:46};
  const result=searchPerfectoBoard(save,62,economy);
- const expected=Array.from({length:17},(_,i)=>58-i);
+ const expected=Array.from({length:17},(_,i)=>Math.max(45,58-i));
  assert.equal(result.sourceTier,45);
  assert.equal(result.targetCount,82);
- assert.deepEqual(result.board.slice(0,17),expected);
- assert.ok(result.board.slice(17,99).every(tier=>tier===62));
- assert.equal(result.board[99],64);
+ assert.equal(result.board[0],64);
+ assert.deepEqual(result.board.slice(1,18),expected);
+ assert.ok(result.board.slice(18,100).every(tier=>tier===62));
  assert.ok(result.board.slice(0,100).every(tier=>tier>0));
  assert.ok(result.board.slice(100).every(tier=>tier===0));
  assert.equal(result.certificate?.supportingCount,17);
  assert.deepEqual(result.certificate.supportingSushi.map(x=>x.position),
-  Array.from({length:17},(_,i)=>1+i));
+  Array.from({length:17},(_,i)=>2+i));
  assert.deepEqual(result.certificate.supportingSushi.map(x=>x.tier),expected);
  for(let i=0;i<result.certificate.supportingSushi.length;i++){
   const item=result.certificate.supportingSushi[i];
@@ -261,7 +262,7 @@ test("Filler ingredients never replace protected tiles or invent targets when Wi
  save.slots=Array.from({length:120},(_,i)=>i<100?0:-1);
  const economy={capacity:sushiDirectCookFuel(45)*1.1,generationPerHour:1e13,maxCookTier:46};
  const result=searchPerfectoBoard(save,62,economy);
- assert.equal(result.board[99],64); // higher tier moves to final regular plate
+ assert.equal(result.board[26],64); // protected T64 must never move
  assert.equal(result.targetCount,82);
  assert.equal(result.board.filter(tier=>tier===62).length,82);
  assert.equal(result.certificate?.supportingCount,17);
@@ -294,7 +295,7 @@ test("Perfecto targets take Hot, Cold and Milktoast plates before ordinary ones"
  assert.ok(result.board.slice(1,100).every(tier=>tier>0));
  assert.equal(result.certificate.supportingCount,17);
  const supporting=result.certificate.supportingSushi;
- assert.deepEqual(supporting.map(x=>x.tier),Array.from({length:17},(_,i)=>58-i));
+ assert.deepEqual(supporting.map(x=>x.tier),Array.from({length:17},(_,i)=>Math.max(45,58-i)));
  for(const item of supporting)assert.equal(result.board[item.position-1],item.tier);
  assert.ok(supporting.every(item=>save.slots[item.position-1]===0),
   "All lower supporting sushi fit on ordinary plates");
@@ -318,7 +319,7 @@ test("Special slots are used by T62 even when lower-tier ingredients are more nu
  assert.equal(result.board.filter(x=>x===62).length,result.targetCount);
 });
 
-test("Higher protected sushi outrank Perfecto targets for bonus slots, even if moved",()=>{
+test("Protected T64 remains in its actual position; bonus plates prioritize targets elsewhere",()=>{
  const save=exampleSave();
  save.sushi[2][6]=45;
  save.sushi[2][29]=1;
@@ -333,7 +334,8 @@ test("Higher protected sushi outrank Perfecto targets for bonus slots, even if m
   generationPerHour:1e13,maxCookTier:46};
  const result=searchPerfectoBoard(save,62,economy);
  assert.equal(result.targetCount,82);
- assert.equal(result.board[90],64); // The T64 outranks T62
+ assert.equal(result.board[0],64); // T64 cannot be relocated
+ assert.equal(result.board[90],62);
  assert.equal(result.board[93],62);
  assert.equal(result.board[95],62);
  assert.equal(result.board.filter(t=>t===64).length,1);
@@ -342,14 +344,14 @@ test("Higher protected sushi outrank Perfecto targets for bonus slots, even if m
  assert.ok(result.board.slice(100).every(t=>t===0));
  assert.ok(result.certificate);
  assert.deepEqual(result.certificate.supportingSushi.map(x=>x.tier),
-  Array.from({length:17},(_,i)=>58-i));
+  Array.from({length:17},(_,i)=>Math.max(45,58-i)));
  for(const item of result.certificate.supportingSushi){
   assert.equal(result.board[item.position-1],item.tier);
   assert.equal(save.slots[item.position-1],0);
  }
 });
 
-test("Among supporting sushi, the highest tiers get remaining bonus plates",()=>{
+test("A dense field of bonus plates still keeps a contiguous buildable support workspace",()=>{
  const save=exampleSave();
  save.sushi[2][6]=45;
  save.sushi[2][29]=1;
@@ -362,12 +364,15 @@ test("Among supporting sushi, the highest tiers get remaining bonus plates",()=>
  const result=searchPerfectoBoard(save,62,economy);
  assert.equal(result.targetCount,82);
  assert.equal(result.board[0],64);
- assert.ok(result.board.slice(1,83).every(t=>t===62));
- assert.deepEqual(result.board.slice(83,85),[58,57]);
- assert.deepEqual(result.board.slice(85,100),Array.from({length:15},(_,i)=>56-i));
+ assert.equal(result.board.filter(t=>t===62).length,82);
+ const support=result.certificate.supportingSushi;
+ assert.deepEqual(support.map(x=>x.tier),Array.from({length:17},(_,i)=>Math.max(45,58-i)));
+ assert.ok(support.every((item,i)=>item.position===support[0].position+i));
+ for(const item of support)assert.equal(result.board[item.position-1],item.tier);
+ assert.ok(result.board.slice(0,100).every(tier=>tier>0));
 });
 
-test("Regular Perfecto boards put the support ladder first and protected T64 bottom-right",()=>{
+test("Regular Perfecto boards keep the protected T64 fixed and place the ladder in contiguous unlocked slots",()=>{
  const save=exampleSave();
  save.sushi[2][6]=45;
  save.sushi[2][29]=1;
@@ -377,15 +382,15 @@ test("Regular Perfecto boards put the support ladder first and protected T64 bot
  save.slots=Array.from({length:120},(_,i)=>i<100?0:-1);
  const economy={capacity:sushiDirectCookFuel(45)*1.1,generationPerHour:1e13,maxCookTier:46};
  const result=searchPerfectoBoard(save,62,economy);
- assert.deepEqual(result.board.slice(0,17),Array.from({length:17},(_,i)=>58-i));
- assert.ok(result.board.slice(17,99).every(tier=>tier===62));
- assert.equal(result.board[99],64);
+ assert.equal(result.board[0],64);
+ assert.deepEqual(result.board.slice(1,18),Array.from({length:17},(_,i)=>Math.max(45,58-i)));
+ assert.ok(result.board.slice(18,100).every(tier=>tier===62));
  assert.equal(result.board.filter(tier=>tier===62).length,82);
  for(const item of result.certificate.supportingSushi){
   assert.equal(result.board[item.position-1],item.tier);
  }
 });
-test("Last unlocked special plate can host the top tier at the far right",()=>{
+test("Last unlocked special plate takes target sushi when the protected highest tier is fixed elsewhere",()=>{
  const save=exampleSave();
  save.sushi[2][6]=45;
  save.sushi[2][29]=1;
@@ -396,13 +401,14 @@ test("Last unlocked special plate can host the top tier at the far right",()=>{
  save.slots[20]=1;save.slots[30]=2;save.slots[99]=3;
  const economy={capacity:sushiDirectCookFuel(45)*1.1,generationPerHour:1e13,maxCookTier:46};
  const result=searchPerfectoBoard(save,62,economy);
- assert.equal(result.board[99],64);
+ assert.equal(result.board[0],64);
+ assert.equal(result.board[99],62);
  assert.equal(result.board[20],62);
  assert.equal(result.board[30],62);
  assert.deepEqual(result.board.filter(tier=>tier>0).length,100);
  assert.deepEqual(result.board.filter(tier=>tier===62).length,82);
  const support=result.certificate.supportingSushi;
- assert.deepEqual(support.map(x=>x.tier),Array.from({length:17},(_,i)=>58-i));
+ assert.deepEqual(support.map(x=>x.tier),Array.from({length:17},(_,i)=>Math.max(45,58-i)));
  assert.ok(support.every(x=>result.board[x.position-1]===x.tier));
 });
 test("Perfecto role indicators and real plate colors are not overridden by sushi backgrounds",()=>{
@@ -453,4 +459,241 @@ test("Public HTML removes technical source names, Salt controls, and protection 
  assert.ok(css.includes(".tile.merge-flying-sushi"));
  assert.ok(app.includes("opacity:.78"));
  assert.ok(app.includes("opacity:.66"));
+});
+
+
+test("Preparation comparison reports per-use odds and expected Pepper attempt savings",()=>{
+ const result=perfectoOddsImprovement(.2,.6);
+ assert.equal(result.before,.2);
+ assert.equal(result.after,.6);
+ assert.ok(Math.abs(result.ratio-3)<1e-12);
+ assert.ok(Math.abs(result.percentagePointGain-40)<1e-12);
+ assert.ok(Math.abs(result.currentAttempts-5)<1e-12);
+ assert.ok(Math.abs(result.optimizedAttempts-5/3)<1e-12);
+ assert.ok(Math.abs(result.savedAttempts-10/3)<1e-12);
+ assert.equal(result.improvement,true);
+ assert.equal(result.fromZero,false);
+ const fromEmpty=perfectoOddsImprovement(0,.4);
+ assert.equal(fromEmpty.ratio,null);
+ assert.equal(fromEmpty.currentAttempts,null);
+ assert.equal(fromEmpty.fromZero,true);
+ const unchanged=perfectoOddsImprovement(.3,.3);
+ assert.equal(unchanged.improvement,false);
+ assert.equal(unchanged.savedAttempts,0);
+});
+
+test("Known shaker refunds give a conservative cap-aware charge estimate",()=>{
+ const partial=perfectoKnownFreeUseEstimate(.2,.25);
+ assert.equal(partial.knownChance,.25);
+ assert.equal(partial.atCap,false);
+ assert.ok(Math.abs(partial.expectedConsumedUpperBound-3.75)<1e-12);
+ const capped=perfectoKnownFreeUseEstimate(.5,.99);
+ assert.equal(capped.knownChance,.6);
+ assert.equal(capped.atCap,true);
+ assert.ok(Math.abs(capped.expectedConsumedUpperBound-.8)<1e-12);
+ assert.equal(perfectoKnownFreeUseEstimate(0,.3).expectedConsumedUpperBound,null);
+ assert.equal(perfectoKnownFreeUseEstimate(1,0).expectedConsumedUpperBound,1);
+});
+
+test("Perfecto plan exposes improvement and known-source shaker charge estimate",()=>{
+ const save=exampleSave();
+ save.sushi[2][21]=4; // Bottomless Shakers contributes 4 percentage points
+ const p=getPerfectoPlanner(save,{tier:2});
+ assert.ok(Math.abs(p.improvement.after-p.planChance)<1e-12);
+ assert.ok(Math.abs(p.improvement.before-p.currentChance)<1e-12);
+ assert.equal(p.freeUse.knownChance,.04);
+ assert.equal(p.freeUse.atCap,false);
+ assert.ok(Math.abs(p.freeUse.expectedConsumedUpperBound-
+  p.expectedActivations*.96)<1e-10);
+ const html=readFileSync(new URL("../index.html",import.meta.url),"utf8");
+ const ui=readFileSync(new URL("../src/perfecto-ui.mjs",import.meta.url),"utf8");
+ for(const id of [
+  "perfectoCurrentOddsRatio","perfectoImprovement","perfectoImprovementDetail",
+  "perfectoPreparationSteps","perfectoKnownFreeChance","perfectoExpectedSpentUpper"
+ ])assert.ok(html.includes('id="'+id+'"'),"Expected Perfecto UI "+id);
+ assert.ok(ui.includes("perfectoPreparationSteps(result)"));
+ assert.ok(ui.includes('text("perfectoImprovement",'));
+ assert.ok(ui.includes('text("perfectoKnownFreeChance",'));
+});
+
+test("Confirmed cooking tier can correct JSON estimate up or down",()=>{
+ const save=exampleSave();
+ const base=getPerfectoPlanner(save,{tier:50});
+ const higher=getPerfectoPlanner(save,{tier:50,cookTier:46});
+ const lower=getPerfectoPlanner(save,{tier:50,cookTier:1});
+ assert.equal(higher.observedCookTier,46);
+ assert.equal(higher.economy.maxCookTier,46);
+ assert.ok(higher.economy.capacity>=sushiDirectCookFuel(46));
+ assert.equal(lower.observedCookTier,1);
+ assert.equal(lower.economy.maxCookTier,1);
+ assert.equal(base.observedCookTier,null);
+ assert.equal(higher.comparisons.maximum.economy.hypothetical,true);
+ assert.equal(higher.comparisons.maximum.economy.maxDirectTier,46);
+});
+
+test("Perfecto UI renders both boards, scenario comparison and Wind-specific guidance",()=>{
+ const html=readFileSync(new URL("../index.html",import.meta.url),"utf8");
+ const ui=readFileSync(new URL("../src/perfecto-ui.mjs",import.meta.url),"utf8");
+ for(const id of ["perfectoCookTier","perfectoAccountScenario","perfectoAccountFuel",
+  "perfectoMaximumScenario","perfectoMaximumFuel","perfectoScenarioDifference",
+  "perfectoMaxBoard","perfectoMaximumSummary","perfectoMaxPreparationSteps"]){
+  assert.ok(html.includes('id="'+id+'"'),id);
+  assert.ok(ui.includes('"'+id+'"'),"unwired UI ID: "+id);
+ }
+ assert.match(ui,/getPerfectoPlanner\(saved,\{tier:tierChoice,cookTier\}\)/);
+ assert.match(ui,/proof\.windStages\?\.length/);
+ assert.match(ui,/renderBoard\(result,maxP,"perfectoMaxBoard"\)/);
+});
+
+test("T46 benchmark uses the verified Wind staircase, not only T46 filler",()=>{
+ const save=exampleSave();
+ save.sushi[5]=Array(64).fill(0);
+ save.sushi[2][29]=1;
+ save.slots=Array.from({length:120},(_,i)=>i<100?0:-1);
+ save.tiles=Array(120).fill(-1);
+ save.tiles[0]=63;
+ const result=getPerfectoPlanner(save,{tier:62});
+ const benchmark=result.comparisons.maximum;
+ assert.equal(benchmark.search.sourceTier,46);
+ assert.ok(benchmark.search.certificate.windStages.length>0);
+ assert.notEqual(benchmark.search.certificate.supportingMode,"direct-source");
+ assert.equal(benchmark.plan.protected,1);
+ assert.equal(benchmark.plan.copies,benchmark.search.targetCount);
+ const filler=benchmark.plan.board.filter(cell=>cell.role==="ingredient")
+  .map(cell=>cell.preparedTier+1).sort((a,b)=>b-a);
+ assert.deepEqual(filler,Array.from({length:16},(_,i)=>Math.max(46,58-i)));
+ assert.equal(benchmark.search.certificate.supportingCount,filler.length);
+ const proof=benchmark.search.certificate;
+ assert.equal(BigInt(proof.totalCooksExact),
+  BigInt(proof.cooksExact)+BigInt(proof.supportingCooksExact));
+ assert.equal(BigInt(proof.totalMergesExact),
+  BigInt(proof.mergesExact)+BigInt(proof.supportingMergesExact));
+ const exactTarget=getPerfectoPlanner(save,{tier:46}).comparisons.maximum;
+ assert.ok(exactTarget.plan.board.every(cell=>
+  cell.slot<0||cell.role==="protected"||cell.preparedTier===45));
+});
+
+test("Perfecto board comparison is side-by-side with responsive fallback",()=>{
+ const html=readFileSync(new URL("../index.html",import.meta.url),"utf8");
+ const css=readFileSync(new URL("../styles.css",import.meta.url),"utf8");
+ const ui=readFileSync(new URL("../src/perfecto-ui.mjs",import.meta.url),"utf8");
+ const wrapper=html.indexOf('class="perfecto-board-comparison"');
+ const account=html.indexOf('id="perfectoBoard"',wrapper);
+ const maximum=html.indexOf('id="perfectoMaxBoard"',wrapper);
+ assert.ok(wrapper>=0&&account>wrapper&&maximum>account,
+  "the two boards must be rendered inside the same comparison container");
+ assert.match(css,/\.perfecto-board-comparison\s*\{\s*display:grid;grid-template-columns:repeat\(2,minmax\(0,1fr\)\)/);
+ assert.match(css,/@media\(max-width:1120px\)/);
+ assert.ok(ui.includes('proof.supportingMode==="direct-source"'),
+  "UI guide must explain directly cooked T46 leftovers");
+ assert.ok(ui.includes("Target recipe Fuel:"),
+  "UI must separate required recipe Fuel from optional fillers");
+});
+
+test("Theoretical Knowledge milestones start at the next reachable multiple of five",()=>{
+ const rows=[
+  {tier:50,discovered:true,level:28,bonus:28*263.333333,nextLevelGain:263.333333},
+  {tier:54,discovered:true,level:28,bonus:28*553.333333,nextLevelGain:553.333333}
+ ];
+ const milestones=perfectoKnowledgeMilestones(rows,62,83);
+ assert.equal(milestones.available,true);
+ assert.deepEqual(milestones.rows[0].levels,[{tier:50,level:30},{tier:54,level:30}]);
+ assert.deepEqual(milestones.rows[1].levels,[{tier:50,level:35},{tier:54,level:35}]);
+ assert.ok(milestones.rows[0].chance>milestones.currentChance);
+ const at30=rows.map(row=>({...row,level:30,bonus:30*row.nextLevelGain}));
+ assert.deepEqual(perfectoKnowledgeMilestones(at30,62,83).rows[0].levels,
+  [{tier:50,level:35},{tier:54,level:35}]);
+ const different=rows.map((row,i)=>i?{...row,level:32,bonus:32*row.nextLevelGain}:row);
+ assert.deepEqual(perfectoKnowledgeMilestones(different,62,83).rows[0].levels,
+  [{tier:50,level:30},{tier:54,level:35}]);
+ const userExample=[
+  {...rows[0],level:32,bonus:32*rows[0].nextLevelGain},rows[1]
+ ];
+ const sequence=perfectoKnowledgeMilestones(userExample,62,83);
+ const expected=[
+  [35,30],[35,35],[40,35],[40,40],[45,40],[45,45]
+ ];
+ assert.deepEqual(sequence.rows.slice(0,expected.length).map(row=>
+  row.levels.map(x=>x.level)),expected,
+  "next joint threshold, then the closest independent threshold");
+ assert.ok(sequence.rows.every((row,i)=>
+  i===0||row.chance>=sequence.rows[i-1].chance),
+  "increasing Knowledge must never lower Perfecto chance");
+ assert.equal(perfectoKnowledgeMilestones(rows.map(row=>({...row,discovered:false})),62,83).available,false);
+});
+
+test("Additional info shows only the next milestone, with later levels in an info popover",()=>{
+ const html=readFileSync(new URL("../index.html",import.meta.url),"utf8");
+ const css=readFileSync(new URL("../styles.css",import.meta.url),"utf8");
+ const ui=readFileSync(new URL("../src/perfecto-ui.mjs",import.meta.url),"utf8");
+ assert.equal(html.split('id="perfectoMilestoneInfo"').length-1,1);
+ assert.equal(html.split('id="perfectoTheoryMilestones"').length-1,1);
+ const popover=html.indexOf('id="perfectoMilestonePopover"');
+ const list=html.indexOf('id="perfectoTheoryMilestones"');
+ assert.ok(popover>0&&list>popover,
+  "all future milestone rows belong inside the hidden info popover");
+ assert.ok(html.includes('aria-controls="perfectoMilestonePopover"'));
+ assert.match(css,/\.perfecto-milestone-info:hover \.perfecto-milestone-popover/);
+ assert.match(css,/\.perfecto-milestone-info:focus-within \.perfecto-milestone-popover/);
+ assert.match(ui,/infoTrigger\.addEventListener\("click"/);
+ assert.match(ui,/infoTrigger\.setAttribute\("aria-expanded"/);
+ assert.ok(ui.includes('if(event.key==="Escape")closeMilestoneInfo()'));
+});
+
+test("Perfecto target and cooking controls align from the top and stack cleanly on mobile",()=>{
+ const html=readFileSync(new URL("../index.html",import.meta.url),"utf8");
+ const css=readFileSync(new URL("../styles.css",import.meta.url),"utf8");
+ const controls=html.slice(html.indexOf('class="perfecto-controls"'),
+  html.indexOf('id="perfectoNoData"'));
+ assert.ok(controls.includes('class="perfecto-target-group"'));
+ assert.ok(controls.includes('class="perfecto-tier-select"'));
+ assert.ok(controls.includes('class="perfecto-cook-tier"'));
+ for(const id of ["perfectoTarget","perfectoResetTarget","perfectoCookTier",
+  "perfectoCookTierHint"])assert.ok(controls.includes('id="'+id+'"'),id);
+ assert.match(css,/\.perfecto-controls\s*\{\s*display:grid;grid-template-columns:minmax\(0,1fr\) minmax\(205px,225px\);\s*align-items:start/);
+ assert.match(css,/\.perfecto-target-group\s*\{display:grid;grid-template-columns:minmax\(0,1fr\) auto;gap:10px;align-items:end/);
+ assert.match(css,/@media\(max-width:740px\)/);
+ assert.match(css,/@media\(max-width:470px\)/);
+});
+
+test("Next Knowledge milestone shows two visually prominent independently updated tier upgrades",()=>{
+ const html=readFileSync(new URL("../index.html",import.meta.url),"utf8");
+ const css=readFileSync(new URL("../styles.css",import.meta.url),"utf8");
+ const ui=readFileSync(new URL("../src/perfecto-ui.mjs",import.meta.url),"utf8");
+ const section=html.slice(html.indexOf('class="perfecto-knowledge-theory"'),
+  html.indexOf('id="perfectoTheoryMilestones"')+1800);
+ assert.ok(section.includes('class="perfecto-milestone-level-grid"'));
+ assert.equal(section.split('class="perfecto-milestone-level-card"').length-1,2);
+ for(const tier of [50,54]){
+  for(const field of ["Current","Next","Delta"]){
+   assert.equal(html.split('id="perfectoTheoryT'+tier+field+'"').length-1,1,
+    "unique "+tier+" "+field+" field");
+  }
+ }
+ assert.match(ui,/text\("perfectoTheoryT"\+tier\+"Current",display\(current\)\)/);
+ assert.match(ui,/text\("perfectoTheoryT"\+tier\+"Next",display\(goal\)\)/);
+ assert.match(ui,/const remaining=Math\.max\(0,goal-current\)/);
+ assert.match(css,/\.perfecto-milestone-level-grid\s*\{\s*display:grid;grid-template-columns:repeat\(2,minmax\(0,1fr\)\)/);
+ assert.match(css,/@media\(max-width:680px\)/);
+ assert.match(css,/\.perfecto-milestone-sr-only\s*\{/);
+ assert.ok(html.includes('id="perfectoMilestoneInfo"'),
+  "keep the full milestone progression in its existing info popover");
+});
+
+test("Knowledge panel aligns both tier rows and all three chance results consistently",()=>{
+ const css=readFileSync(new URL("../styles.css",import.meta.url),"utf8");
+ const html=readFileSync(new URL("../index.html",import.meta.url),"utf8");
+ assert.match(css,/\.perfecto-bonus-grid\{display:grid;grid-template-columns:repeat\(2,minmax\(0,1fr\)\);align-items:stretch/);
+ assert.match(css,/\.perfecto-bonus-item\{display:grid;grid-template-columns:52px minmax\(0,1fr\);align-items:center/);
+ assert.match(css,/\.perfecto-milestone-level-card\{\s*display:grid;grid-template-rows:22px minmax\(56px,1fr\);gap:8px/);
+ assert.match(css,/\.perfecto-milestone-card-heading\{\s*display:grid;grid-template-columns:minmax\(0,1fr\) auto;\s*align-items:baseline/);
+ assert.match(css,/\.perfecto-milestone-current,\.perfecto-milestone-goal\{\s*display:grid;grid-template-rows:16px 36px/);
+ assert.match(css,/\.perfecto-milestone-flow-arrow\{\s*display:grid;place-items:center;align-self:end;width:28px;height:36px/);
+ assert.match(css,/\.perfecto-theory-results\{display:grid;grid-template-columns:repeat\(3,minmax\(0,1fr\)\);align-items:stretch/);
+ assert.match(css,/\.perfecto-theory-results>div\{\s*display:grid;grid-template-rows:minmax\(26px,auto\) auto/);
+ assert.match(css,/@media\(max-width:680px\)\{\s*\.perfecto-bonus-grid,\.perfecto-theory-results\{grid-template-columns:1fr\}/);
+ for(const id of ["perfectoTheoryBefore","perfectoTheoryAfter","perfectoTheoryGain"]){
+  assert.equal(html.split('id="'+id+'"').length-1,1,
+   "preserve "+id+" chance calculation display");
+ }
 });

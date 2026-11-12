@@ -28,26 +28,26 @@ export function normalizeBoardData(rawTiles,rawSlots){
   return {tiles,slots,unlocked};
 }
 
-export function layoutOptions(sourceSlots){
+export function layoutOptions(sourceSlots,{movementMittens=false}={}){
   const current=Array.from({length:BOARD_CELLS},(_,i)=>{
     const type=Number(sourceSlots[i]??-1);
     return Number.isInteger(type)&&type>=0?type:-1;
   });
   const types=current.filter(type=>type>=0);
   if(types.length>MAX_UNLOCKED_SLOTS)throw Error("Cannot prepare more than 100 unlocked slots.");
-  const layouts=[{name:"Current positions",slots:current}];
-  const count=types.length;
-  const options=[
-    {name:"Left-packed",positions:Array.from({length:count},(_,i)=>i)},
-    {name:"Right-packed",positions:Array.from({length:count},(_,i)=>BOARD_CELLS-count+i)},
-    {name:"Centered",positions:Array.from({length:count},(_,i)=>Math.floor((BOARD_CELLS-count)/2)+i)}
-  ];
-  for(const option of options){
-    const arranged=Array(BOARD_CELLS).fill(-1);
-    option.positions.forEach((position,i)=>{arranged[position]=types[i];});
-    if(!layouts.some(layout=>layout.slots.every((v,i)=>v===arranged[i]))){
-      layouts.push({name:option.name,slots:arranged});
-    }
-  }
-  return layouts;
+  // Without Movement Mittens (Sushi upgrade #15, save index 42), players
+  // cannot relocate the plates themselves: the imported layout is mandatory.
+  const currentLayout={name:"Current positions",slots:current};
+  if(!movementMittens)return [currentLayout];
+
+  // Group by plate type, not by their original positions. Regular (green)
+  // comes first, then Hot (red), Cold (blue), and Milktoast (yellow).
+  // Fill unlocked positions row-major, top-left to bottom-right. This keeps
+  // colored plates together at the bottom of the unlocked region, including
+  // for an early-game board with fewer than 100 total plates.
+  const sorted=types.slice().sort((a,b)=>a-b);
+  const arranged=Array(BOARD_CELLS).fill(-1);
+  sorted.forEach((type,i)=>{arranged[i]=type;});
+  if(current.every((type,i)=>type===arranged[i]))return [currentLayout];
+  return [{name:"Top-down · grouped special plates",slots:arranged}];
 }
