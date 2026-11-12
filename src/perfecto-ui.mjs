@@ -77,6 +77,22 @@ export function initializePerfectoUI(getSave){
  const benchmarkToggle=$("perfectoShowBenchmark");
  const comparisonStatus=$("perfectoComparePosition");
  const comparisonWrap=document.querySelector(".perfecto-board-comparison");
+ const infoTrigger=$("perfectoMilestoneInfo");
+ const infoBox=infoTrigger.closest(".perfecto-milestone-info");
+ const closeMilestoneInfo=()=>{
+  infoBox.classList.remove("is-open");
+  infoTrigger.setAttribute("aria-expanded","false");
+ };
+ infoTrigger.addEventListener("click",()=>{
+  const opened=infoBox.classList.toggle("is-open");
+  infoTrigger.setAttribute("aria-expanded",String(opened));
+ });
+ document.addEventListener("pointerdown",event=>{
+  if(!infoBox.contains(event.target))closeMilestoneInfo();
+ });
+ document.addEventListener("keydown",event=>{
+  if(event.key==="Escape")closeMilestoneInfo();
+ });
  const targetSelect=$("perfectoTarget");
  const cookTierInput=$("perfectoCookTier");
  const summary=$("perfectoTargetSummary");
