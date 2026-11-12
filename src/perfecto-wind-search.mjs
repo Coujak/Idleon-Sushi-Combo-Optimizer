@@ -6,6 +6,7 @@
 import {simulateMerge} from "./optimizer-core.mjs";
 import {sushiDirectCookFuel,affordableSushiCookingTiers} from "./perfecto-fuel.mjs?v=1.16.6";
 import {certifiedWindTierRecipe} from "./perfecto-wind-certificate.mjs?v=1.21.1";
+import {certifiedPerfectoSupportCascade} from "./perfecto-support-cascade.mjs?v=1.27.0";
 
 const N=120;
 const clamp=(v,lo,hi)=>Math.max(lo,Math.min(hi,v));
@@ -376,6 +377,18 @@ export function finishCertifiedCarryBoard(best,geom,target,windCap,{supportMode=
    mergesExact:merges.toString(),windEventsExact:wind.toString()});
  }
  const proof=best.certificate;
+ // Prefer a multi-sushi Wind cascade when it is cheaper and the inputs can
+ // all be physically constructed in the shrinking contiguous workspace.
+ const cascade=certifiedPerfectoSupportCascade(sourceTier,
+  supporting.map(sushi=>sushi.tier),windCap);
+ if(cascade&&cascade.totalFuel<extraFuel*(1-1e-10)){
+  extraFuel=cascade.totalFuel;
+  extraCooks=BigInt(cascade.cooksExact);
+  extraMerges=BigInt(cascade.mergesExact);
+  extraWind=BigInt(cascade.windEventsExact);
+  proof.supportingMode="cascade";
+  proof.supportingCascade=cascade;
+ }
  proof.supportingSushi=supporting;
  proof.supportingCount=supporting.length;
  proof.supportingHighest=supporting[0]?.tier??null;
@@ -387,7 +400,9 @@ export function finishCertifiedCarryBoard(best,geom,target,windCap,{supportMode=
  proof.totalWindEventsExact=(BigInt(proof.windEventsExact)+extraWind).toString();
  proof.totalCooksExact=(BigInt(proof.cooksExact)+extraCooks).toString();
  proof.totalMergesExact=(BigInt(proof.mergesExact)+extraMerges).toString();
- proof.proof+=" After producing all target copies, use the released workspace to build supporting sushi one at a time, highest first, preserving previous copies. Each next ingredient requires no more than the remaining free cells.";
+ proof.proof+=proof.supportingMode==="cascade"?
+  " After producing the targets, recursively prepare a descending chain and two top trigger sushi, fire a multi-sushi East Wind cascade, shift the upgraded results west, and cook the final low tier. Every merge must pass replay validation.":
+  " After producing all target copies, use the released workspace to build supporting sushi one at a time, highest first, preserving previous copies. Each next ingredient requires no more than the remaining free cells.";
  best.spent+=extraFuel;
  best.merges+=Number(extraMerges);
  best.wind+=Number(extraWind);
