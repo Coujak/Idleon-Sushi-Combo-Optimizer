@@ -3229,3 +3229,35 @@ details summary{cursor:pointer;font-size:12px;font-weight:700;color:#9eb7c9}
  #lab-knowledge .lab-knowledge-overview-stat>strong{font-size:17px}
  #lab-knowledge .lab-knowledge-category-chip{font-size:10px}
 }
+
+/* Dashboard production metrics share the Account Dashboard stat-card language. */
+#lab-overview .lab-dashboard-production{margin-top:18px}
+#lab-overview .lab-dashboard-section-heading{
+ display:flex;align-items:baseline;justify-content:space-between;gap:8px 16px;flex-wrap:wrap;
+ margin-bottom:11px
+}
+#lab-overview .lab-dashboard-section-heading h3{margin:0;font-size:16px}
+#lab-overview .lab-dashboard-section-heading .hint{margin:0;font-size:11px}
+#lab-overview .lab-production-stats{
+ display:grid;grid-template-columns:repeat(auto-fit,minmax(175px,1fr));gap:10px;
+}
+#lab-overview .lab-production-stat{
+ display:flex;flex-direction:column;justify-content:space-between;gap:9px;
+ padding:14px 15px;min-height:80px;
+ background:#192c3b;border:1px solid #344e5f;border-radius:10px;min-width:0;
+}
+#lab-overview .lab-production-stat .lab-stat-label{
+ font-size:11px;color:#aebfcd;font-weight:650;line-height:1.4
+}
+#lab-overview .lab-production-stat .lab-stat-value{
+ color:#e8faf1;font-size:18px;font-weight:750;line-height:1.3;
+ font-variant-numeric:tabular-nums;overflow-wrap:anywhere;
+}
+#lab-overview .lab-production-note{
+ margin:10px 0 0;font-size:11px;line-height:1.55;color:#aebfcd;
+}
+@media(max-width:560px){
+ #lab-overview .lab-production-stats{grid-template-columns:repeat(2,minmax(0,1fr))}
+ #lab-overview .lab-production-stat{padding:11px}
+ #lab-overview .lab-production-stat .lab-stat-value{font-size:15px}
+}
