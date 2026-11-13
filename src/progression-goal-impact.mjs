@@ -52,7 +52,10 @@ export function progressionGoalMetric(save,goal){
   // Mirror the *known* part of the Sushi CurrencyMulti groups from the
   // game parser. These are separate multiplicative groups: combining them
   // in one additive percent would distort the next-purchase projection.
-  const surcharge=[30,31,32,33,34].reduce((sum,id)=>sum+bonus(id),0);
+  // Toolbox SushiStuff.CurrencyMulti: one of the surcharge group's terms
+  // is a flat +100% when Gaming Superbit 67 is owned.
+  const surcharge=[30,31,32,33,34].reduce((sum,id)=>sum+bonus(id),0)+
+   (save.superbit67===true?100:0);
   const wage=bonus(41)+bonus(43);
   const bestCombo=Math.max(0,Number(save.sushi?.[4]?.[8])||0);
   const over=Math.max(0,bestCombo-1500);
@@ -64,9 +67,31 @@ export function progressionGoalMetric(save,goal){
   const rawOvertuned=Number(save.sushi?.[4]?.[1])||0;
   const overtuned=rawOvertuned>1e6?
    5*Math.log2(rawOvertuned/1e6)+10*Math.log10(rawOvertuned/1e6):0;
+  // Verified separate Toolbox CurrencyMulti factors from the raw save.
+  // Sailing[3][39] holds the acquired artifact grade, not a boolean.
+  // Research grid189: baseBonus 25 per level with a known observation
+  // multiplier. The global Research Grid_Bonus_Allmulti is not yet parsed,
+  // so this remains a lower-bound component, not the complete game factor.
+  const observationPcts=[25,15,50,20,20,35,25,30,35,60];
+  const grid=save.research189;
+  const observation=grid?.observation;
+  const gridObsPct=Number.isInteger(observation)&&observation>=0?
+   (observationPcts[observation]??0):0;
+  const grid189Bonus=grid&&Number.isFinite(grid.level)?
+   Math.max(0,grid.level)*25*(1+gridObsPct/100):0;
+  const artifact39=Number.isFinite(save.sailingArtifact39)?
+   Math.max(0,save.sailingArtifact39):0;
+  const knownExternal={
+   BonV:save.bundleBonV===true?2:1,
+   BanJ:save.bundleBanJ===true?2:1,
+   event45:save.eventShop45===true?2:1,
+   sailing39:1+artifact39,
+   grid189:1+grid189Bonus/100
+  };
   const global=Math.pow(1.1,unique)*comboMulti*
    (1+surcharge/100)*(1+knowledge[0]/100)*
-   (1+bonus(40)/100)*(1+wage/100)*(1+overtuned/100);
+   (1+bonus(40)/100)*(1+wage/100)*(1+overtuned/100)*
+   Object.values(knownExternal).reduce((total,mult)=>total*mult,1);
   const tiers=save.tiles??save.sushi?.[0];
   const slotTypes=save.slots??save.sushi?.[1]??[];
   const fires=save.fires??save.sushi?.[3]??[];
@@ -92,10 +117,10 @@ export function progressionGoalMetric(save,goal){
    const value=base*global;
    return make(goal,"Modeled Sushi Bucks generation / hour",
     value,format(value)+" Bucks/hr",
-    "Includes known board tiers, Hot Plates, green fireplaces, Combo, discovery, Knowledge and Sushi upgrade multipliers. Other account-wide bonuses are not modeled; use a measured in-game rate to anchor the projection.");
+    "Includes board tiers, plates, fireplaces, Combo, Knowledge and verified bundle, Event Shop, Sailing and Research multipliers when available. Arcade, Atom, Minehead, Button, other Research and companion bonuses may still be missing; enter a measured in-game rate to anchor the projection.");
   }
   return make(goal,"Modeled passive Bucks multiplier",global,format(global,3)+"×",
-   "Board earnings could not be reconstructed. Shows known upgrade, discovery, Combo and Knowledge factors; other account bonuses remain excluded.");
+   "Board earnings could not be reconstructed. Shows known upgrade, discovery, Combo, Knowledge and verified extra modifiers; other account bonuses may still be missing.");
  }
  if(goal==="knowledge"){
   const bonus=upgradeBonuses(save),knowledge=bonuses(save);
