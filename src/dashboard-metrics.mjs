@@ -5,6 +5,15 @@ import {progressionGoalMetric} from "./progression-goal-impact.mjs?v=1.17.0";
 import {estimateSushiFuelEconomy} from "./perfecto-fuel.mjs?v=1.16.6";
 
 const finite=n=>typeof n==="number"&&Number.isFinite(n)&&n>=0;
+/** The rollover model is informed by observed in-game behavior, not yet verified game code. */
+export function cookingTierOverflow(chance){
+ if(!finite(chance))return {guaranteed:null,remainder:null,atLeastOne:null,atLeastTwo:null};
+ const guaranteed=Math.floor(chance/100);
+ const remainder=Math.max(0,Math.min(100,chance-guaranteed*100));
+ return {guaranteed,remainder,
+  atLeastOne:guaranteed>=1?100:remainder,
+  atLeastTwo:guaranteed>=2?100:guaranteed===1?remainder:0};
+}
 export function getSushiDashboardMetrics(save){
  if(!save?.sushi)return null;
  const bucks=progressionGoalMetric(save,"bucks");
@@ -25,13 +34,11 @@ export function getSushiDashboardMetrics(save){
   freshChance+cookedKnowledge:null;
  // Tier-up overflow is modeled from the player's observed 100%+ behavior.
  // This is separate from blue fire's chance to replace a +1 tier event.
- const guaranteedCookTiers=cookTierBonus===null?null:Math.floor(cookTierBonus/100);
- const fractionalCookChance=cookTierBonus===null?null:
-  Math.max(0,Math.min(100,cookTierBonus-guaranteedCookTiers*100));
- const chanceAtLeastOne=cookTierBonus===null?null:
-  cookTierBonus>=100?100:fractionalCookChance;
- const chanceAtLeastTwo=cookTierBonus===null?null:
-  guaranteedCookTiers>=2?100:guaranteedCookTiers===1?fractionalCookChance:0;
+ const rollover=cookingTierOverflow(cookTierBonus);
+ const guaranteedCookTiers=rollover.guaranteed;
+ const fractionalCookChance=rollover.remainder;
+ const chanceAtLeastOne=rollover.atLeastOne;
+ const chanceAtLeastTwo=rollover.atLeastTwo;
  const copperLevel=save.sushi?.[2]?.[24];
  const copperKnown=copperLevel!==undefined&&copperLevel!==null&&
   Number.isFinite(Number(copperLevel))&&Number(copperLevel)>=0;
