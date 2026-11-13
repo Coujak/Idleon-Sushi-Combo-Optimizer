@@ -2047,6 +2047,16 @@ details summary{cursor:pointer;font-size:12px;font-weight:700;color:#9eb7c9}
 .lab-doubler-plan-card.is-change{
  border-color:#4f9c83;background:#193d3b
 }
+/* Match the Upgrade Catalog's existing purple treatment for active Doublers. */
+.lab-doubler-plan-card.is-doubled{
+ background:#26273b;border-color:#9f77cb;
+ box-shadow:inset 3px 0 0 #cda2fa
+}
+.lab-doubler-plan-card.is-doubled .lab-doubler-plan-identity strong{color:#f4d9ff}
+.lab-doubler-plan-card.is-doubled .lab-doubler-plan-from{color:#e5c8f7}
+.lab-doubler-plan-status.is-doubled{
+ background:#553b6f;border-color:#9f77cb;color:#f4d9ff
+}
 .lab-doubler-plan-head{
  display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap
 }
