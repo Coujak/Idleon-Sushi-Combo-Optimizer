@@ -4,6 +4,7 @@ import {readFileSync} from "node:fs";
 import {getUpgradeRows} from "../src/lab-model.mjs";
 import {getDoublerValueComparison} from "../src/doubler-advisor.mjs";
 import {getDoublerAccountImpact} from "../src/doubler-stat-impact.mjs";
+import {progressionGoalMetric} from "../src/progression-goal-impact.mjs";
 import {parseGameQuantity} from "../src/progression-calibration.mjs";
 
 function fixture(){
@@ -151,8 +152,7 @@ test("Doubler UI shows account results beneath each raw comparison",()=>{
 
 test("Toolbox raw account multipliers change Sushi Bucks/hr by their documented factors",()=>{
  const baseline=fixture();
- const ref=impact(baseline,31);
- const reference=quantity(ref.withDoubler);
+ const reference=progressionGoalMetric(baseline,"bucks").value;
  assert.ok(reference>0);
  const variants=[
   [{bundleBonV:true},2],
@@ -164,12 +164,12 @@ test("Toolbox raw account multipliers change Sushi Bucks/hr by their documented 
  for(const [extra,factor] of variants){
   const before=JSON.stringify(baseline);
   const save={...baseline,...extra};
-  const next=quantity(impact(save,31).withDoubler);
-  assert.ok(Math.abs(next/reference-factor)<.001,
+  const next=progressionGoalMetric(save,"bucks").value;
+  assert.ok(Math.abs(next/reference-factor)<1e-8,
    JSON.stringify(extra)+" should multiply Bucks/hr by "+factor);
   assert.equal(JSON.stringify(baseline),before);
  }
- const withSuperbit=quantity(impact({...baseline,superbit67:true},31).withDoubler);
+ const withSuperbit=progressionGoalMetric({...baseline,superbit67:true},"bucks").value;
  assert.ok(withSuperbit>reference,"Superbit 67 adds 100% to the surcharge group");
 });
 
