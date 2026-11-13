@@ -2,7 +2,7 @@
 // Recomputes levels, costs and priority after each simulated purchase.
 // Future income is NOT predicted: when Bucks run out we simulate saving
 // only the extra Bucks required for the next suggested purchase.
-import {getProgressionAdvice} from "./progression-advisor.mjs?v=1.16.6";
+import {getProgressionAdvice,readSushiBucks} from "./progression-advisor.mjs?v=1.16.8";
 import {progressionGoalMetric} from "./progression-goal-impact.mjs?v=1.16.9";
 import {calibratedProgressionMetric} from "./progression-calibration.mjs";
 
@@ -27,8 +27,8 @@ export function buildProgressionPurchasePlan(save,goal,requestedCount=5,{reading
  const projected={...save,sushi:save.sushi.map((entry,index)=>
   index===2||index===4?Array.isArray(entry)?entry.slice():[]:entry)};
  if(!Array.isArray(projected.sushi[4]))projected.sushi[4]=[];
- const initial=Number(projected.sushi[4][3]??0);
- if(!finite(initial)||initial<0)return {...blank,stopReason:"Sushi Bucks balance is unavailable."};
+ const initial=readSushiBucks(projected);
+ if(initial===null)return {...blank,stopReason:"Sushi Bucks balance is missing or invalid in this import. Import a complete save to plan purchases."};
  let balance=initial,totalEstimatedCost=0,additionalBucksNeeded=0,initiallyFunded=0;
  const steps=[];
  const referenceMetric=progressionGoalMetric(projected,goal);
