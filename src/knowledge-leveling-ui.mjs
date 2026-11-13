@@ -1,249 +1,273 @@
-// Sushi Knowledge EXP rotation UI. The imported account is never edited.
+// Knowledge EXP cycle optimizer UI. The imported save is never mutated.
+// The account-dependent search only runs on an explicit Build button click.
 import {getKnowledgeRows,numberText} from "./lab-model.mjs?v=1.19.13";
 import {sushiTierIconPath} from "./sushi-reference.mjs?v=1.16.6";
-import {buildKnowledgeRotation,positionLabel,normalizeKnowledgeRotationOptions}
- from "./knowledge-rotation.mjs?v=1.0.0";
+import {parseGameQuantity} from "./progression-calibration.mjs?v=1.17.1";
+import {optimizeKnowledgeCycle,normalizeKnowledgeCycleOptions}
+ from "./knowledge-cycle-optimizer.mjs?v=1.0.0";
+import {createReplayController} from "./replay-controller.mjs";
 
 const $=id=>document.getElementById(id);
-const make=(tag,cls="",value)=>{
+const elem=(tag,cls="",value)=>{
  const node=document.createElement(tag);
  if(cls)node.className=cls;
- if(value!==undefined&&value!==null)node.textContent=String(value);
+ if(value!==null&&value!==undefined)node.textContent=String(value);
  return node;
 };
-const fmt=n=>Number.isFinite(n)?numberText(n):"Unavailable";
-const PREF_KEY="idleon-sushi-exp-rotation-v1";
-const maxPreview=5;
-const readable=targets=>targets.map(x=>"T"+x.tier).join(", ");
-const columnNames=arr=>arr.map(x=>"C"+(x+1)).join(", ");
-
-export function initializeKnowledgeLevelingUI(getSave){
- const modeSelect=$("knowledgePlanMode");
- const targetLabel=$("knowledgePlanTargetLabel");
- const targetSelect=$("knowledgePlanTarget");
- const status=$("knowledgePlanStatus");
- const feature=$("knowledgePlanFeatured");
- const rotation=$("knowledgePlanRotation");
- const more=$("knowledgePlanMore");
- const tips=$("knowledgePlanTips");
- let state=normalizeKnowledgeRotationOptions();
- let showAll=false;
+const compact=n=>Number.isFinite(n)?numberText(n):"—";
+const rate=n=>n===null||n===undefined?"—":compact(n);
+const finite=x=>typeof x==="number"&&Number.isFinite(x);
+const formatHours=n=>{
+ if(n===null||n===undefined||!finite(n)||n<0)return "Unavailable";
+ if(n===0)return "Ready";
+ if(n<1)return Math.max(1,Math.round(n*60))+" min";
+ if(n<48)return compact(n)+" hr";
+ return compact(n/24)+" days";
+};
+const preferenceKey="idleon-sushi-knowledge-cycle-v1";
+const showNames=[{key:"knowledgePlanCookSeconds",field:"secondsPerCook"},
+ {key:"knowledgePlanMergeSeconds",field:"secondsPerMerge"},
+ {key:"knowledgePlanClearSeconds",field:"secondsPerClear"}];
+const quantityInput=id=>{
+ const raw=$(id).value.trim();
+ if(!raw)return null;
  try{
-  state=normalizeKnowledgeRotationOptions(JSON.parse(
-   window.localStorage.getItem(PREF_KEY)||"null"));
- }catch{/* Local storage can be disabled; preferences then remain session-only. */}
- modeSelect.value=state.mode;
- function persist(){
-  try{window.localStorage.setItem(PREF_KEY,JSON.stringify(state));}
-  catch{/* Private browsing may block storage, but never blocks the planner. */}
+  const value=parseGameQuantity(raw);
+  return finite(value)&&value>0?value:null;
+ }catch{return null;}
+};
+export function initializeKnowledgeLevelingUI(getSave){
+ const mode=$("knowledgePlanMode"),target=$("knowledgePlanTarget");
+ const targetLabel=$("knowledgePlanTargetLabel");
+ const build=$("knowledgePlanRun"),status=$("knowledgePlanStatus");
+ const summary=$("knowledgePlanFeatured"),replay=$("knowledgePlanRotation");
+ const board=$("knowledgePlanBoard"),tips=$("knowledgePlanTips");
+ const speed=$("knowledgePlanSpeed");
+ let state={mode:"balanced",targetTier:null};
+ let result=null,controller=null;
+ try{
+  const old=JSON.parse(window.localStorage.getItem(preferenceKey)||"null");
+  state=normalizeKnowledgeCycleOptions(old);
+ }catch{state=normalizeKnowledgeCycleOptions();}
+ mode.value=state.mode;
+ const persist=()=>{
+  try{window.localStorage.setItem(preferenceKey,JSON.stringify({
+   mode:mode.value,targetTier:state.targetTier
+  }));}catch{/* Browser-local settings are optional. */}
+ };
+ const release=()=>{
+  controller?.dispose();controller=null;
+  result=null;summary.replaceChildren();board.replaceChildren();
+  $("knowledgePlanLevelRows").replaceChildren();
+  summary.classList.add("hidden");replay.classList.add("hidden");
+ };
+ function updateTargets(){
+  const candidates=getKnowledgeRows(getSave()).filter(x=>x.discovered);
+  const old=Number(state.targetTier);
+  target.replaceChildren();
+  for(const tier of candidates)target.append(new Option(
+   "T"+tier.tier+" · "+tier.name,String(tier.tier)));
+  state.targetTier=candidates.some(x=>x.tier===old)?old:candidates[0]?.tier??null;
+  if(state.targetTier!==null)target.value=String(state.targetTier);
+  targetLabel.classList.toggle("hidden",mode.value!=="focused");
  }
- function tierIdentity(row){
-  const container=make("div","lab-kp-identity");
-  const icon=make("span","lab-kp-art");
-  const img=make("img");
-  img.src=sushiTierIconPath(row.tier);img.alt="";img.loading="lazy";
-  img.onerror=()=>img.remove();
-  icon.append(img);
-  const details=make("span","lab-kp-name");
-  details.append(make("strong","","T"+row.tier+" · "+row.name));
-  if(row.levelKnown&&Number.isFinite(row.level)){
-   details.append(make("small","","Knowledge Lv "+fmt(row.level)+
-    (row.readyToLevel?" · Ready to level":"")));
-  }else details.append(make("small","","Level not available in imported save"));
-  container.append(icon,details);
-  return container;
+ function calibration(){
+  const options={
+   mode:mode.value,
+   targetTier:state.targetTier,
+   fuelGeneration:quantityInput("knowledgePlanFuelRate"),
+   fuelCapacity:quantityInput("knowledgePlanFuelCap"),
+   expPerCreation:quantityInput("knowledgePlanXpPerCreation")
+  };
+  for(const {key,field} of showNames)options[field]=Number($(key).value);
+  return options;
  }
- function appendBullet(list,text){
-  list.append(make("li","",text));
+ function metric(label,value){
+  const card=elem("div","lab-kp-stat");
+  card.append(elem("small","",label),elem("strong","",value));return card;
  }
- function renderTips(plan){
-  tips.replaceChildren();
-  if(!plan)return;
-  appendBullet(tips,"Seared Knowledge gives EXP when Sushi is created. Creating two T(n−1) and merging into Tn is one method; direct cooking is useful only when the selected tier is actually affordable.");
-  appendBullet(tips,"Milktoast grants passive EXP to its occupied Sushi. Movement Mittens rearrange plates, not the Sushi themselves. Never assume a tier can be placed in a slot without preparing it.");
-  appendBullet(tips,"Cold plates give daily EXP to every Sushi tier strictly below the tier on that Cold plate. The highest owned tier is a good broad support target, but this passive benefit is not evenly distributed.");
-  appendBullet(tips,"Pink Lithium fireplaces amplify Knowledge EXP for Sushi above them. When unlocked, prioritize the actual column where you are creating or holding the target Sushi.");
-  appendBullet(tips,"Balanced gives each discovered tier a recurring turn, not mathematically equal EXP amounts. Focused repeats one selected target. No exact EXP, cooking costs, or timestamps are assumed.");
-  if(!plan.hasMittens)appendBullet(tips,"Movement Mittens are not unlocked: keep the current plate layout, and cook or merge Sushi onto the plates that already exist.");
+ function addNote(parent,text,cls="hint"){
+  parent.append(elem("p",cls,text));
  }
- function updateTargetSelect(rows){
-  const previous=state.targetTier;
-  targetSelect.replaceChildren();
-  for(const k of rows)targetSelect.append(new Option("T"+k.tier+" · "+k.name,String(k.tier)));
-  const valid=rows.some(x=>x.tier===previous);
-  state.targetTier=valid?previous:rows[0]?.tier??null;
-  targetSelect.value=state.targetTier===null?"":String(state.targetTier);
- }
- function contextStat(label,value){
-  const card=make("div","lab-kp-stat");
-  card.append(make("small","",label),make("strong","",value));
-  return card;
- }
- function showSummary(plan){
-  feature.replaceChildren();
-  const group=make("div","lab-kp-headline");
-  const name=plan.mode==="focused"?"Focused EXP rotation":"Balanced EXP rotation";
-  group.append(make("h3","",name),
-   make("p","",plan.mode==="focused"?
-    "Repeat the preparation → creation → passive support loop for one chosen Sushi. Concentrate active creation and EXP-boosting plates on that tier.":
-    "Complete each wave, then repeat the full cycle. Every discovered tier receives one assigned creation/plate turn per cycle; this is equal opportunity, not a claim of equal EXP per hour."));
-  feature.append(group);
-  const stats=make("div","lab-kp-stats");
-  stats.append(contextStat("Discovered tiers",String(plan.available.length)),
-   contextStat("Milktoast plates",String(plan.counts.milktoast)),
-   contextStat("Cold plates",String(plan.counts.cold)),
-   contextStat("Creation EXP",plan.hasSeared?"Unlocked":"Locked"));
-  feature.append(stats);
-  if(!plan.hasSeared){
-   feature.append(make("p","lab-kp-warning",
-    "Seared Knowledge is not unlocked in this save. Creating Sushi does not yet grant its Knowledge EXP; use any passive EXP sources you own or unlock Seared Knowledge first."));
-  }
-  if(plan.counts.milktoast===0&&plan.counts.cold===0){
-   feature.append(make("p","lab-kp-note",
-    "No Milktoast or Cold plates detected. This rotation is an active Sushi-creation plan, with no passive plate EXP assumed."));
-  }
- }
- function targetCard(target,assignment,hasMittens){
-  const line=make("div","lab-kp-target");
-  const left=tierIdentity(target);
-  const note=make("div","lab-kp-target-detail");
-  if(target.occupiedPositions.length){
-   note.append(make("span","","Existing Sushi: "+target.occupiedPositions
-    .slice(0,3).map(positionLabel).join(", ")+
-    (target.occupiedPositions.length>3?" +"+(target.occupiedPositions.length-3)+" more":"")));
-  }else note.append(make("span","lab-kp-needs-prep",
-   "Not currently on board · create/merge this tier"));
-  if(assignment&&assignment.platePosition!==null){
-   const plate=positionLabel(assignment.platePosition);
-   note.append(make("span","",assignment.alreadyOnPlate?
-    "Milktoast "+plate+" · already matched":
-    hasMittens&&target.occupiedPositions.length?
-     "Milktoast "+plate+" · move the plate under an existing copy if possible":
-     "Milktoast "+plate+" · prepare this tier there before farming"));
-  }
-  if(target.readyToLevel)note.append(make("span","lab-kp-ready","EXP threshold reached"));
-  else if(Number.isFinite(target.xpRemaining)){
-   note.append(make("span","","Next level: "+fmt(target.xpRemaining)+" EXP remaining"));
-  }
-  line.append(left,note);
-  return line;
- }
- function stageInstructions(plan,phase){
-  const list=make("ol","lab-kp-steps");
-  const targets=phase.targets,focus=targets[0];
-  const milk=plan.positions.milktoast.length;
-  if(plan.mode==="balanced"){
-   appendBullet(list,milk?
-    "Prepare "+readable(targets)+" on the assigned Milktoast plates shown above. If Movement Mittens are unlocked, you may rearrange plates beneath Sushi already on the board; otherwise prepare Sushi on their current plate positions.":
-    "Create each listed Sushi tier in turn. Without Milktoast plates, this is an active cooking/merging rotation.");
-   appendBullet(list,plan.hasSeared?
-    "Give each target a comparable creation turn; move to the next wave rather than farming just one tier indefinitely.":
-    "Creation EXP requires Seared Knowledge. Until unlocked, this wave can only benefit from available passive EXP sources.");
-   if(plan.hasLithium&&phase.columns.length){
-    appendBullet(list,"When possible, set Lithium fireplaces to pink beneath "+
-     columnNames(phase.columns)+" to boost EXP in those columns.");
-   }else if(plan.hasLithium)appendBullet(list,
-    "Set the fireplace to pink under the column where each target is being created or held, if that column has an unlocked fireplace.");
-   if(plan.counts.cold&&plan.suggestedColdTier)
-    appendBullet(list,"Keep a high-tier Sushi (currently up to T"+
-     plan.suggestedColdTier+") on a Cold plate where possible. Cold EXP helps lower tiers, not that Sushi itself.");
-  }else if(phase.index===1){
-   appendBullet(list,"Protect any highest-tier Sushi already on your board. Find an existing T"+
-    focus.tier+" or prepare a legal path to create it; a new Sushi cannot appear in an occupied slot by swapping tiers.");
-   if(milk)appendBullet(list,"Prepare up to "+milk+" Milktoast plates for T"+focus.tier+
-    " copies you can actually produce. Move plates only if Movement Mittens are unlocked; you cannot directly drag Sushi.");
-   else appendBullet(list,"No Milktoast plates are unlocked. Allocate a reusable unlocked area for creating T"+focus.tier+".");
-  }else if(phase.index===2){
-   appendBullet(list,plan.hasSeared?
-    (focus.tier===1?
-     "Repeatedly cook T1 on an available unlocked plate when fuel permits. Do not overwrite an occupied Sushi slot.":
-     "Repeatedly create T"+focus.tier+
-     ". Cook it directly only if your fuel cap and costs permit; otherwise merge two T"+
-     (focus.tier-1)+" into T"+focus.tier+
-     " when practical. Recycle the supporting board without destroying protected higher-tier Sushi."):
-    "Seared Knowledge is locked. Unlock it before using Sushi creation as the main way to increase T"+focus.tier+" EXP.");
-   if(plan.hasWind)appendBullet(list,
-    "Heat of the East Wind can create additional Sushi during valid chains. Count only actual creations; no unverified cascade or EXP bonus is included in this plan.");
-   if(plan.hasLithium)appendBullet(list,
-    "Set the fireplace to pink beneath the actual creation column to improve EXP gained there.");
-  }else{
-   if(milk)appendBullet(list,"Keep T"+focus.tier+" on as many of your "+milk+
-    " Milktoast plates as you can genuinely fill. Check the current placements above before reorganizing.");
-   if(plan.counts.cold){
-    if(plan.guidance.coldBenefitsFocus)appendBullet(list,
-     "Your current Cold-plate Sushi already include a tier above T"+focus.tier+
-     ", providing passive EXP to this target.");
-    else if(plan.suggestedColdTier>focus.tier)appendBullet(list,
-     "Place a Sushi higher than T"+focus.tier+
-     " onto a Cold plate if it can be done legally; your highest on-board Sushi is T"+
-     plan.suggestedColdTier+".");
-    else appendBullet(list,"Cold plates cannot grant EXP to T"+focus.tier+
-     " until a higher-tier Sushi is placed on one.");
+ function renderSummary(p){
+  summary.replaceChildren();summary.classList.remove("hidden");
+  const heading=elem("div","lab-kp-headline");
+  heading.append(elem("h3","",p.mode==="focused"?
+   "Focused EXP rotation · T"+p.targetTier:"Balanced EXP rotation"),
+   elem("p","","Starting with T"+p.startCookTier+" ("+p.startingPattern+") · "+
+    p.cooks+" cooked Sushi · "+p.merges+" manual merges · "+
+    p.windEvents+" Wind tier-ups · "+p.cleanup+" leftover clears"));
+  summary.append(heading);
+  const grid=elem("div","lab-kp-stats");
+  for(const [label,value] of [
+   ["EXP / cycle",compact(p.totalExpPerCycle)],
+   ["Active EXP / hr",rate(p.totalExpPerHour)],
+   ["Cycle duration",formatHours(p.cycleSeconds/3600)],
+   ["Fuel / cycle",compact(p.fuelPerCycle)],
+   ["Modeled Fuel / hr",compact(p.estimatedFuelGeneration)],
+   ["Starting tier","T"+p.startCookTier],
+   ["Fireplace setup",p.fireChoice],
+   ["Candidates tested",compact(p.considered)]
+  ])grid.append(metric(label,value));
+  summary.append(grid);
+  if(p.mode==="focused"){
+   const focus=p.perTier.find(x=>x.tier===p.targetTier);
+   if(focus){
+    const box=elem("div","lab-kp-focus-summary");
+    box.append(elem("strong","","T"+focus.tier+" · "+focus.name),
+     elem("span","","Active "+rate(focus.expPerHour)+" EXP/hr · "+
+      "Next level: "+formatHours(focus.etaHours)));
+    summary.append(box);
    }
-   if(plan.hasLithium)appendBullet(list,
-    "Keep the relevant column fireplaces pink for passive EXP, then return to Stage 2 to create more target Sushi.");
-   else appendBullet(list,"Return to Stage 2 and repeat creation for T"+focus.tier+".");
   }
-  return list;
+  if(p.pinkMultiplier!==null){
+   addNote(summary,"Lithium Firelighter: "+compact(p.pinkMultiplier)+
+    "× Knowledge EXP for creation events in pink columns. "+
+    p.proposedFires.filter(x=>x===3).length+" of "+
+    p.proposedFires.filter(x=>x>=0).length+" available fireplaces set to pink.",
+    "lab-kp-lithium");
+  }
+  addNote(summary,p.note);
+  if(!p.repeatable)addNote(summary,
+   "This save does not contain a protected highest-tier Sushi. The prepared sequence is one-pass; EXP/hr and time-to-level are unavailable until a repeatable board anchor is established.",
+   "lab-kp-warning");
  }
- function stageCard(plan,phase){
-  const item=make("article","lab-kp-card lab-kp-wave");
-  const header=make("div","lab-kp-wave-head");
-  const label=plan.mode==="focused"?"Stage ":"Wave ";
-  header.append(make("span","lab-kp-wave-index",label+phase.index+" / "+plan.phases.length),
-   make("strong","",phase.kind));
-  item.append(header);
-  const group=make("div","lab-kp-targets");
-  // For focused mode, display the target once and summarize the count of Milktoast plates.
-  const pairs=phase.targets.map(t=>phase.slotPairs.find(p=>p.tier===t.tier)??null);
-  for(let i=0;i<phase.targets.length;i++)group.append(targetCard(phase.targets[i],pairs[i],plan.hasMittens));
-  item.append(group);
-  if(plan.mode==="focused"&&plan.positions.milktoast.length){
-   item.append(make("p","lab-kp-stage-plates","Milktoast positions: "+
-    plan.positions.milktoast.map(positionLabel).join(", ")+
-    ". Only existing or legally prepared Sushi on these plates gain their passive EXP."));
-  }
-  item.append(stageInstructions(plan,phase));
-  return item;
- }
- function render(){
-  const save=getSave();
-  feature.replaceChildren();rotation.replaceChildren();
-  showAll=showAll&&modeSelect.value==="balanced";
-  state.mode=modeSelect.value==="focused"?"focused":"balanced";
-  const rows=getKnowledgeRows(save).filter(k=>k.discovered);
-  updateTargetSelect(rows);
-  targetLabel.classList.toggle("hidden",state.mode!=="focused");
-  more.classList.add("hidden");
-  if(!save){
-   status.textContent="Import your game save in Overview to build an EXP rotation.";
-   tips.replaceChildren();return;
-  }
-  const plan=buildKnowledgeRotation(save,rows,state);
-  renderTips(plan);
-  if(!plan.available.length){
-   status.textContent="No discovered Sushi tiers in this import. Unlock or import Sushi progress before creating a rotation.";
-   return;
-  }
-  showSummary(plan);
-  status.textContent=plan.mode==="focused"?
-   "Focused · T"+plan.selectedTier+" · "+plan.counts.milktoast+" Milktoast plates · 3 repeatable stages":
-   "Balanced · "+plan.available.length+" tiers · "+plan.phases.length+
-   " waves per full cycle · "+plan.counts.milktoast+" Milktoast plates";
-  const limit=showAll?plan.phases.length:maxPreview;
-  for(const phase of plan.phases.slice(0,limit))rotation.append(stageCard(plan,phase));
-  if(plan.mode==="balanced"&&plan.phases.length>maxPreview){
-   more.classList.remove("hidden");
-   more.textContent=showAll?"Show fewer waves":"Show all "+plan.phases.length+" waves";
+ function showProgress(p){
+  const rows=$("knowledgePlanLevelRows");
+  rows.replaceChildren();
+  let ordered=p.perTier.slice().sort((a,b)=>
+   p.mode==="focused"&&a.tier===p.targetTier?-1:
+   p.mode==="focused"&&b.tier===p.targetTier?1:
+   (b.expPerHour??-1)-(a.expPerHour??-1)||a.tier-b.tier);
+  for(const entry of ordered){
+   const tr=elem("tr");
+   const name=elem("td","lab-kp-tier");
+   const img=elem("img");
+   img.src=sushiTierIconPath(entry.tier);img.alt="";img.loading="lazy";
+   img.onerror=()=>img.remove();
+   name.append(img,elem("span","","T"+entry.tier+" · "+entry.name));
+   tr.append(name,elem("td","",compact(entry.expPerCycle)),
+    elem("td","",rate(entry.expPerHour)),
+    elem("td","",formatHours(entry.etaHours)));
+   rows.append(tr);
   }
  }
- modeSelect.addEventListener("change",()=>{
-  showAll=false;state.mode=modeSelect.value;persist();render();
+ function renderFrame(index){
+  if(!result)return;
+  const frame=result.steps[index];if(!frame)return;
+  const slots=result.layout.slots;
+  const protectedSet=new Set(result.protectedIndices);
+  const changed=new Set((frame.events??[]).map(e=>e.at));
+  board.replaceChildren();
+  board.setAttribute("aria-label","Sushi Knowledge board, step "+index+
+   " of "+(result.steps.length-1));
+  for(let i=0;i<120;i++){
+   const slot=slots[i]??-1,tier=frame.board[i]??0;
+   const box=elem("div","lab-kp-tile slot-"+slot);
+   box.title="Row "+(Math.floor(i/15)+1)+", column "+(i%15+1)+
+    " · "+(slot<0?"Locked":tier?"T"+tier:"Empty");
+   if(slot<0)box.classList.add("locked");
+   if(protectedSet.has(i)&&tier)box.classList.add("is-protected");
+   if(changed.has(i))box.classList.add("is-affected");
+   if(tier>0){
+    const img=elem("img","lab-kp-tile-icon");
+    img.src=sushiTierIconPath(tier);img.alt="";img.loading="lazy";
+    img.onerror=()=>img.remove();
+    box.append(img,elem("strong","",String(tier)));
+   }
+   board.append(box);
+  }
+  // Fireplace columns appear below the 8×15 Sushi grid.
+  const fireRow=elem("div","lab-kp-fire-row");
+  for(let c=0;c<15;c++){
+   const type=result.proposedFires[c]??-1;
+   const fire=elem("span","lab-kp-fire fire-"+type,type===3?"●":type>=0?"♨":"");
+   fire.title="Column "+(c+1)+" · "+(type===3?"Lithium pink (2× Knowledge EXP)":
+    type===0?"Orange · Fuel production":type>=0?"Other fireplace":"Locked");
+   fireRow.append(fire);
+  }
+  board.append(fireRow);
+  $("knowledgePlanStepTitle").textContent="Step "+index+" · "+frame.title;
+  $("knowledgePlanStepDetail").textContent=frame.detail;
+  $("knowledgePlanStepCount").textContent=index+" / "+(result.steps.length-1);
+  $("knowledgePlanStepXp").textContent="EXP in step: "+compact(frame.exp);
+  const earned=result.steps.slice(0,index+1).reduce((s,x)=>s+x.exp,0);
+  $("knowledgePlanFrameXp").textContent="Cycle EXP so far: "+compact(earned);
+  $("knowledgePlanPrev").disabled=index===0;
+  $("knowledgePlanNext").disabled=index===result.steps.length-1;
+ }
+ function createReplay(p){
+  controller?.dispose();
+  result=p;replay.classList.remove("hidden");
+  controller=createReplayController({
+   totalSteps:p.steps.length-1,
+   onStep:renderFrame,
+   onPlayStateChange:playing=>{
+    $("knowledgePlanPlay").textContent=playing?"Pause":"Play";
+   },
+   getDelay:()=>Number(speed.value)
+  });
+  const initial=Math.min(p.cooks,p.steps.length-1);
+  if(initial>0)controller.goTo(initial);
+  else renderFrame(0);
+ }
+ function renderNotes(){
+  tips.replaceChildren();
+  const bullets=[
+   "The optimizer uses the Combo Meter legal merge engine, including up to 25 East Wind upgrades when unlocked. Each verified creation event awards EXP to the created Sushi tier.",
+   "Lithium Firelighter is 2× Knowledge EXP for Sushi above pink fireplaces; the solver also models reduced Fuel regeneration when orange fireplaces are changed to pink.",
+   "The starting board is a preparation goal, not the imported current board. Cook or merge each ingredient into position; keep the protected highest-tier Sushi.",
+   "The cycle clears lower-tier leftovers but never removes the protected highest tier. Step 0 and Prepared layout let you review both ends of the preparation sequence.",
+   "EXP/hour is an estimate from active creation events divided by the longer of interaction time or refill time. Milktoast and Cold passive EXP and uncertain bonuses are excluded.",
+   "Balanced optimizes distributed Knowledge EXP progress; Focused maximizes EXP/hour for one selected tier. Candidate search does not prove a global maximum."
+  ];
+  for(const note of bullets)tips.append(elem("li","",note));
+ }
+ const clearAndPrompt=()=>{
+  release();updateTargets();
+  build.disabled=!getSave();
+  status.textContent=getSave()?
+   "Choose your strategy and build a cycle. Fuel and timing are estimated unless calibrated.":
+   "Import a Sushi Station save in Overview before optimizing.";
+  renderNotes();
+ };
+ mode.addEventListener("change",()=>{
+  state.mode=mode.value;persist();clearAndPrompt();
  });
- targetSelect.addEventListener("change",()=>{
-  state.targetTier=Number(targetSelect.value);persist();render();
+ target.addEventListener("change",()=>{
+  state.targetTier=Number(target.value);persist();release();
  });
- more.addEventListener("click",()=>{showAll=!showAll;render();});
- render();
- return {refresh:render};
+ build.addEventListener("click",()=>{
+  release();build.disabled=true;
+  status.textContent="Evaluating prepared boards, merge sequences and fireplace layouts…";
+  // Give the status time to paint before the synchronous deterministic search.
+  window.setTimeout(()=>{
+   try{
+    const plan=optimizeKnowledgeCycle(getSave(),calibration());
+    if(!plan.available){
+     status.textContent=plan.reason;return;
+    }
+    renderSummary(plan);showProgress(plan);createReplay(plan);
+    status.textContent="Compared "+compact(plan.considered)+
+     " candidates · "+compact(plan.totalExpPerCycle)+
+     " active EXP per cycle · starting T"+plan.startCookTier;
+   }catch(error){
+    status.textContent="Unable to complete this cycle: "+(error?.message??String(error));
+   }finally{
+    build.disabled=!getSave();
+   }
+  },0);
+ });
+ $("knowledgePlanReset").addEventListener("click",()=>controller?.goTo(0));
+ $("knowledgePlanPrepared").addEventListener("click",()=>{
+  if(result)controller?.goTo(Math.min(result.cooks,result.steps.length-1));
+ });
+ $("knowledgePlanPrev").addEventListener("click",()=>controller?.goTo(
+  Math.max(0,(controller?.step??0)-1)));
+ $("knowledgePlanPlay").addEventListener("click",()=>controller?.toggle());
+ $("knowledgePlanNext").addEventListener("click",()=>controller?.goTo(
+  Math.min((result?.steps.length??1)-1,(controller?.step??0)+1)));
+ speed.addEventListener("change",()=>controller?.reschedule());
+ clearAndPrompt();
+ return {refresh:clearAndPrompt};
 }
