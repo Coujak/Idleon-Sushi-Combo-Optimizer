@@ -3598,3 +3598,35 @@ details summary{cursor:pointer;font-size:12px;font-weight:700;color:#9eb7c9}
 @media(max-width:700px){
  #knowledgePlanner .lab-kp-controls,#knowledgePlanner .lab-kp-grid{grid-template-columns:minmax(0,1fr)}
 }
+
+/* Balanced / focused EXP rotation: compact, readable waves. */
+#knowledgePlanner .lab-kp-headline h3{font-size:17px;margin:15px 0 4px;color:#e6faf0}
+#knowledgePlanner .lab-kp-headline p{font-size:12px;line-height:1.55;color:#b4d2d5;margin:0 0 14px}
+#knowledgePlanner .lab-kp-stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px;margin:0 0 16px}
+#knowledgePlanner .lab-kp-stat{background:#192c3b;border:1px solid #344e5f;border-radius:10px;padding:11px;min-width:0}
+#knowledgePlanner .lab-kp-stat small{display:block;font-size:10px;color:#a6bdca;line-height:1.4}
+#knowledgePlanner .lab-kp-stat strong{display:block;margin-top:5px;font-size:16px;color:#e2f7ef;font-variant-numeric:tabular-nums}
+#knowledgePlanner .lab-kp-warning{color:#ffdab5;background:#48362b;border:1px solid #8a6248;padding:11px;border-radius:9px;font-size:12px;line-height:1.6}
+#knowledgePlanner .lab-kp-note{color:#adcbd6;background:#1d3446;border:1px solid #3b596d;padding:11px;border-radius:9px;font-size:12px}
+#knowledgePlanner .lab-kp-wave{margin:10px 0 14px;padding:17px}
+#knowledgePlanner .lab-kp-wave-head{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-bottom:11px}
+#knowledgePlanner .lab-kp-wave-head strong{font-size:15px;color:#e5f6ec}
+#knowledgePlanner .lab-kp-wave-index{display:inline-flex;border-radius:7px;border:1px solid #4b806a;background:#1c4d3f;color:#afe9cd;font-size:10px;font-weight:800;padding:4px 8px}
+#knowledgePlanner .lab-kp-targets{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+#knowledgePlanner .lab-kp-target{min-width:0;display:flex;flex-direction:column;gap:7px;border:1px solid #3a5362;border-radius:10px;padding:11px;background:#112b38}
+#knowledgePlanner .lab-kp-target-detail{display:flex;flex-direction:column;gap:4px;color:#a7c1cd;font-size:11px;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+#knowledgePlanner .lab-kp-target-detail .lab-kp-ready{align-self:flex-start}
+#knowledgePlanner .lab-kp-needs-prep{color:#e5c49a}
+#knowledgePlanner .lab-kp-steps{padding:12px 15px 0 20px;margin:0;color:#bcd4d8;font-size:12px;line-height:1.6}
+#knowledgePlanner .lab-kp-steps li{padding-left:4px}
+#knowledgePlanner .lab-kp-steps li+li{margin-top:5px}
+#knowledgePlanner .lab-kp-stage-plates{font-size:11px;color:#b4c9da;margin:12px 0 0;line-height:1.6}
+#knowledgePlanner #knowledgePlanMore{display:block;margin:7px auto 12px;max-width:100%;white-space:normal}
+#knowledgePlanner #knowledgePlanMore.hidden{display:none}
+#knowledgePlanner #knowledgePlanTargetLabel.hidden{display:none}
+@media(max-width:760px){
+ #knowledgePlanner .lab-kp-stats,#knowledgePlanner .lab-kp-targets{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media(max-width:470px){
+ #knowledgePlanner .lab-kp-stats,#knowledgePlanner .lab-kp-targets{grid-template-columns:minmax(0,1fr)}
+}
