@@ -3,7 +3,7 @@
 const SUFFIXES=[
  [1e18,"QQ"],[1e15,"Q"],[1e12,"T"],[1e9,"B"],[1e6,"M"],[1e3,"K"]
 ];
-const cleanDecimal=(value,digits)=>Number(value.toFixed(digits)).toLocaleString("en-US",{maximumFractionDigits:digits});
+const cleanDecimal=(value,digits)=>value.toLocaleString("en-US",{maximumFractionDigits:digits});
 export function formatCompactNumber(value,{digits=3,unavailable="Unavailable"}={}){
  if(typeof value!=="number"||!Number.isFinite(value))return unavailable;
  if(value===0)return "0";
