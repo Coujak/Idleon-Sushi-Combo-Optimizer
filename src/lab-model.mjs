@@ -1,5 +1,6 @@
 import {SUSHI_UPGRADES,SUSHI_KNOWLEDGE,KNOWLEDGE_CATEGORIES,ELIGIBLE_DOUBLERS} from "./sushi-reference.mjs?v=1.16.6";
 import {formatCompactNumber} from "./number-format.mjs?v=1.0.0";
+import {sushiTierReward} from "./sushi-tier-rewards.mjs?v=1.0.0";
 export const ADVISOR_GOALS=[
  {id:"bucks",name:"Bucks generation"},
  {id:"capacity",name:"Fuel capacity"},
@@ -170,6 +171,7 @@ export function getKnowledgeRows(save){
   const factor=Math.min(2,1+Math.max(0,track));
   const mapped=Number.isInteger(entry.category)&&entry.category>=0&&entry.category<KNOWLEDGE_CATEGORIES.length;
   return {...entry,mapped,categoryName:mapped?KNOWLEDGE_CATEGORIES[entry.category]:"Effect not yet mapped",
+   tierReward:sushiTierReward(entry.tier),baseLevelBonus:mapped?entry.perLevel*(1+index/30):null,
    level,levelKnown,discovered,perfecto,xp,xpKnown,xpReq,xpProgress,xpRemaining,readyToLevel,
    bonus:mapped&&discovered&&levelKnown?Math.max(0,entry.perLevel*level*factor*(1+index/30)):null,
    nextLevelGain:mapped?entry.perLevel*factor*(1+index/30):null};
