@@ -789,7 +789,8 @@ export function initializeSushiLab(getSave){
   feature.append(overview);
   addText(feature,"hint",
    "Only upgrades in your selected categories are shown. Each upgrade appears once. "+
-   "A Doubler increases an upgrade's effect, not its level.");
+   "Account figures are modeled unless anchored to an in-game reading entered in the Progression Advisor. "+
+   "The with-Doubler scenario changes only this upgrade; moving a Doubler from another upgrade can offset the gain.");
   if(!visible.length){
    addText(feature,"hint",doublerHideDoubled&&plan.totalOptions?
     "All matching upgrades are already doubled. Uncheck Hide already doubled to see them.":
@@ -835,7 +836,7 @@ export function initializeSushiLab(getSave){
     metric.append(el("small","",option.label),el("strong","",option.amount));
     if(impact){
      const account=el("div","lab-doubler-account-stat");
-     account.append(el("small","",impact.label),
+     account.append(el("small","",(option.active?"Current · ":"What-if · ")+impact.label),
       el("strong","",option.account));
      metric.append(account);
     }
