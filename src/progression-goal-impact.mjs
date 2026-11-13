@@ -139,7 +139,9 @@ export function progressionGoalMetric(save,goal){
  }
  if(goal==="perfecto"){
   const peppersUnlocked=leveled(save,18)>0;
-  const freeChance=Math.max(0,Math.min(100,leveled(save,21)));
+  // Use the effective level-scaled bonus: Bottomless Shakers can be doubled.
+// Read the same modeled upgrade contribution used by the catalog and advisor.
+  const freeChance=Math.max(0,Math.min(100,upgradeBonuses(save)(21)));
   return make(goal,"Pepper access and free Shaker chance",
    peppersUnlocked?100+freeChance:freeChance,
    (peppersUnlocked?"Pepper unlocked":"Pepper locked")+" · "+format(freeChance,1)+"% free Shaker use",
