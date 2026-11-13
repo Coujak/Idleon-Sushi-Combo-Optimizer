@@ -73,6 +73,8 @@ test("Knowledge table combines name and tier reward, keeps four columns and Perf
  assert.doesNotMatch(html,/<th scope="col">Tier reward · permanent<\/th>/);
  assert.match(ui,/tr\.append\(tier,levelCell,xpCell,bonus\)/);
  assert.match(ui,/lab-knowledge-perfecto-emblem/);
+ assert.match(ui,/mark\.src="assets\/Perfecto_Symbol\.png"/);
+ assert.doesNotMatch(ui,/lab-knowledge-perfecto-emblem","✦"/);
  assert.match(ui,/k\.tierReward\?\?"Tier reward unavailable"/);
  assert.match(ui,/describeKnowledgeBonus\(k\.category,k\.bonus\)/);
  assert.match(ui,/describeKnowledgeBonus\(k\.category,nextAmount\)/);
