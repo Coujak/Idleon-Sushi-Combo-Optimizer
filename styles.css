@@ -3554,3 +3554,47 @@ details summary{cursor:pointer;font-size:12px;font-weight:700;color:#9eb7c9}
  font-weight:650;
 }
 #lab-knowledge .lab-knowledge-row-checkpoint td:first-child{box-shadow:inset 3px 0 0 #6ea5b5}
+
+ 
+/* Knowledge Leveling Planner — compact next-step cards, normal document scrolling. */
+#knowledgePlanner .lab-kp-controls{
+ display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;
+ margin:16px 0;padding:14px;background:#122a35;border:1px solid #355661;border-radius:12px;
+}
+#knowledgePlanner .lab-kp-controls label{display:flex;flex-direction:column;gap:5px;font-size:12px;font-weight:700;color:#bbd9d8}
+#knowledgePlanner .lab-kp-controls select{
+ width:100%;min-width:0;min-height:38px;background:#112333;color:#e8faf1;
+ border:1px solid #476075;border-radius:9px;padding:8px 10px;font:inherit;font-size:12px;
+}
+#knowledgePlanner .lab-kp-controls select:focus-visible{outline:2px solid #89d9b7;outline-offset:2px}
+#knowledgePlanner .lab-kp-status{font-size:12px;color:#bdd9dd;margin:10px 0 16px}
+#knowledgePlanner .lab-kp-card{background:#182c3c;border:1px solid #345365;border-radius:13px;padding:14px;min-width:0}
+#knowledgePlanner .lab-kp-card.is-featured{border-color:#49836f;background:linear-gradient(135deg,#1b3c3a,#172b3b);padding:18px}
+#knowledgePlanner .lab-kp-card-heading{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+#knowledgePlanner .lab-kp-identity{display:flex;align-items:center;gap:11px;min-width:0}
+#knowledgePlanner .lab-kp-art{position:relative;display:grid;place-items:center;flex:0 0 42px;width:42px;height:42px}
+#knowledgePlanner .lab-kp-art>img:not(.lab-kp-perfecto){width:100%;height:100%;object-fit:contain}
+#knowledgePlanner .lab-kp-perfecto{position:absolute;top:-5px;right:-6px;width:22px;height:22px;image-rendering:pixelated;filter:drop-shadow(0 1px 2px #0009)}
+#knowledgePlanner .lab-kp-name{display:flex;flex-direction:column;gap:2px;min-width:0}
+#knowledgePlanner .lab-kp-name strong{color:#e8faf1;font-size:14px;line-height:1.4}
+#knowledgePlanner .lab-kp-name small{color:#a3bbc8;font-size:11px}
+#knowledgePlanner .lab-kp-ready{font-size:10px;font-weight:800;color:#b3f4cb;border:1px solid #477b5e;background:#24503e;border-radius:999px;padding:4px 9px}
+#knowledgePlanner .lab-kp-effect{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin:12px 0;color:#b8d0d5;font-size:12px}
+#knowledgePlanner .lab-kp-effect-values{display:flex;align-items:center;gap:8px}
+#knowledgePlanner .lab-kp-effect-values .lab-knowledge-value-pill{display:inline-block;min-width:54px;text-align:center;background:#234a3f;border:1px solid #4a866e;border-radius:8px;padding:4px 8px;color:#a9f0cf;font-size:12px;font-weight:800;font-variant-numeric:tabular-nums}
+#knowledgePlanner .lab-kp-effect-values .lab-knowledge-value-pill.is-perfecto{background:#573a72;border-color:#9465b4;color:#f1d6ff}
+#knowledgePlanner .lab-kp-arrow{color:#95b6c4;font-weight:800}
+#knowledgePlanner .lab-kp-exp-line{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;color:#afc8cf;font-size:11px;font-variant-numeric:tabular-nums}
+#knowledgePlanner .lab-kp-exp-line strong{color:#d4f4de;font-weight:700}
+#knowledgePlanner .lab-knowledge-exp-progress{display:block;width:100%;height:10px;accent-color:#36c595;margin:8px 0 0}
+#knowledgePlanner .lab-kp-reason{margin:12px 0 0;padding-top:10px;border-top:1px solid #3c5a5b;color:#cee4dc;font-size:12px;line-height:1.55}
+#knowledgePlanner #knowledgePlanFeatured h3,#knowledgePlanner #knowledgePlanAlternatives h3{color:#e9faf2;font-size:14px;margin:18px 0 10px}
+#knowledgePlanner .lab-kp-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+#knowledgePlanner .lab-kp-guide{margin-top:19px;padding:12px 14px;background:#152a38;border:1px solid #334d5e;border-radius:10px}
+#knowledgePlanner .lab-kp-guide summary{font-size:12px;color:#cae4df}
+#knowledgePlanner .lab-kp-guide ul{margin:12px 0 2px;padding-left:20px;color:#adc5cb;font-size:12px;line-height:1.65}
+#knowledgePlanner .lab-kp-guide li+li{margin-top:5px}
+#knowledgePlanner .lab-kp-disclaimer{margin-top:16px;font-size:11px;line-height:1.6}
+@media(max-width:700px){
+ #knowledgePlanner .lab-kp-controls,#knowledgePlanner .lab-kp-grid{grid-template-columns:minmax(0,1fr)}
+}
