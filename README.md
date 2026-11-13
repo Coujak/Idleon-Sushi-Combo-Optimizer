@@ -32,6 +32,18 @@ The Combo Meter planner is a **heuristic** search tool, not a guarantee of the h
 
 The advisors are informational and never modify the imported save. Price estimates use account discounts when their source data is available. Reference metadata is derived from the public Sushi Station game rules, and can change as the game updates.
 
+## Account Dashboard: production and cooking chances
+
+The Dashboard shows **modeled Bucks per hour**, **estimated Fuel generation per hour**, **estimated maximum Fuel capacity**, and cooking tier-up chance previews from the imported Sushi Station data. Rates can differ from Idleon Toolbox and the live game because the Bucks model still has unverified account-specific multipliers and some Fuel modifiers are not mapped.
+
+The cooking chance preview combines Quality Freshness with known Sushi Knowledge bonuses. It displays the **modeled chance of at least +1** and **at least +2** tiers. Percentages above 100% are interpreted as rollover based on in-game observations (for example, 120% becomes guaranteed +1 and 20% at least +2). This rollover behavior is **not yet independently verified against game code**. The **Copper/blue fireplace** is a separate 1%-chance mechanic, not the source of that cooking rollover.
+
+### Shared numeric formatting
+
+Displayed quantities across the Dashboard, Combo Meter, Perfecto Planner, Upgrades and Knowledge use the same notation: **M** (10^6), **B** (10^9), **T** (10^12), **Q** (10^15), **QQ** (10^18), then **E21** and higher scientific notation. Input values and simulation arithmetic stay numeric. Legacy input abbreviations remain accepted where supported.
+
+The Knowledge EXP table does not pass non-finite percentages to HTML progress bars. Extremely large or incomplete EXP requirements show as unavailable instead of interrupting a successful JSON import.
+
 ## Knowledge tab
 
 The **Knowledge** section is a read-only account overview for all 64 Sushi tiers, derived from the locally imported Idleon Toolbox JSON:
