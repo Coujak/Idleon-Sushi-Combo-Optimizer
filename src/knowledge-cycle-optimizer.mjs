@@ -315,7 +315,6 @@ export function optimizeKnowledgeCycle(save,rawOptions={}){
  };
  const anchorTier=Math.max(...layout.tiles);
  const protectedIndices=layout.tiles.flatMap((v,i)=>v===anchorTier&&v>0?[i]:[]);
- const repeatable=anchorTier>0;
  const highestDiscovered=rows.filter(r=>r.discovered).reduce((a,r)=>Math.max(a,r.tier),0);
  const windCap=Number(save?.sushi?.[2]?.[29])>0?
   Math.max(0,Math.min(58,highestDiscovered-6)):0;
@@ -382,7 +381,7 @@ export function optimizeKnowledgeCycle(save,rawOptions={}){
    }
   }
  }
- if(!best)return fail("No repeatable board could be prepared within the available fuel, space and highest-tier restrictions.");
+ if(!best)return fail("No legal prepared board was found within the available fuel and space.");
  const ctx=best.ctx;
  const frames=buildFrames(best,layout.slots,protectedIndices,ctx.expAt);
  const actual=frames.reduce((out,f)=>{addGains(out,f.gains);return out;},Array(65).fill(0));
@@ -401,7 +400,7 @@ export function optimizeKnowledgeCycle(save,rawOptions={}){
   available:true,mode:options.mode,targetTier,options,
   layout:best.layout,startingBoard:best.startBoard,
   finalBoard:best.finalBoard,protectedIndices:best.protectedIndices,
-  anchorTier,repeatable,startCookTier:best.cooks[0].requestedTier,
+  anchorTier,repeatable:best.repeatable,startCookTier:best.cooks[0].requestedTier,
   startingPattern:best.pattern,guaranteedCookBonus:ctx.guaranteedCookBonus,
   cookRemainder:ctx.cookRemainder,bonusXpPerCreation:ctx.raw*ctx.multiplier,
   pinkMultiplier:ctx.pinkCalibrated?ctx.lithiumMultiplier:null,
