@@ -22,3 +22,15 @@ export function describeKnowledgeBonus(category,amount){
   default:return "Effect unavailable";
  }
 }
+
+// Formatting the value separately allows the Knowledge table to use the same
+// highlighted-value treatment as the Upgrade Catalog, without tinting prose.
+export function formatKnowledgeBonusValue(category,amount){
+ if(!Number.isInteger(category)||category<0||category>10||
+  typeof amount!=="number"||!Number.isFinite(amount)||amount<0)return null;
+ if(category===3||category===7||category===10){
+  const multiplier=1+amount/100;
+  return Number.isFinite(multiplier)?formatCompactNumber(multiplier)+"×":null;
+ }
+ return "+"+formatCompactNumber(amount)+"%";
+}
