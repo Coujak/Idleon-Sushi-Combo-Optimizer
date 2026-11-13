@@ -1015,8 +1015,9 @@ export function initializeSushiLab(getSave){
   if(typeof document!=="undefined"){
    for(const button of document.querySelectorAll("[data-knowledge-sort]")){
     const primary=button.dataset.knowledgeSort,reverse=button.dataset.knowledgeReverse;
-    const state=knowledgeSort===primary?"ascending":
-     knowledgeSort===reverse?"descending":"none";
+    const state=knowledgeSort===primary?
+     (primary==="level-desc"?"descending":"ascending"):
+     knowledgeSort===reverse?(primary==="level-desc"?"ascending":"descending"):"none";
     button.closest("th").setAttribute("aria-sort",state);
     button.title=state==="none"?"Sort this column":
      "Sorted "+state+" · click to reverse";
