@@ -579,7 +579,7 @@ export function initializeSushiLab(getSave){
  function advisorBadge(u){
   if(u.atMax)return ["Maxed","lab-advisor-badge-muted"];
   if(u.affordability==="affordable")return ["Can buy now","lab-advisor-badge-success"];
-  if(u.affordability==="unaffordable")return ["Save more Bucks","lab-advisor-badge-secondary"];
+  if(u.affordability==="unaffordable")return ["Save more Bucks","lab-advisor-badge-danger"];
   if(u.affordability==="uncertain")return ["Price uncertain","lab-advisor-badge-uncertain"];
   if(u.bucks===null)return ["Balance unavailable","lab-advisor-badge-muted"];
   return ["Cost unknown","lab-advisor-badge-muted"];
@@ -609,7 +609,9 @@ export function initializeSushiLab(getSave){
   // Both the featured recommendation and alternative choices use the
   // same catalog-like row structure. Avoid nesting cards inside cards.
   const item=el("article",featured?"lab-advisor-feature-row":"lab-advisor-rank-row");
-  if(!featured)item.append(el("span","lab-advisor-row-number",String(rank??"—")));
+  // Use an identical grid for the featured row and the comparison table.
+  // The star occupies the same column as alternative row numbers.
+  item.append(el("span","lab-advisor-row-number"+(featured?" is-featured":""),featured?"★":String(rank??"—")));
   const identity=advisorIdentity(u);
   if(featured)identity.classList.add("is-featured");
   item.append(identity);
@@ -671,7 +673,7 @@ export function initializeSushiLab(getSave){
   const advice=getProgressionAdvice(save(),goal,{
    sort:advisorSort,filter:advisorFilter,includeMaxed:advisorMaxedInput.checked
   });
-  summary.append(el("strong","",numberDisplay(advice.bucks)+" Sushi Bucks"),
+  summary.append(el("strong","",advice.bucks===null?"Sushi Bucks unavailable":numberDisplay(advice.bucks)+" Sushi Bucks"),
    el("span","",advice.affordableCount+" affordable · "+advice.count+" upgrades available"));
   if(advice.partialPrices||advice.bucks===null)summary.append(el("span","",
    advice.bucks===null?"Bucks balance unavailable — import a complete save to plan purchases.":
