@@ -65,10 +65,10 @@ test("Search finds permanent rewards rather than only Knowledge categories",()=>
 test("Knowledge table combines name and tier reward, keeps four columns and Perfecto icon",()=>{
  const html=readFileSync(new URL("../index.html",import.meta.url),"utf8");
  const ui=readFileSync(new URL("../src/lab-ui.mjs",import.meta.url),"utf8");
- assert.match(html,/<th scope="col">Sushi tier<\/th>/);
- assert.match(html,/<th scope="col">Knowledge level<\/th>/);
- assert.match(html,/<th scope="col">EXP to next level<\/th>/);
- assert.match(html,/<th scope="col">Knowledge Bonus<\/th>/);
+ assert.match(html,/<th scope="col" aria-sort="(?:none|ascending)">.*?Sushi tier/);
+ assert.match(html,/<th scope="col" aria-sort="(?:none|ascending)">.*?Knowledge level/);
+ assert.match(html,/<th scope="col" aria-sort="(?:none|ascending)">.*?EXP to next level/);
+ assert.match(html,/<th scope="col" aria-sort="(?:none|ascending)">.*?Knowledge Bonus/);
  assert.doesNotMatch(html,/<th scope="col">Perfecto<\/th>/);
  assert.doesNotMatch(html,/<th scope="col">Tier reward · permanent<\/th>/);
  assert.match(ui,/tr\.append\(tier,levelCell,xpCell,bonus\)/);
