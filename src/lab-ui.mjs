@@ -6,8 +6,8 @@ import {CATALOG_SORT_OPTIONS,CATALOG_STATUS_OPTIONS,upgradeSummary,readableUpgra
 import {ADVISOR_GOALS,numberText,getSushiSnapshot,getUpgradeRows,
  getKnowledgeRows,advisorUpgrades,getSushiDoublerCounts,sushiUpgradeExtraText,upgradeAffordability} from "./lab-model.mjs?v=1.19.10";
 import {getProgressionAdvice,PROGRESSION_SORT_OPTIONS,PROGRESSION_FILTER_OPTIONS} from "./progression-advisor.mjs?v=1.16.6";
-import {DOUBLER_FOCUS_OPTIONS,getDoublerPlacementPlan,getDoublerValueComparison} from "./doubler-advisor.mjs?v=1.4.0";
-import {getDoublerAccountImpact} from "./doubler-stat-impact.mjs?v=1.2.0";
+import {DOUBLER_FOCUS_OPTIONS,DOUBLER_SORT_OPTIONS,getDoublerPlacementPlan,getDoublerValueComparison} from "./doubler-advisor.mjs?v=1.5.0";
+import {getDoublerAccountImpact} from "./doubler-stat-impact.mjs?v=1.3.0";
 import {buildProgressionPurchasePlan} from "./progression-roadmap.mjs?v=1.16.7";
 import {parseGameQuantity} from "./progression-calibration.mjs?v=1.16.3";
 import {overviewTierProgress,importAgeText} from "./overview-helpers.mjs?v=1.19.9";
@@ -52,7 +52,7 @@ function openButton(name,target){
 let setTab=()=>{};
 export function initializeSushiLab(getSave){
  let mainTab="overview",upgradeTab="catalog",goal="bucks",doublerGoals=["knowledge"];
- let doublerHideDoubled=false,doublerMenuOpen=false;
+ let doublerHideDoubled=false,doublerMenuOpen=false,doublerSort="best";
  let advisorSort="recommended",advisorFilter="all",purchaseView="cards";
  let catalogSort="shop",catalogCategory="all",catalogStatus="all";
  let importedAt=null;
@@ -107,6 +107,10 @@ export function initializeSushiLab(getSave){
  goalInput.addEventListener("change",()=>{goal=goalInput.value;renderAdvisor();});
  const doublerTags=$("labDoublerTags"),doublerAdd=$("labDoublerAddCategory");
  const doublerMenu=$("labDoublerCategoryMenu"),doublerHideInput=$("labDoublerHideDoubled");
+ const doublerSortInput=$("labDoublerSort");
+ for(const item of DOUBLER_SORT_OPTIONS)doublerSortInput.append(new Option(item.label,item.value));
+ doublerSortInput.value=doublerSort;
+ doublerSortInput.addEventListener("change",()=>{doublerSort=doublerSortInput.value;renderDoubler();});
  function renderDoublerTags(){
   doublerTags.replaceChildren();doublerMenu.replaceChildren();
   for(const id of doublerGoals){
@@ -768,7 +772,7 @@ export function initializeSushiLab(getSave){
    addText(feature,"hint","Import a full game save JSON to see Doubler advice for your selected categories.");
    return;
   }
-  const plan=getDoublerPlacementPlan(save(),doublerGoals);
+  const plan=getDoublerPlacementPlan(save(),doublerGoals,{sort:doublerSort});
   if(!plan?.ready){
    addText(feature,"hint",plan?.reason??"Doubler information is unavailable.");
    return;
@@ -788,9 +792,9 @@ export function initializeSushiLab(getSave){
    "Available is a lower bound from Menagerie boosts. Bundles and companions may grant additional Doublers.";
   feature.append(overview);
   addText(feature,"hint",
-   "Only upgrades in your selected categories are shown. Each upgrade appears once. "+
-   "Account figures are modeled unless anchored to an in-game reading entered in the Progression Advisor. "+
-   "The with-Doubler scenario changes only this upgrade; moving a Doubler from another upgrade can offset the gain.");
+   "Best modeled gain ranks upgrades within each selected category; category tags stay in your chosen order. "+
+   "Per-use effects cannot be ranked by the passive hourly stat and appear after comparable upgrades. "+
+   "Account figures are modeled or anchored to in-game readings. Moving a Doubler from another upgrade can offset the gain.");
   if(!visible.length){
    addText(feature,"hint",doublerHideDoubled&&plan.totalOptions?
     "All matching upgrades are already doubled. Uncheck Hide already doubled to see them.":
@@ -821,7 +825,10 @@ export function initializeSushiLab(getSave){
      "Your save cannot confirm an unused Doubler. Check in-game before reassigning one.";
    }
    head.append(identity,badge);
-   card.append(head,el("p","lab-doubler-plan-reason",u.reason));
+   const benefit=el("div","lab-doubler-gain"+(u.gainRankable?"":" is-unranked"));
+   benefit.append(el("span","lab-doubler-gain-label",u.gainRankable?"Modeled gain":"Separate effect"),
+    el("strong","",u.gainText));
+   card.append(head,benefit,el("p","lab-doubler-plan-reason",u.reason));
    const value=getDoublerValueComparison(u);
    const impact=getDoublerAccountImpact(save(),u,{readings});
    const values=el("div","lab-doubler-values");
