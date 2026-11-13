@@ -1,8 +1,8 @@
 // Account-aware, single-focus Sushi Doubler advice.
 // Each focus shows exactly the upgrades eligible for that effect category.
 // Owned Doubler counts affect assignment actions, never the number of options.
-import {getUpgradeRows,getSushiDoublerCounts,numberText} from "./lab-model.mjs?v=1.19.10";
-import {getDoublerAccountImpact} from "./doubler-stat-impact.mjs?v=1.3.0";
+import {getUpgradeRows,getSushiDoublerCounts,numberText} from "./lab-model.mjs?v=1.19.11";
+import {getDoublerAccountImpact} from "./doubler-stat-impact.mjs?v=1.3.1";
 
 export const DOUBLER_FOCUS_OPTIONS=[
  {value:"knowledge",label:"Knowledge EXP"},
