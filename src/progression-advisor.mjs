@@ -120,9 +120,12 @@ function deriveUpgrade(save,upgrade,bucks,goal,baseline){
   impactAfter:future?.display??null,impactEstimated:!!(baseline?.estimated||future?.estimated)};
 }
 function sortRecommended(a,b){
- return Number(b.affordability==="affordable")-Number(a.affordability==="affordable")||
-  Number(b.importantUnlock)-Number(a.importantUnlock)||
+ // A cheap upgrade with no measurable effect on the selected goal must
+ // not displace a genuine goal improvement just because it is affordable.
+ // Among comparable effects, affordability still decides the next action.
+ return Number(b.importantUnlock)-Number(a.importantUnlock)||
   Number(b.impactRankable)-Number(a.impactRankable)||
+  Number(b.affordability==="affordable")-Number(a.affordability==="affordable")||
   b.valueScore-a.valueScore||b.relativeGain-a.relativeGain||compareCost(a,b)||a.shop-b.shop;
 }
 export function getProgressionAdvice(save,goal,{
