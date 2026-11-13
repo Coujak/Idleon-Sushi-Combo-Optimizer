@@ -2839,3 +2839,93 @@ details summary{cursor:pointer;font-size:12px;font-weight:700;color:#9eb7c9}
 }
 /* Center the rank/purchase-number headers over their numeric column. */
 #lab-upgrade-advisor .lab-advisor-column-head>span:first-child{text-align:center}
+
+/* Purchase group breakdown + aligned informational disclosures. */
+#lab-upgrade-advisor .lab-advisor-goal-note-wrap{
+ flex:1 1 100%;
+ width:100%;
+ min-width:0;
+ align-self:stretch;
+ margin:2px 0 0;
+ padding:10px 0 0;
+ border-top:1px solid var(--up-line);
+ text-align:left;
+}
+#lab-upgrade-advisor .lab-advisor-goal-note-wrap>summary{
+ display:list-item;
+ list-style-position:inside;
+ margin:0;
+ padding:0;
+ text-align:left;
+ line-height:1.5;
+}
+#lab-upgrade-advisor .lab-advisor-goal-note-wrap>p{
+ max-width:85ch;
+ margin:9px 0 1px;
+ color:var(--up-muted);
+ line-height:1.6;
+ overflow-wrap:anywhere;
+}
+#lab-upgrade-advisor .lab-advisor-help.lab-advisor-plan-disclaimer{
+ display:block;
+ width:100%;
+ margin:0 0 10px;
+ padding:11px 14px 12px;
+ border:0;
+ border-bottom:1px solid var(--up-line);
+ background:transparent;
+ text-align:left;
+}
+#lab-upgrade-advisor .lab-advisor-help.lab-advisor-plan-disclaimer>summary{
+ display:list-item;
+ list-style-position:inside;
+ margin:0;
+ padding:0;
+ text-align:left;
+ line-height:1.5;
+}
+#lab-upgrade-advisor .lab-advisor-help.lab-advisor-plan-disclaimer>p{
+ max-width:85ch;
+ margin:9px 0 0;
+ padding:0;
+ line-height:1.6;
+ overflow-wrap:anywhere;
+}
+#lab-upgrade-advisor .lab-advisor-group-breakdown{
+ list-style:none;
+ margin:11px 0 0;
+ padding:0;
+ border-top:1px solid var(--up-line);
+}
+#lab-upgrade-advisor .lab-advisor-group-line{
+ display:grid;
+ grid-template-columns:minmax(115px,1fr) minmax(100px,1fr) minmax(100px,1fr);
+ gap:6px 12px;
+ align-items:center;
+ padding:10px 0;
+ border-bottom:1px solid #293f50;
+ font-size:11px;
+ font-variant-numeric:tabular-nums;
+ color:var(--up-text);
+}
+#lab-upgrade-advisor .lab-advisor-group-line:last-child{border-bottom:0}
+#lab-upgrade-advisor .lab-advisor-group-line>span:nth-child(2){
+ overflow-wrap:anywhere;
+}
+#lab-upgrade-advisor .lab-advisor-group-line>span:nth-child(3){
+ color:var(--up-muted);
+}
+#lab-upgrade-advisor .lab-advisor-group-line>small{
+ grid-column:1/-1;
+ color:var(--up-muted);
+ font-size:11px;
+ overflow-wrap:anywhere;
+}
+@media(max-width:650px){
+ #lab-upgrade-advisor .lab-advisor-group-line{
+  grid-template-columns:minmax(0,1fr) minmax(0,1fr);
+ }
+ #lab-upgrade-advisor .lab-advisor-group-line>span:nth-child(3){
+  grid-column:1/-1;
+ }
+}
