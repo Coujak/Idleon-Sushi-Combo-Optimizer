@@ -1,7 +1,9 @@
 // Sushi Station Lab: lightweight, accessible navigation and account-aware
 // information panels. All imported JSON stays in memory on the user's device.
 import {sushiUpgradeIconPath,sushiTierIconPath,KNOWLEDGE_CATEGORIES} from "./sushi-reference.mjs?v=1.16.6";
-import {KNOWLEDGE_SORT_OPTIONS,KNOWLEDGE_STATUS_OPTIONS,filterKnowledgeRows,knowledgeOverview} from "./knowledge-view.mjs?v=1.0.1";
+import {KNOWLEDGE_SORT_OPTIONS,KNOWLEDGE_STATUS_OPTIONS,filterKnowledgeRows,knowledgeOverview,
+ KNOWLEDGE_PREFERENCES_KEY,normalizeKnowledgePreferences,nextKnowledgeHeaderSort,knowledgeCheckpoint}
+ from "./knowledge-view.mjs?v=1.0.2";
 import {describeKnowledgeBonus,formatKnowledgeBonusValue} from "./knowledge-bonus-format.mjs?v=1.0.2";
 import {initializePerfectoUI} from "./perfecto-ui.mjs?v=1.36.2";
 import {CATALOG_SORT_OPTIONS,CATALOG_STATUS_OPTIONS,upgradeSummary,readableUpgradeDescription,upgradeDescriptionSegments,catalogHasVariableValues,filterSortCatalog,upgradeCatalogDollarValue} from "./upgrade-catalog.mjs?v=1.16.9";
@@ -59,6 +61,21 @@ export function initializeSushiLab(getSave){
  let advisorSort="recommended",advisorFilter="all",advisorVisibleCount="all",purchaseView="list";
  let catalogSort="shop",catalogCategory="all",catalogStatus="all";
  let knowledgeCategory="all",knowledgeSort="tier";
+ let knowledgePreferences=normalizeKnowledgePreferences(null);
+ try{
+  knowledgePreferences=normalizeKnowledgePreferences(
+   JSON.parse(window.localStorage.getItem(KNOWLEDGE_PREFERENCES_KEY)||"null"));
+ }catch{/* Storage may be disabled in private browsing. Keep the controls usable. */}
+ knowledgeCategory=knowledgePreferences.category;
+ knowledgeSort=knowledgePreferences.sort;
+ const rememberKnowledgePreferences=()=>{
+  try{
+   window.localStorage.setItem(KNOWLEDGE_PREFERENCES_KEY,JSON.stringify({
+    search:$("labKnowledgeSearch").value,
+    category:knowledgeCategory,status:knowledgeStatusInput.value,sort:knowledgeSort
+   }));
+  }catch{/* No persistent storage available: session-only behavior. */}
+ };
  let importedAt=null;
  const missingListExpanded={labMissingPerfectos:false,labMissingTiers:false};
  const expandedUpgradeDetails=new Set();
@@ -272,15 +289,29 @@ export function initializeSushiLab(getSave){
   knowledgeStatusInput.append(new Option(option.label,option.value));
  knowledgeCategoryInput.value=knowledgeCategory;
  knowledgeSortInput.value=knowledgeSort;
- knowledgeStatusInput.value="all";
- $("labKnowledgeSearch").addEventListener("input",renderKnowledge);
+ knowledgeStatusInput.value=knowledgePreferences.status;
+ $("labKnowledgeSearch").value=knowledgePreferences.search;
+ $("labKnowledgeSearch").addEventListener("input",()=>{
+  rememberKnowledgePreferences();renderKnowledge();
+ });
  knowledgeCategoryInput.addEventListener("change",()=>{
-  knowledgeCategory=knowledgeCategoryInput.value;renderKnowledge();
+  knowledgeCategory=knowledgeCategoryInput.value;rememberKnowledgePreferences();renderKnowledge();
  });
  knowledgeSortInput.addEventListener("change",()=>{
-  knowledgeSort=knowledgeSortInput.value;renderKnowledge();
+  knowledgeSort=knowledgeSortInput.value;rememberKnowledgePreferences();renderKnowledge();
  });
- knowledgeStatusInput.addEventListener("change",renderKnowledge);
+ knowledgeStatusInput.addEventListener("change",()=>{
+  rememberKnowledgePreferences();renderKnowledge();
+ });
+ for(const button of document.querySelectorAll("[data-knowledge-sort]")){
+  button.addEventListener("click",()=>{
+   knowledgeSort=nextKnowledgeHeaderSort(knowledgeSort,button.dataset.knowledgeSort,
+    button.dataset.knowledgeReverse);
+   knowledgeSortInput.value=knowledgeSort;
+   rememberKnowledgePreferences();
+   renderKnowledge();
+  });
+ }
 
  function sushiArtwork(tier){
   const frame=el("span","lab-sushi-art-frame");
@@ -980,11 +1011,24 @@ export function initializeSushiLab(getSave){
    category:knowledgeCategory,status:knowledgeStatusInput.value,sort:knowledgeSort
   });
   $("labKnowledgeCount").textContent=rows.length+" / 64 tiers";
+  // Keep column headings and the existing sort dropdown in sync.
+  if(typeof document!=="undefined"){
+   for(const button of document.querySelectorAll("[data-knowledge-sort]")){
+    const primary=button.dataset.knowledgeSort,reverse=button.dataset.knowledgeReverse;
+    const state=knowledgeSort===primary?"ascending":
+     knowledgeSort===reverse?"descending":"none";
+    button.closest("th").setAttribute("aria-sort",state);
+    button.title=state==="none"?"Sort this column":
+     "Sorted "+state+" · click to reverse";
+   }
+  }
   const body=$("labKnowledgeRows"),empty=$("labKnowledgeEmpty");
   body.replaceChildren();
   empty.classList.toggle("hidden",rows.length!==0);
   for(const k of rows){
-   const tr=el("tr",k.readyToLevel?"lab-knowledge-row-ready":"");
+   const checkpoint=knowledgeCheckpoint(k);
+   const tr=el("tr",(k.readyToLevel?"lab-knowledge-row-ready":"")+
+    (checkpoint?" lab-knowledge-row-checkpoint":""));
    const tier=el("td","lab-knowledge-tier");
    const identity=el("div","lab-knowledge-identity");
    const artwork=el("span","lab-knowledge-art-wrap");
@@ -1013,6 +1057,13 @@ export function initializeSushiLab(getSave){
    }
    tierReward.title="Permanent tier reward"+(k.discovered?" · discovered":" · reference only");
    info.append(name,tierReward);
+   if(checkpoint){
+    const hint=el("span","lab-knowledge-checkpoint",
+     "Lv "+checkpoint.nextLevel+" checkpoint · "+checkpoint.levelsAway+" level"+
+     (checkpoint.levelsAway===1?"":"s")+" away");
+    hint.title="Every-five-level planning checkpoint, not an extra in-game reward";
+    info.append(hint);
+   }
    identity.append(info);
    tier.append(identity);
 
