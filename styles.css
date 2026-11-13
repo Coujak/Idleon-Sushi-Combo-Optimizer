@@ -3377,15 +3377,15 @@ details summary{cursor:pointer;font-size:12px;font-weight:700;color:#9eb7c9}
  }
 }
 
-/* Knowledge table: compact four-column layout from user's reference.
+/* Knowledge table: compact four-column layout with the tier reward under its name.
    Perfecto achievement is identified by a small overlay on the Sushi icon. */
 #lab-knowledge .lab-knowledge-table{
- min-width:800px;
+ min-width:900px;
  table-layout:fixed;
 }
-#lab-knowledge .lab-knowledge-table th:nth-child(1){width:34%}
-#lab-knowledge .lab-knowledge-table th:nth-child(2){width:11%}
-#lab-knowledge .lab-knowledge-table th:nth-child(3){width:32%}
+#lab-knowledge .lab-knowledge-table th:nth-child(1){width:38%}
+#lab-knowledge .lab-knowledge-table th:nth-child(2){width:10%}
+#lab-knowledge .lab-knowledge-table th:nth-child(3){width:29%}
 #lab-knowledge .lab-knowledge-table th:nth-child(4){width:23%}
 #lab-knowledge .lab-knowledge-table th,
 #lab-knowledge .lab-knowledge-table td{overflow-wrap:anywhere}
@@ -3440,9 +3440,24 @@ details summary{cursor:pointer;font-size:12px;font-weight:700;color:#9eb7c9}
  font-size:12px;
 }
 #lab-knowledge .lab-knowledge-tier-info .lab-row-subtitle{
- color:#a8d1e7;
+ color:#d5c3f0;
  font-size:11px;
- line-height:1.45;
+ line-height:1.5;
+ overflow-wrap:anywhere;
+}
+#lab-knowledge .lab-knowledge-tier-info .lab-knowledge-tier-reward-label{
+ display:block;
+ max-width:100%;
+ margin-top:2px;
+ font-weight:550;
+}
+#lab-knowledge .lab-knowledge-effect-label{
+ display:block;
+ margin-bottom:5px;
+ color:#9cccb5;
+ font-size:10px;
+ font-weight:650;
+ line-height:1.4;
 }
 #lab-knowledge .lab-knowledge-bonus>strong{
  display:block;
@@ -3464,6 +3479,6 @@ details summary{cursor:pointer;font-size:12px;font-weight:700;color:#9eb7c9}
  font-variant-numeric:tabular-nums;
 }
 @media(max-width:730px){
- #lab-knowledge .lab-knowledge-table{min-width:750px}
+ #lab-knowledge .lab-knowledge-table{min-width:840px}
  #lab-knowledge .lab-knowledge-table td{padding:10px}
 }
