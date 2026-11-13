@@ -2214,3 +2214,231 @@ details summary{cursor:pointer;font-size:12px;font-weight:700;color:#9eb7c9}
 .lab-advisor-modeled-impact>strong{font-size:1rem;overflow-wrap:anywhere}
 .lab-advisor-modeled-impact>small{font-size:.85rem;opacity:.84;overflow-wrap:anywhere}
 @media(max-width:700px){.lab-advisor-compare-controls{justify-content:flex-start}.lab-advisor-visible-count select{min-width:115px}}
+
+
+/* Progression Advisor refresh: calmer surfaces, clearer hierarchy and compact plans. */
+#lab-upgrade-advisor{
+ --pa-surface:#172934;
+ --pa-raised:#1c303c;
+ --pa-border:#35505d;
+ --pa-text:#e9f1f4;
+ --pa-muted:#b0c3cb;
+ --pa-accent:#a4d8c7;
+}
+#lab-upgrade-advisor .lab-advisor-toolbar{
+ padding:12px 14px;background:#162a35;border:1px solid var(--pa-border);border-radius:12px;gap:12px
+}
+#lab-upgrade-advisor .lab-advisor-summary{margin:14px 0;gap:10px 20px;color:var(--pa-muted)}
+#lab-upgrade-advisor .lab-advisor-summary>strong{font-size:14px;color:var(--pa-text);font-weight:700}
+#lab-upgrade-advisor .lab-advisor-summary>span{font-size:12px;color:var(--pa-muted)}
+#lab-upgrade-advisor .lab-advisor-feature{
+ background:var(--pa-surface);border:1px solid var(--pa-border);
+ box-shadow:none;border-radius:12px;overflow:hidden
+}
+#lab-upgrade-advisor .lab-advisor-feature-heading{
+ background:#1d323d;border-bottom:1px solid var(--pa-border);
+ padding:11px 16px
+}
+#lab-upgrade-advisor .lab-advisor-kicker{
+ color:#d5e6ea;font-size:11px;letter-spacing:.045em;font-weight:700
+}
+#lab-upgrade-advisor .lab-advisor-method{font-size:11px;color:var(--pa-muted)}
+#lab-upgrade-advisor .lab-advisor-top{padding:17px}
+#lab-upgrade-advisor .lab-advisor-option-head{align-items:center}
+#lab-upgrade-advisor .lab-advisor-identity-copy>strong{color:var(--pa-text);font-size:16px}
+#lab-upgrade-advisor .lab-advisor-identity-copy>span{color:var(--pa-muted);font-size:12px}
+#lab-upgrade-advisor .lab-advisor-one-line{margin:10px 0 14px;color:var(--pa-muted);font-size:12px}
+#lab-upgrade-advisor .lab-advisor-badge{
+ font-weight:600;border-radius:6px;padding:5px 8px;font-size:11px
+}
+#lab-upgrade-advisor .lab-advisor-badge-success{color:#b3e7d2;background:#25483f;border:1px solid #42685d}
+#lab-upgrade-advisor .lab-advisor-badge-secondary,
+#lab-upgrade-advisor .lab-advisor-badge-uncertain{color:#e0cda9;background:#3b3840;border:1px solid #615b59}
+#lab-upgrade-advisor .lab-advisor-badge-muted{color:#c1cbd3;background:#2b3945;border:1px solid #4c5a65}
+#lab-upgrade-advisor .lab-advisor-modeled-impact{
+ margin:12px 0;padding:0;background:transparent;border:0;display:grid;gap:5px
+}
+#lab-upgrade-advisor .lab-advisor-modeled-impact>span{
+ color:var(--pa-muted);font-weight:650;font-size:11px;letter-spacing:.035em
+}
+#lab-upgrade-advisor .lab-advisor-modeled-impact>strong{
+ color:#c9e8dc;font-size:17px;line-height:1.4;font-weight:700
+}
+#lab-upgrade-advisor .lab-advisor-quickfacts{
+ display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;
+ padding:13px 0;margin-top:10px;border-top:1px solid var(--pa-border)
+}
+#lab-upgrade-advisor .lab-advisor-quickfact{display:grid;gap:5px;min-width:0}
+#lab-upgrade-advisor .lab-advisor-quickfact>small{color:var(--pa-muted);font-size:11px}
+#lab-upgrade-advisor .lab-advisor-quickfact>strong{
+ color:var(--pa-text);font-size:13px;font-weight:650;overflow-wrap:anywhere;line-height:1.5
+}
+#lab-upgrade-advisor .lab-advisor-breakdown{
+ border-top:1px solid var(--pa-border);margin-top:0;padding-top:10px
+}
+#lab-upgrade-advisor .lab-advisor-breakdown>summary,
+#lab-upgrade-advisor .lab-advisor-help>summary,
+#lab-upgrade-advisor .lab-advisor-goal-note-wrap>summary{
+ cursor:pointer;color:var(--pa-muted);font-size:12px;font-weight:650
+}
+#lab-upgrade-advisor .lab-advisor-breakdown[open]>summary,
+#lab-upgrade-advisor .lab-advisor-help[open]>summary,
+#lab-upgrade-advisor .lab-advisor-goal-note-wrap[open]>summary{color:#d9eee5}
+#lab-upgrade-advisor .lab-advisor-breakdown>p{
+ color:var(--pa-muted);font-size:12px;line-height:1.55;margin:8px 0
+}
+#lab-upgrade-advisor .lab-advisor-help{
+ margin:12px 0 14px;padding:0 2px;border:0;background:transparent
+}
+#lab-upgrade-advisor .lab-advisor-help>p{
+ margin:9px 0;color:var(--pa-muted);font-size:12px;line-height:1.6
+}
+#lab-upgrade-advisor .lab-advisor-section-head{margin:24px 0 11px;align-items:center}
+#lab-upgrade-advisor .lab-advisor-section-head h3{font-size:16px;color:var(--pa-text)}
+#lab-upgrade-advisor .lab-advisor-section-head .hint{color:var(--pa-muted);font-size:12px}
+#lab-upgrade-advisor .lab-advisor-plan-head>div:first-child .hint{margin:4px 0 0}
+#lab-upgrade-advisor .lab-advisor-purchase-controls>label{color:var(--pa-muted);font-weight:650}
+#lab-upgrade-advisor .lab-advisor-purchase-controls select,
+#lab-upgrade-advisor .lab-advisor-purchase-controls input{
+ background:#142630;color:var(--pa-text);border-color:var(--pa-border)
+}
+#lab-upgrade-advisor .lab-advisor-view-toggle{
+ background:#142630;border-color:var(--pa-border);box-shadow:none
+}
+#lab-upgrade-advisor .lab-advisor-view-toggle button{color:var(--pa-muted);font-weight:600}
+#lab-upgrade-advisor .lab-advisor-view-toggle button.selected{
+ color:var(--pa-text);background:#334c57;box-shadow:none
+}
+#lab-upgrade-advisor .lab-advisor-calibration{
+ background:var(--pa-surface);border-color:var(--pa-border);padding:11px 14px
+}
+#lab-upgrade-advisor .lab-advisor-calibration summary{color:var(--pa-muted);font-weight:650}
+#lab-upgrade-advisor .lab-advisor-plan-summary{
+ grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:16px 0
+}
+#lab-upgrade-advisor .lab-advisor-plan-stat{
+ background:transparent;border:0;border-top:1px solid var(--pa-border);
+ border-radius:0;padding:11px 2px 4px;gap:6px
+}
+#lab-upgrade-advisor .lab-advisor-plan-stat>strong{
+ color:var(--pa-text);font-size:16px;font-weight:700
+}
+#lab-upgrade-advisor .lab-advisor-plan-stat>small{
+ color:var(--pa-muted);font-size:10px;font-weight:600;letter-spacing:.025em
+}
+#lab-upgrade-advisor .lab-advisor-goal-projection{
+ margin:10px 0 14px;background:var(--pa-surface);border:1px solid var(--pa-border);
+ border-radius:12px;box-shadow:none;padding:14px 16px
+}
+#lab-upgrade-advisor .lab-advisor-goal-label>strong{color:var(--pa-text);font-weight:700}
+#lab-upgrade-advisor .lab-advisor-goal-label>span{
+ color:var(--pa-muted);border-color:var(--pa-border);font-size:10px;font-weight:600
+}
+#lab-upgrade-advisor .lab-advisor-goal-comparison{margin:12px 0;gap:10px}
+#lab-upgrade-advisor .lab-advisor-goal-number>small{color:var(--pa-muted);font-weight:600}
+#lab-upgrade-advisor .lab-advisor-goal-number>strong{font-size:clamp(14px,2vw,20px);color:var(--pa-text)}
+#lab-upgrade-advisor .lab-advisor-goal-projected>strong{color:#bce5d4}
+#lab-upgrade-advisor .lab-advisor-goal-arrow{color:var(--pa-muted);font-size:18px}
+#lab-upgrade-advisor .lab-advisor-goal-note-wrap{margin-top:10px}
+#lab-upgrade-advisor .lab-advisor-goal-note{font-size:12px;color:var(--pa-muted);margin:8px 0}
+#lab-upgrade-advisor .lab-advisor-plan-disclaimer{margin:12px 0 10px}
+#lab-upgrade-advisor .lab-advisor-purchase-scroll{
+ max-height:600px;overflow:auto;background:var(--pa-surface);
+ border:1px solid var(--pa-border);border-radius:12px;scrollbar-color:#506c75 #162b36
+}
+#lab-upgrade-advisor .lab-advisor-purchase-list.lab-advisor-view-list,
+#lab-upgrade-advisor .lab-advisor-purchase-list.lab-advisor-view-cards{
+ display:grid;grid-template-columns:minmax(0,1fr);gap:0;padding:0
+}
+#lab-upgrade-advisor .lab-advisor-purchase-step,
+#lab-upgrade-advisor .lab-advisor-view-list .lab-advisor-purchase-step,
+#lab-upgrade-advisor .lab-advisor-view-cards .lab-advisor-purchase-step{
+ display:grid;grid-template-columns:30px minmax(0,1fr) minmax(145px,auto);
+ grid-template-areas:"number identity price" "number identity status" "details details details";
+ align-items:center;column-gap:12px;row-gap:3px;
+ border:0;border-bottom:1px solid #2e4550;border-radius:0;
+ background:transparent;padding:13px 15px
+}
+#lab-upgrade-advisor .lab-advisor-purchase-step:last-child{border-bottom:0}
+#lab-upgrade-advisor .lab-advisor-purchase-step.is-next{
+ background:#1f3641;box-shadow:inset 3px 0 #8fbfae
+}
+#lab-upgrade-advisor .lab-advisor-purchase-number{
+ grid-area:number;align-self:start;display:grid;place-items:center;
+ background:#304652;color:#dbe8eb;border-radius:7px;width:28px;height:28px;
+ font-size:12px;font-weight:700
+}
+#lab-upgrade-advisor .lab-advisor-purchase-identity,
+#lab-upgrade-advisor .lab-advisor-view-cards .lab-advisor-purchase-identity{
+ grid-area:identity;align-self:start
+}
+#lab-upgrade-advisor .lab-advisor-purchase-identity .lab-upgrade-icon{width:34px;height:34px;flex-basis:34px}
+#lab-upgrade-advisor .lab-advisor-purchase-copy>strong{color:var(--pa-text);font-size:13px;font-weight:700}
+#lab-upgrade-advisor .lab-advisor-purchase-copy>small{color:var(--pa-muted)}
+#lab-upgrade-advisor .lab-advisor-purchase-price,
+#lab-upgrade-advisor .lab-advisor-view-list .lab-advisor-purchase-step .lab-advisor-purchase-price{
+ grid-area:price;align-items:flex-end;text-align:right;justify-self:end
+}
+#lab-upgrade-advisor .lab-advisor-purchase-price strong{font-size:13px;color:var(--pa-text);font-weight:700}
+#lab-upgrade-advisor .lab-advisor-purchase-price small{color:var(--pa-muted)}
+#lab-upgrade-advisor .lab-advisor-purchase-status,
+#lab-upgrade-advisor .lab-advisor-view-list .lab-advisor-purchase-step .lab-advisor-purchase-status{
+ grid-area:status;justify-self:end;padding:0;border:0;background:transparent
+}
+#lab-upgrade-advisor .lab-advisor-purchase-status strong{
+ font-weight:600;font-size:11px;text-align:right
+}
+#lab-upgrade-advisor .lab-advisor-purchase-ready{color:#a9dbc4}
+#lab-upgrade-advisor .lab-advisor-purchase-save{color:#d5bf9e}
+#lab-upgrade-advisor .lab-advisor-step-details,
+#lab-upgrade-advisor .lab-advisor-view-list .lab-advisor-purchase-step .lab-advisor-step-details{
+ grid-area:details;margin:7px 0 0 42px;min-width:0
+}
+#lab-upgrade-advisor .lab-advisor-step-details>summary{
+ color:var(--pa-muted);cursor:pointer;font-size:11px;line-height:1.4
+}
+#lab-upgrade-advisor .lab-advisor-step-result,
+#lab-upgrade-advisor .lab-advisor-view-cards .lab-advisor-step-result{
+ grid-column:auto;background:transparent;border:0;border-top:1px solid var(--pa-border);
+ padding:11px 0 2px;margin-top:9px
+}
+#lab-upgrade-advisor .lab-advisor-step-result-label{color:var(--pa-muted);font-weight:600}
+#lab-upgrade-advisor .lab-advisor-step-result-values{font-size:12px;color:var(--pa-muted)}
+#lab-upgrade-advisor .lab-advisor-step-result-values strong{color:#c2e5d5;font-size:13px}
+#lab-upgrade-advisor .lab-advisor-plan-end{padding:10px;margin:0;color:var(--pa-muted);border-top:1px solid var(--pa-border)}
+#lab-upgrade-advisor .lab-advisor-plan-empty{padding:12px 15px}
+#lab-upgrade-advisor .lab-advisor-list{grid-template-columns:minmax(0,1fr);gap:8px}
+#lab-upgrade-advisor .lab-advisor-option{
+ background:var(--pa-surface);border-color:var(--pa-border);
+ border-radius:10px;box-shadow:none;padding:13px 15px
+}
+#lab-upgrade-advisor .lab-advisor-option .lab-advisor-modeled-impact{margin:9px 0 0}
+#lab-upgrade-advisor .lab-advisor-option .lab-advisor-modeled-impact>strong{font-size:14px}
+#lab-upgrade-advisor .lab-advisor-option .lab-advisor-quickfacts{margin-top:6px;padding:9px 0}
+#lab-upgrade-advisor .lab-advisor-option .lab-advisor-quickfact>strong{font-size:12px}
+#lab-upgrade-advisor .lab-advisor-compare-controls{color:var(--pa-muted)}
+@media(max-width:760px){
+ #lab-upgrade-advisor .lab-advisor-plan-summary{grid-template-columns:repeat(2,minmax(0,1fr))}
+ #lab-upgrade-advisor .lab-advisor-purchase-step,
+ #lab-upgrade-advisor .lab-advisor-view-list .lab-advisor-purchase-step,
+ #lab-upgrade-advisor .lab-advisor-view-cards .lab-advisor-purchase-step{
+  grid-template-columns:28px minmax(0,1fr);
+  grid-template-areas:"number identity" ". price" ". status" "details details";
+  row-gap:7px
+ }
+ #lab-upgrade-advisor .lab-advisor-purchase-price,
+ #lab-upgrade-advisor .lab-advisor-view-list .lab-advisor-purchase-step .lab-advisor-purchase-price,
+ #lab-upgrade-advisor .lab-advisor-purchase-status,
+ #lab-upgrade-advisor .lab-advisor-view-list .lab-advisor-purchase-step .lab-advisor-purchase-status{
+  justify-self:start;text-align:left;align-items:flex-start
+ }
+ #lab-upgrade-advisor .lab-advisor-purchase-status strong{text-align:left}
+ #lab-upgrade-advisor .lab-advisor-step-details{margin:6px 0 0 40px}
+}
+@media(max-width:500px){
+ #lab-upgrade-advisor .lab-advisor-quickfacts{grid-template-columns:1fr}
+ #lab-upgrade-advisor .lab-advisor-section-head{align-items:flex-start}
+ #lab-upgrade-advisor .lab-advisor-goal-number{min-width:0}
+ #lab-upgrade-advisor .lab-advisor-goal-comparison{display:grid;grid-template-columns:1fr}
+ #lab-upgrade-advisor .lab-advisor-goal-arrow{display:none}
+}
