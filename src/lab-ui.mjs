@@ -1010,11 +1010,14 @@ export function initializeSushiLab(getSave){
    const identity=el("div","lab-knowledge-identity");
    const artwork=el("span","lab-knowledge-art-wrap");
    artwork.append(sushiArtwork(k.tier));
-   // A small Perfecto mark on the icon replaces the former status column.
+   // Reuse the same Perfecto artwork shown on the Dashboard board.
    if(k.perfecto){
-    const mark=el("span","lab-knowledge-perfecto-emblem","✦");
+    const mark=el("img","lab-knowledge-perfecto-emblem");
+    mark.src="assets/Perfecto_Symbol.png";
+    mark.alt="Perfecto";
     mark.title="Perfecto obtained · 2× Knowledge bonus";
-    mark.setAttribute("aria-label","Perfecto obtained");
+    mark.loading="lazy";
+    mark.decoding="async";
     artwork.append(mark);
    }
    identity.append(artwork);
