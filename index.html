@@ -323,7 +323,7 @@
   <label>Sort options by <select id="labAdvisorSort"></select></label>
   <label class="lab-advisor-check"><input id="labAdvisorShowMaxed" type="checkbox"> Include maxed</label>
  </div>
- <p class="hint lab-disclaimer">Personalized suggestions use your imported levels, Sushi Bucks and estimated discounted costs. Priority is a transparent heuristic, <strong>not a mathematically proven ROI ranking</strong> across different types of upgrade effects. Unverified discounts are marked as estimates.</p>
+ <p class="hint lab-disclaimer">Personalized suggestions compare the modeled change from buying one level, with discounted costs and available Bucks. Priority is goal-specific and budget-aware, <strong>not a proven global ROI ranking</strong>; partial models and unsupported effects are identified. Unverified discounts are marked as estimates.</p>
  <div id="labAdvisorSummary" class="lab-advisor-summary" role="status"></div>
  <div id="labAdvisorFeature" class="lab-advisor-feature" aria-label="Recommended next upgrade"></div>
  <div class="lab-advisor-section-head lab-advisor-plan-head">
@@ -357,7 +357,14 @@
  <div id="labAdvisorGoalProjection" class="lab-advisor-goal-projection" role="status"></div>
  <p class="hint lab-advisor-plan-disclaimer">Each step estimates a purchase, updates that upgrade's level and price, then recalculates priorities. Once your starting Sushi Bucks run out, the plan assumes you <strong>save enough Bucks for the next purchase</strong>. It does not predict Bucks generation or claim that future purchases are already affordable. Discounted prices can be estimates. Goal results use available formulas; unsupported full totals are clearly labeled as partial models.</p>
  <div id="labAdvisorRoadmap" class="lab-advisor-purchase-scroll"><ol id="labAdvisorPurchaseSteps" class="lab-advisor-purchase-list lab-advisor-view-cards"></ol></div>
- <div class="lab-advisor-section-head"><h3>Compare other upgrades</h3><span id="labAdvisorResultsCount" class="hint"></span></div>
+ <div class="lab-advisor-section-head"><h3>Compare other upgrades</h3>
+ <div class="lab-advisor-compare-controls">
+  <label class="lab-advisor-visible-count">Show <select id="labAdvisorVisibleCount" aria-label="Number of other upgrades to display">
+   <option value="3">3 upgrades</option><option value="5">5 upgrades</option>
+   <option value="10">10 upgrades</option><option value="all" selected>All upgrades</option>
+  </select></label>
+  <span id="labAdvisorResultsCount" class="hint"></span>
+ </div></div>
  <div class="lab-result-list lab-advisor-list" id="labAdvisorResults"></div>
 </div>
 <div id="lab-upgrade-doubler" class="hidden" role="tabpanel" aria-hidden="true">
@@ -388,4 +395,4 @@
 <div class="lab-table-wrap"><table class="lab-data-table" aria-label="Sushi knowledge tiers"><thead><tr><th>Tier and knowledge effect</th><th>Knowledge level</th><th>EXP / next</th><th>Current bonus</th><th>Perfecto status</th></tr></thead><tbody id="labKnowledgeRows"></tbody></table></div>
 <p class="hint lab-disclaimer">Values reflect the imported save. Perfecto doubles the relevant knowledge bonus; EXP and bonuses may differ from the game if the rules change in an update.</p>
 </section></div>
-</main><script type="module" src="src/app.js?v=1.50.1"></script></body></html>
+</main><script type="module" src="src/app.js?v=1.50.2"></script></body></html>
