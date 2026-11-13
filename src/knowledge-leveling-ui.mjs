@@ -35,7 +35,7 @@ const FIREPLACE_IMAGES=[
 const FIREPLACE_NAMES=["Charcoal","Barium","Copper","Lithium","Potassium"];
 const showNames=[{key:"knowledgePlanCookSeconds",field:"secondsPerCook"},
  {key:"knowledgePlanMergeSeconds",field:"secondsPerMerge"},
- {key:"knowledgePlanClearSeconds",field:"secondsPerClear"}];
+];
 const quantityInput=id=>{
  const raw=$(id).value.trim();
  if(!raw)return null;
@@ -111,14 +111,14 @@ export function initializeKnowledgeLevelingUI(getSave){
    "Focused EXP rotation · T"+p.targetTier:"Balanced EXP rotation"),
    elem("p","","Starting with T"+p.startCookTier+" ("+p.startingPattern+") · "+
     p.cooks+" cooked Sushi · "+p.merges+" manual merges · "+
-    p.windEvents+" Wind tier-ups · "+p.cleanup+" leftover clears"));
+    p.windEvents+" Wind upgrades · "+p.cleanup+" verified cleanup merges · "+p.stranded+" unmerged Sushi"));
   summary.append(heading);
   const grid=elem("div","lab-kp-stats");
   for(const [label,value] of [
-   ["EXP / cycle",compact(p.totalExpPerCycle)],
+   [p.repeatable?"EXP / cycle":"EXP in this plan",compact(p.totalExpPerCycle)],
    ["Active EXP / hr",rate(p.totalExpPerHour)],
-   ["Cycle duration",formatHours(p.cycleSeconds/3600)],
-   ["Fuel / cycle",compact(p.fuelPerCycle)],
+   [p.repeatable?"Cycle duration":"One-pass time",formatHours(p.cycleSeconds/3600)],
+   [p.repeatable?"Fuel / cycle":"Fuel for this plan",compact(p.fuelPerCycle)],
    ["Modeled Fuel / hr",compact(p.estimatedFuelGeneration)],
    ["Starting tier","T"+p.startCookTier],
    ["Fireplace setup",p.fireChoice],
@@ -144,7 +144,7 @@ export function initializeKnowledgeLevelingUI(getSave){
   }
   addNote(summary,p.note);
   if(!p.repeatable)addNote(summary,
-   "This save does not contain a protected highest-tier Sushi. The prepared sequence is one-pass; EXP/hr and time-to-level are unavailable until a repeatable board anchor is established.",
+   "This layout still has "+p.stranded+" Sushi that cannot be cleared with the planned legal merges. It is a one-pass preparation, not a repeatable EXP rotation; EXP/hr and leveling ETA are withheld until the board genuinely resets.",
    "lab-kp-warning");
  }
  function showProgress(p){
@@ -240,7 +240,7 @@ export function initializeKnowledgeLevelingUI(getSave){
    "The optimizer uses the Combo Meter legal merge engine, including up to 25 East Wind upgrades when unlocked. Each verified creation event awards EXP to the created Sushi tier.",
    "Lithium Firelighter is 2× Knowledge EXP for Sushi above pink fireplaces; the solver also models reduced Fuel regeneration when orange fireplaces are changed to pink.",
    "The starting board is a preparation goal, not the imported current board. Cook or merge each ingredient into position; keep the protected highest-tier Sushi.",
-   "The cycle clears lower-tier leftovers but never removes the protected highest tier. Step 0 and Prepared layout let you review both ends of the preparation sequence.",
+   "Every cleanup step is a real merge. T64 + T64 becomes one T64; any unmergeable leftovers block repeating the cycle. Step 0 and Prepared layout help verify the exact board.",
    "EXP/hour is an estimate from active creation events divided by the longer of interaction time or refill time. Milktoast and Cold passive EXP and uncertain bonuses are excluded.",
    "Balanced optimizes distributed Knowledge EXP progress; Focused maximizes EXP/hour for one selected tier. Candidate search does not prove a global maximum."
   ];
