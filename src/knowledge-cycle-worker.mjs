@@ -1,10 +1,10 @@
 // Browser-local, cancelable optimizer search. The imported account JSON never
 // leaves the user's device; no network requests are made by this worker.
-import {optimizeKnowledgeCycle} from "./knowledge-cycle-optimizer.mjs?v=1.0.2";
+import {optimizeKnowledgeRotation} from "./knowledge-rotation-optimizer.mjs?v=1.0.0";
 self.onmessage=event=>{
  try{
   const {save,options}=event.data??{};
-  const result=optimizeKnowledgeCycle(save,options);
+  const result=optimizeKnowledgeRotation(save,options);
   self.postMessage({ok:true,result});
  }catch(error){
   self.postMessage({ok:false,error:error?.message??String(error)});
