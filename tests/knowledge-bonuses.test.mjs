@@ -62,12 +62,19 @@ test("Search finds permanent rewards rather than only Knowledge categories",()=>
  assert.deepEqual(filterKnowledgeRows(rows,{query:"Divinity Points"}).map(x=>x.tier),[47]);
  assert.deepEqual(filterKnowledgeRows(rows,{query:"Royal Guard"}).map(x=>x.tier),[60,61,63]);
 });
-test("Knowledge table provides separate reward and Knowledge headers",()=>{
+test("Knowledge table combines name and tier reward, keeps four columns and Perfecto icon",()=>{
  const html=readFileSync(new URL("../index.html",import.meta.url),"utf8");
  const ui=readFileSync(new URL("../src/lab-ui.mjs",import.meta.url),"utf8");
- assert.match(html,/Tier reward · permanent/);
- assert.match(html,/Knowledge bonus · current \/ next/);
- assert.match(ui,/tr\.append\(tier,reward,levelCell,xpCell,bonus,status\)/);
+ assert.match(html,/<th scope="col">Sushi tier<\/th>/);
+ assert.match(html,/<th scope="col">Knowledge level<\/th>/);
+ assert.match(html,/<th scope="col">EXP to next level<\/th>/);
+ assert.match(html,/<th scope="col">Knowledge Bonus<\/th>/);
+ assert.doesNotMatch(html,/<th scope="col">Perfecto<\/th>/);
+ assert.doesNotMatch(html,/<th scope="col">Tier reward · permanent<\/th>/);
+ assert.match(ui,/tr\.append\(tier,levelCell,xpCell,bonus\)/);
+ assert.match(ui,/lab-knowledge-perfecto-emblem/);
+ assert.match(ui,/k\.tierReward\?\?"Tier reward unavailable"/);
  assert.match(ui,/describeKnowledgeBonus\(k\.category,k\.bonus\)/);
+ assert.match(ui,/describeKnowledgeBonus\(k\.category,nextAmount\)/);
  assert.match(ui,/describeKnowledgeBonus\(k\.category,k\.baseLevelBonus\)/);
 });
