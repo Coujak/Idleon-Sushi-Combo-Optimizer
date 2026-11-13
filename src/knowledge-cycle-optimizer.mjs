@@ -3,6 +3,7 @@
 // deterministic non-proc cooking, account-derived fuel and user-entered pace.
 // Never treats target layouts as the user's existing board.
 import {simulateMerge,validateComboReplay} from "./optimizer-core.mjs";
+import {finishSushiBoard} from "./knowledge-cycle-cleanup.mjs?v=1.0.0";
 import {estimateSushiFuelEconomy,sushiDirectCookFuel} from "./perfecto-fuel.mjs?v=1.16.8";
 import {getSushiDashboardMetrics} from "./dashboard-metrics.mjs?v=1.0.2";
 import {getKnowledgeRows,getUpgradeRows} from "./lab-model.mjs?v=1.19.13";
@@ -141,11 +142,12 @@ function candidateDestinations(indices){
  for(let k=1;k<=6;k++)out.push(indices[Math.floor(indices.length*k/7)]);
  return unique(out);
 }
-function mergeChoices(board,slots,anchorTier,cap,chain){
+function mergeChoices(board,slots,anchorTier,cap,chain,protectedIndices=[]){
+ const keep=new Set(protectedIndices);
  const byTier=new Map();
  for(let i=0;i<board.length;i++){
   const tier=board[i];
-  if(slots[i]<0||tier<1||tier>=MAX_TIER||anchorTier>0&&tier+1>=anchorTier)continue;
+  if(slots[i]<0||tier<1||tier>MAX_TIER)continue;
   if(!byTier.has(tier))byTier.set(tier,[]);
   byTier.get(tier).push(i);
  }
@@ -153,26 +155,29 @@ function mergeChoices(board,slots,anchorTier,cap,chain){
  for(const [tier,positions] of byTier){
   if(positions.length<2)continue;
   for(const dst of candidateDestinations(positions)){
-   const sources=positions.filter(x=>x!==dst)
+   // The imported highest-tier Sushi can remain at their positions;
+   // original T64 copies may only absorb another T64, never move.
+   if(keep.has(dst)&&tier!==64)continue;
+   const sources=positions.filter(x=>x!==dst&&!keep.has(x))
     .sort((a,b)=>Math.abs(a-dst)-Math.abs(b-dst));
    // Include a left source to permit Wind and right sources for normal merging.
    const left=[...sources].filter(x=>x<dst).slice(0,2);
    const right=[...sources].filter(x=>x>dst).slice(0,2);
    for(const src of unique([...left,...right]).slice(0,4)){
     const action=simulateMerge(board,src,dst,cap,chain,MAX_TIER);
-    if(!action||action.events.some(e=>slots[e.at]<0||
-       anchorTier>0&&e.tier>=anchorTier))continue;
+    if(!action||action.events.some(e=>slots[e.at]<0)||
+       protectedIndices.some(i=>action.board[i]!==board[i]))continue;
     actions.push(action);
    }
   }
  }
  return actions;
 }
-function greedyMerge(initial,slots,anchorTier,cap,chain,expAt,mode,targetTier,policy,baseGains){
+function greedyMerge(initial,slots,anchorTier,cap,chain,expAt,mode,targetTier,policy,baseGains,protectedIndices){
  const board=initial.slice(),gains=baseGains.slice(),moves=[];
  let current=board;
  for(let step=0;step<120;step++){
-  const options=mergeChoices(current,slots,anchorTier,cap,chain);
+  const options=mergeChoices(current,slots,anchorTier,cap,chain,protectedIndices);
   if(!options.length)break;
   let best=null,bestScore=-Infinity;
   for(const move of options){
@@ -217,7 +222,9 @@ function buildFrames(candidate,slots,protectedIndices,expAt){
   frames.push({kind,title,detail,board:board.slice(),events,
    exp:delta.reduce((a,b)=>a+b,0),gains:delta});
  };
- append("start","Cycle start","Clear lower-tier leftovers, retain the protected Sushi, then refill this layout.",[],Array(65).fill(0));
+ append("start","Prepared working area",
+  "Proposed layout. Existing Sushi must first be merged legally into the reusable highest-tier anchors, not deleted.",
+  [],Array(65).fill(0));
  for(const cook of candidate.cooks){
   if(board[cook.at]!==0)throw Error("Refill attempted on an occupied slot");
   board[cook.at]=cook.tier;
@@ -227,33 +234,34 @@ function buildFrames(candidate,slots,protectedIndices,expAt){
  }
  if(!board.every((tier,i)=>tier===candidate.startBoard[i]))
   throw Error("Starting board cannot be constructed from the planned direct cooks");
- for(const move of candidate.moves){
+ for(const [index,move] of candidate.moves.entries()){
+  const inputTier=board[move.src];
   const actual=simulateMerge(board,move.src,move.dst,candidate.windCap,candidate.chain,MAX_TIER);
   if(!actual||actual.events.length!==move.events.length||
     !actual.board.every((tier,i)=>tier===move.board[i]))
    throw Error("Invalid Knowledge merge replay");
   board=actual.board;
-  append("merge","Merge T"+(move.events[0].tier-1)+" → T"+move.events[0].tier,
+  const cleaning=index>=candidate.optimizingMerges;
+  append("merge",(cleaning?"Cleanup merge · ":"Merge ")+"T"+inputTier+
+    " → T"+move.events[0].tier,
    positionName(move.src)+" → "+positionName(move.dst)+
    (move.events.length>1?" · "+(move.events.length-1)+" East Wind upgrades":""),
    move.events,gainEvents(move.events,expAt));
  }
+ if(!board.every((tier,i)=>tier===candidate.finalBoard[i]))
+  throw Error("Knowledge cleanup must preserve the exact simulated board");
  if(!candidate.repeatable){
-  append("blocked","One-pass layout only",
-   "A protected, higher-tier Sushi is needed before the board can be safely cleared and repeated.",
+  const stranded=board.filter((tier,i)=>tier>0&&!protectedSet.has(i));
+  append("blocked","Unmerged Sushi remain",
+   stranded.length+" Sushi cannot be cleared by any legal planned merge. No delete button exists: only equal-tier merges (including T64 + T64 → T64) reduce occupied slots. This is not yet a repeatable EXP rotation.",
    [],Array(65).fill(0));
   return frames;
  }
- for(let i=0;i<CELLS;i++){
-  if(board[i]===0||protectedSet.has(i))continue;
-  if(candidate.anchorTier>0&&board[i]>=candidate.anchorTier)
-   throw Error("Cannot clear protected maximum tier");
-  const tier=board[i];board[i]=0;
-  append("clear","Clear T"+tier,
-   "Remove the remaining lower-tier Sushi at "+positionName(i),
-   [{kind:"clear",at:i,tier}],Array(65).fill(0));
- }
- append("repeat","Repeat cycle","The working area is reset; refill and repeat the same verified merges.",[],Array(65).fill(0));
+ if(board.some((tier,i)=>tier>0&&!protectedSet.has(i)))
+  throw Error("Never mark a cycle repeatable while Sushi remain");
+ append("repeat","Working board cleared by merging",
+  "All remaining ingredients were consumed through legal merges. Refill these exact empty positions and repeat.",
+  [],Array(65).fill(0));
  return frames;
 }
 const positionName=i=>"R"+(Math.floor(i/COLS)+1)+"C"+(i%COLS+1);
