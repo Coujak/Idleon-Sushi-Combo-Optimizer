@@ -729,8 +729,11 @@ export function initializeSushiLab(getSave){
    el("span","","Currently assigned: "+assigned+" · Available: "+free+
     (plan.availableKnown?"":" · Cannot verify unassigned Doublers")));
   feature.append(overview);
-  addText(feature,"hint",
-   "Preference order: Knowledge EXP → Perfecto opportunities → cheaper upgrades. "+
+  const priorityText=doublerGoal==="priorities"?
+   "Preference order: Knowledge EXP → Perfecto opportunities → cheaper upgrades. ":
+   doublerGoal==="all"?"Preserve existing assignments unless the account has unused Doublers. ":
+   "Focus: "+(DOUBLER_FOCUS_OPTIONS.find(x=>x.value===doublerGoal)?.label??"Selected effect")+". ";
+  addText(feature,"hint",priorityText+
    "A Doubler boosts an upgrade's effect; it does not grant upgrade levels. "+
    "Other currently doubled bonuses stay put when possible.");
   if(!plan.recommendations.length){
