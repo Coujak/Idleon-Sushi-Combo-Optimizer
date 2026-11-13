@@ -605,44 +605,39 @@ export function initializeSushiLab(getSave){
   identity.append(copy);
   return identity;
  }
- function advisorDetail(u,featured=false){
-  const item=el("article",featured?"lab-advisor-top":"lab-advisor-option");
-  const header=el("div","lab-advisor-option-head");
-  header.append(advisorIdentity(u));
-  const [label,klass]=advisorBadge(u);
-  header.append(el("span","lab-advisor-badge "+klass,label));
-  item.append(header);
-  if(featured)item.append(el("p","lab-advisor-one-line",upgradeSummary(u)));
-
-  const impact=el("div","lab-advisor-modeled-impact");
-  impact.append(el("span","","ESTIMATED "+(featured?"NEXT-LEVEL ":"")+"GOAL IMPACT"),
-   el("strong","",u.impactText));
-  item.append(impact);
-
-  const facts=el("div","lab-advisor-quickfacts");
-  const fact=(caption,value)=>{
-   const field=el("div","lab-advisor-quickfact");
-   field.append(el("small","",caption),el("strong","",value));
-   facts.append(field);
-  };
-  fact(u.exactCost?"NEXT COST":"NEXT COST · ESTIMATE",u.atMax?"Maxed":advisorPrice(u)+" Bucks");
-  fact("YOUR BUCKS / TO SAVE",u.affordability==="affordable"?
-   "Affordable now":advisorShortfall(u));
-  item.append(facts);
-
-  const details=el("details","lab-advisor-breakdown");
-  const summary=el("summary","","Why this recommendation?");
-  details.append(summary);
-  if(u.impactBefore&&u.impactAfter){
-   details.append(el("p","","Modeled result: "+u.impactBefore+" → "+u.impactAfter));
-  }
-  details.append(el("p","","Next level: "+u.effect.label),
-   el("p","",u.reason),
-   el("p","",u.impactNote),
-   el("p","",u.budgetNote));
-  if(!u.exactCost)details.append(el("p","",
-   "Missing discounts may reduce the estimated next cost."));
-  item.append(details);
+ function advisorDetail(u,featured=false,rank=null){
+  // Both the featured recommendation and alternative choices use the
+  // same catalog-like row structure. Avoid nesting cards inside cards.
+  const item=el("article",featured?"lab-advisor-feature-row":"lab-advisor-rank-row");
+  if(!featured)item.append(el("span","lab-advisor-row-number",String(rank??"—")));
+  const identity=advisorIdentity(u);
+  if(featured)identity.classList.add("is-featured");
+  item.append(identity);
+  const benefit=el("div","lab-advisor-row-benefit");
+  benefit.append(el("strong","",u.impactText));
+  if(featured&&u.impactBefore&&u.impactAfter&&u.impactRankable)
+   benefit.append(el("small","",u.impactBefore+" → "+u.impactAfter));
+  item.append(benefit);
+  const price=el("div","lab-advisor-row-price");
+  price.append(el("strong","",u.atMax?"Maxed":advisorPrice(u)+" Bucks"));
+  if(!u.exactCost&&!u.atMax)price.append(el("small","","Upper estimate"));
+  item.append(price);
+  const status=el("div","lab-advisor-row-status");
+  const [statusText,klass]=advisorBadge(u);
+  status.append(el("span","lab-advisor-badge "+klass,statusText));
+  if(featured&&u.affordability!=="affordable")
+   status.append(el("small","",advisorShortfall(u)));
+  item.append(status);
+  const detail=el("details","lab-advisor-row-details");
+  detail.append(el("summary","",featured?"Why this upgrade?":"Upgrade details"));
+  if(featured)detail.append(el("p","",upgradeSummary(u)));
+  if(u.impactBefore&&u.impactAfter)
+   detail.append(el("p","","Modeled result: "+u.impactBefore+" → "+u.impactAfter));
+  detail.append(el("p","","Next-level effect: "+u.effect.label),
+   el("p","",u.reason),el("p","",u.impactNote),el("p","",u.budgetNote));
+  if(!u.exactCost&&!u.atMax)
+   detail.append(el("p","","Missing discount data may lower the estimated price."));
+  item.append(detail);
   return item;
  }
  function renderAdvisor(){
@@ -685,11 +680,7 @@ export function initializeSushiLab(getSave){
   if(!advice.best){
    feature.append(el("p","hint","No remaining upgrades are available for this goal."));
   }else{
-   const head=el("div","lab-advisor-feature-heading");
-   head.append(el("span","lab-advisor-kicker","BEST NEXT UPGRADE"),
-    el("span","lab-advisor-method",advice.best.affordability==="affordable"?
-     "Ready to buy":advice.bucks===null?"Balance unavailable":"Plan ahead"));
-   feature.append(head,advisorDetail(advice.best,true));
+   feature.append(advisorDetail(advice.best,true));
   }
 
   const requested=purchasesInput.value==="custom"?
@@ -787,7 +778,7 @@ export function initializeSushiLab(getSave){
   count.textContent=shown.length===alternatives.length?
    alternatives.length+" alternatives"+(advisorFilter==="all"?"":" in this filter"):
    "Showing "+shown.length+" of "+alternatives.length+" alternatives";
-  for(const u of shown)root.append(advisorDetail(u,false));
+  for(const [index,u] of shown.entries())root.append(advisorDetail(u,false,index+1));
   if(!alternatives.length)root.append(el("p","hint",
    "No other upgrades match these filters."));
  }
