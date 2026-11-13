@@ -1053,20 +1053,17 @@ export function initializeSushiLab(getSave){
    const bonus=el("td","lab-knowledge-bonus");
    if(hasSave&&k.discovered&&Number.isFinite(k.bonus)&&
       Number.isFinite(k.nextLevelGain)){
-    const current=el("strong","",numberDisplay(k.bonus));
-    current.title=describeKnowledgeBonus(k.category,k.bonus);
+    // The displayed amount must identify the effect, not just show a raw
+    // number: +X% Sushi Bucks, +Y% Knowledge EXP, X× Fuel capacity, etc.
+    const current=el("strong","",describeKnowledgeBonus(k.category,k.bonus));
+    const nextAmount=k.bonus+k.nextLevelGain;
     const next=el("small","","Next Lv "+fmt(k.level+1)+": "+
-     numberDisplay(k.bonus+k.nextLevelGain));
-    next.title=describeKnowledgeBonus(k.category,k.bonus+k.nextLevelGain);
-    const effect=el("span","lab-knowledge-effect-label",k.categoryName);
-    effect.title="Knowledge effect: "+describeKnowledgeBonus(k.category,k.bonus);
-    bonus.append(effect,current,next);
+     describeKnowledgeBonus(k.category,nextAmount));
+    bonus.append(current,next);
    }else if(k.mapped&&Number.isFinite(k.baseLevelBonus)){
     const preview=el("strong","lab-knowledge-bonus-preview",
-     numberDisplay(k.baseLevelBonus));
-    preview.title=describeKnowledgeBonus(k.category,k.baseLevelBonus);
-    bonus.append(el("span","lab-knowledge-effect-label",k.categoryName),
-     preview,el("small","",
+     describeKnowledgeBonus(k.category,k.baseLevelBonus));
+    bonus.append(preview,el("small","",
      "Base Lv 1 · "+(!hasSave?"import save for current level":
       !k.discovered?"undiscovered":"current level unavailable")));
    }else bonus.append(el("span","lab-knowledge-unavailable","Bonus unavailable"));
