@@ -306,7 +306,7 @@
 </section>
 <section id="knowledgePlanner" class="panel lab-knowledge-planner hidden" role="tabpanel" aria-label="Knowledge Leveling Planner" aria-hidden="true">
  <div class="heading"><div><div class="eyebrow">03 · KNOWLEDGE LEVELING</div><h2>Knowledge EXP Optimizer</h2></div><span class="status">Beta · cycle simulator</span></div>
- <p class="hint">Choose Balanced or Focused, then build a board that you can refill, merge through, clear and repeat. The solver compares starting Sushi tiers, East Wind chains, fireplace setups and estimated Fuel costs.</p>
+ <p class="hint">Balanced: merge and park surviving Sushi near the top, refill empty plates, and keep building toward one T64. Focused: accumulate the chosen Sushi tier, merge some copies when the board fills, then refill and continue. Every step starts from your imported board.</p>
  <div class="lab-kp-controls">
   <label>EXP strategy<select id="knowledgePlanMode" aria-label="Knowledge EXP strategy"><option value="balanced">Balanced · spread EXP across tiers</option><option value="focused">Focused · one Sushi tier</option></select></label>
   <label id="knowledgePlanTargetLabel" class="hidden">Target Sushi<select id="knowledgePlanTarget" aria-label="Focused Sushi target"></select></label>
@@ -316,6 +316,7 @@
   <div class="lab-kp-settings-grid">
    <label>Seconds per cook<input id="knowledgePlanCookSeconds" type="number" min="0.2" max="60" step="0.1" value="2"></label>
    <label>Seconds per merge<input id="knowledgePlanMergeSeconds" type="number" min="0.2" max="60" step="0.1" value="1.5"></label>
+   <label>Refill waves to simulate<input id="knowledgePlanRounds" type="number" min="1" max="12" step="1" value="6"></label>
    <label>Fuel generation/hr<input id="knowledgePlanFuelRate" type="text" inputmode="decimal" placeholder="Estimated from JSON"></label>
    <label>Fuel capacity<input id="knowledgePlanFuelCap" type="text" inputmode="decimal" placeholder="Estimated from JSON"></label>
    <label>Base EXP per creation<input id="knowledgePlanXpPerCreation" type="text" inputmode="decimal" placeholder="Estimated from JSON"></label>
@@ -330,10 +331,11 @@
  <div id="knowledgePlanFeatured" class="hidden"></div>
  <div id="knowledgePlanRotation" class="hidden">
   <div class="lab-kp-replay-heading">
-   <h3>Prepared board and legal merge walkthrough</h3>
+   <h3>Continuous Sushi rotation · refill, merge, park, repeat</h3>
    <div class="lab-kp-replay-actions">
     <button id="knowledgePlanReset" type="button" class="button secondary">Step 0</button>
-    <button id="knowledgePlanPrepared" type="button" class="button secondary">Prepared layout</button>
+    <button id="knowledgePlanPrepared" type="button" class="button secondary">First refill</button>
+    <button id="knowledgePlanNextRefill" type="button" class="button secondary">Next refill</button>
     <button id="knowledgePlanPrev" type="button" class="button secondary" aria-label="Previous step">Previous</button>
     <button id="knowledgePlanPlay" type="button" class="button secondary">Play</button>
     <button id="knowledgePlanNext" type="button" class="button secondary" aria-label="Next step">Next</button>
@@ -348,14 +350,14 @@
    <span id="knowledgePlanStepXp">EXP in step: —</span>
    <span id="knowledgePlanFrameXp">Cycle EXP so far: —</span>
   </div>
-  <h3>Estimated Knowledge progression</h3>
-  <p class="hint">Active creation EXP only. EXP/hr and leveling times are conditional estimates from the simulated cycle and your timing/fuel inputs.</p>
+  <h3>Projected Knowledge progression</h3>
+  <p class="hint">Active creation EXP only. EXP/hr and leveling times are projected from the simulated refill window; incomplete rotations are not assumed to repeat indefinitely.</p>
   <div class="lab-table-wrap"><table class="lab-data-table lab-kp-progress-table"><thead><tr>
-   <th scope="col">Sushi tier</th><th scope="col">EXP / cycle</th><th scope="col">EXP / hr</th><th scope="col">Next level</th>
+   <th scope="col">Sushi tier</th><th scope="col">EXP / preview</th><th scope="col">Projected EXP / hr</th><th scope="col">Projected next level</th>
   </tr></thead><tbody id="knowledgePlanLevelRows"></tbody></table></div>
  </div>
  <details class="lab-kp-guide"><summary>Included mechanics and limitations</summary><ul id="knowledgePlanTips"></ul></details>
- <p class="hint lab-kp-disclaimer">These are the best results among the search candidates tested, not guaranteed global optima. The board preparation is modeled from scratch around protected highest-tier Sushi; it does not imply the imported board can be rearranged for free. Unexpected cooking-tier procs, passive daily EXP, other unparsed bonuses and precise interaction timing are excluded.</p>
+ <p class="hint lab-kp-disclaimer">Search candidates are compared by simulated EXP progression, not guaranteed global optimality. Every plan begins with the imported Sushi; only legal moves, cooking into empty slots, matching-tier merges, and East Wind upgrades change it. EXP/hr is a finite-window projection, not a verified sustained farming rate; passive daily EXP, random tier-up procs, and exact interaction timing remain excluded.</p>
 </section>
 
 </div>
