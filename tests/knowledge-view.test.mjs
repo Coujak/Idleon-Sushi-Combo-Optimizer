@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {readFileSync} from "node:fs";
 import {getKnowledgeRows} from "../src/lab-model.mjs";
+import {formatKnowledgeBonusValue} from "../src/knowledge-bonus-format.mjs";
 import {describeKnowledgeBonus} from "../src/knowledge-bonus-format.mjs";
 import {filterKnowledgeRows,knowledgeOverview,KNOWLEDGE_SORT_OPTIONS,KNOWLEDGE_STATUS_OPTIONS}
  from "../src/knowledge-view.mjs";
@@ -76,11 +77,11 @@ test("Knowledge overview summarizes discovered and only actually tracked levels"
  assert.ok(overview.categoryTotals.length>0);
  assert.deepEqual(knowledgeOverview(rows,false).discovered,null);
 });
-test("Knowledge tab renders progress, category chips and a shared visual style",()=>{
+test("Knowledge tab renders EXP progress and one compact filter toolbar",()=>{
  const html=readFileSync(new URL("../index.html",import.meta.url),"utf8");
  const ui=readFileSync(new URL("../src/lab-ui.mjs",import.meta.url),"utf8");
  const css=readFileSync(new URL("../styles.css",import.meta.url),"utf8");
- for(const id of ["labKnowledgeOverview","labKnowledgeCategoryChips","labKnowledgeSearch",
+ for(const id of ["labKnowledgeOverview","labKnowledgeSearch",
   "labKnowledgeCategory","labKnowledgeStatus","labKnowledgeSort","labKnowledgeCount","labKnowledgeRows"])
   assert.ok(html.includes('id="'+id+'"'),id+" missing");
  assert.ok(html.includes("lab-catalog-toolbar lab-knowledge-toolbar"));
@@ -91,7 +92,15 @@ test("Knowledge tab renders progress, category chips and a shared visual style",
  assert.ok(ui.includes('knowledgeCategoryInput.addEventListener("change"'));
  assert.ok(css.includes("#lab-knowledge .lab-knowledge-exp-progress"));
  assert.ok(css.includes("#lab-knowledge .lab-knowledge-toolbar"));
- assert.ok(css.includes("#lab-knowledge .lab-knowledge-category-chip.is-selected"));
+ assert.ok(!html.includes('id="labKnowledgeCategoryChips"'),
+  "Redundant effect chips should be removed");
+ assert.ok(!ui.includes('const chips=$("labKnowledgeCategoryChips")'),
+  "Renderer should not require deleted chips");
+ assert.ok(!css.includes("#lab-knowledge .lab-knowledge-category-chip"),
+  "Remove unused category chip CSS");
+ assert.ok(css.includes("height:12px"),"EXP progress bar is taller");
+ assert.ok(css.includes("background:linear-gradient(90deg,#28b88b"),
+  "EXP bar has a higher-contrast fill");
 });
 
 test("Knowledge tab actually renders imported tiers, ready filter and missing-save state",()=>{
@@ -110,7 +119,7 @@ test("Knowledge tab actually renders imported tiers, ready filter and missing-sa
   setAttribute(k,v){this.attributes[k]=v}
   addEventListener(k,fn){this.events[k]=fn}
  }
- const nodes=new Map(["labKnowledgeOverview","labKnowledgeCategoryChips",
+ const nodes=new Map(["labKnowledgeOverview",
   "labKnowledgeCount","labKnowledgeRows","labKnowledgeEmpty"]
   .map(id=>[id,new Node()]));
  nodes.set("labKnowledgeSearch",{value:""});
@@ -122,6 +131,7 @@ test("Knowledge tab actually renders imported tiers, ready filter and missing-sa
   knowledgeCategoryInput,knowledgeStatusInput,
   knowledgeCategory:"all",knowledgeSort:"tier",
   getKnowledgeRows,knowledgeOverview,filterKnowledgeRows,describeKnowledgeBonus,
+  formatKnowledgeBonusValue,
   KNOWLEDGE_CATEGORIES:["Bucks earned","Knowledge XP","Cooking +1 tier chance",
    "Fuel capacity","Fuel generation","Free Shaker chance","Upgrade discounts",
    "Fuel generation multiplier","Slot strength","Fireplace strength","Perfecto chance"],
@@ -140,10 +150,21 @@ test("Knowledge tab actually renders imported tiers, ready filter and missing-sa
  assert.ok(firstInfo.children[1].textContent.includes("2× Research EXP"),
   "Permanent tier reward is visible beneath Sushi name");
  const firstBonus=displayRow.children[3];
- assert.match(firstBonus.children[0].textContent,/\+\d+(?:\.\d+)?% Sushi Bucks/,
-  "Knowledge Bonus shows value and effect together");
- assert.match(firstBonus.children[1].textContent,/Next Lv 6: \+.*Sushi Bucks/,
-  "Next Knowledge level shows its upgraded effect");
+ const current=firstBonus.children[0],next=firstBonus.children[1];
+ assert.equal(current.className,"lab-knowledge-bonus-line");
+ assert.equal(current.children[0].textContent,"Bucks earned",
+  "Effect text stays outside the pill");
+ assert.equal(current.children[1].className,"lab-knowledge-value-pill");
+ assert.match(current.children[1].textContent,/^\+\d+(?:\.\d+)?%$/,
+  "Only the current numeric value belongs in the green bubble");
+ assert.equal(next.children[0].textContent,"Next Lv 6");
+ assert.equal(next.children[1].className,"lab-knowledge-value-pill");
+ assert.match(next.children[1].textContent,/^\+\d+(?:\.\d+)?%$/);
+ const perfectoBonus=nodes.get("labKnowledgeRows").children[1].children[3];
+ assert.ok(perfectoBonus.children[0].children[1].className.includes("is-perfecto"),
+  "Perfecto current pill should be purple");
+ assert.ok(perfectoBonus.children[1].children[1].className.includes("is-perfecto"),
+  "Perfecto next-level pill should be purple");
  const perfectoIdentity=nodes.get("labKnowledgeRows").children[1].children[0].children[0];
  const perfectoMark=perfectoIdentity.children[0].children[1];
  assert.equal(perfectoMark.tag,"img","Perfecto overlay uses existing PNG");
@@ -153,7 +174,7 @@ test("Knowledge tab actually renders imported tiers, ready filter and missing-sa
  assert.equal(firstIdentity.children[0].children.length,1,
   "Non-Perfecto Sushi should have no achievement symbol");
  assert.equal(nodes.get("labKnowledgeOverview").children.length,4);
- assert.equal(nodes.get("labKnowledgeCategoryChips").children.length,12);
+
  const first=nodes.get("labKnowledgeRows").children[0];
  assert.ok(first.children.some(cell=>cell.className==="lab-knowledge-exp"));
  knowledgeStatusInput.value="ready";
@@ -166,4 +187,16 @@ test("Knowledge tab actually renders imported tiers, ready filter and missing-sa
  assert.equal(nodes.get("labKnowledgeRows").children.length,64);
  const metrics=nodes.get("labKnowledgeOverview").children;
  assert.equal(metrics[0].children[1].textContent,"—");
+});
+
+test("Normal Knowledge bonuses use green value bubbles; Perfecto uses purple",()=>{
+ const css=readFileSync(new URL("../styles.css",import.meta.url),"utf8");
+ assert.match(css,/#lab-knowledge \.lab-knowledge-value-pill\{/);
+ assert.match(css,/background:#234a3f;/);
+ assert.match(css,/#lab-knowledge \.lab-knowledge-value-pill\.is-perfecto\{/);
+ assert.match(css,/background:#573a72;/);
+ assert.match(css,/#lab-knowledge \.lab-knowledge-bonus-label\{/);
+ assert.match(css,/#lab-knowledge \.lab-knowledge-exp-values>span\{/);
+ assert.match(css,/th:nth-child\(1\)\{width:33%\}/);
+ assert.match(css,/th:nth-child\(4\)\{width:28%\}/);
 });
