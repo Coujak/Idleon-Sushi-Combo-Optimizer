@@ -2,9 +2,9 @@
 // Recomputes levels, costs and priority after each simulated purchase.
 // Future income is NOT predicted: when Bucks run out we simulate saving
 // only the extra Bucks required for the next suggested purchase.
-import {getProgressionAdvice,readSushiBucks} from "./progression-advisor.mjs?v=1.16.8";
-import {progressionComparableMetric} from "./progression-impact.mjs?v=1.0.0";
-import {calibratedProgressionMetric} from "./progression-calibration.mjs";
+import {getProgressionAdvice,readSushiBucks} from "./progression-advisor.mjs?v=1.17.2";
+import {progressionComparableMetric} from "./progression-impact.mjs?v=1.0.1";
+import {calibratedProgressionMetric} from "./progression-calibration.mjs?v=1.17.0";
 
 export const PURCHASE_PRESETS=[5,10,25,50,100];
 export const MAX_CUSTOM_PURCHASES=500;
