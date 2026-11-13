@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {readFileSync} from "node:fs";
-import {buildProgressionPurchasePlan,normalizePurchaseCount,PURCHASE_PRESETS,
+import {buildProgressionPurchasePlan,groupProgressionPurchases,normalizePurchaseCount,PURCHASE_PRESETS,
  MAX_CUSTOM_PURCHASES} from "../src/progression-roadmap.mjs";
 import {progressionGoalMetric} from "../src/progression-goal-impact.mjs";
 
@@ -197,4 +197,43 @@ test("Roadmap and recommendation share the same goal metric and projected change
  const p=buildProgressionPurchasePlan(perfecto,"perfecto",2);
  assert.equal(p.steps[0].id,18,"Pepper unlock is selected before free-use upgrades when available");
  assert.match(p.steps[0].goalResult.projected,/Pepper unlocked/);
+});
+
+test("Consecutive levels of the same upgrade group without losing purchase order or totals",()=>{
+ const original=[
+  {number:1,id:7,name:"A",fromLevel:2,toLevel:3,price:25,missingBucks:0,
+   fundedByImport:true,exactPrice:true,goalResult:{label:"Fuel",current:"100",projected:"110",changed:true}},
+  {number:2,id:7,name:"A",fromLevel:3,toLevel:4,price:40,missingBucks:10,
+   fundedByImport:false,exactPrice:false,goalResult:{label:"Fuel",current:"110",projected:"120",changed:true}},
+  {number:3,id:8,name:"B",fromLevel:0,toLevel:1,price:90,missingBucks:90,
+   fundedByImport:false,exactPrice:true,goalResult:{label:"Fuel",current:"120",projected:"130",changed:true}},
+  {number:4,id:7,name:"A",fromLevel:4,toLevel:5,price:120,missingBucks:120,
+   fundedByImport:false,exactPrice:true,goalResult:{label:"Fuel",current:"130",projected:"140",changed:true}},
+ ];
+ const copy=JSON.stringify(original);
+ const groups=groupProgressionPurchases(original);
+ assert.deepEqual(groups.map(g=>[g.id,g.firstNumber,g.lastNumber,g.count]),
+  [[7,1,2,2],[8,3,3,1],[7,4,4,1]]);
+ assert.equal(groups[0].fromLevel,2);
+ assert.equal(groups[0].toLevel,4);
+ assert.equal(groups[0].totalCost,65);
+ assert.equal(groups[0].totalMissingBucks,10);
+ assert.equal(groups[0].fundedCount,1);
+ assert.equal(groups[0].exactPrice,false);
+ assert.equal(groups[0].goalResult.current,"100");
+ assert.equal(groups[0].goalResult.projected,"120");
+ assert.deepEqual(groups.flatMap(g=>g.steps.map(s=>s.number)),[1,2,3,4]);
+ assert.equal(JSON.stringify(original),copy,"Grouping must not alter individual purchase records");
+});
+
+test("Grouping a real roadmap preserves every level, estimated cost and funding status",()=>{
+ const plan=buildProgressionPurchasePlan(fixture(1e15),"fuel",25);
+ const groups=groupProgressionPurchases(plan.steps);
+ assert.equal(groups.reduce((sum,g)=>sum+g.count,0),plan.steps.length);
+ assert.deepEqual(groups.flatMap(g=>g.steps.map(s=>s.number)),plan.steps.map(s=>s.number));
+ const aggregated=groups.reduce((sum,g)=>sum+g.totalCost,0);
+ assert.ok(Math.abs(aggregated-plan.totalEstimatedCost)<
+  1e-10*Math.max(1,plan.totalEstimatedCost));
+ assert.equal(groups.reduce((sum,g)=>sum+g.fundedCount,0),plan.initiallyFunded);
+ assert.equal(groups.at(-1).goalResult.projected,plan.finalGoal.display);
 });
