@@ -96,3 +96,18 @@ test("Doubler Advisor HTML and controls contain only one selected focus",()=>{
  assert.doesNotMatch(code,/value:"all"/);
  assert.match(ui,/u\.status!=="Level first"/);
 });
+
+test("Already-doubled upgrades use the Upgrade Catalog's purple highlight",()=>{
+ const ui=readFileSync(new URL("../src/lab-ui.mjs",import.meta.url),"utf8");
+ const css=readFileSync(new URL("../styles.css",import.meta.url),"utf8");
+ assert.match(ui,/u\\.doubled\\?" is-doubled"/);
+ assert.match(ui,/u\\.doubled\\?"×2 Active · Keep"/);
+ assert.match(css,/\\.lab-doubler-plan-card\\.is-doubled\\{/);
+ assert.match(css,/background:#26273b;border-color:#9f77cb/);
+ assert.match(css,/box-shadow:inset 3px 0 0 #cda2fa/);
+ assert.match(css,/\\.lab-doubler-plan-status\\.is-doubled\\{/);
+ const plan=getDoublerPlacementPlan(scenario(),"knowledge");
+ assert.equal(plan.recommendations[0].doubled,true);
+ assert.equal(plan.recommendations[0].status,"Keep");
+ assert.equal(plan.recommendations[1].doubled,false);
+});
