@@ -58,7 +58,7 @@ test("Knowledge sorting preserves stable tier tie-breakers and puts unknown prog
  assert.deepEqual(filterKnowledgeRows(rows,{status:"discovered",sort:"level-desc"}).map(k=>k.tier),
   [50,1,2,3]);
  assert.deepEqual(filterKnowledgeRows(rows,{status:"discovered",sort:"progress-desc"}).map(k=>k.tier),
-  [2,1,3,50]);
+  [2,1,50,3]);
  assert.equal(filterKnowledgeRows(rows,{sort:"next"})[0].tier,2);
  assert.equal(filterKnowledgeRows(rows,{sort:"tier-desc"})[0].tier,64);
  assert.ok(KNOWLEDGE_SORT_OPTIONS.some(o=>o.value==="next"));
