@@ -23,10 +23,10 @@ test("Knowledge then Perfecto then cheaper upgrades are recommended before other
  assert.deepEqual(plan.recommendations.map(u=>u.id),[38,37,21,36,31]);
  assert.equal(plan.recommendations[0].status,"Keep");
  assert.equal(plan.recommendations[1].status,"Move Doubler");
- assert.equal(plan.recommendations[1].from,"Fastburn Fuel V");
+ assert.equal(plan.recommendations[1].from,"Quickpay Fee");
  assert.equal(plan.recommendations[2].status,"Keep");
  assert.equal(plan.recommendations[3].status,"Move Doubler");
- assert.equal(plan.recommendations[3].from,"Quickpay Fee");
+ assert.equal(plan.recommendations[3].from,"Fastburn Fuel V");
  assert.equal(plan.changes,2);
 });
 test("An available Doubler gets used before moving any existing ones",()=>{
