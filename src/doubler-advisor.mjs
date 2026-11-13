@@ -60,22 +60,32 @@ export function getDoublerValueComparison(upgrade){
 
 export function getDoublerPlacementPlan(save,goal="knowledge"){
  if(!save)return null;
- if(!DOUBLER_FOCUS_OPTIONS.some(option=>option.value===goal))
-  return {ready:false,reason:"Choose one Doubler category to view its eligible upgrades."};
+ // Each tag filters an independent category. Combine only the matching
+ // upgrade lists; never turn this into a mixed-effect scoring category.
+ const selected=Array.isArray(goal)?goal:[goal];
+ const valid=DOUBLER_FOCUS_OPTIONS.map(option=>option.value);
+ const goals=[...new Set(selected.filter(id=>valid.includes(id)))];
+ if(!goals.length)return {ready:false,reason:"Add a category to see Doubler-eligible upgrades."};
 
  const counts=getSushiDoublerCounts(save);
  if(counts.used===null)return {ready:false,
   reason:"Doubler assignments are missing from this save. Import a full game save."};
- const focusIds=focusPriority[goal]??[];
- const focusOrder=id=>focusIds.indexOf(id);
+ const categoryRank=u=>goals.findIndex(id=>u.goals.includes(id));
+ const focusOrder=(u)=>{
+  const category=goals[categoryRank(u)];
+  return (focusPriority[category]??[]).indexOf(u.id);
+ };
  const upgrades=getUpgradeRows(save)
-  .filter(u=>u.doublerEligible&&u.maxLevel>0&&u.goals.includes(goal))
+  .filter(u=>u.doublerEligible&&u.maxLevel>0&&goals.some(id=>u.goals.includes(id)))
   .sort((a,b)=>{
-   // Ready-to-benefit upgrades first. Within that group, prefer the
-   // specifically documented effect order, then placements and levels.
+   // Group each explicitly selected category together in tag order.
+   // Within each category, keep the known effect preferences, then
+   // active Doubler assignments. Never compare unlike raw effect units.
+   const groupDiff=categoryRank(a)-categoryRank(b);
+   if(groupDiff)return groupDiff;
    const zeroDiff=Number(a.level<=0)-Number(b.level<=0);
    if(zeroDiff)return zeroDiff;
-   const ar=focusOrder(a.id),br=focusOrder(b.id);
+   const ar=focusOrder(a),br=focusOrder(b);
    if(ar>=0||br>=0){
     if(ar<0)return 1;if(br<0)return -1;
     if(ar!==br)return ar-br;
@@ -99,7 +109,7 @@ export function getDoublerPlacementPlan(save,goal="knowledge"){
   );
   return {...u,status,reason};
  });
- return {ready:true,goal,counts,recommendations,
+ return {ready:true,goal,goals,counts,recommendations,
   totalOptions:recommendations.length,
   actionable:recommendations.filter(u=>u.level>0).length,
   changes:recommendations.filter(u=>u.status==="Use available").length,
