@@ -72,7 +72,7 @@ const actionOnly={
  bucks:new Set([22,35]),
  fuel:new Set([20])
 };
-const fmtGain=value=>value.toLocaleString("en-US",{maximumFractionDigits:2});
+const fmtGain=value=>formatGameQuantity(value);
 function gainRanking(goal,upgrade,no,yes){
  if(upgrade.level<=0)return {gainScore:null,gainText:"Level this upgrade before doubling",gainRankable:false};
  if(actionOnly[goal]?.has(upgrade.id))return {
