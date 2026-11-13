@@ -3470,6 +3470,16 @@ details summary{cursor:pointer;font-size:12px;font-weight:700;color:#9eb7c9}
  font-variant-numeric:tabular-nums;
  white-space:nowrap;
 }
+#lab-knowledge .lab-knowledge-tier-value{
+ padding:1px 5px;
+ margin:0 3px 0 0;
+ font-size:11px;
+ vertical-align:baseline;
+}
+#lab-knowledge .lab-knowledge-tier-reward-text{
+ display:inline;
+ color:#d5c3f0;
+}
 #lab-knowledge .lab-knowledge-value-pill.is-perfecto{
  border-color:#a883c8;
  background:#573a72;
