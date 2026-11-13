@@ -154,10 +154,13 @@ export function initializeKnowledgeLevelingUI(getSave){
     " copies you can actually produce. Move plates only if Movement Mittens are unlocked; you cannot directly drag Sushi.");
    else appendBullet(list,"No Milktoast plates are unlocked. Allocate a reusable unlocked area for creating T"+focus.tier+".");
   }else if(phase.index===2){
-   appendBullet(list,plan.hasSeared?"Repeatedly create T"+focus.tier+
-    ". Cook it directly only if your fuel cap and costs permit; otherwise merge two T"+
-    Math.max(1,focus.tier-1)+" into T"+focus.tier+
-    " when practical. Recycle the supporting board without destroying protected higher-tier Sushi.":
+   appendBullet(list,plan.hasSeared?
+    (focus.tier===1?
+     "Repeatedly cook T1 on an available unlocked plate when fuel permits. Do not overwrite an occupied Sushi slot.":
+     "Repeatedly create T"+focus.tier+
+     ". Cook it directly only if your fuel cap and costs permit; otherwise merge two T"+
+     (focus.tier-1)+" into T"+focus.tier+
+     " when practical. Recycle the supporting board without destroying protected higher-tier Sushi."):
     "Seared Knowledge is locked. Unlock it before using Sushi creation as the main way to increase T"+focus.tier+" EXP.");
    if(plan.hasWind)appendBullet(list,
     "Heat of the East Wind can create additional Sushi during valid chains. Count only actual creations; no unverified cascade or EXP bonus is included in this plan.");
@@ -194,7 +197,13 @@ export function initializeKnowledgeLevelingUI(getSave){
   // For focused mode, display the target once and summarize the count of Milktoast plates.
   const pairs=phase.targets.map(t=>phase.slotPairs.find(p=>p.tier===t.tier)??null);
   for(let i=0;i<phase.targets.length;i++)group.append(targetCard(phase.targets[i],pairs[i],plan.hasMittens));
-  item.append(group,stageInstructions(plan,phase));
+  item.append(group);
+  if(plan.mode==="focused"&&plan.positions.milktoast.length){
+   item.append(make("p","lab-kp-stage-plates","Milktoast positions: "+
+    plan.positions.milktoast.map(positionLabel).join(", ")+
+    ". Only existing or legally prepared Sushi on these plates gain their passive EXP."));
+  }
+  item.append(stageInstructions(plan,phase));
   return item;
  }
  function render(){
