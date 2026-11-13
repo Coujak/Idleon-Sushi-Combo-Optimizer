@@ -2,9 +2,9 @@
 // Recomputes levels, costs and priority after each simulated purchase.
 // Future income is NOT predicted: when Bucks run out we simulate saving
 // only the extra Bucks required for the next suggested purchase.
-import {getProgressionAdvice} from "./progression-advisor.mjs?v=1.16.6";
-import {progressionGoalMetric} from "./progression-goal-impact.mjs?v=1.16.7";
-import {calibratedProgressionMetric} from "./progression-calibration.mjs";
+import {getProgressionAdvice,readSushiBucks} from "./progression-advisor.mjs?v=1.17.3";
+import {progressionComparableMetric} from "./progression-impact.mjs?v=1.0.1";
+import {calibratedProgressionMetric} from "./progression-calibration.mjs?v=1.17.1";
 
 export const PURCHASE_PRESETS=[5,10,25,50,100];
 export const MAX_CUSTOM_PURCHASES=500;
@@ -27,13 +27,13 @@ export function buildProgressionPurchasePlan(save,goal,requestedCount=5,{reading
  const projected={...save,sushi:save.sushi.map((entry,index)=>
   index===2||index===4?Array.isArray(entry)?entry.slice():[]:entry)};
  if(!Array.isArray(projected.sushi[4]))projected.sushi[4]=[];
- const initial=Number(projected.sushi[4][3]??0);
- if(!finite(initial)||initial<0)return {...blank,stopReason:"Sushi Bucks balance is unavailable."};
+ const initial=readSushiBucks(projected);
+ if(initial===null)return {...blank,stopReason:"Sushi Bucks balance is missing or invalid in this import. Import a complete save to plan purchases."};
  let balance=initial,totalEstimatedCost=0,additionalBucksNeeded=0,initiallyFunded=0;
  const steps=[];
- const referenceMetric=progressionGoalMetric(projected,goal);
+ const referenceMetric=progressionComparableMetric(projected,goal);
  const metricFor=state=>calibratedProgressionMetric(
-  progressionGoalMetric(state,goal),referenceMetric,readings[goal],goal);
+  progressionComparableMetric(state,goal),referenceMetric,readings[goal],goal);
  const initialGoal=metricFor(projected);
  let goalBefore=initialGoal;
  let stopReason="";
@@ -88,4 +88,37 @@ export function buildProgressionPurchasePlan(save,goal,requestedCount=5,{reading
   initialGoal,finalGoal:goalBefore,
   stopReason
  };
+}
+
+/**
+ * Group only adjacent purchases of the same upgrade. Combining non-adjacent
+ * steps would hide the actual recommended buying order and give misleading
+ * level ranges. Every original step remains available for the expanded view.
+ */
+export function groupProgressionPurchases(steps=[]){
+ const groups=[];
+ for(const step of steps){
+  const last=groups.at(-1);
+  if(last&&last.id===step.id&&last.toLevel===step.fromLevel&&
+   last.lastNumber+1===step.number){
+   last.lastNumber=step.number;
+   last.toLevel=step.toLevel;
+   last.count++;
+   last.totalCost+=step.price;
+   last.totalMissingBucks+=step.missingBucks;
+   last.fundedCount+=Number(step.fundedByImport);
+   last.exactPrice=last.exactPrice&&step.exactPrice;
+   last.goalResult.projected=step.goalResult.projected;
+   last.goalResult.changed=last.goalResult.current!==step.goalResult.projected;
+   last.goalResult.note=step.goalResult.note;
+   last.goalResult.estimated=last.goalResult.estimated||step.goalResult.estimated;
+   last.steps.push(step);
+  }else{
+   groups.push({...step,firstNumber:step.number,lastNumber:step.number,count:1,
+    totalCost:step.price,totalMissingBucks:step.missingBucks,
+    fundedCount:Number(step.fundedByImport),
+    goalResult:{...step.goalResult},steps:[step]});
+  }
+ }
+ return groups;
 }

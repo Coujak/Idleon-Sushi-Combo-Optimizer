@@ -129,3 +129,78 @@ test("New advisor navigation and rendering are present without changing the upgr
  assert.ok(PROGRESSION_SORT_OPTIONS.some(x=>x.value==="value"));
  assert.ok(PROGRESSION_FILTER_OPTIONS.some(x=>x.value==="affordable"));
 });
+
+test("Missing Sushi Bucks is unknown, not a fabricated zero balance",()=>{
+ const missing=sampleSave();
+ missing.sushi[4].splice(3,1);
+ const advice=getProgressionAdvice(missing,"fuel");
+ assert.equal(advice.bucks,null);
+ assert.equal(advice.affordableCount,0);
+ assert.ok(advice.best);
+ assert.equal(advice.best.affordability,"unknown");
+ assert.equal(advice.best.missing,null);
+ assert.ok(advice.rows.every(u=>u.affordability==="unknown"));
+ const zero=getProgressionAdvice(sampleSave(0),"fuel");
+ assert.equal(zero.bucks,0);
+ assert.ok(zero.rows.some(u=>u.affordability!=="unknown"));
+});
+
+test("Recommendations compare modeled next-level goal impact, including both Searing upgrades",async()=>{
+ const {progressionComparableMetric}=await import("../src/progression-impact.mjs");
+ const save=sampleSave(1e20);
+ save.sushi[2][37]=25;
+ save.sushi[2][38]=25;
+ const metric=progressionComparableMetric(save,"knowledge");
+ const oldGlobalOnly=1+(save.sushi[2][38])/100;
+ assert.ok(metric.value>oldGlobalOnly,"Created-Sushi EXP includes 2nd Degree Searing");
+ const plan=getProgressionAdvice(save,"knowledge");
+ for(const id of [37,38]){
+  const option=plan.all.find(x=>x.id===id);
+  assert.ok(option.impactRankable);
+  assert.ok(option.relativeGain>0);
+  assert.match(option.impactText,/knowledge improvement/i);
+  assert.match(option.impactNote,/partial model/i);
+ }
+ const chosen=plan.all.filter(x=>x.impactRankable).sort((a,b)=>b.valueScore-a.valueScore);
+ assert.equal(chosen[0].id,plan.best.id);
+});
+
+test("Perfecto priority recognizes Pepper unlock without inventing percent chances",async()=>{
+ const {progressionComparableMetric}=await import("../src/progression-impact.mjs");
+ const save=sampleSave(1e20);
+ save.sushi[2][21]=5;
+ const before=progressionComparableMetric(save,"perfecto");
+ assert.equal(before.value,5);
+ const planner=getProgressionAdvice(save,"perfecto");
+ assert.equal(planner.best.id,18);
+ assert.equal(planner.best.importantUnlock,true);
+ assert.match(planner.best.impactText,/Unlocks Pepper Shaker/);
+ save.sushi[2][18]=1;
+ assert.equal(progressionComparableMetric(save,"perfecto").value,5);
+ save.spelunk[52]=[21];
+ assert.equal(progressionComparableMetric(save,"perfecto").value,10);
+});
+
+test("Progression recommendations expose impact explanations and a configurable visible result limit",()=>{
+ const html=readFileSync(new URL("../index.html",import.meta.url),"utf8");
+ const ui=readFileSync(new URL("../src/lab-ui.mjs",import.meta.url),"utf8");
+ assert.equal(html.split('id="labAdvisorVisibleCount"').length-1,1);
+ for(const count of ["3","5","10","all"])assert.ok(html.includes('<option value="'+count+'"'));
+ assert.ok(ui.includes('advisorVisibleCount="all"'));
+ assert.ok(ui.includes('alternatives.slice(0,'));
+ assert.ok(ui.includes('u.impactText'));
+ assert.ok(ui.includes('u.impactNote'));
+});
+
+test("Goal-improving upgrades outrank cheap unmeasured effects, even if saving is needed",()=>{
+ const save=sampleSave(1e20);
+ save.sushi[2][37]=25;
+ save.sushi[2][38]=25;
+ const advice=getProgressionAdvice(save,"knowledge");
+ assert.equal(advice.best.id,37);
+ assert.ok(advice.best.impactRankable);
+ assert.notEqual(advice.best.affordability,"affordable");
+ assert.ok(advice.rows.some(x=>x.affordability==="affordable"&&!x.impactRankable));
+ const first=advice.rows.find(x=>!x.atMax);
+ assert.equal(first.id,37);
+});

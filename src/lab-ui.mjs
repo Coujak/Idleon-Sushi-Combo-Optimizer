@@ -1,13 +1,20 @@
 // Sushi Station Lab: lightweight, accessible navigation and account-aware
 // information panels. All imported JSON stays in memory on the user's device.
-import {sushiUpgradeIconPath,sushiTierIconPath} from "./sushi-reference.mjs?v=1.16.6";
-import {initializePerfectoUI} from "./perfecto-ui.mjs?v=1.36.0";
-import {CATALOG_SORT_OPTIONS,CATALOG_STATUS_OPTIONS,upgradeSummary,readableUpgradeDescription,upgradeDescriptionSegments,catalogHasVariableValues,filterSortCatalog,upgradeCatalogDollarValue} from "./upgrade-catalog.mjs?v=1.16.7";
+import {sushiUpgradeIconPath,sushiTierIconPath,KNOWLEDGE_CATEGORIES} from "./sushi-reference.mjs?v=1.16.6";
+import {KNOWLEDGE_SORT_OPTIONS,KNOWLEDGE_STATUS_OPTIONS,filterKnowledgeRows,knowledgeOverview,
+ KNOWLEDGE_PREFERENCES_KEY,normalizeKnowledgePreferences,nextKnowledgeHeaderSort,knowledgeCheckpoint}
+ from "./knowledge-view.mjs?v=1.0.2";
+import {describeKnowledgeBonus,formatKnowledgeBonusValue} from "./knowledge-bonus-format.mjs?v=1.0.2";
+import {initializePerfectoUI} from "./perfecto-ui.mjs?v=1.36.2";
+import {CATALOG_SORT_OPTIONS,CATALOG_STATUS_OPTIONS,upgradeSummary,readableUpgradeDescription,upgradeDescriptionSegments,catalogHasVariableValues,filterSortCatalog,upgradeCatalogDollarValue} from "./upgrade-catalog.mjs?v=1.16.9";
 import {ADVISOR_GOALS,numberText,getSushiSnapshot,getUpgradeRows,
- getKnowledgeRows,advisorUpgrades,doublerUpgrades,getSushiDoublerCounts,sushiUpgradeExtraText,upgradeAffordability} from "./lab-model.mjs?v=1.19.10";
-import {getProgressionAdvice,PROGRESSION_SORT_OPTIONS,PROGRESSION_FILTER_OPTIONS} from "./progression-advisor.mjs?v=1.16.6";
-import {buildProgressionPurchasePlan} from "./progression-roadmap.mjs?v=1.16.7";
-import {parseGameQuantity} from "./progression-calibration.mjs?v=1.16.3";
+ getKnowledgeRows,advisorUpgrades,getSushiDoublerCounts,sushiUpgradeExtraText,upgradeAffordability} from "./lab-model.mjs?v=1.19.13";
+import {getSushiDashboardMetrics} from "./dashboard-metrics.mjs?v=1.0.2";
+import {getProgressionAdvice,PROGRESSION_SORT_OPTIONS,PROGRESSION_FILTER_OPTIONS} from "./progression-advisor.mjs?v=1.17.3";
+import {DOUBLER_FOCUS_OPTIONS,DOUBLER_SORT_OPTIONS,getDoublerPlacementPlan,getDoublerValueComparison} from "./doubler-advisor.mjs?v=1.5.2";
+import {getDoublerAccountImpact} from "./doubler-stat-impact.mjs?v=1.3.2";
+import {buildProgressionPurchasePlan,groupProgressionPurchases} from "./progression-roadmap.mjs?v=1.17.4";
+import {parseGameQuantity} from "./progression-calibration.mjs?v=1.17.1";
 import {overviewTierProgress,importAgeText} from "./overview-helpers.mjs?v=1.19.9";
 import {fireplaceOverviewAdvice,formatSparkBonusPoints} from "./fireplace-advice.mjs?v=1.2.0";
 
@@ -49,9 +56,26 @@ function openButton(name,target){
 }
 let setTab=()=>{};
 export function initializeSushiLab(getSave){
- let mainTab="overview",upgradeTab="catalog",goal="bucks",doublerGoal="all";
- let advisorSort="recommended",advisorFilter="all",purchaseView="cards";
+ let mainTab="overview",upgradeTab="catalog",goal="bucks",doublerGoals=["knowledge"];
+ let doublerHideDoubled=false,doublerMenuOpen=false,doublerSort="best";
+ let advisorSort="recommended",advisorFilter="all",advisorVisibleCount="all",purchaseView="list";
  let catalogSort="shop",catalogCategory="all",catalogStatus="all";
+ let knowledgeCategory="all",knowledgeSort="tier";
+ let knowledgePreferences=normalizeKnowledgePreferences(null);
+ try{
+  knowledgePreferences=normalizeKnowledgePreferences(
+   JSON.parse(window.localStorage.getItem(KNOWLEDGE_PREFERENCES_KEY)||"null"));
+ }catch{/* Storage may be disabled in private browsing. Keep the controls usable. */}
+ knowledgeCategory=knowledgePreferences.category;
+ knowledgeSort=knowledgePreferences.sort;
+ const rememberKnowledgePreferences=()=>{
+  try{
+   window.localStorage.setItem(KNOWLEDGE_PREFERENCES_KEY,JSON.stringify({
+    search:$("labKnowledgeSearch").value,
+    category:knowledgeCategory,status:knowledgeStatusInput.value,sort:knowledgeSort
+   }));
+  }catch{/* No persistent storage available: session-only behavior. */}
+ };
  let importedAt=null;
  const missingListExpanded={labMissingPerfectos:false,labMissingTiers:false};
  const expandedUpgradeDetails=new Set();
@@ -98,16 +122,69 @@ export function initializeSushiLab(getSave){
  for(const nav of document.querySelectorAll("[data-upgrade-target]")){
   nav.addEventListener("click",()=>setUpgradeTab(nav.dataset.upgradeTarget));
  }
- const goalInput=$("labAdvisorGoal"),dblInput=$("labDoublerGoal");
- for(const entry of ADVISOR_GOALS){
-  goalInput.append(new Option(entry.name,entry.id));
-  dblInput.append(new Option(entry.name,entry.id));
- }
+ const goalInput=$("labAdvisorGoal");
+ for(const entry of ADVISOR_GOALS)goalInput.append(new Option(entry.name,entry.id));
  goalInput.value=goal;
  goalInput.addEventListener("change",()=>{goal=goalInput.value;renderAdvisor();});
- dblInput.addEventListener("change",()=>{doublerGoal=dblInput.value;renderDoubler();});
+ const doublerTags=$("labDoublerTags"),doublerAdd=$("labDoublerAddCategory");
+ const doublerMenu=$("labDoublerCategoryMenu"),doublerHideInput=$("labDoublerHideDoubled");
+ const doublerSortInput=$("labDoublerSort");
+ for(const item of DOUBLER_SORT_OPTIONS)doublerSortInput.append(new Option(item.label,item.value));
+ doublerSortInput.value=doublerSort;
+ doublerSortInput.addEventListener("change",()=>{doublerSort=doublerSortInput.value;renderDoubler();});
+ function renderDoublerTags(){
+  doublerTags.replaceChildren();doublerMenu.replaceChildren();
+  for(const id of doublerGoals){
+   const option=DOUBLER_FOCUS_OPTIONS.find(x=>x.value===id);
+   if(!option)continue;
+   const tag=el("button","lab-doubler-tag");
+   tag.type="button";tag.setAttribute("aria-label","Remove "+option.label+" category");
+   tag.append(el("span","",option.label));
+   const close=el("span","lab-doubler-tag-x","×");close.setAttribute("aria-hidden","true");
+   tag.append(close);
+   tag.addEventListener("click",()=>{
+    doublerGoals=doublerGoals.filter(value=>value!==id);
+    doublerMenuOpen=false;renderDoubler();
+   });
+   doublerTags.append(tag);
+  }
+  for(const option of DOUBLER_FOCUS_OPTIONS.filter(o=>!doublerGoals.includes(o.value))){
+   const button=el("button","lab-doubler-menu-option",option.label);
+   button.type="button";
+   button.addEventListener("click",()=>{
+    doublerGoals=[...doublerGoals,option.value];
+    doublerMenuOpen=false;renderDoubler();doublerAdd.focus();
+   });
+   doublerMenu.append(button);
+  }
+  doublerAdd.disabled=doublerMenu.children.length===0;
+  if(doublerAdd.disabled)doublerMenuOpen=false;
+  doublerMenu.classList.toggle("hidden",!doublerMenuOpen);
+  doublerAdd.setAttribute("aria-expanded",String(doublerMenuOpen));
+ }
+ doublerAdd.addEventListener("click",()=>{
+  doublerMenuOpen=!doublerMenuOpen;renderDoublerTags();
+  if(doublerMenuOpen)doublerMenu.querySelector("button")?.focus();
+ });
+ doublerHideInput.addEventListener("change",()=>{
+  doublerHideDoubled=doublerHideInput.checked;renderDoubler();
+ });
+ document.addEventListener("click",event=>{
+  if(doublerMenuOpen&&!event.target.closest(".lab-doubler-add-wrap")){
+   doublerMenuOpen=false;renderDoublerTags();
+  }
+ });
+ document.addEventListener("keydown",event=>{
+  if(doublerMenuOpen&&event.key==="Escape"){
+   doublerMenuOpen=false;renderDoublerTags();doublerAdd.focus();
+  }
+ });
  const advisorSortInput=$("labAdvisorSort"),advisorFilterInput=$("labAdvisorFilter");
  const advisorMaxedInput=$("labAdvisorShowMaxed");
+ const advisorVisibleInput=$("labAdvisorVisibleCount");
+ advisorVisibleInput.addEventListener("change",()=>{
+  advisorVisibleCount=advisorVisibleInput.value;renderAdvisor();
+ });
  for(const item of PROGRESSION_SORT_OPTIONS)advisorSortInput.append(new Option(item.label,item.value));
  for(const item of PROGRESSION_FILTER_OPTIONS)advisorFilterInput.append(new Option(item.label,item.value));
  advisorSortInput.value=advisorSort;advisorFilterInput.value=advisorFilter;
@@ -155,17 +232,20 @@ export function initializeSushiLab(getSave){
   if(steps){
    steps.classList.toggle("lab-advisor-view-cards",view==="cards");
    steps.classList.toggle("lab-advisor-view-list",view==="list");
+   steps.querySelectorAll(".lab-advisor-step-details").forEach(detail=>{
+    detail.open=view==="cards";
+   });
   }
  }
  viewCardsButton.addEventListener("click",()=>setPurchaseView("cards"));
  viewListButton.addEventListener("click",()=>setPurchaseView("list"));
- setPurchaseView("cards");
+ setPurchaseView("list");
  const measuredInputs={
   bucks:$("labAdvisorMeasuredBucks"),fuel:$("labAdvisorMeasuredFuel"),
   capacity:$("labAdvisorMeasuredCapacity")
  };
  for(const input of Object.values(measuredInputs))
-  input.addEventListener("change",renderAdvisor);
+  input.addEventListener("change",()=>{renderAdvisor();renderDoubler();});
 
  const categoryInput=$("labUpgradeCategory");
  const statusInput=$("labUpgradeStatus");
@@ -197,8 +277,41 @@ export function initializeSushiLab(getSave){
    renderCatalog();
   });
  }
- $("labKnowledgeSearch").addEventListener("input",renderKnowledge);
- $("labKnowledgeStatus").addEventListener("change",renderKnowledge);
+ const knowledgeCategoryInput=$("labKnowledgeCategory");
+ const knowledgeSortInput=$("labKnowledgeSort");
+ const knowledgeStatusInput=$("labKnowledgeStatus");
+ knowledgeCategoryInput.append(new Option("All effects","all"));
+ for(const [id,name] of KNOWLEDGE_CATEGORIES.entries())
+  knowledgeCategoryInput.append(new Option(name,String(id)));
+ for(const option of KNOWLEDGE_SORT_OPTIONS)
+  knowledgeSortInput.append(new Option(option.label,option.value));
+ for(const option of KNOWLEDGE_STATUS_OPTIONS)
+  knowledgeStatusInput.append(new Option(option.label,option.value));
+ knowledgeCategoryInput.value=knowledgeCategory;
+ knowledgeSortInput.value=knowledgeSort;
+ knowledgeStatusInput.value=knowledgePreferences.status;
+ $("labKnowledgeSearch").value=knowledgePreferences.search;
+ $("labKnowledgeSearch").addEventListener("input",()=>{
+  rememberKnowledgePreferences();renderKnowledge();
+ });
+ knowledgeCategoryInput.addEventListener("change",()=>{
+  knowledgeCategory=knowledgeCategoryInput.value;rememberKnowledgePreferences();renderKnowledge();
+ });
+ knowledgeSortInput.addEventListener("change",()=>{
+  knowledgeSort=knowledgeSortInput.value;rememberKnowledgePreferences();renderKnowledge();
+ });
+ knowledgeStatusInput.addEventListener("change",()=>{
+  rememberKnowledgePreferences();renderKnowledge();
+ });
+ for(const button of document.querySelectorAll("[data-knowledge-sort]")){
+  button.addEventListener("click",()=>{
+   knowledgeSort=nextKnowledgeHeaderSort(knowledgeSort,button.dataset.knowledgeSort,
+    button.dataset.knowledgeReverse);
+   knowledgeSortInput.value=knowledgeSort;
+   rememberKnowledgePreferences();
+   renderKnowledge();
+  });
+ }
 
  function sushiArtwork(tier){
   const frame=el("span","lab-sushi-art-frame");
@@ -312,6 +425,27 @@ export function initializeSushiLab(getSave){
    const card=el("div","lab-stat");
    card.append(el("span","lab-stat-label",label),el("strong","lab-stat-value",value));
    host.append(card);
+  }
+  const production=$("labProductionStats");
+  production.replaceChildren();
+  const productStats=getSushiDashboardMetrics(data);
+  const statValue=n=>Number.isFinite(n)?fmt(n):"Unavailable";
+  const percentValue=n=>Number.isFinite(n)?fmt(n)+"%":"Unavailable";
+  const productionRows=[
+   ["Bucks / hour",statValue(productStats?.bucksRate),"Modeled passive Bucks; may differ from Toolbox and in-game rates."],
+   ["Fuel / hour",statValue(productStats?.fuelRate),"Estimated passive generation. Some external modifiers are not included."],
+   ["Maximum Fuel",statValue(productStats?.fuelCapacity),"Estimated maximum capacity; external event bonuses may be missing."],
+   ["Cooking: at least +1 tier",percentValue(productStats?.chanceAtLeastOne),
+    "Modeled from Quality Freshness and Knowledge bonus; chance above 100% is assumed to roll over."],
+   ["Cooking: at least +2 tiers",percentValue(productStats?.chanceAtLeastTwo),
+    "Modeled rollover of the cooking tier-up bonus; does not include Copper Firelighter's separate 1% replacement effect."]
+  ];
+  for(const [label,value,description] of productionRows){
+   const card=el("div","lab-production-stat");
+   card.title=description;
+   card.append(el("span","lab-stat-label",label),
+    el("strong","lab-stat-value",value));
+   production.append(card);
   }
   renderShakerCards(stats);
   const fireAdvice=fireplaceOverviewAdvice(data);
@@ -520,8 +654,9 @@ export function initializeSushiLab(getSave){
  function advisorBadge(u){
   if(u.atMax)return ["Maxed","lab-advisor-badge-muted"];
   if(u.affordability==="affordable")return ["Can buy now","lab-advisor-badge-success"];
-  if(u.affordability==="unaffordable")return ["Save more Bucks","lab-advisor-badge-secondary"];
+  if(u.affordability==="unaffordable")return ["Save more Bucks","lab-advisor-badge-danger"];
   if(u.affordability==="uncertain")return ["Price uncertain","lab-advisor-badge-uncertain"];
+  if(u.bucks===null)return ["Balance unavailable","lab-advisor-badge-muted"];
   return ["Cost unknown","lab-advisor-badge-muted"];
  }
  function advisorPrice(u){
@@ -530,7 +665,7 @@ export function initializeSushiLab(getSave){
  function advisorShortfall(u){
   if(u.atMax)return "Already maxed";
   if(u.affordability==="affordable")return "Enough Bucks to purchase";
-  if(u.missing===null)return "Price information incomplete";
+  if(u.missing===null)return u.bucks===null?"Sushi Bucks balance unavailable":"Price information incomplete";
   if(u.affordability==="uncertain")
    return "Up to "+numberDisplay(u.missing)+" more Bucks at this estimate";
   return numberDisplay(u.missing)+" more Bucks needed";
@@ -545,67 +680,86 @@ export function initializeSushiLab(getSave){
   identity.append(copy);
   return identity;
  }
- function advisorDetail(u,featured=false){
-  const item=el("article",featured?"lab-advisor-top":"lab-advisor-option");
-  const header=el("div","lab-advisor-option-head");
-  header.append(advisorIdentity(u));
-  const [label,klass]=advisorBadge(u);
-  header.append(el("span","lab-advisor-badge "+klass,label));
-  item.append(header);
-  item.append(el("p","lab-advisor-one-line",upgradeSummary(u)));
-  const metrics=el("div","lab-advisor-metrics");
-  function metric(caption,value,className=""){
-   const cell=el("div","lab-advisor-metric "+className);
-   cell.append(el("small","",caption),el("strong","",value));
-   metrics.append(cell);
-  }
-  if(featured)metric("YOUR SUSHI BUCKS",numberDisplay(getSushiSnapshot(save()).bucks));
-  metric(u.exactCost?"ESTIMATED DISCOUNTED PRICE":"UPPER PRICE ESTIMATE",
-   u.atMax?"Maxed":advisorPrice(u));
-  metric("BUYING POWER",advisorShortfall(u),u.affordability==="affordable"?
-   "lab-advisor-good":"");
-  item.append(metrics);
-  const benefit=el("div","lab-advisor-benefit");
-  benefit.append(el("span","","NEXT LEVEL BENEFIT"),el("strong","",u.effect.label));
+ function advisorDetail(u,featured=false,rank=null){
+  // Both the featured recommendation and alternative choices use the
+  // same catalog-like row structure. Avoid nesting cards inside cards.
+  const item=el("article",featured?"lab-advisor-feature-row":"lab-advisor-rank-row");
+  // Use an identical grid for the featured row and the comparison table.
+  // The star occupies the same column as alternative row numbers.
+  item.append(el("span","lab-advisor-row-number"+(featured?" is-featured":""),featured?"★":String(rank??"—")));
+  const identity=advisorIdentity(u);
+  if(featured)identity.classList.add("is-featured");
+  item.append(identity);
+  const benefit=el("div","lab-advisor-row-benefit");
+  benefit.append(el("strong","",u.impactText));
+  if(featured&&u.impactBefore&&u.impactAfter&&u.impactRankable)
+   benefit.append(el("small","",u.impactBefore+" → "+u.impactAfter));
   item.append(benefit);
-  if(featured){
-   item.append(el("p","lab-advisor-reason",u.reason+" "+u.budgetNote));
-   if(!u.exactCost)item.append(el("p","lab-advisor-price-note",
-    "The imported save may omit a discount. Your actual in-game price can be lower than shown."));
-  }else if(!u.exactCost){
-   item.append(el("p","lab-advisor-price-note","Price may be lower if discounts are missing."));
-  }
+  const price=el("div","lab-advisor-row-price");
+  price.append(el("strong","",u.atMax?"Maxed":advisorPrice(u)+" Bucks"));
+  if(!u.exactCost&&!u.atMax)price.append(el("small","","Upper estimate"));
+  item.append(price);
+  const status=el("div","lab-advisor-row-status");
+  const [statusText,klass]=advisorBadge(u);
+  status.append(el("span","lab-advisor-badge "+klass,statusText));
+  if(featured&&u.affordability!=="affordable")
+   status.append(el("small","",advisorShortfall(u)));
+  item.append(status);
+  const detail=el("details","lab-advisor-row-details");
+  detail.append(el("summary","",featured?"Why this upgrade?":"Upgrade details"));
+  if(featured)detail.append(el("p","",upgradeSummary(u)));
+  if(u.impactBefore&&u.impactAfter)
+   detail.append(el("p","","Modeled result: "+u.impactBefore+" → "+u.impactAfter));
+  detail.append(el("p","","Next-level effect: "+u.effect.label),
+   el("p","",u.reason),el("p","",u.impactNote),el("p","",u.budgetNote));
+  if(!u.exactCost&&!u.atMax)
+   detail.append(el("p","","Missing discount data may lower the estimated price."));
+  item.append(detail);
   return item;
  }
  function renderAdvisor(){
   const root=$("labAdvisorResults"),feature=$("labAdvisorFeature"),
    roadmap=$("labAdvisorRoadmap"),summary=$("labAdvisorSummary"),
    count=$("labAdvisorResultsCount");
-  root.replaceChildren();feature.replaceChildren();roadmap.replaceChildren();summary.replaceChildren();
+  // Never replace roadmap's children: that would remove the OL that
+  // subsequent renders need to populate (the original empty-plan bug).
+  root.replaceChildren();feature.replaceChildren();summary.replaceChildren();
   count.textContent="";
+  const planSummary=ensureAdvisorResultMount("labAdvisorPlanSummary","lab-advisor-plan-summary");
+  const projection=ensureAdvisorResultMount("labAdvisorGoalProjection","lab-advisor-goal-projection");
+  planSummary.replaceChildren();projection.replaceChildren();
+  roadmap.querySelectorAll(".lab-advisor-plan-end,.lab-advisor-plan-empty").forEach(node=>node.remove());
+  let purchaseList=$("labAdvisorPurchaseSteps");
+  if(!purchaseList){
+   // Recover an older cached HTML shell rather than showing an empty plan.
+   purchaseList=el("ol","lab-advisor-purchase-list lab-advisor-view-"+purchaseView);
+   purchaseList.id="labAdvisorPurchaseSteps";
+   roadmap.prepend(purchaseList);
+  }
+  purchaseList.replaceChildren();
+  purchaseList.classList.toggle("lab-advisor-view-cards",purchaseView==="cards");
+  purchaseList.classList.toggle("lab-advisor-view-list",purchaseView==="list");
+
   if(!save()){
-   summary.append(el("p","hint","Import your Sushi Station game save on Overview to receive a personalized buying recommendation."));
+   summary.append(el("p","hint","Import your game save on Overview to see upgrade recommendations."));
+   roadmap.append(el("p","hint lab-advisor-plan-empty","Import a save to build your next purchases plan."));
    return;
   }
   const advice=getProgressionAdvice(save(),goal,{
    sort:advisorSort,filter:advisorFilter,includeMaxed:advisorMaxedInput.checked
   });
-  summary.append(el("strong","",advice.affordableCount+" affordable now · "+
-   advice.count+" upgrades not maxed · "+numberDisplay(advice.bucks)+" Sushi Bucks available"));
-  if(advice.partialPrices)summary.append(el("span","",
-   "Some prices are upper estimates because the imported save lacks one or more discounts."));
+  summary.append(el("strong","",advice.bucks===null?"Sushi Bucks unavailable":numberDisplay(advice.bucks)+" Sushi Bucks"),
+   el("span","",advice.affordableCount+" affordable · "+advice.count+" upgrades available"));
+  if(advice.partialPrices||advice.bucks===null)summary.append(el("span","",
+   advice.bucks===null?"Bucks balance unavailable — import a complete save to plan purchases.":
+   "Some upgrade prices are estimates."));
+
   if(!advice.best){
-   feature.append(el("p","hint","Every upgrade mapped to this goal is already maxed, or no applicable upgrades are available."));
+   feature.append(el("p","hint","No remaining upgrades are available for this goal."));
   }else{
-   const head=el("div","lab-advisor-feature-heading");
-   head.append(el("span","lab-advisor-kicker",
-    advice.best.affordability==="affordable"?"RECOMMENDED NEXT PURCHASE":"RECOMMENDED UPGRADE TO SAVE FOR"),
-     el("span","lab-advisor-method","Account-aware priority"));
-   feature.append(head,advisorDetail(advice.best,true));
-   if(advice.best.affordability!=="affordable")
-    feature.append(el("p","lab-advisor-feature-footnote",
-     "No upgrades for this goal are currently confirmed affordable. The suggestion above is a savings target, not an instruction to buy immediately."));
+   feature.append(advisorDetail(advice.best,true));
   }
+
   const requested=purchasesInput.value==="custom"?
    (customInput.value===""?5:customInput.value):purchasesInput.value;
   const readings=Object.fromEntries(Object.entries(measuredInputs).map(([key,input])=>
@@ -616,130 +770,359 @@ export function initializeSushiLab(getSave){
    .map(([name])=>name);
   $("labAdvisorCalibrationStatus").textContent=invalid.length?
    "Invalid "+invalid.join(", ")+" reading(s). Use values such as 2.5T or 1.2E30.":
-   active.length?"Using measured "+active.join(", ")+" baseline(s) for matching goals.":
-   "No readings entered. Estimates use the imported save's modeled values.";
+   active.length?"Using in-game "+active.join(", ")+" baseline(s).":
+   "Using modeled rates from your imported save.";
   const plan=buildProgressionPurchasePlan(save(),goal,requested,{readings});
-  const planSummary=ensureAdvisorResultMount("labAdvisorPlanSummary","lab-advisor-plan-summary");
-  const purchaseList=$("labAdvisorPurchaseSteps");
-  planSummary.replaceChildren();
-  if(!purchaseList){
-   // A stale page shell may lack the newer list while the JSON is valid.
-   const place=ensureAdvisorResultMount("labAdvisorRoadmap","lab-advisor-purchase-scroll");
-   place.replaceChildren(el("p","hint",
-    "Purchase list is unavailable in this cached page. Reload to view the latest layout."));
-   return;
-  }
-  purchaseList.replaceChildren();
+
   const summaryParts=[
-   [String(plan.steps.length)+" / "+plan.requestedCount,"PURCHASES PLANNED"],
-   [String(plan.initiallyFunded),"COVERED BY CURRENT BUCKS"],
-   [numberDisplay(plan.totalEstimatedCost),"ESTIMATED TOTAL COST"],
-   [numberDisplay(plan.additionalBucksNeeded),
-    plan.partialPrices?"FUTURE BUCKS TO SAVE (EST.)":"FUTURE BUCKS TO SAVE"]
+   [String(plan.steps.length)+" / "+plan.requestedCount,"PURCHASES"],
+   [String(plan.initiallyFunded),"AFFORDABLE NOW"],
+   [numberDisplay(plan.totalEstimatedCost),"TOTAL COST (EST.)"],
+   [numberDisplay(plan.additionalBucksNeeded),"EXTRA BUCKS TO SAVE"]
   ];
   for(const [value,label] of summaryParts){
    const stat=el("div","lab-advisor-plan-stat");
    stat.append(el("strong","",value),el("small","",label));
    planSummary.append(stat);
   }
-  const projection=ensureAdvisorResultMount("labAdvisorGoalProjection","lab-advisor-goal-projection");
-  projection.replaceChildren();
+
   if(plan.initialGoal&&plan.finalGoal){
-   const header=el("div","lab-advisor-goal-label");
-   header.append(el("strong","",plan.initialGoal.label),
-    el("span","",plan.initialGoal.estimated||plan.finalGoal.estimated?
-     "ESTIMATED / PARTIAL":"MODELED"));
-   projection.append(header);
+   const label=el("div","lab-advisor-goal-label");
+   label.append(el("strong","","Projected "+plan.initialGoal.label),
+    el("span","",plan.initialGoal.estimated||plan.finalGoal.estimated?"PARTIAL ESTIMATE":"MODELED"));
+   projection.append(label);
    const compare=el("div","lab-advisor-goal-comparison");
-   const initial=el("div","lab-advisor-goal-number");
-   initial.append(el("small","","FROM YOUR IMPORTED ACCOUNT"),
-    el("strong","",plan.initialGoal.display));
-   const projected=el("div","lab-advisor-goal-number lab-advisor-goal-projected");
-   projected.append(el("small","","AFTER "+plan.steps.length+" PLANNED PURCHASES"),
+   const before=el("div","lab-advisor-goal-number");
+   before.append(el("small","","CURRENT"),el("strong","",plan.initialGoal.display));
+   const after=el("div","lab-advisor-goal-number lab-advisor-goal-projected");
+   after.append(el("small","","AFTER "+plan.steps.length+" PURCHASES"),
     el("strong","",plan.finalGoal.display));
-   compare.append(initial,el("span","lab-advisor-goal-arrow","→"),projected);
-   projection.append(compare,el("p","lab-advisor-goal-note",plan.finalGoal.note));
+   compare.append(before,el("span","lab-advisor-goal-arrow","→"),after);
+   projection.append(compare);
+   if(plan.finalGoal.note){
+    const info=el("details","lab-advisor-goal-note-wrap");
+    info.append(el("summary","","About this estimate"),
+     el("p","lab-advisor-goal-note",plan.finalGoal.note));
+    projection.append(info);
+   }
   }
-  for(const step of plan.steps){
-   const item=el("li","lab-advisor-purchase-step");
-   const number=el("span","lab-advisor-purchase-number",String(step.number));
+
+  const iconMap=new Map(advice.all.map(u=>[u.id,u]));
+  // Preserve the full purchase sequence and totals, but show adjacent
+  // purchases of the same upgrade as one easy-to-read level range.
+  for(const group of groupProgressionPurchases(plan.steps)){
+   const item=el("li","lab-advisor-purchase-step"+(group.firstNumber===1?" is-next":""));
+   const number=el("span","lab-advisor-purchase-number",String(group.firstNumber));
    const identity=el("div","lab-advisor-purchase-identity");
-   const iconUpgrade=advice.all.find(u=>u.id===step.id);
+   const iconUpgrade=iconMap.get(group.id);
    if(iconUpgrade)identity.append(upgradeArtwork(iconUpgrade));
    const copy=el("div","lab-advisor-purchase-copy");
-   copy.append(el("strong","",step.name),
-    el("small","","Level "+fmt(step.fromLevel)+" → "+fmt(step.toLevel)+
-      (step.doubled?" · Doubled":"")));
+   copy.append(el("strong","",group.name),
+    el("small","","Lv "+fmt(group.fromLevel)+" → "+fmt(group.toLevel)+
+     (group.count>1?" · "+group.count+" levels (steps "+group.firstNumber+"–"+group.lastNumber+")":"")+
+     (group.doubled?" · Doubled":"")));
    identity.append(copy);
+
    const price=el("div","lab-advisor-purchase-price");
-   price.append(el("strong","",numberDisplay(step.price)+" Bucks"),
-    el("small","",step.exactPrice?"Estimated discounted cost":"Upper price estimate"));
-   const action=el("div","lab-advisor-purchase-status "+(step.fundedByImport?
+   price.append(el("strong","",numberDisplay(group.totalCost)+" Bucks"),
+    el("small","",group.count>1?"Combined cost"+(!group.exactPrice?" · upper estimate":""):
+     group.exactPrice?"Estimated cost":"Upper cost estimate"));
+
+   const fullyFunded=group.fundedCount===group.count;
+   const action=el("div","lab-advisor-purchase-status "+(fullyFunded?
     "lab-advisor-purchase-ready":"lab-advisor-purchase-save"));
-   action.append(el("strong","",step.fundedByImport?"FROM CURRENT BUCKS":
-    "SAVE "+numberDisplay(step.missingBucks)+" BUCKS"));
-   if(!step.fundedByImport)action.append(el("small","",
-    step.missingBucks>0?"Additional Bucks required before this step":
-    "Projected after earlier savings"));
-   const goalResult=el("div","lab-advisor-step-result");
-   goalResult.append(el("span","lab-advisor-step-result-label",step.goalResult.label));
-   const diff=el("div","lab-advisor-step-result-values");
-   diff.append(el("span","",step.goalResult.current),
+   const actionText=fullyFunded?"Affordable now":
+    group.totalMissingBucks>0?
+    (group.fundedCount>0?group.fundedCount+"/"+group.count+" affordable · ":"")+
+     "Save "+numberDisplay(group.totalMissingBucks)+" Bucks":
+    "After earlier steps";
+   action.append(el("strong","",actionText));
+
+   const detail=el("details","lab-advisor-step-details");
+   detail.open=purchaseView==="cards";
+   detail.append(el("summary","",
+    group.count>1?"View "+group.count+" individual purchases":"Stat change"));
+   const change=el("div","lab-advisor-step-result");
+   const values=el("div","lab-advisor-step-result-values");
+   values.append(el("span","",group.goalResult.current),
     el("span","lab-advisor-step-result-arrow","→"),
-    el("strong","",step.goalResult.projected));
-   goalResult.append(diff);
-   if(!step.goalResult.changed)goalResult.append(el("small","",
-    "No modeled change to this total; "+step.nextLevelEffect));
-   item.append(number,identity,goalResult,price,action);
-   item.title=step.goalResult.note;
+    el("strong","",group.goalResult.projected));
+   change.append(el("span","lab-advisor-step-result-label",group.goalResult.label),values);
+   if(group.count===1){
+    change.append(el("small","",group.goalResult.changed?
+     group.nextLevelEffect:"No quantified change in this partial model. "+group.nextLevelEffect));
+   }else{
+    const breakdown=el("ol","lab-advisor-group-breakdown");
+    for(const step of group.steps){
+     const line=el("li","lab-advisor-group-line");
+     line.append(el("span","","#"+step.number+" · Lv "+fmt(step.fromLevel)+" → "+fmt(step.toLevel)),
+      el("span","",numberDisplay(step.price)+" Bucks"),
+      el("span","",step.fundedByImport?"From current Bucks":
+       step.missingBucks>0?"Save "+numberDisplay(step.missingBucks):"Future step"));
+     const effect=el("small","",step.goalResult.current+" → "+step.goalResult.projected+
+      " · "+step.nextLevelEffect);
+     line.append(effect);
+     breakdown.append(line);
+    }
+    change.append(breakdown);
+   }
+   detail.append(change);
+   item.append(number,identity,price,action,detail);
    purchaseList.append(item);
   }
-  if(plan.stopReason){
-   roadmap.append(el("p","lab-advisor-plan-end",plan.stopReason));
-  }
-  if(!plan.steps.length&&save()){
-   roadmap.append(el("p","hint","No valid future purchases are available for this goal."));
-  }
-  // The recommended purchase is already featured. List other candidates
-  // under the requested filters without repeating the same upgrade.
+
+  if(plan.stopReason)roadmap.append(el("p","lab-advisor-plan-end",plan.stopReason));
+  else if(!plan.steps.length)roadmap.append(el("p","hint lab-advisor-plan-empty",
+   "No further purchases are available for this goal."));
+
+  // The featured next upgrade is already shown above this list.
   const alternatives=advice.rows.filter(u=>u.id!==advice.best?.id);
-  count.textContent=alternatives.length+" alternatives"+(advisorFilter==="all"?"":" in this filter");
-  for(const u of alternatives)root.append(advisorDetail(u,false));
+  const visibleLimit=advisorVisibleCount==="all"?Infinity:Number(advisorVisibleCount);
+  const shown=alternatives.slice(0,Number.isFinite(visibleLimit)&&visibleLimit>0?visibleLimit:Infinity);
+  count.textContent=shown.length===alternatives.length?
+   alternatives.length+" alternatives"+(advisorFilter==="all"?"":" in this filter"):
+   "Showing "+shown.length+" of "+alternatives.length+" alternatives";
+  for(const [index,u] of shown.entries())root.append(advisorDetail(u,false,index+1));
   if(!alternatives.length)root.append(el("p","hint",
-   "No other upgrades match these filters. Change the goal or filters to compare more options."));
+   "No other upgrades match these filters."));
  }
  function renderDoubler(){
-  const root=$("labDoublerResults");root.replaceChildren();
-  if(!save()){
-   addText(root,"hint","Import a full game save JSON to see assigned Sushi doublers from Spelunk[52].");
+  renderDoublerTags();
+  const feature=$("labDoublerAdvice");
+  feature.replaceChildren();
+  if(!doublerGoals.length){
+   addText(feature,"hint","Add a category using + to view eligible Doubler upgrades.");
    return;
   }
-  const chosen=doublerUpgrades(save(),doublerGoal);
-  const assigned=getUpgradeRows(save()).filter(u=>u.doubled);
-  addText(root,"lab-result-meta",
-   "Current Sushi doubler assignments ("+assigned.length+"): "+
-   (assigned.length?assigned.map(u=>u.name).join(", "):"none detected"));
-  addText(root,"hint","Only eligible upgrade IDs appear below. A doubler doubles that upgrade's per-level effect; this list does not assume unrelated bonuses can be compared as one score.");
-  for(const u of chosen)root.append(resultCard(u,"doubler"));
-  if(!chosen.length)addText(root,"hint","No eligible upgrades found for this selected goal.");
+  if(!save()){
+   addText(feature,"hint","Import a full game save JSON to see Doubler advice for your selected categories.");
+   return;
+  }
+  const plan=getDoublerPlacementPlan(save(),doublerGoals,{sort:doublerSort});
+  if(!plan?.ready){
+   addText(feature,"hint",plan?.reason??"Doubler information is unavailable.");
+   return;
+  }
+  const visible=plan.recommendations.filter(u=>!doublerHideDoubled||!u.doubled);
+  const overview=el("div","lab-doubler-summary"),counts=plan.counts;
+  const assigned=counts.used===null?"Unknown":fmt(counts.used);
+  const available=counts.available===null?"Unknown":
+   (counts.exact?fmt(counts.available):"≥"+fmt(counts.available));
+  const focusNames=doublerGoals.map(id=>DOUBLER_FOCUS_OPTIONS.find(x=>x.value===id)?.label??id);
+  const countText=(visible.length===plan.totalOptions?fmt(plan.totalOptions):
+   fmt(visible.length)+" / "+fmt(plan.totalOptions))+" eligible upgrade"+
+   (plan.totalOptions===1?"":"s");
+  overview.append(el("strong","",focusNames.join(" + ")+" · "+countText),
+   el("span","","Assigned overall: "+assigned+" · Available: "+available));
+  if(!counts.exact)overview.title=
+   "Available is a lower bound from Menagerie boosts. Bundles and companions may grant additional Doublers.";
+  feature.append(overview);
+  addText(feature,"hint",
+   "Best modeled gain ranks upgrades within each selected category; category tags stay in your chosen order. "+
+   "Per-use effects cannot be ranked by the passive hourly stat and appear after comparable upgrades. "+
+   "Account figures are modeled or anchored to in-game readings. Moving a Doubler from another upgrade can offset the gain.");
+  if(!visible.length){
+   addText(feature,"hint",doublerHideDoubled&&plan.totalOptions?
+    "All matching upgrades are already doubled. Uncheck Hide already doubled to see them.":
+    "No Doubler-eligible upgrades match these categories.");
+   return;
+  }
+  const grid=el("div","lab-doubler-plan-grid");
+  const readings=Object.fromEntries(Object.entries(measuredInputs).map(([key,input])=>
+   [key,input.value.trim()]));
+  for(const u of visible){
+   const isAction=u.status!=="Keep"&&u.status!=="Level first";
+   const card=el("article","lab-doubler-plan-card"+(u.doubled?" is-doubled":isAction?" is-change":""));
+   const head=el("div","lab-doubler-plan-head");
+   const identity=el("div","lab-doubler-plan-identity");
+   identity.append(upgradeArtwork(u));
+   const name=el("div","");
+   name.append(el("strong","",upgradeLabel(u)),
+    el("small","","Upgrade Lv "+fmt(u.level)));
+   identity.append(name);
+   const status=u.doubled?"×2 Active":
+    u.status==="Use available"?"Available":
+    u.status==="Level first"?"Level first":"Not doubled";
+   const badge=el("span","lab-doubler-plan-status"+(u.doubled?" is-doubled":""),null);
+   if(u.doubled)badge.append(doublerIcon("lab-doubler-plan-icon"));
+   badge.append(el("span","",status));
+   if(!u.doubled&&u.level>0&&u.status!=="Use available"){
+    badge.title=counts.exact?"All known Doublers are assigned. Move one if you want to double this upgrade.":
+     "Your save cannot confirm an unused Doubler. Check in-game before reassigning one.";
+   }
+   head.append(identity,badge);
+   const benefit=el("div","lab-doubler-gain"+(u.gainRankable?"":" is-unranked"));
+   benefit.append(el("span","lab-doubler-gain-label",u.gainRankable?"Modeled gain":"Separate effect"),
+    el("strong","",u.gainText));
+   card.append(head,benefit,el("p","lab-doubler-plan-reason",u.reason));
+   const value=getDoublerValueComparison(u);
+   const impact=getDoublerAccountImpact(save(),u,{readings});
+   const values=el("div","lab-doubler-values");
+   for(const option of [
+    {label:"Without Doubler",amount:value.normal,active:!u.doubled,
+     account:impact?.without},
+    {label:u.doubled?"With Doubler · Active":"With Doubler · Potential",
+     amount:value.doubled,active:u.doubled,account:impact?.withDoubler}
+   ]){
+    const metric=el("div","lab-doubler-value"+(option.active?" is-current":"")+
+     (u.doubled&&option.active?" is-doubled":""));
+    metric.append(el("small","",option.label),el("strong","",option.amount));
+    if(impact){
+     const account=el("div","lab-doubler-account-stat");
+     account.append(el("small","",(option.active?"Current · ":"What-if · ")+impact.label),
+      el("strong","",option.account));
+     metric.append(account);
+    }
+    values.append(metric);
+   }
+   card.append(values,el("p","lab-doubler-value-caption",value.label+" · "+value.note));
+   if(impact)card.append(el("p","lab-doubler-impact-note",impact.basis+" · "+impact.note));
+   const detail={
+    "Keep":"Already doubled. No change needed.",
+    "Use available":"You can assign an unused Doubler here.",
+    "Level first":"Level up this upgrade before assigning a Doubler."
+   }[u.status];
+   if(detail)card.append(el("p","lab-doubler-plan-from",detail));
+   grid.append(card);
+  }
+  feature.append(grid);
+
  }
  function renderKnowledge(){
-  const q=$("labKnowledgeSearch").value.trim().toLowerCase(),mode=$("labKnowledgeStatus").value;
-  const s=save(),all=getKnowledgeRows(s);
-  const rows=all.filter(k=>
-   (k.name+" "+k.tier+" "+k.categoryName).toLowerCase().includes(q)&&
-   (mode==="all"||mode==="unfinished"&&k.discovered&&!k.perfecto||
-    mode==="perfecto"&&k.perfecto||mode==="undiscovered"&&!k.discovered));
+  const s=save(),hasSave=!!s,all=getKnowledgeRows(s);
+  const overview=knowledgeOverview(all,hasSave);
+  const countText=n=>n===null?"—":fmt(n);
+  const overviewHost=$("labKnowledgeOverview");
+  overviewHost.replaceChildren();
+  const metrics=[
+   ["DISCOVERED",overview.discovered===null?"—":overview.discovered+" / 64"],
+   ["PERFECTOS",countText(overview.perfectos)],
+   ["KNOWLEDGE LEVELS",countText(overview.totalLevels)],
+   ["READY TO LEVEL",countText(overview.ready)]
+  ];
+  for(const [label,value] of metrics){
+   const card=el("div","lab-knowledge-overview-stat");
+   card.append(el("small","",label),el("strong","",value));
+   overviewHost.append(card);
+  }
+
+  const rows=filterKnowledgeRows(all,{
+   query:$("labKnowledgeSearch").value,
+   category:knowledgeCategory,status:knowledgeStatusInput.value,sort:knowledgeSort
+  });
   $("labKnowledgeCount").textContent=rows.length+" / 64 tiers";
-  const body=$("labKnowledgeRows");body.replaceChildren();
+  // Keep column headings and the existing sort dropdown in sync.
+  if(typeof document!=="undefined"){
+   for(const button of document.querySelectorAll("[data-knowledge-sort]")){
+    const primary=button.dataset.knowledgeSort,reverse=button.dataset.knowledgeReverse;
+    const state=knowledgeSort===primary?
+     (primary==="level-desc"?"descending":"ascending"):
+     knowledgeSort===reverse?(primary==="level-desc"?"ascending":"descending"):"none";
+    button.closest("th").setAttribute("aria-sort",state);
+    button.title=state==="none"?"Sort this column":
+     "Sorted "+state+" · click to reverse";
+   }
+  }
+  const body=$("labKnowledgeRows"),empty=$("labKnowledgeEmpty");
+  body.replaceChildren();
+  empty.classList.toggle("hidden",rows.length!==0);
   for(const k of rows){
-   const tr=el("tr"),tier=el("td","lab-upgrade-name");
-   tier.append(el("strong","","T"+k.tier+" · "+k.name),el("span","lab-row-subtitle",k.categoryName));
-   const level=s?(k.discovered?fmt(k.level):"Undiscovered"):"Import save";
-   const xp=s&&k.discovered?fmt(k.xp)+" / "+fmt(k.xpReq):none;
-   const benefit=!k.mapped?"Reference unavailable":s&&k.discovered?numberDisplay(k.bonus):"Per level "+fmt(k.perLevel);
-   const status=s?(k.perfecto?"Perfecto":k.discovered?"Not Perfecto":"Undiscovered"):"—";
-   tr.append(tier,el("td","",level),el("td","",xp),el("td","",benefit),el("td","",status));
+   const checkpoint=knowledgeCheckpoint(k);
+   const tr=el("tr",(k.readyToLevel?"lab-knowledge-row-ready":"")+
+    (checkpoint?" lab-knowledge-row-checkpoint":""));
+   const tier=el("td","lab-knowledge-tier");
+   const identity=el("div","lab-knowledge-identity");
+   const artwork=el("span","lab-knowledge-art-wrap");
+   artwork.append(sushiArtwork(k.tier));
+   // Reuse the same Perfecto artwork shown on the Dashboard board.
+   if(k.perfecto){
+    const mark=el("img","lab-knowledge-perfecto-emblem");
+    mark.src="assets/Perfecto_Symbol.png";
+    mark.alt="Perfecto";
+    mark.title="Perfecto obtained · 2× Knowledge bonus";
+    mark.loading="lazy";
+    mark.decoding="async";
+    artwork.append(mark);
+   }
+   identity.append(artwork);
+   const info=el("div","lab-knowledge-tier-info");
+   const name=el("strong","","T"+k.tier+" · "+k.name);
+   const rewardText=k.tierReward??"Tier reward unavailable";
+   const tierReward=el("span","lab-row-subtitle lab-knowledge-tier-reward-label");
+   // Highlight only numbers in permanent rewards, just like variable values
+   // inside Upgrade Catalog descriptions. The wording remains normal text.
+   for(const segment of rewardText.split(/([+-]?\d+(?:\.\d+)?(?:×|x|%)?)/g)){
+    if(!segment)continue;
+    const isValue=/^[+-]?\d+(?:\.\d+)?(?:×|x|%)?$/.test(segment);
+    tierReward.append(el("span",isValue?"lab-knowledge-value-pill lab-knowledge-tier-value"+(k.perfecto?" is-perfecto":""):"lab-knowledge-tier-reward-text",segment));
+   }
+   tierReward.title="Permanent tier reward"+(k.discovered?" · discovered":" · reference only");
+   info.append(name,tierReward);
+   if(checkpoint){
+    const hint=el("span","lab-knowledge-checkpoint",
+     "Lv "+checkpoint.nextLevel+" checkpoint · "+checkpoint.levelsAway+" level"+
+     (checkpoint.levelsAway===1?"":"s")+" away");
+    hint.title="Every-five-level planning checkpoint, not an extra in-game reward";
+    info.append(hint);
+   }
+   identity.append(info);
+   tier.append(identity);
+
+   const levelCell=el("td","lab-knowledge-level");
+   levelCell.append(el("strong","",!hasSave?"—":
+    !k.discovered?"Locked":k.levelKnown?fmt(k.level):"Unknown"));
+
+   const xpCell=el("td","lab-knowledge-exp");
+   if(hasSave&&k.discovered&&Number.isFinite(k.xpProgress)&&k.xpProgress>=0&&k.xpProgress<=1){
+    const values=el("div","lab-knowledge-exp-values");
+    values.append(el("strong","",fmt(k.xp)+" / "+fmt(k.xpReq)+" EXP"),
+     el("span","",Math.round(k.xpProgress*100)+"%"));
+    xpCell.append(values);
+    const progress=el("progress","lab-knowledge-exp-progress");
+    progress.max=100;progress.value=Number.isFinite(k.xpProgress*100)?
+     Math.max(0,Math.min(100,k.xpProgress*100)):0;
+    progress.setAttribute("aria-label","EXP progress toward next Knowledge level for "+k.name);
+    xpCell.append(progress);
+    if(k.readyToLevel)xpCell.append(el("span","lab-knowledge-ready","Ready to level"));
+    else xpCell.append(el("small","lab-knowledge-exp-remaining",
+     fmt(k.xpRemaining)+" EXP remaining"));
+   }else{
+    xpCell.append(el("span","lab-knowledge-unavailable",
+     !hasSave?"Import save":!k.discovered?"Undiscovered":"EXP unavailable"));
+   }
+
+   const bonus=el("td","lab-knowledge-bonus");
+   const bubbleClass="lab-knowledge-value-pill"+(k.perfecto?" is-perfecto":"");
+   const bonusLine=(label,value,extraClass="")=>{
+    const line=el("div","lab-knowledge-bonus-line"+(extraClass?" "+extraClass:""));
+    line.append(el("span","lab-knowledge-bonus-label",label));
+    line.append(el("span",bubbleClass+(extraClass==="is-preview"?" is-preview":""),value));
+    return line;
+   };
+   if(hasSave&&k.discovered&&Number.isFinite(k.bonus)&&
+      Number.isFinite(k.nextLevelGain)){
+    const currentValue=formatKnowledgeBonusValue(k.category,k.bonus);
+    const nextAmount=k.bonus+k.nextLevelGain;
+    const nextValue=formatKnowledgeBonusValue(k.category,nextAmount);
+    if(currentValue!==null){
+     const current=bonusLine(k.categoryName,currentValue);
+     current.title=describeKnowledgeBonus(k.category,k.bonus);
+     bonus.append(current);
+    }
+    if(nextValue!==null){
+     const next=bonusLine("Next Lv "+fmt(k.level+1),nextValue,"is-next");
+     next.title=describeKnowledgeBonus(k.category,nextAmount);
+     bonus.append(next);
+    }else bonus.append(el("small","lab-knowledge-unavailable","Next bonus unavailable"));
+   }else if(k.mapped&&Number.isFinite(k.baseLevelBonus)){
+    const previewValue=formatKnowledgeBonusValue(k.category,k.baseLevelBonus);
+    if(previewValue!==null)bonus.append(bonusLine(k.categoryName,previewValue,"is-preview"));
+    bonus.append(el("small","lab-knowledge-preview-note",
+     "Base Lv 1 · "+(!hasSave?"import save for current level":
+      !k.discovered?"undiscovered":"current level unavailable")));
+   }else bonus.append(el("span","lab-knowledge-unavailable","Bonus unavailable"));
+
+   tr.append(tier,levelCell,xpCell,bonus);
    body.append(tr);
   }
  }

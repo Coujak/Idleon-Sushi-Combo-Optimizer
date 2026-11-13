@@ -1,4 +1,6 @@
 import {SUSHI_UPGRADES,SUSHI_KNOWLEDGE,KNOWLEDGE_CATEGORIES,ELIGIBLE_DOUBLERS} from "./sushi-reference.mjs?v=1.16.6";
+import {formatCompactNumber} from "./number-format.mjs?v=1.0.1";
+import {sushiTierReward} from "./sushi-tier-rewards.mjs?v=1.0.0";
 export const ADVISOR_GOALS=[
  {id:"bucks",name:"Bucks generation"},
  {id:"capacity",name:"Fuel capacity"},
@@ -8,12 +10,7 @@ export const ADVISOR_GOALS=[
  {id:"discount",name:"Cheaper upgrades"}
 ];
 const num=x=>{const n=Number(x);return Number.isFinite(n)?n:0;};
-export const numberText=(n)=>{
- if(!Number.isFinite(n))return "Too large to display";
- const abs=Math.abs(n);
- return abs>=1e12||abs>0&&abs<0.001?n.toExponential(3).replace(/e\+?/i,"E"):
-  n.toLocaleString("en-US",{maximumFractionDigits:abs<10?3:2});
-};
+export const numberText=n=>formatCompactNumber(n,{unavailable:"Too large to display"});
 // Research Grid: Shakin' It (I3) is the 189th grid square (zero-based
 // index 188) in Research[0]. Each level gives +1 daily use to ALL shakers,
 // in addition to their base +1/day. Keep missing research distinct from Lv 0.
@@ -154,13 +151,29 @@ export function getKnowledgeRows(save){
   const index=entry.tier-1,level=num(s.knowledge[index]),track=num(s.tracking[index]??-1);
   const discovered=save!=null&&Number(s.tracking[index]??-1)>=0;
   const perfecto=discovered&&track>=1;
-  const xp=num(s.xp[index]);
-  const xpReq=(3+(level+Math.pow(level,1.5)))*Math.pow(1.5,Math.max(0,level-2));
+  const xpValue=save?.sushi?.[6]?.[index];
+  const levelValue=save?.sushi?.[7]?.[index];
+  const xpKnown=xpValue!==undefined&&xpValue!==null&&xpValue!==""&&
+   Number.isFinite(Number(xpValue))&&Number(xpValue)>=0;
+  const levelKnown=levelValue!==undefined&&levelValue!==null&&levelValue!==""&&
+   Number.isFinite(Number(levelValue))&&Number(levelValue)>=0;
+  const xp=xpKnown?Number(xpValue):null;
+  const xpReq=levelKnown?(3+(level+Math.pow(level,1.5)))*
+   Math.pow(1.5,Math.max(0,level-2)):null;
+  // The EXP formula can overflow at very high levels. Keep missing or
+  // unrepresentable progress unknown, never pass Infinity/NaN to the DOM.
+  const hasXpProgress=discovered&&xpKnown&&levelKnown&&Number.isFinite(xpReq)&&xpReq>0;
+  const ratio=hasXpProgress?xp/xpReq:null;
+  const xpProgress=Number.isFinite(ratio)?Math.max(0,Math.min(1,ratio)):null;
+  const remaining=hasXpProgress?Math.max(0,xpReq-xp):null;
+  const xpRemaining=Number.isFinite(remaining)?remaining:null;
+  const readyToLevel=xpProgress!==null&&xp>=xpReq;
   const factor=Math.min(2,1+Math.max(0,track));
   const mapped=Number.isInteger(entry.category)&&entry.category>=0&&entry.category<KNOWLEDGE_CATEGORIES.length;
   return {...entry,mapped,categoryName:mapped?KNOWLEDGE_CATEGORIES[entry.category]:"Effect not yet mapped",
-   level,discovered,perfecto,xp,xpReq,
-   bonus:mapped&&discovered?Math.max(0,entry.perLevel*level*factor*(1+index/30)):null,
+   tierReward:sushiTierReward(entry.tier),baseLevelBonus:mapped?entry.perLevel*(1+index/30):null,
+   level,levelKnown,discovered,perfecto,xp,xpKnown,xpReq,xpProgress,xpRemaining,readyToLevel,
+   bonus:mapped&&discovered&&levelKnown?Math.max(0,entry.perLevel*level*factor*(1+index/30)):null,
    nextLevelGain:mapped?entry.perLevel*factor*(1+index/30):null};
  });
 }

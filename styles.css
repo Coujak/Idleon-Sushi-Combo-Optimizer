@@ -2024,3 +2024,1533 @@ details summary{cursor:pointer;font-size:12px;font-weight:700;color:#9eb7c9}
   padding:7px 10px;
  }
 }
+
+/* Doubler Advisor: selectable category tags and account-aware plan. */
+.lab-doubler-filters{
+ display:flex;align-items:flex-end;justify-content:space-between;
+ flex-wrap:wrap;gap:14px;padding:12px 14px;
+ background:#122a35;border:1px solid #355661;border-radius:11px
+}
+.lab-doubler-category-field{flex:1 1 400px;min-width:0}
+.lab-doubler-filter-label{
+ display:block;color:#bad9d8;font-size:11px;font-weight:750;margin-bottom:8px
+}
+.lab-doubler-tag-row,.lab-doubler-tags{
+ display:flex;align-items:center;flex-wrap:wrap;gap:7px
+}
+.lab-doubler-tag,.lab-doubler-add{
+ display:inline-flex;align-items:center;justify-content:center;gap:9px;
+ min-height:34px;padding:6px 10px;border-radius:8px;font:inherit;
+ font-size:11px;font-weight:750;cursor:pointer
+}
+.lab-doubler-tag{
+ color:#d7fff1;background:#235047;border:1px solid #559884
+}
+.lab-doubler-tag:hover{background:#316456;border-color:#75bb9f}
+.lab-doubler-tag-x{font-size:16px;line-height:1;color:#a6e6d0}
+.lab-doubler-add-wrap{position:relative}
+.lab-doubler-add{
+ color:#bce7d7;background:#183641;border:1px dashed #579987
+}
+.lab-doubler-add:hover:not(:disabled){background:#214b4c;border-color:#83c8ad}
+.lab-doubler-add:disabled{opacity:.45;cursor:default}
+.lab-doubler-tag:focus-visible,.lab-doubler-add:focus-visible,
+.lab-doubler-menu-option:focus-visible{outline:2px solid #9decca;outline-offset:2px}
+.lab-doubler-category-menu{
+ position:absolute;z-index:30;top:calc(100% + 6px);left:0;
+ min-width:205px;max-width:min(280px,90vw);
+ display:flex;flex-direction:column;gap:3px;padding:6px;
+ background:#142e3c;border:1px solid #56757f;border-radius:9px;
+ box-shadow:0 14px 28px #0008
+}
+.lab-doubler-category-menu.hidden{display:none}
+.lab-doubler-menu-option{
+ border:0;border-radius:6px;background:transparent;color:#d4eae8;
+ cursor:pointer;text-align:left;padding:9px 10px;font:inherit;font-size:12px
+}
+.lab-doubler-menu-option:hover{background:#275153;color:#f1fff9}
+.lab-doubler-sort-field{
+ display:flex;flex-direction:column;gap:5px;flex:0 1 210px;
+ min-width:165px;color:#bad9d8;font-size:11px;font-weight:750
+}
+.lab-doubler-sort-field select{
+ min-height:34px;width:100%;max-width:100%;
+ border:1px solid #56757f;border-radius:8px;padding:6px 10px;
+ background:#183641;color:#e1f5ee;font:inherit;font-size:12px;
+ cursor:pointer
+}
+.lab-doubler-sort-field select:focus-visible{outline:2px solid #9decca;outline-offset:2px}
+.lab-doubler-hide-toggle{
+ display:inline-flex;align-items:center;gap:8px;flex:0 0 auto;
+ color:#c8dfdb;font-size:12px;font-weight:650;cursor:pointer;
+ min-height:34px;white-space:nowrap
+}
+.lab-doubler-hide-toggle input{
+ accent-color:#8cddbd;width:16px;height:16px;min-width:16px;margin:0
+}
+@media(max-width:540px){
+ .lab-doubler-filters{padding:11px;gap:12px}
+ .lab-doubler-sort-field{flex:1 1 100%;min-width:0}
+ .lab-doubler-hide-toggle{width:100%}
+ .lab-doubler-category-menu{left:auto;right:0}
+}
+.lab-doubler-advice{margin:15px 0 16px}
+.lab-doubler-summary{
+ display:flex;align-items:baseline;justify-content:space-between;gap:10px;
+ flex-wrap:wrap;padding:14px 16px;border:1px solid #447969;border-radius:11px;
+ background:#153c38;
+}
+.lab-doubler-summary strong{font-size:15px;color:#ebfff6}
+.lab-doubler-summary span{font-size:11px;color:#c6e0db}
+.lab-doubler-advice>.hint{font-size:11px;line-height:1.55;margin:9px 0 13px}
+.lab-doubler-plan-grid{
+ display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px
+}
+.lab-doubler-plan-card{
+ background:#142b38;border:1px solid #3c5965;border-radius:11px;
+ padding:13px 14px;min-width:0
+}
+.lab-doubler-plan-card.is-change{
+ border-color:#4f9c83;background:#193d3b
+}
+/* Match the Upgrade Catalog's existing purple treatment for active Doublers. */
+.lab-doubler-plan-card.is-doubled{
+ background:#26273b;border-color:#9f77cb;
+ box-shadow:inset 3px 0 0 #cda2fa
+}
+.lab-doubler-plan-card.is-doubled .lab-doubler-plan-identity strong{color:#f4d9ff}
+.lab-doubler-plan-card.is-doubled .lab-doubler-plan-from{color:#e5c8f7}
+.lab-doubler-plan-status.is-doubled{
+ background:#553b6f;border-color:#9f77cb;color:#f4d9ff
+}
+.lab-doubler-plan-head{
+ display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap
+}
+.lab-doubler-plan-identity{display:flex;align-items:center;gap:10px;min-width:0}
+.lab-doubler-plan-identity .lab-upgrade-icon{
+ width:40px;height:40px;flex:0 0 40px;object-fit:contain
+}
+.lab-doubler-plan-identity>div{display:flex;flex-direction:column;gap:3px;min-width:0}
+.lab-doubler-plan-identity strong{font-size:12px;color:#e9faf3;line-height:1.35;overflow-wrap:anywhere}
+.lab-doubler-plan-identity small{font-size:11px;color:#9ec3c7}
+.lab-doubler-plan-status{
+ display:inline-flex;align-items:center;gap:6px;
+ font-size:10px;font-weight:800;color:#b2e8d5;padding:5px 7px;
+ border:1px solid #467768;border-radius:6px;white-space:nowrap
+}
+.lab-doubler-plan-status .lab-doubler-plan-icon{
+ width:22px;height:auto;max-height:19px;object-fit:contain;flex:0 0 22px
+}
+.lab-doubler-gain{
+ display:flex;align-items:baseline;justify-content:space-between;
+ flex-wrap:wrap;gap:4px 10px;margin-top:12px;padding:9px 10px;
+ background:#1a403c;border:1px solid #4b8e77;border-radius:8px
+}
+.lab-doubler-gain-label{font-size:10px;color:#a2d8bf;font-weight:750}
+.lab-doubler-gain strong{
+ color:#bbf3d8;font-size:12px;font-weight:750;line-height:1.4
+}
+.lab-doubler-gain.is-unranked{background:#20303a;border-color:#47606b}
+.lab-doubler-gain.is-unranked strong{color:#b8cad1}
+.lab-doubler-gain.is-unranked .lab-doubler-gain-label{color:#a8bbc7}
+.lab-doubler-plan-card.is-doubled .lab-doubler-gain{
+ background:#402d51;border-color:#8d69ac
+}
+.lab-doubler-plan-card.is-doubled .lab-doubler-gain strong{color:#f4d9ff}
+.lab-doubler-plan-reason{margin:11px 0 0;color:#b9d2d0;font-size:12px;line-height:1.55}
+.lab-doubler-values{
+ display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:12px
+}
+.lab-doubler-value{
+ display:flex;flex-direction:column;gap:6px;padding:10px 12px;min-width:0;
+ border:1px solid #355260;background:#102834;border-radius:8px
+}
+.lab-doubler-value small{
+ color:#a5c2cc;font-size:10px;font-weight:700;line-height:1.35
+}
+.lab-doubler-value strong{
+ color:#d9e9e9;font-size:clamp(13px,1.4vw,17px);
+ overflow-wrap:anywhere;font-variant-numeric:tabular-nums
+}
+.lab-doubler-value.is-current{border-color:#508b78;background:#1a3d38}
+.lab-doubler-value.is-current strong{color:#9bf3cb}
+.lab-doubler-value.is-doubled{
+ border-color:#9f77cb;background:#553b6f
+}
+.lab-doubler-value.is-doubled strong{color:#f4d9ff}
+.lab-doubler-value.is-doubled small{color:#e2c7f5}
+.lab-doubler-account-stat{
+ display:flex;flex-direction:column;gap:5px;
+ margin-top:9px;padding-top:9px;border-top:1px solid #ffffff20;
+ min-width:0
+}
+.lab-doubler-account-stat small{
+ color:#b0cbd2;font-size:10px;font-weight:600;line-height:1.45
+}
+.lab-doubler-account-stat strong{
+ font-size:clamp(12px,1.3vw,15px);color:#d6f7ea;
+ line-height:1.45;overflow-wrap:anywhere;font-variant-numeric:tabular-nums
+}
+.lab-doubler-value.is-doubled .lab-doubler-account-stat strong{color:#f4d9ff}
+.lab-doubler-value.is-current:not(.is-doubled) .lab-doubler-account-stat strong{color:#a2efca}
+.lab-doubler-impact-note{
+ font-size:10.5px;color:#a8c5c9;line-height:1.55;margin:7px 0 0
+}
+.lab-doubler-value-caption{color:#9bb6c0;font-size:10.5px;line-height:1.5;margin:7px 0 0}
+@media(max-width:440px){
+ .lab-doubler-values{grid-template-columns:1fr}
+}
+.lab-doubler-plan-from{margin:8px 0 0;color:#9ee5c5;font-size:11px;line-height:1.45}
+@media(max-width:700px){
+ .lab-doubler-plan-grid{grid-template-columns:1fr}
+}
+
+/* Progression Advisor: goal-specific marginal impact and visible-results control. */
+.lab-advisor-compare-controls{display:flex;align-items:center;justify-content:flex-end;gap:12px;flex-wrap:wrap}
+.lab-advisor-visible-count{display:flex;align-items:center;gap:8px;font-size:.9rem}
+.lab-advisor-visible-count select{min-width:130px}
+.lab-advisor-modeled-impact{display:grid;gap:5px;padding:12px 14px;margin-top:10px;border:1px solid var(--border, #4a4859);border-radius:12px}
+.lab-advisor-modeled-impact>span{font-size:.72rem;font-weight:700;letter-spacing:.05em;color:var(--muted,#acacba)}
+.lab-advisor-modeled-impact>strong{font-size:1rem;overflow-wrap:anywhere}
+.lab-advisor-modeled-impact>small{font-size:.85rem;opacity:.84;overflow-wrap:anywhere}
+@media(max-width:700px){.lab-advisor-compare-controls{justify-content:flex-start}.lab-advisor-visible-count select{min-width:115px}}
+
+
+
+/* Shared visual language for Upgrade Catalog, Progression and Doubler Advisors.
+   The Catalog's existing teal-blue colors are the reference for all three. */
+#lab-upgrades{
+ --up-bg:#122a35;--up-panel:#192c3b;--up-row:#162b38;
+ --up-head:#203548;--up-hover:#1c3341;--up-line:#344e5f;
+ --up-muted:#aebfcd;--up-text:#e8faf1;--up-accent:#89d9b7;
+}
+#lab-upgrades .lab-subnavigation{margin-bottom:14px}
+#lab-upgrade-catalog .lab-catalog-toolbar,
+#lab-upgrade-advisor .lab-advisor-goalbar,
+#lab-upgrade-advisor .lab-advisor-compare-toolbar,
+#lab-upgrade-doubler .lab-doubler-filters{
+ background:var(--up-bg);border:1px solid #355661;border-radius:11px;
+ padding:12px 14px;gap:11px 13px;
+}
+#lab-upgrades .lab-catalog-toolbar label,
+#lab-upgrades .lab-advisor-purchase-controls label,
+#lab-upgrades .lab-doubler-sort-field{
+ color:#bad9d8;font-size:11px;font-weight:700;
+}
+#lab-upgrades .lab-catalog-toolbar select,
+#lab-upgrades .lab-catalog-toolbar input{
+ min-height:35px;border-radius:8px;
+}
+#lab-upgrade-doubler .lab-doubler-plan-card,
+#lab-upgrade-doubler .lab-doubler-plan-card.is-change{
+ background:var(--up-panel);border-color:var(--up-line);box-shadow:none;
+}
+#lab-upgrade-doubler .lab-doubler-plan-card.is-doubled{
+ background:#26273b;border-color:#9f77cb;box-shadow:inset 3px 0 0 #cda2fa;
+}
+#lab-upgrade-doubler .lab-doubler-plan-card.is-doubled .lab-doubler-plan-identity strong{
+ color:#f4d9ff
+}
+#lab-upgrade-advisor{color:#d2e3eb}
+#lab-upgrade-advisor .lab-advisor-goalbar{
+ display:flex;align-items:end;justify-content:space-between;flex-wrap:wrap;
+ margin:14px 0 6px
+}
+#lab-upgrade-advisor .lab-advisor-goalbar>label{
+ flex:0 1 275px;display:grid;gap:6px;min-width:190px
+}
+#lab-upgrade-advisor .lab-advisor-goalbar>label>select{width:100%}
+#lab-upgrade-advisor .lab-advisor-summary{
+ display:flex;gap:8px 16px;align-items:center;flex-wrap:wrap;
+ margin:0;padding:0;background:none;border:0;font-size:12px;color:var(--up-muted)
+}
+#lab-upgrade-advisor .lab-advisor-summary>strong{color:var(--up-text);font-size:13px}
+#lab-upgrade-advisor .lab-advisor-summary>span{color:var(--up-muted);font-size:12px}
+#lab-upgrade-advisor .lab-advisor-section-head{
+ display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;
+ gap:10px;margin:25px 0 10px
+}
+#lab-upgrade-advisor .lab-advisor-section-head h3{
+ margin:0;font-size:16px;font-weight:750;color:var(--up-text)
+}
+#lab-upgrade-advisor .lab-advisor-section-head .hint{
+ margin:4px 0 0;color:var(--up-muted);font-size:12px
+}
+#lab-upgrade-advisor .lab-advisor-main-head{margin-top:18px}
+#lab-upgrade-advisor .lab-advisor-help{
+ margin:0;padding:0;border:0;background:transparent;font-size:12px
+}
+#lab-upgrade-advisor .lab-advisor-help>summary,
+#lab-upgrade-advisor .lab-advisor-row-details>summary,
+#lab-upgrade-advisor .lab-advisor-step-details>summary,
+#lab-upgrade-advisor .lab-advisor-goal-note-wrap>summary{
+ color:var(--up-accent);cursor:pointer;font-size:11px;font-weight:700
+}
+#lab-upgrade-advisor .lab-advisor-help p,
+#lab-upgrade-advisor .lab-advisor-row-details p,
+#lab-upgrade-advisor .lab-advisor-goal-note-wrap p{
+ font-size:12px;color:var(--up-muted);line-height:1.6;margin:8px 0
+}
+#lab-upgrade-advisor .lab-advisor-feature{
+ background:var(--up-panel);border:1px solid var(--up-line);
+ border-radius:10px;overflow:hidden;box-shadow:none
+}
+#lab-upgrade-advisor .lab-advisor-feature-row,
+#lab-upgrade-advisor .lab-advisor-rank-row{
+ display:grid;align-items:center;
+ column-gap:14px;row-gap:8px;
+ padding:13px 14px;margin:0;
+ border:0;background:transparent;min-width:0;
+}
+#lab-upgrade-advisor .lab-advisor-feature-row{
+ grid-template-columns:minmax(0,1.7fr) minmax(135px,1.2fr) minmax(120px,.9fr) minmax(125px,.9fr);
+ grid-template-areas:"identity gain price status" "details details details details"
+}
+#lab-upgrade-advisor .lab-advisor-rank-row{
+ grid-template-columns:30px minmax(0,1.7fr) minmax(135px,1.2fr) minmax(120px,.9fr) minmax(125px,.9fr);
+ grid-template-areas:"rank identity gain price status" "details details details details details";
+ border-top:1px solid #293f50
+}
+#lab-upgrade-advisor .lab-advisor-rank-row:hover{background:var(--up-hover)}
+#lab-upgrade-advisor .lab-advisor-identity{grid-area:identity;display:flex;gap:10px;align-items:center;min-width:0}
+#lab-upgrade-advisor .lab-advisor-identity .lab-upgrade-icon{
+ height:38px;width:38px;flex:0 0 38px;
+ background:#203e49;border-radius:8px;padding:3px
+}
+#lab-upgrade-advisor .lab-advisor-identity-copy>strong{
+ font-size:13px;color:var(--up-text);line-height:1.45;font-weight:750
+}
+#lab-upgrade-advisor .lab-advisor-identity-copy>span{font-size:11px;color:var(--up-muted)}
+#lab-upgrade-advisor .lab-advisor-feature-row .lab-advisor-identity-copy>strong{font-size:15px}
+#lab-upgrade-advisor .lab-advisor-row-number{
+ grid-area:rank;align-self:center;text-align:center;font-weight:700;
+ color:var(--up-muted);font-size:12px
+}
+#lab-upgrade-advisor .lab-advisor-row-benefit{
+ grid-area:gain;display:grid;gap:4px;min-width:0
+}
+#lab-upgrade-advisor .lab-advisor-row-benefit>strong{
+ font-weight:700;font-size:12px;line-height:1.5;color:#b4efce;overflow-wrap:anywhere
+}
+#lab-upgrade-advisor .lab-advisor-row-benefit>small{
+ font-size:11px;color:var(--up-muted);overflow-wrap:anywhere;line-height:1.4
+}
+#lab-upgrade-advisor .lab-advisor-row-price{
+ grid-area:price;display:grid;gap:3px;min-width:0
+}
+#lab-upgrade-advisor .lab-advisor-row-price>strong{
+ color:var(--up-text);font-size:12px;font-weight:750;overflow-wrap:anywhere
+}
+#lab-upgrade-advisor .lab-advisor-row-price>small{font-size:10px;color:#e4c993}
+#lab-upgrade-advisor .lab-advisor-row-status{
+ grid-area:status;display:grid;justify-items:start;gap:5px;min-width:0
+}
+#lab-upgrade-advisor .lab-advisor-row-status>small{
+ font-size:11px;color:var(--up-muted);line-height:1.4;overflow-wrap:anywhere
+}
+#lab-upgrade-advisor .lab-advisor-badge{
+ border-radius:6px;font-size:11px;font-weight:700;white-space:normal;
+ padding:4px 8px;text-align:left;line-height:1.4
+}
+#lab-upgrade-advisor .lab-advisor-badge-success{
+ color:#aaf6cc;background:#234a3f;border:1px solid #3d7862
+}
+#lab-upgrade-advisor .lab-advisor-badge-secondary,
+#lab-upgrade-advisor .lab-advisor-badge-uncertain{
+ color:#f0d7ad;background:#4b3a26;border:1px solid #795f3b
+}
+#lab-upgrade-advisor .lab-advisor-badge-muted{
+ color:var(--up-muted);background:#223544;border:1px solid #405468
+}
+#lab-upgrade-advisor .lab-advisor-row-details{
+ grid-area:details;margin:0;padding-top:1px
+}
+#lab-upgrade-advisor .lab-advisor-row-details[open]{
+ padding-top:9px;border-top:1px solid #293f50
+}
+#lab-upgrade-advisor .lab-advisor-row-details p{margin:6px 0}
+#lab-upgrade-advisor .lab-advisor-ranked-list{
+ border:1px solid var(--up-line);background:var(--up-panel);border-radius:10px;
+ overflow:hidden
+}
+#lab-upgrade-advisor .lab-advisor-ranked-list>p{margin:0;padding:14px}
+#lab-upgrade-advisor .lab-advisor-column-head{
+ display:grid;align-items:center;gap:14px;
+ background:var(--up-head);color:#b9d8dc;
+ padding:11px 14px;font-size:11px;font-weight:750
+}
+#lab-upgrade-advisor .lab-advisor-rank-columns{
+ grid-template-columns:30px minmax(0,1.7fr) minmax(135px,1.2fr) minmax(120px,.9fr) minmax(125px,.9fr);
+ border:1px solid var(--up-line);border-bottom:0;border-radius:9px 9px 0 0
+}
+#lab-upgrade-advisor .lab-advisor-ranked-list{
+ border-radius:0 0 9px 9px
+}
+#lab-upgrade-advisor .lab-advisor-compare-toolbar{
+ display:grid;grid-template-columns:repeat(3,minmax(130px,1fr)) auto;
+ align-items:end;margin:12px 0
+}
+#lab-upgrade-advisor .lab-advisor-compare-toolbar label{
+ display:flex;flex-direction:column;gap:5px;min-width:0
+}
+#lab-upgrade-advisor .lab-advisor-compare-toolbar select{
+ width:100%;min-width:0
+}
+#lab-upgrade-advisor .lab-advisor-check{
+ flex-direction:row;align-items:center;gap:7px;margin:0;padding:7px 0;
+ min-height:35px;white-space:nowrap
+}
+#lab-upgrade-advisor .lab-advisor-plan-head{margin-top:25px}
+#lab-upgrade-advisor .lab-advisor-purchase-controls{
+ display:flex;gap:9px;flex-wrap:wrap;align-items:end
+}
+#lab-upgrade-advisor .lab-advisor-purchase-controls>label{
+ display:grid;gap:5px;min-width:120px
+}
+#lab-upgrade-advisor .lab-advisor-purchase-controls>label.hidden{display:none}
+#lab-upgrade-advisor .lab-advisor-purchase-controls input,
+#lab-upgrade-advisor .lab-advisor-purchase-controls select{
+ color:var(--up-text);background:#112b34;border:1px solid #476e75;
+ border-radius:8px;padding:7px 10px;min-height:35px;font-size:12px
+}
+#lab-upgrade-advisor .lab-advisor-view-toggle{
+ display:flex;gap:3px;padding:3px;background:#112b34;border:1px solid #476e75;
+ border-radius:9px
+}
+#lab-upgrade-advisor .lab-advisor-view-toggle button{
+ background:transparent;color:var(--up-muted);padding:7px 11px;
+ font-size:11px;font-weight:750;border:0;border-radius:7px;cursor:pointer
+}
+#lab-upgrade-advisor .lab-advisor-view-toggle button.selected{
+ background:#235047;color:#d7fff1;box-shadow:none
+}
+#lab-upgrade-advisor .lab-advisor-plan-summary{
+ display:flex;flex-wrap:wrap;gap:10px 20px;
+ margin:14px 0 10px;padding:0;border:0
+}
+#lab-upgrade-advisor .lab-advisor-plan-stat{
+ display:flex;flex-direction:column;gap:4px;min-width:100px;
+ margin:0;padding:0;flex:0 1 auto;background:transparent;border:0;border-radius:0;
+}
+#lab-upgrade-advisor .lab-advisor-plan-stat>strong{
+ color:var(--up-text);font-size:15px;font-weight:750;line-height:1.4
+}
+#lab-upgrade-advisor .lab-advisor-plan-stat>small{
+ color:var(--up-muted);font-size:10px;font-weight:700
+}
+#lab-upgrade-advisor .lab-advisor-goal-projection{
+ display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;
+ background:var(--up-bg);border:1px solid var(--up-line);border-radius:9px;
+ padding:10px 14px;margin:12px 0;box-shadow:none
+}
+#lab-upgrade-advisor .lab-advisor-goal-label{
+ display:flex;flex:0 1 240px;flex-direction:column;align-items:start;gap:5px;
+ color:var(--up-text)
+}
+#lab-upgrade-advisor .lab-advisor-goal-label>strong{
+ font-size:12px;font-weight:700;color:var(--up-text)
+}
+#lab-upgrade-advisor .lab-advisor-goal-label>span{
+ border:0;padding:0;font-size:10px;color:var(--up-muted)
+}
+#lab-upgrade-advisor .lab-advisor-goal-comparison{
+ display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:0
+}
+#lab-upgrade-advisor .lab-advisor-goal-number{
+ display:flex;flex-direction:column;min-width:100px;flex:0 1 auto;gap:2px
+}
+#lab-upgrade-advisor .lab-advisor-goal-number>small{font-size:10px;color:var(--up-muted)}
+#lab-upgrade-advisor .lab-advisor-goal-number>strong{
+ font-size:14px;color:var(--up-text);font-weight:750
+}
+#lab-upgrade-advisor .lab-advisor-goal-projected>strong{color:#b4efce}
+#lab-upgrade-advisor .lab-advisor-goal-arrow{color:var(--up-muted);font-size:17px}
+#lab-upgrade-advisor .lab-advisor-goal-note-wrap{margin:0;flex:0 0 auto}
+#lab-upgrade-advisor .lab-advisor-purchase-scroll{
+ max-height:620px;overflow-y:auto;
+ background:var(--up-panel);border:1px solid var(--up-line);
+ border-radius:0 0 9px 9px;scrollbar-color:#467568 #122a35
+}
+#lab-upgrade-advisor .lab-advisor-purchase-list.lab-advisor-view-list,
+#lab-upgrade-advisor .lab-advisor-purchase-list.lab-advisor-view-cards{
+ list-style:none;display:grid;grid-template-columns:minmax(0,1fr);
+ gap:0;padding:0;margin:0
+}
+#lab-upgrade-advisor .lab-advisor-plan-columns{
+ grid-template-columns:30px minmax(0,1.7fr) minmax(125px,1fr) minmax(140px,1fr);
+ border:1px solid var(--up-line);border-bottom:0;
+ border-radius:9px 9px 0 0
+}
+#lab-upgrade-advisor .lab-advisor-purchase-step,
+#lab-upgrade-advisor .lab-advisor-view-cards .lab-advisor-purchase-step,
+#lab-upgrade-advisor .lab-advisor-view-list .lab-advisor-purchase-step{
+ display:grid;align-items:center;column-gap:14px;row-gap:4px;
+ grid-template-columns:30px minmax(0,1.7fr) minmax(125px,1fr) minmax(140px,1fr);
+ grid-template-areas:"number identity price status" "details details details details";
+ margin:0;padding:12px 14px;
+ border:0;border-bottom:1px solid #293f50;background:transparent;border-radius:0
+}
+#lab-upgrade-advisor .lab-advisor-purchase-step:hover{background:var(--up-hover)}
+#lab-upgrade-advisor .lab-advisor-purchase-step.is-next{
+ background:#1b393d;box-shadow:inset 3px 0 0 var(--up-accent)
+}
+#lab-upgrade-advisor .lab-advisor-purchase-step:last-child{border-bottom:0}
+#lab-upgrade-advisor .lab-advisor-purchase-number{
+ grid-area:number;align-self:center;
+ height:27px;width:27px;display:grid;place-items:center;
+ background:#235047;color:#d7fff1;border-radius:7px;font-size:12px;font-weight:800
+}
+#lab-upgrade-advisor .lab-advisor-purchase-identity,
+#lab-upgrade-advisor .lab-advisor-view-cards .lab-advisor-purchase-identity{
+ grid-area:identity;display:flex;align-items:center;gap:10px
+}
+#lab-upgrade-advisor .lab-advisor-purchase-identity .lab-upgrade-icon{
+ width:38px;height:38px;flex:0 0 38px;background:#203e49;border-radius:8px;padding:3px
+}
+#lab-upgrade-advisor .lab-advisor-purchase-copy>strong{font-size:13px;color:var(--up-text)}
+#lab-upgrade-advisor .lab-advisor-purchase-copy>small{font-size:11px;color:var(--up-muted)}
+#lab-upgrade-advisor .lab-advisor-purchase-price,
+#lab-upgrade-advisor .lab-advisor-view-list .lab-advisor-purchase-step .lab-advisor-purchase-price{
+ grid-area:price;justify-self:stretch;align-items:flex-start;text-align:left;
+}
+#lab-upgrade-advisor .lab-advisor-purchase-price strong{
+ font-size:12px;color:var(--up-text);font-weight:750
+}
+#lab-upgrade-advisor .lab-advisor-purchase-price small{color:var(--up-muted)}
+#lab-upgrade-advisor .lab-advisor-purchase-status,
+#lab-upgrade-advisor .lab-advisor-view-list .lab-advisor-purchase-step .lab-advisor-purchase-status{
+ grid-area:status;justify-self:start;text-align:left;align-items:start;
+ background:transparent;border:0;padding:0
+}
+#lab-upgrade-advisor .lab-advisor-purchase-status strong{
+ text-align:left;color:#aaf6cc;font-size:11px;font-weight:700
+}
+#lab-upgrade-advisor .lab-advisor-purchase-save strong{color:#e4c993}
+#lab-upgrade-advisor .lab-advisor-step-details{
+ grid-area:details;min-width:0;margin:4px 0 0;padding-top:5px
+}
+#lab-upgrade-advisor .lab-advisor-step-details[open]{
+ border-top:1px solid #293f50;margin-top:9px;padding-top:9px
+}
+#lab-upgrade-advisor .lab-advisor-step-details>summary{cursor:pointer}
+#lab-upgrade-advisor .lab-advisor-step-result,
+#lab-upgrade-advisor .lab-advisor-view-cards .lab-advisor-step-result{
+ display:grid;gap:7px;padding:9px 0 0;background:transparent;border:0
+}
+#lab-upgrade-advisor .lab-advisor-step-result-label{color:var(--up-muted);font-size:11px}
+#lab-upgrade-advisor .lab-advisor-step-result-values strong{color:#b4efce}
+#lab-upgrade-advisor .lab-advisor-plan-end{
+ margin:0;padding:12px 14px;color:var(--up-muted);font-size:11px
+}
+#lab-upgrade-advisor .lab-advisor-plan-empty{padding:12px 14px}
+#lab-upgrade-advisor .lab-advisor-calibration{
+ background:var(--up-bg);border:1px solid var(--up-line);
+ padding:11px 14px;border-radius:9px;margin:14px 0
+}
+#lab-upgrade-advisor .lab-advisor-calibration>summary{
+ color:var(--up-accent);font-size:12px;font-weight:700;cursor:pointer
+}
+#lab-upgrade-advisor .lab-advisor-calibration input{
+ background:#112b34;border:1px solid #476e75;border-radius:8px;color:var(--up-text)
+}
+#lab-upgrade-advisor .lab-advisor-compare-toolbar{margin:12px 0}
+#lab-upgrade-advisor .lab-advisor-ranked-list{min-height:40px}
+@media(max-width:950px){
+ #lab-upgrade-advisor .lab-advisor-compare-toolbar{
+  grid-template-columns:repeat(2,minmax(0,1fr))
+ }
+ #lab-upgrade-advisor .lab-advisor-check{justify-content:flex-start}
+}
+@media(max-width:730px){
+ #lab-upgrade-advisor .lab-advisor-column-head{display:none}
+ #lab-upgrade-advisor .lab-advisor-feature-row,
+ #lab-upgrade-advisor .lab-advisor-rank-row{
+  grid-template-columns:30px minmax(0,1fr);
+  grid-template-areas:"rank identity" ". gain" ". price" ". status" "details details";
+  row-gap:7px
+ }
+ #lab-upgrade-advisor .lab-advisor-feature-row{
+  grid-template-columns:minmax(0,1fr);
+  grid-template-areas:"identity" "gain" "price" "status" "details"
+ }
+ #lab-upgrade-advisor .lab-advisor-purchase-step,
+ #lab-upgrade-advisor .lab-advisor-view-cards .lab-advisor-purchase-step,
+ #lab-upgrade-advisor .lab-advisor-view-list .lab-advisor-purchase-step{
+  grid-template-columns:30px minmax(0,1fr);
+  grid-template-areas:"number identity" ". price" ". status" "details details";
+  row-gap:7px
+ }
+ #lab-upgrade-advisor .lab-advisor-purchase-controls{width:100%}
+ #lab-upgrade-advisor .lab-advisor-goal-projection{align-items:flex-start}
+}
+@media(max-width:510px){
+ #lab-upgrade-advisor .lab-advisor-compare-toolbar{grid-template-columns:1fr}
+ #lab-upgrade-advisor .lab-advisor-goalbar>label{flex:1 1 100%}
+ #lab-upgrade-advisor .lab-advisor-plan-summary{gap:10px 18px}
+ #lab-upgrade-advisor .lab-advisor-goal-comparison{width:100%}
+}
+
+/* Upgrade Center polish — shared controls, exact grid tracks and state colors. */
+#lab-upgrades{
+ --up-control-bg:#112333;
+ --up-control-border:#476075;
+ --up-success-bg:#245a43;
+ --up-success-border:#438d63;
+ --up-success-text:#b6ffd1;
+ --up-danger-bg:#623442;
+ --up-danger-border:#a85c71;
+ --up-danger-text:#ffd1d1;
+ --up-warning-bg:#5b4e2f;
+ --up-warning-border:#a68d4f;
+ --up-warning-text:#ffe7af;
+ --up-purple-bg:#553b6f;
+ --up-purple-border:#9f77cb;
+ --up-purple-text:#f4d9ff;
+ --up-rank-columns:30px minmax(0,1.7fr) minmax(125px,1.15fr) minmax(112px,.85fr) minmax(112px,.85fr);
+ --up-purchase-columns:30px minmax(0,1.7fr) minmax(130px,1fr) minmax(142px,1fr);
+}
+#lab-upgrades .lab-catalog-toolbar :is(select,input:not([type="checkbox"])),
+#lab-upgrade-doubler .lab-doubler-sort-field select,
+#lab-upgrade-advisor .lab-advisor-purchase-controls :is(select,input),
+#lab-upgrade-advisor .lab-advisor-calibration-grid input{
+ width:100%;
+ min-width:0;
+ min-height:36px;
+ padding:8px 10px;
+ font:inherit;
+ font-size:12px;
+ line-height:1.4;
+ color:var(--up-text);
+ background:var(--up-control-bg);
+ border:1px solid var(--up-control-border);
+ border-radius:9px;
+ box-shadow:none;
+}
+#lab-upgrades :is(select,input):focus-visible,
+#lab-upgrades .lab-advisor-view-toggle button:focus-visible,
+#lab-upgrades .lab-advisor-row-details>summary:focus-visible,
+#lab-upgrades .lab-advisor-step-details>summary:focus-visible{
+ outline:2px solid var(--up-accent);
+ outline-offset:2px;
+}
+#lab-upgrade-catalog .lab-catalog-toolbar,
+#lab-upgrade-advisor .lab-advisor-goalbar,
+#lab-upgrade-advisor .lab-advisor-compare-toolbar,
+#lab-upgrade-doubler .lab-doubler-filters{
+ border-color:#355661;
+ background:var(--up-bg);
+}
+#lab-upgrade-advisor .lab-advisor-feature-row,
+#lab-upgrade-advisor .lab-advisor-rank-row{
+ grid-template-columns:var(--up-rank-columns);
+ grid-template-areas:"rank identity gain price status" "details details details details details";
+}
+#lab-upgrade-advisor .lab-advisor-rank-columns{
+ grid-template-columns:var(--up-rank-columns);
+}
+#lab-upgrade-advisor .lab-advisor-feature-row{
+ background:#1b3540;
+}
+#lab-upgrade-advisor .lab-advisor-row-number.is-featured{
+ color:var(--up-accent);
+ font-size:17px;
+}
+#lab-upgrade-advisor .lab-advisor-feature-row .lab-advisor-identity-copy>strong{
+ color:var(--up-text);
+}
+#lab-upgrade-advisor .lab-advisor-column-head{
+ background:var(--up-head);
+ color:#b9d8dc;
+}
+#lab-upgrade-advisor .lab-advisor-rank-row,
+#lab-upgrade-advisor .lab-advisor-feature-row{
+ font-variant-numeric:tabular-nums;
+}
+#lab-upgrade-advisor .lab-advisor-row-benefit>strong{
+ color:var(--up-success-text);
+}
+#lab-upgrade-advisor .lab-advisor-badge-success{
+ background:var(--up-success-bg);
+ border-color:var(--up-success-border);
+ color:var(--up-success-text);
+}
+#lab-upgrade-advisor .lab-advisor-badge-danger{
+ background:var(--up-danger-bg);
+ border:1px solid var(--up-danger-border);
+ color:var(--up-danger-text);
+}
+#lab-upgrade-advisor .lab-advisor-badge-uncertain{
+ background:var(--up-warning-bg);
+ border-color:var(--up-warning-border);
+ color:var(--up-warning-text);
+}
+#lab-upgrade-advisor .lab-advisor-purchase-step,
+#lab-upgrade-advisor .lab-advisor-view-cards .lab-advisor-purchase-step,
+#lab-upgrade-advisor .lab-advisor-view-list .lab-advisor-purchase-step,
+#lab-upgrade-advisor .lab-advisor-plan-columns{
+ grid-template-columns:var(--up-purchase-columns);
+}
+#lab-upgrade-advisor .lab-advisor-purchase-step.is-next{
+ background:#1a393a;
+ box-shadow:inset 3px 0 0 var(--up-accent);
+}
+#lab-upgrade-advisor .lab-advisor-purchase-step.is-next .lab-advisor-purchase-number{
+ background:var(--up-success-bg);
+ color:var(--up-success-text);
+}
+#lab-upgrade-advisor .lab-advisor-purchase-step:not(.is-next) .lab-advisor-purchase-number{
+ background:var(--up-head);
+ color:#b9d8dc;
+}
+#lab-upgrade-advisor .lab-advisor-goal-projected>strong,
+#lab-upgrade-advisor .lab-advisor-step-result-values strong{
+ color:var(--up-success-text);
+}
+#lab-upgrade-advisor .lab-advisor-plan-summary{
+ display:grid;
+ grid-template-columns:repeat(4,minmax(0,1fr));
+ gap:0;
+ margin:15px 0;
+ padding:11px 0;
+ border-top:1px solid var(--up-line);
+ border-bottom:1px solid var(--up-line);
+}
+#lab-upgrade-advisor .lab-advisor-plan-stat{
+ min-width:0;
+ display:flex;
+ justify-content:center;
+ flex-direction:column;
+ padding:4px 12px;
+ border-left:1px solid var(--up-line);
+}
+#lab-upgrade-advisor .lab-advisor-plan-stat:first-child{
+ border-left:0;
+ padding-left:0;
+}
+#lab-upgrade-advisor .lab-advisor-plan-stat>strong{
+ font-variant-numeric:tabular-nums;
+ overflow-wrap:anywhere;
+}
+#lab-upgrade-advisor .lab-advisor-compare-toolbar{
+ gap:11px 13px;
+}
+#lab-upgrade-advisor .lab-advisor-check{
+ display:flex;
+ flex-direction:row;
+ align-items:center;
+ gap:8px;
+ min-height:36px;
+ padding:0;
+}
+#lab-upgrade-advisor .lab-advisor-check input{
+ width:16px;
+ height:16px;
+ min-height:0;
+ flex:0 0 auto;
+ accent-color:var(--up-accent);
+}
+#lab-upgrade-advisor .lab-advisor-view-toggle{
+ height:36px;
+ flex:0 0 auto;
+ align-items:center;
+}
+#lab-upgrade-advisor .lab-advisor-view-toggle button{
+ min-height:28px;
+}
+#lab-upgrade-doubler .lab-doubler-hide-toggle input,
+#lab-upgrade-catalog .lab-hide-maxed-toggle input{
+ accent-color:var(--up-accent);
+}
+#lab-upgrade-doubler .lab-doubler-plan-card.is-doubled{
+ background:#26273b;
+ border-color:var(--up-purple-border);
+ box-shadow:inset 3px 0 0 #cda2fa;
+}
+#lab-upgrade-doubler .lab-doubler-plan-status.is-doubled{
+ background:var(--up-purple-bg);
+ color:var(--up-purple-text);
+ border-color:var(--up-purple-border);
+}
+@media(max-width:850px){
+ #lab-upgrade-advisor .lab-advisor-column-head{
+  display:none;
+ }
+ #lab-upgrade-advisor .lab-advisor-feature-row,
+ #lab-upgrade-advisor .lab-advisor-rank-row{
+  grid-template-columns:28px minmax(0,1fr);
+  grid-template-areas:"rank identity" ". gain" ". price" ". status" "details details";
+  row-gap:8px;
+ }
+ #lab-upgrade-advisor .lab-advisor-row-benefit::before,
+ #lab-upgrade-advisor .lab-advisor-row-price::before,
+ #lab-upgrade-advisor .lab-advisor-row-status::before,
+ #lab-upgrade-advisor .lab-advisor-purchase-price::before,
+ #lab-upgrade-advisor .lab-advisor-purchase-status::before{
+  display:block;
+  color:var(--up-muted);
+  font-size:10px;
+  font-weight:650;
+  line-height:1.35;
+  margin-bottom:3px;
+ }
+ #lab-upgrade-advisor .lab-advisor-row-benefit::before{content:"MODELED GAIN"}
+ #lab-upgrade-advisor .lab-advisor-row-price::before{content:"NEXT COST"}
+ #lab-upgrade-advisor .lab-advisor-row-status::before{content:"STATUS"}
+ #lab-upgrade-advisor .lab-advisor-purchase-price::before{content:"NEXT COST"}
+ #lab-upgrade-advisor .lab-advisor-purchase-status::before{content:"STATUS"}
+ #lab-upgrade-advisor .lab-advisor-rank-row .lab-advisor-row-number{
+  align-self:start;
+ }
+ #lab-upgrade-advisor .lab-advisor-feature-row{
+  grid-template-columns:28px minmax(0,1fr);
+  grid-template-areas:"rank identity" ". gain" ". price" ". status" "details details";
+ }
+ #lab-upgrade-advisor .lab-advisor-purchase-step,
+ #lab-upgrade-advisor .lab-advisor-view-cards .lab-advisor-purchase-step,
+ #lab-upgrade-advisor .lab-advisor-view-list .lab-advisor-purchase-step{
+  grid-template-columns:28px minmax(0,1fr);
+  grid-template-areas:"number identity" ". price" ". status" "details details";
+  row-gap:7px;
+ }
+ #lab-upgrade-advisor .lab-advisor-purchase-price,
+ #lab-upgrade-advisor .lab-advisor-purchase-status{
+  justify-self:start;
+  text-align:left;
+  align-items:start;
+ }
+ #lab-upgrade-advisor .lab-advisor-plan-summary{
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  row-gap:14px;
+ }
+ #lab-upgrade-advisor .lab-advisor-plan-stat:nth-child(3){
+  padding-left:0;
+  border-left:0;
+ }
+}
+@media(max-width:510px){
+ #lab-upgrade-advisor .lab-advisor-feature-row,
+ #lab-upgrade-advisor .lab-advisor-rank-row{
+  padding:12px;
+ }
+ #lab-upgrade-advisor .lab-advisor-plan-stat{
+  padding-left:12px;
+  padding-right:8px;
+ }
+}
+/* Center the rank/purchase-number headers over their numeric column. */
+#lab-upgrade-advisor .lab-advisor-column-head>span:first-child{text-align:center}
+
+/* Purchase group breakdown + aligned informational disclosures. */
+#lab-upgrade-advisor .lab-advisor-goal-note-wrap{
+ flex:1 1 100%;
+ width:100%;
+ min-width:0;
+ align-self:stretch;
+ margin:2px 0 0;
+ padding:10px 0 0;
+ border-top:1px solid var(--up-line);
+ text-align:left;
+}
+#lab-upgrade-advisor .lab-advisor-goal-note-wrap>summary{
+ display:list-item;
+ list-style-position:inside;
+ margin:0;
+ padding:0;
+ text-align:left;
+ line-height:1.5;
+}
+#lab-upgrade-advisor .lab-advisor-goal-note-wrap>p{
+ max-width:85ch;
+ margin:9px 0 1px;
+ color:var(--up-muted);
+ line-height:1.6;
+ overflow-wrap:anywhere;
+}
+#lab-upgrade-advisor .lab-advisor-help.lab-advisor-plan-disclaimer{
+ display:block;
+ width:100%;
+ margin:0 0 10px;
+ padding:11px 14px 12px;
+ border:0;
+ border-bottom:1px solid var(--up-line);
+ background:transparent;
+ text-align:left;
+}
+#lab-upgrade-advisor .lab-advisor-help.lab-advisor-plan-disclaimer>summary{
+ display:list-item;
+ list-style-position:inside;
+ margin:0;
+ padding:0;
+ text-align:left;
+ line-height:1.5;
+}
+#lab-upgrade-advisor .lab-advisor-help.lab-advisor-plan-disclaimer>p{
+ max-width:85ch;
+ margin:9px 0 0;
+ padding:0;
+ line-height:1.6;
+ overflow-wrap:anywhere;
+}
+#lab-upgrade-advisor .lab-advisor-group-breakdown{
+ list-style:none;
+ margin:11px 0 0;
+ padding:0;
+ border-top:1px solid var(--up-line);
+}
+#lab-upgrade-advisor .lab-advisor-group-line{
+ display:grid;
+ grid-template-columns:minmax(115px,1fr) minmax(100px,1fr) minmax(100px,1fr);
+ gap:6px 12px;
+ align-items:center;
+ padding:10px 0;
+ border-bottom:1px solid #293f50;
+ font-size:11px;
+ font-variant-numeric:tabular-nums;
+ color:var(--up-text);
+}
+#lab-upgrade-advisor .lab-advisor-group-line:last-child{border-bottom:0}
+#lab-upgrade-advisor .lab-advisor-group-line>span:nth-child(2){
+ overflow-wrap:anywhere;
+}
+#lab-upgrade-advisor .lab-advisor-group-line>span:nth-child(3){
+ color:var(--up-muted);
+}
+#lab-upgrade-advisor .lab-advisor-group-line>small{
+ grid-column:1/-1;
+ color:var(--up-muted);
+ font-size:11px;
+ overflow-wrap:anywhere;
+}
+@media(max-width:650px){
+ #lab-upgrade-advisor .lab-advisor-group-line{
+  grid-template-columns:minmax(0,1fr) minmax(0,1fr);
+ }
+ #lab-upgrade-advisor .lab-advisor-group-line>span:nth-child(3){
+  grid-column:1/-1;
+ }
+}
+
+/* Knowledge tab — same surfaces, form sizing, spacing and teal accents as Upgrades. */
+#lab-knowledge{
+ --knowledge-panel:#192c3b;
+ --knowledge-surface:#122a35;
+ --knowledge-head:#203548;
+ --knowledge-line:#344e5f;
+ --knowledge-muted:#aebfcd;
+ --knowledge-accent:#89d9b7;
+ --knowledge-text:#e8faf1;
+}
+#lab-knowledge .lab-knowledge-overview{
+ display:grid;
+ grid-template-columns:repeat(4,minmax(0,1fr));
+ gap:10px;
+ margin:17px 0 22px;
+}
+#lab-knowledge .lab-knowledge-overview-stat{
+ display:flex;
+ flex-direction:column;
+ gap:7px;
+ padding:15px 16px;
+ background:var(--knowledge-panel);
+ border:1px solid var(--knowledge-line);
+ border-radius:10px;
+ min-width:0;
+}
+#lab-knowledge .lab-knowledge-overview-stat>small{
+ font-size:10px;
+ font-weight:700;
+ letter-spacing:.035em;
+ color:var(--knowledge-muted);
+}
+#lab-knowledge .lab-knowledge-overview-stat>strong{
+ font-size:20px;
+ font-weight:750;
+ line-height:1.35;
+ font-variant-numeric:tabular-nums;
+ color:var(--knowledge-text);
+ overflow-wrap:anywhere;
+}
+#lab-knowledge .lab-knowledge-table-heading{
+ display:flex;
+ align-items:baseline;
+ justify-content:space-between;
+ gap:10px;
+ flex-wrap:wrap;
+ margin:19px 0 10px;
+}
+#lab-knowledge .lab-knowledge-table-heading h3{
+ font-size:16px;
+ color:var(--knowledge-text);
+ margin:0;
+}
+#lab-knowledge .lab-knowledge-table-heading .hint{
+ font-size:12px;
+ color:var(--knowledge-muted);
+ margin:0;
+}
+#lab-knowledge .lab-knowledge-table-heading{margin-top:12px}
+#lab-knowledge .lab-knowledge-toolbar{
+ display:grid;
+ grid-template-columns:minmax(185px,1.65fr) repeat(3,minmax(120px,1fr));
+ gap:11px 13px;
+ align-items:end;
+ margin:12px 0 14px;
+ padding:12px 14px;
+ background:var(--knowledge-surface);
+ border:1px solid #355661;
+ border-radius:11px;
+}
+#lab-knowledge .lab-knowledge-toolbar label{
+ display:flex;
+ flex-direction:column;
+ gap:5px;
+ min-width:0;
+ color:#bad9d8;
+ font-size:11px;
+ font-weight:700;
+}
+#lab-knowledge .lab-knowledge-toolbar :is(select,input){
+ width:100%;
+ min-width:0;
+ min-height:36px;
+ padding:8px 10px;
+ color:var(--knowledge-text);
+ background:#112333;
+ border:1px solid #476075;
+ border-radius:9px;
+ font:inherit;
+ font-size:12px;
+ line-height:1.4;
+}
+#lab-knowledge .lab-knowledge-toolbar :is(select,input):focus-visible{
+ outline:2px solid var(--knowledge-accent);
+ outline-offset:2px;
+}
+#lab-knowledge .lab-knowledge-table{min-width:890px;table-layout:fixed}
+#lab-knowledge .lab-knowledge-table th{
+ background:var(--knowledge-head);
+ color:#b9d8dc;
+ vertical-align:middle;
+}
+#lab-knowledge .lab-knowledge-table th:nth-child(1){width:30%}
+#lab-knowledge .lab-knowledge-table th:nth-child(2){width:13%}
+#lab-knowledge .lab-knowledge-table th:nth-child(3){width:25%}
+#lab-knowledge .lab-knowledge-table th:nth-child(4){width:20%}
+#lab-knowledge .lab-knowledge-table th:nth-child(5){width:12%}
+#lab-knowledge .lab-knowledge-table td{
+ vertical-align:middle;
+ border-color:#293f50;
+ padding:12px;
+}
+#lab-knowledge .lab-knowledge-table td:first-child{
+ min-width:0;
+}
+#lab-knowledge .lab-knowledge-identity{
+ display:flex;
+ align-items:center;
+ gap:10px;
+ min-width:0;
+}
+#lab-knowledge .lab-sushi-art-frame{
+ flex:0 0 42px;
+ width:42px;
+ height:42px;
+ border-radius:8px;
+ background:#203e49;
+}
+#lab-knowledge .lab-sushi-icon{object-fit:contain}
+#lab-knowledge .lab-knowledge-tier-info{
+ display:flex;
+ flex-direction:column;
+ gap:4px;
+ min-width:0;
+}
+#lab-knowledge .lab-knowledge-tier-info>strong{
+ font-size:12px;
+ font-weight:750;
+ color:var(--knowledge-text);
+ overflow-wrap:anywhere;
+ line-height:1.4;
+}
+#lab-knowledge .lab-knowledge-tier-info .lab-row-subtitle{
+ color:var(--knowledge-muted);
+ margin:0;
+ font-size:11px;
+}
+#lab-knowledge .lab-knowledge-level,
+#lab-knowledge .lab-knowledge-status{
+ text-align:center;
+}
+#lab-knowledge .lab-knowledge-level>strong{
+ color:var(--knowledge-text);
+ font-size:13px;
+ font-variant-numeric:tabular-nums;
+}
+#lab-knowledge .lab-knowledge-exp{min-width:0}
+#lab-knowledge .lab-knowledge-exp-values{
+ display:flex;
+ justify-content:space-between;
+ gap:8px;
+ align-items:baseline;
+ margin-bottom:7px;
+ font-variant-numeric:tabular-nums;
+}
+#lab-knowledge .lab-knowledge-exp-values>strong{
+ color:var(--knowledge-text);
+ font-size:11px;
+ font-weight:650;
+ overflow-wrap:anywhere;
+}
+#lab-knowledge .lab-knowledge-exp-values>span{
+ color:var(--knowledge-muted);
+ font-size:11px;
+ flex:0 0 auto;
+}
+#lab-knowledge .lab-knowledge-exp-progress{
+ display:block;
+ appearance:none;
+ width:100%;
+ height:12px;
+ border:1px solid #4f877b;
+ border-radius:8px;
+ overflow:hidden;
+ background:#081d2a;
+ box-shadow:inset 0 1px 4px #0008,0 0 0 2px #62bda518;
+}
+#lab-knowledge .lab-knowledge-exp-progress::-webkit-progress-bar{
+ background:#081d2a;
+ border-radius:8px;
+}
+#lab-knowledge .lab-knowledge-exp-progress::-webkit-progress-value{
+ background:linear-gradient(90deg,#28b88b,#60e6aa 65%,#a1ffd0);
+ border-radius:8px;
+ box-shadow:0 0 10px #59efb76e;
+}
+#lab-knowledge .lab-knowledge-exp-progress::-moz-progress-bar{
+ background:linear-gradient(90deg,#28b88b,#60e6aa 65%,#a1ffd0);
+ border-radius:8px;
+}
+#lab-knowledge .lab-knowledge-exp-remaining,
+#lab-knowledge .lab-knowledge-ready{
+ display:block;
+ margin-top:6px;
+ font-size:10px;
+ line-height:1.4;
+}
+#lab-knowledge .lab-knowledge-exp-remaining{color:var(--knowledge-muted)}
+#lab-knowledge .lab-knowledge-ready{font-weight:750;color:#aaf6cc}
+#lab-knowledge .lab-knowledge-row-ready td{background:#183a38}
+#lab-knowledge .lab-knowledge-row-ready:hover td{background:#1e4943}
+#lab-knowledge .lab-knowledge-bonus{font-variant-numeric:tabular-nums}
+#lab-knowledge .lab-knowledge-bonus>strong{
+ display:block;
+ font-size:12px;
+ color:#b6ffd1;
+}
+#lab-knowledge .lab-knowledge-bonus>small{
+ display:block;
+ color:var(--knowledge-muted);
+ margin-top:5px;
+ font-size:10px;
+}
+#lab-knowledge .lab-knowledge-unavailable{
+ font-size:11px;
+ color:var(--knowledge-muted);
+}
+#lab-knowledge .lab-knowledge-status-tag{
+ display:inline-flex;
+ align-items:center;
+ justify-content:center;
+ min-width:70px;
+ padding:4px 8px;
+ border-radius:7px;
+ background:#223544;
+ border:1px solid #405468;
+ color:#c4d1d8;
+ font-size:10px;
+ font-weight:700;
+}
+#lab-knowledge .lab-knowledge-status-tag.is-perfecto{
+ color:#d7fff1;
+ background:#235047;
+ border-color:#559884;
+}
+#lab-knowledge .lab-knowledge-status-tag.is-muted{
+ color:var(--knowledge-muted);
+ background:#1b2c3a;
+ border-color:var(--knowledge-line);
+}
+#lab-knowledge .lab-empty-state{margin:12px 0}
+@media(max-width:920px){
+ #lab-knowledge .lab-knowledge-toolbar{grid-template-columns:repeat(2,minmax(0,1fr))}
+ #lab-knowledge .lab-knowledge-overview{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media(max-width:560px){
+ #lab-knowledge .lab-knowledge-toolbar{grid-template-columns:minmax(0,1fr)}
+ #lab-knowledge .lab-knowledge-overview-stat{padding:12px 13px}
+ #lab-knowledge .lab-knowledge-overview-stat>strong{font-size:17px}
+}
+
+/* Dashboard production metrics share the Account Dashboard stat-card language. */
+#lab-overview .lab-dashboard-production{margin-top:18px}
+#lab-overview .lab-dashboard-section-heading{
+ display:flex;align-items:baseline;justify-content:space-between;gap:8px 16px;flex-wrap:wrap;
+ margin-bottom:11px
+}
+#lab-overview .lab-dashboard-section-heading h3{margin:0;font-size:16px}
+#lab-overview .lab-dashboard-section-heading .hint{margin:0;font-size:11px}
+#lab-overview .lab-production-stats{
+ display:grid;grid-template-columns:repeat(auto-fit,minmax(175px,1fr));gap:10px;
+}
+#lab-overview .lab-production-stat{
+ display:flex;flex-direction:column;justify-content:space-between;gap:9px;
+ padding:14px 15px;min-height:80px;
+ background:#192c3b;border:1px solid #344e5f;border-radius:10px;min-width:0;
+}
+#lab-overview .lab-production-stat .lab-stat-label{
+ font-size:11px;color:#aebfcd;font-weight:650;line-height:1.4
+}
+#lab-overview .lab-production-stat .lab-stat-value{
+ color:#e8faf1;font-size:18px;font-weight:750;line-height:1.3;
+ font-variant-numeric:tabular-nums;overflow-wrap:anywhere;
+}
+#lab-overview .lab-production-note{
+ margin:10px 0 0;font-size:11px;line-height:1.55;color:#aebfcd;
+}
+@media(max-width:560px){
+ #lab-overview .lab-production-stats{grid-template-columns:repeat(2,minmax(0,1fr))}
+ #lab-overview .lab-production-stat{padding:11px}
+ #lab-overview .lab-production-stat .lab-stat-value{font-size:15px}
+}
+
+/* Dashboard hero: Sushi production is the first section and has its own
+   restrained amethyst palette, distinct from the rest of the teal dashboard. */
+#lab-overview .lab-welcome-panel > .lab-dashboard-production{
+ --production-border:#685c92;
+ --production-accent:#c5b6ff;
+ --production-muted:#bcb8d2;
+ position:relative;
+ margin:13px 0 0;
+ padding:20px 20px 16px;
+ border:1px solid var(--production-border);
+ border-radius:15px;
+ background:linear-gradient(128deg,#27233e 0%,#222840 54%,#1b3042 100%);
+ box-shadow:0 8px 24px #080d1b24,inset 0 1px 0 #ffffff0b;
+ overflow:hidden;
+}
+#lab-overview .lab-welcome-panel > .lab-dashboard-production::before{
+ content:"";
+ position:absolute;
+ inset:0 0 auto;
+ height:3px;
+ background:linear-gradient(90deg,#b59af4 0%,#8d94d9 52%,#55a5aa 100%);
+}
+#lab-overview .lab-dashboard-production .lab-dashboard-section-heading{
+ align-items:center;
+ gap:8px 14px;
+ margin:0 0 15px;
+}
+#lab-overview .lab-dashboard-production .lab-dashboard-section-heading h3{
+ font-size:17px;
+ font-weight:760;
+ color:#f0eaff;
+ letter-spacing:.005em;
+}
+#lab-overview .lab-dashboard-production .lab-dashboard-section-heading .hint{
+ color:var(--production-muted);
+ font-size:11px;
+}
+#lab-overview .lab-dashboard-production .lab-production-stats{
+ display:grid;
+ grid-template-columns:repeat(5,minmax(0,1fr));
+ gap:10px;
+}
+#lab-overview .lab-dashboard-production .lab-production-stat{
+ position:relative;
+ justify-content:flex-start;
+ min-height:91px;
+ gap:11px;
+ padding:15px 14px;
+ border:1px solid #655b84;
+ border-radius:10px;
+ background:linear-gradient(160deg,#322e4c 0%,#242d44 100%);
+ box-shadow:inset 0 1px 0 #ffffff0b;
+}
+#lab-overview .lab-dashboard-production .lab-production-stat .lab-stat-label{
+ color:#c8c0e4;
+ font-size:11px;
+ font-weight:650;
+ line-height:1.4;
+}
+#lab-overview .lab-dashboard-production .lab-production-stat .lab-stat-value{
+ font-size:clamp(15px,1.35vw,21px);
+ color:#eee6ff;
+ letter-spacing:-.015em;
+ line-height:1.2;
+ font-weight:790;
+ font-variant-numeric:tabular-nums;
+}
+#lab-overview .lab-dashboard-production .lab-production-note{
+ margin:13px 0 0;
+ max-width:118ch;
+ color:#c0bcd6;
+ font-size:11px;
+ line-height:1.55;
+}
+#lab-overview .lab-welcome-panel > .lab-dashboard-progress{
+ margin:24px 0 0;
+}
+#lab-overview .lab-dashboard-progress .lab-dashboard-section-heading{
+ margin:0 0 11px;
+}
+#lab-overview .lab-dashboard-progress .lab-dashboard-section-heading h3{
+ color:#def8ec;
+}
+@media(max-width:1150px){
+ #lab-overview .lab-dashboard-production .lab-production-stats{
+  grid-template-columns:repeat(3,minmax(0,1fr));
+ }
+}
+@media(max-width:740px){
+ #lab-overview .lab-welcome-panel > .lab-dashboard-production{
+  padding:17px 14px 14px;
+ }
+ #lab-overview .lab-dashboard-production .lab-production-stats{
+  grid-template-columns:repeat(2,minmax(0,1fr));
+ }
+ #lab-overview .lab-dashboard-production .lab-production-stat{
+  min-height:83px;
+  padding:13px 12px;
+ }
+ #lab-overview .lab-dashboard-production .lab-production-stat .lab-stat-value{
+  font-size:18px;
+ }
+ #lab-overview .lab-dashboard-production .lab-production-stat:last-child:nth-child(odd){
+  grid-column:1 / -1;
+ }
+}
+@media(max-width:360px){
+ #lab-overview .lab-dashboard-production .lab-production-stats{
+  grid-template-columns:minmax(0,1fr);
+ }
+ #lab-overview .lab-dashboard-production .lab-production-stat:last-child:nth-child(odd){
+  grid-column:auto;
+ }
+}
+
+/* Knowledge table: compact four-column layout with the tier reward under its name.
+   Perfecto achievement is identified by a small overlay on the Sushi icon. */
+#lab-knowledge .lab-knowledge-table{
+ min-width:960px;
+ table-layout:fixed;
+}
+#lab-knowledge .lab-knowledge-table th:nth-child(1){width:33%}
+#lab-knowledge .lab-knowledge-table th:nth-child(2){width:9%}
+#lab-knowledge .lab-knowledge-table th:nth-child(3){width:30%}
+#lab-knowledge .lab-knowledge-table th:nth-child(4){width:28%}
+#lab-knowledge .lab-knowledge-table th,
+#lab-knowledge .lab-knowledge-table td{overflow-wrap:anywhere}
+#lab-knowledge .lab-knowledge-table th:nth-child(2),
+#lab-knowledge .lab-knowledge-table td.lab-knowledge-level{text-align:center}
+#lab-knowledge .lab-knowledge-identity{
+ display:flex;
+ align-items:center;
+ gap:11px;
+}
+#lab-knowledge .lab-knowledge-art-wrap{
+ display:inline-grid;
+ flex:0 0 42px;
+ position:relative;
+ isolation:isolate;
+ width:42px;
+ height:42px;
+ place-items:center;
+}
+#lab-knowledge .lab-knowledge-art-wrap .lab-sushi-art-frame{
+ margin:0;
+ width:42px;
+ height:42px;
+}
+#lab-knowledge .lab-knowledge-perfecto-emblem{
+ position:absolute;
+ z-index:2;
+ top:-5px;
+ right:-6px;
+ display:block;
+ width:22px;
+ height:22px;
+ object-fit:contain;
+ image-rendering:pixelated;
+ filter:drop-shadow(0 1px 2px #000a);
+ pointer-events:none;
+}
+#lab-knowledge .lab-knowledge-tier-info{
+ min-width:0;
+}
+#lab-knowledge .lab-knowledge-tier-info>strong{
+ color:var(--knowledge-text);
+ font-weight:750;
+ font-size:12px;
+}
+#lab-knowledge .lab-knowledge-tier-info .lab-row-subtitle{
+ color:#b5cbd4;
+ font-size:11px;
+ line-height:1.5;
+ overflow-wrap:anywhere;
+}
+#lab-knowledge .lab-knowledge-tier-info .lab-knowledge-tier-reward-label{
+ display:block;
+ max-width:100%;
+ margin-top:2px;
+ font-weight:550;
+}
+#lab-knowledge .lab-knowledge-effect-label{
+ display:block;
+ margin-bottom:5px;
+ color:#9cccb5;
+ font-size:10px;
+ font-weight:650;
+ line-height:1.4;
+}
+#lab-knowledge .lab-knowledge-bonus>strong{
+ display:block;
+ font-size:14px;
+ line-height:1.3;
+ font-weight:760;
+ color:#b5f7ca;
+ font-variant-numeric:tabular-nums;
+}
+#lab-knowledge .lab-knowledge-bonus>strong.lab-knowledge-bonus-preview{
+ color:var(--knowledge-muted);
+}
+#lab-knowledge .lab-knowledge-bonus>small{
+ display:block;
+ margin-top:6px;
+ font-size:11px;
+ line-height:1.45;
+ color:var(--knowledge-muted);
+ font-variant-numeric:tabular-nums;
+}
+@media(max-width:730px){
+ #lab-knowledge .lab-knowledge-table{min-width:900px}
+ #lab-knowledge .lab-knowledge-table td{padding:10px}
+}
+
+/* Values highlight like Upgrade Catalog: prose stays unboxed. */
+#lab-knowledge .lab-knowledge-bonus-line{
+ display:flex;
+ flex-wrap:wrap;
+ align-items:center;
+ gap:5px 9px;
+ min-width:0;
+ line-height:1.5;
+}
+#lab-knowledge .lab-knowledge-bonus-line.is-next{
+ margin-top:9px;
+ padding-top:8px;
+ border-top:1px solid #355363;
+}
+#lab-knowledge .lab-knowledge-bonus-label{
+ color:#d8e4e7;
+ font-size:11px;
+ font-weight:550;
+}
+#lab-knowledge .lab-knowledge-bonus-line.is-next .lab-knowledge-bonus-label{
+ color:var(--knowledge-muted);
+}
+#lab-knowledge .lab-knowledge-value-pill{
+ display:inline-block;
+ padding:3px 8px;
+ border-radius:6px;
+ border:1px solid #56ac8088;
+ background:#234a3f;
+ color:#aaf6cc;
+ font-size:11.5px;
+ font-weight:800;
+ font-variant-numeric:tabular-nums;
+ white-space:nowrap;
+}
+#lab-knowledge .lab-knowledge-tier-value{
+ padding:1px 5px;
+ margin:0 3px 0 0;
+ font-size:11px;
+ vertical-align:baseline;
+}
+#lab-knowledge .lab-knowledge-tier-reward-text{
+ display:inline;
+ color:#b5cbd4;
+}
+#lab-knowledge .lab-knowledge-value-pill.is-perfecto{
+ border-color:#a883c8;
+ background:#573a72;
+ color:#f1d6ff;
+}
+#lab-knowledge .lab-knowledge-value-pill.is-preview{opacity:.78}
+#lab-knowledge .lab-knowledge-preview-note{
+ display:block;
+ margin-top:6px;
+ color:var(--knowledge-muted);
+ font-size:10px;
+ line-height:1.4;
+}
+#lab-knowledge .lab-knowledge-exp-values>span{
+ display:inline-block;
+ color:#b1ffd7;
+ background:#174638;
+ border:1px solid #4fa87f;
+ border-radius:6px;
+ padding:2px 7px;
+ font-size:10px;
+ font-weight:800;
+ white-space:nowrap;
+}
+#lab-knowledge .lab-knowledge-exp-values>strong{
+ font-size:12px;
+ color:#e2f9f0;
+}
+#lab-knowledge .lab-knowledge-exp-remaining{
+ margin-top:7px;
+ font-size:11px;
+}
+
+
+/* Knowledge column sorting retains normal page scrolling and horizontal overflow. */
+#lab-knowledge .lab-knowledge-sort-button{
+ display:inline-flex;
+ align-items:center;
+ justify-content:flex-start;
+ gap:6px;
+ width:100%;
+ min-height:32px;
+ padding:0;
+ border:0;
+ background:transparent;
+ color:inherit;
+ font:inherit;
+ font-weight:750;
+ text-align:inherit;
+ cursor:pointer;
+}
+#lab-knowledge .lab-knowledge-sort-button:hover{color:#e5fff1}
+#lab-knowledge .lab-knowledge-sort-button:focus-visible{
+ outline:2px solid var(--knowledge-accent);
+ outline-offset:3px;
+ border-radius:3px;
+}
+#lab-knowledge .lab-knowledge-table th:nth-child(2) .lab-knowledge-sort-button{justify-content:center}
+#lab-knowledge .lab-knowledge-sort-arrow{display:inline-block;color:var(--knowledge-accent);font-size:12px}
+#lab-knowledge .lab-knowledge-table th[aria-sort="ascending"] .lab-knowledge-sort-arrow::after{content:"▲"}
+#lab-knowledge .lab-knowledge-table th[aria-sort="descending"] .lab-knowledge-sort-arrow::after{content:"▼"}
+/* No fake rewards: this is a gentle reminder of an approaching 5-level checkpoint. */
+#lab-knowledge .lab-knowledge-checkpoint{
+ display:inline-block;
+ margin-top:5px;
+ padding:2px 7px;
+ border-radius:6px;
+ border:1px solid #466c76;
+ background:#203f4a;
+ color:#bedfe5;
+ font-size:10px;
+ font-weight:650;
+}
+#lab-knowledge .lab-knowledge-row-checkpoint td:first-child{box-shadow:inset 3px 0 0 #6ea5b5}

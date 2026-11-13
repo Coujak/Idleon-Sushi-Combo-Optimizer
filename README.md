@@ -32,16 +32,41 @@ The Combo Meter planner is a **heuristic** search tool, not a guarantee of the h
 
 The advisors are informational and never modify the imported save. Price estimates use account discounts when their source data is available. Reference metadata is derived from the public Sushi Station game rules, and can change as the game updates.
 
-## Personalized Progression Advisor (v1.16.3)
+## Account Dashboard: production and cooking chances
 
-The **Upgrades → Progression Advisor** uses imported Sushi Bucks, upgrade levels, assigned Doublers and discounted next upgrade costs to recommend the next purchase for the selected goal. The featured upgrade shows its current → next level, estimated price, Bucks shortfall, next raw effect, and a ranking rationale. Priority is a transparent heuristic, not mathematically proven ROI across unrelated upgrade types.
+The Dashboard shows **modeled Bucks per hour**, **estimated Fuel generation per hour**, **estimated maximum Fuel capacity**, and cooking tier-up chance previews from the imported Sushi Station data. Rates can differ from Idleon Toolbox and the live game because the Bucks model still has unverified account-specific multipliers and some Fuel modifiers are not mapped.
 
-The **Next purchases plan** supports **5 / 10 / 25 / 50 / 100**, plus a custom **1–500** purchase count. It is sequential: after every purchase it updates the planned upgrade's level, recomputes the remaining Bucks, reprices upgrades and reranks recommendations. The same upgrade can appear multiple times. Once starting Bucks are exhausted, the plan assumes saving only the additional amount needed before each next purchase; **it does not forecast future earnings or time to purchase**. Reimport after real purchases.
+The cooking chance preview combines Quality Freshness with known Sushi Knowledge bonuses. It displays the **modeled chance of at least +1** and **at least +2** tiers. Percentages above 100% are interpreted as rollover based on in-game observations (for example, 120% becomes guaranteed +1 and 20% at least +2). This rollover behavior is **not yet independently verified against game code**. The **Copper/blue fireplace** is a separate 1%-chance mechanic, not the source of that cooking rollover.
 
-The **Cards / List** toggle switches between visual and compact purchase results. Each step shows the selected goal's **before → after** result, and the summary compares the imported account with the end of the plan. Fuel generation/hr, fuel capacity and discounts use modeled known effects; Bucks generation/hr also incorporates known per-tier production, board bonuses, Combo and Knowledge factors. Incomplete external bonuses mean these figures are estimates rather than exact in-game totals. Knowledge EXP and Perfecto goals display partial, clearly labeled metrics when a full goal-wide total is not available.
+### Shared numeric formatting
 
-An optional expandable **in-game readings** section accepts rates such as `2.5T` or `1.23E30` for Bucks/hr, Fuel/hr and maximum Fuel. The selected goal's current value is anchored to that reading, while future purchase effects are scaled from supported game formulas. No player's personal readings are embedded in the website or persisted to GitHub; they live only in browser form state until the page is closed or refreshed.
+Displayed quantities across the Dashboard, Combo Meter, Perfecto Planner, Upgrades and Knowledge stay as **comma-grouped numbers below 1 million** (such as `1,000`, `10,000`, or `999,999`). At **1,000,000**, displays switch to **M** (10^6), then **B** (10^9), **T** (10^12), **Q** (10^15), **QQ** (10^18), and **E21** or higher scientific notation. Input values and simulation arithmetic remain unchanged. Legacy inputs such as `1K` remain accepted where supported, even though the displayed value is `1,000`.
 
+The Knowledge EXP table does not pass non-finite percentages to HTML progress bars. Extremely large or incomplete EXP requirements show as unavailable instead of interrupting a successful JSON import.
+
+## Knowledge tab
+
+The **Knowledge** section is a read-only account overview for all 64 Sushi tiers, derived from the locally imported Idleon Toolbox JSON:
+
+- Overview counts: discovered tiers, Perfectos, known Knowledge levels and tiers with enough EXP for the next Knowledge level (where the save includes complete progress data).
+- One compact toolbar with text search, a Knowledge-effect dropdown, status filters (including **Ready to level**) and sort controls; redundant category chips have been removed.
+- Compact four-column Knowledge table: **Sushi tier** (with the permanent tier discovery reward directly under its name), **Knowledge level**, **EXP to next level** (value, progress bar and remaining EXP), and **Knowledge Bonus** (plain-text effect names and green numeric value pills, or purple pills for Perfecto, including projected next-level values). Permanent tier rewards also highlight only their numbers; all nonnumeric reward text remains plain. EXP progress bars use a brighter, thicker fill. Perfecto is indicated by the existing `assets/Perfecto_Symbol.png` over the Sushi icon, not a separate column. All 64 tier rewards come from the pinned reference in `src/sushi-tier-rewards.mjs`; unit-aware Knowledge effects are formatted by `src/knowledge-bonus-format.mjs`. Undiscovered tiers display their tier reward as a reference and a base Lv 1 preview without implying they are active.
+- Current Knowledge level and EXP progress toward the next level. Search also matches words from permanent tier rewards.
+- Missing EXP or level data is marked **unavailable**, not incorrectly treated as zero. A "Ready to level" label indicates a modeled threshold, **not that the game has automatically collected the level**.
+
+The Knowledge tab currently tracks progression; it does not estimate EXP earned per hour, optimal farming boards, or time-to-level. A separate Knowledge Leveling Planner can be developed once EXP gain models and game observations have been validated.
+
+## Personalized Progression Advisor
+
+The **Upgrades → Progression Advisor** evaluates a one-level upgrade purchase against the selected goal's **before → after account model**, current Sushi Bucks, assigned Doublers and estimated discounted price. Within the chosen goal, measurable gains come before upgrades whose benefits cannot yet be quantified; affordability and estimated cost efficiency then guide the order. The featured next purchase, modeled gain and its confidence/limitations are shown separately from the raw upgrade effect. This is a transparent **partial model**, not a mathematically proven ROI ranking across unrelated effects.
+
+- **Goal-specific metrics:** Bucks generation, Fuel generation/capacity, upgrade discounts, Knowledge EXP per created Sushi (including both 2nd and 3rd Degree Searing), and free Shaker-use chance. For Perfecto, Pepper Shaker access is a prerequisite unlock, **not +100 percentage points of free-use chance**. Other effects such as plate EXP, per-use Bucks and random outcomes may be unquantifiable in a passive-rate model.
+- **Compare other upgrades:** filter/sort alternatives, optionally show maxed upgrades, and independently choose **3 / 5 / 10 / All** displayed alternatives. This does **not** change the purchase-plan calculation or next-purchase recommendation.
+- **Next purchases plan:** **5 / 10 / 25 / 50 / 100**, or a custom **1–500**, with a compact single-column list by default and a Details toggle to reveal projected stat changes. Adjacent purchases of the same upgrade are grouped into a single level range with their combined cost and funding requirements; expanding the group shows every individual step, preserving the actual purchase order. Each row keeps costs, levels and affordability visible; secondary details are collapsible. The list is retained across imports and re-renders. After each simulated purchase the level, Bucks balance, prices and priority are recomputed; the same upgrade can appear repeatedly. When starting Bucks run out, the planner assumes saving just enough for a future purchase, without inventing passive income or a purchase time. A missing or malformed Bucks balance prevents a numeric purchase plan rather than being treated as zero.
+- **Goal projections:** each purchase compares the current and subsequent modeled effects. Fuel, capacity, Bucks and discounts include known account bonuses where available; actual in-game totals may differ with unknown modifiers. Unsupported full totals are labeled partial.
+- **Optional in-game baselines:** manually entered Bucks/hr, Fuel/hr and capacity anchor displayed totals to the player's own readings, with projected changes scaled by supported multipliers. These values stay in browser state and are not saved in the repository.
+
+Reimport after actual purchases; recommendations never alter the imported game save.
 
 ## Perfecto Pepper plan (v1.15.7)
 

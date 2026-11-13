@@ -2,7 +2,7 @@
 // Account-unknown event shop / other external bonuses are explicitly excluded.
 // The preparation optimizer must never claim more than normal merge-only math
 // supports; Wind, Salt tier-ups and +1 cooked tier procs are excluded.
-import {getKnowledgeRows,getSushiSnapshot,getUpgradeRows} from "./lab-model.mjs?v=1.16.6";
+import {getKnowledgeRows,getSushiSnapshot,getUpgradeRows} from "./lab-model.mjs?v=1.19.13";
 
 const numeric=n=>{const x=Number(n);return Number.isFinite(x)?x:0;};
 const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
