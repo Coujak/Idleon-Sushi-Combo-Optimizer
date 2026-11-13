@@ -32,7 +32,6 @@ export function simulateContinuousKnowledgeRotation({
  const gains=blank(),frames=[];
  let cooks=0,merges=0,windEvents=0,moves=0,fuel=0,roundsDone=0,
   focusCompressed=0,haltReason="",completed=false;
- const lastLocked=()=>board.filter(x=>x===64).length;
  const expDelta=events=>{
   const out=blank();
   for(const event of events){
@@ -150,7 +149,13 @@ export function simulateContinuousKnowledgeRotation({
   const usable=slotsFree.slice().sort((a,b)=>a-b);
   const top=usable.slice(0,Math.min(22,Math.max(4,Math.floor(usable.length*.25))));
   const sources=usable.filter(i=>board[i]>0&&!top.includes(i))
-   .sort((a,b)=>board[b]-board[a]||a-b);
+   .sort((a,b)=>{
+    if(mode==="focused"){
+     const left=board[a]===targetTier,right=board[b]===targetTier;
+     if(left!==right)return Number(right)-Number(left);
+    }
+    return board[b]-board[a]||a-b;
+   });
   let parked=0;
   for(const src of sources){
    if(frames.length>=maxActions)break;
