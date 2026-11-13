@@ -3261,3 +3261,118 @@ details summary{cursor:pointer;font-size:12px;font-weight:700;color:#9eb7c9}
  #lab-overview .lab-production-stat{padding:11px}
  #lab-overview .lab-production-stat .lab-stat-value{font-size:15px}
 }
+
+/* Dashboard hero: Sushi production is the first section and has its own
+   restrained amethyst palette, distinct from the rest of the teal dashboard. */
+#lab-overview .lab-welcome-panel > .lab-dashboard-production{
+ --production-border:#685c92;
+ --production-accent:#c5b6ff;
+ --production-muted:#bcb8d2;
+ position:relative;
+ margin:13px 0 0;
+ padding:20px 20px 16px;
+ border:1px solid var(--production-border);
+ border-radius:15px;
+ background:linear-gradient(128deg,#27233e 0%,#222840 54%,#1b3042 100%);
+ box-shadow:0 8px 24px #080d1b24,inset 0 1px 0 #ffffff0b;
+ overflow:hidden;
+}
+#lab-overview .lab-welcome-panel > .lab-dashboard-production::before{
+ content:"";
+ position:absolute;
+ inset:0 0 auto;
+ height:3px;
+ background:linear-gradient(90deg,#b59af4 0%,#8d94d9 52%,#55a5aa 100%);
+}
+#lab-overview .lab-dashboard-production .lab-dashboard-section-heading{
+ align-items:center;
+ gap:8px 14px;
+ margin:0 0 15px;
+}
+#lab-overview .lab-dashboard-production .lab-dashboard-section-heading h3{
+ font-size:17px;
+ font-weight:760;
+ color:#f0eaff;
+ letter-spacing:.005em;
+}
+#lab-overview .lab-dashboard-production .lab-dashboard-section-heading .hint{
+ color:var(--production-muted);
+ font-size:11px;
+}
+#lab-overview .lab-dashboard-production .lab-production-stats{
+ display:grid;
+ grid-template-columns:repeat(5,minmax(0,1fr));
+ gap:10px;
+}
+#lab-overview .lab-dashboard-production .lab-production-stat{
+ position:relative;
+ justify-content:flex-start;
+ min-height:91px;
+ gap:11px;
+ padding:15px 14px;
+ border:1px solid #655b84;
+ border-radius:10px;
+ background:linear-gradient(160deg,#322e4c 0%,#242d44 100%);
+ box-shadow:inset 0 1px 0 #ffffff0b;
+}
+#lab-overview .lab-dashboard-production .lab-production-stat .lab-stat-label{
+ color:#c8c0e4;
+ font-size:11px;
+ font-weight:650;
+ line-height:1.4;
+}
+#lab-overview .lab-dashboard-production .lab-production-stat .lab-stat-value{
+ font-size:clamp(15px,1.35vw,21px);
+ color:#eee6ff;
+ letter-spacing:-.015em;
+ line-height:1.2;
+ font-weight:790;
+ font-variant-numeric:tabular-nums;
+}
+#lab-overview .lab-dashboard-production .lab-production-note{
+ margin:13px 0 0;
+ max-width:118ch;
+ color:#c0bcd6;
+ font-size:11px;
+ line-height:1.55;
+}
+#lab-overview .lab-welcome-panel > .lab-dashboard-progress{
+ margin:24px 0 0;
+}
+#lab-overview .lab-dashboard-progress .lab-dashboard-section-heading{
+ margin:0 0 11px;
+}
+#lab-overview .lab-dashboard-progress .lab-dashboard-section-heading h3{
+ color:#def8ec;
+}
+@media(max-width:1150px){
+ #lab-overview .lab-dashboard-production .lab-production-stats{
+  grid-template-columns:repeat(3,minmax(0,1fr));
+ }
+}
+@media(max-width:740px){
+ #lab-overview .lab-welcome-panel > .lab-dashboard-production{
+  padding:17px 14px 14px;
+ }
+ #lab-overview .lab-dashboard-production .lab-production-stats{
+  grid-template-columns:repeat(2,minmax(0,1fr));
+ }
+ #lab-overview .lab-dashboard-production .lab-production-stat{
+  min-height:83px;
+  padding:13px 12px;
+ }
+ #lab-overview .lab-dashboard-production .lab-production-stat .lab-stat-value{
+  font-size:18px;
+ }
+ #lab-overview .lab-dashboard-production .lab-production-stat:last-child:nth-child(odd){
+  grid-column:1 / -1;
+ }
+}
+@media(max-width:360px){
+ #lab-overview .lab-dashboard-production .lab-production-stats{
+  grid-template-columns:minmax(0,1fr);
+ }
+ #lab-overview .lab-dashboard-production .lab-production-stat:last-child:nth-child(odd){
+  grid-column:auto;
+ }
+}
