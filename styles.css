@@ -2970,7 +2970,6 @@ details summary{cursor:pointer;font-size:12px;font-weight:700;color:#9eb7c9}
  color:var(--knowledge-text);
  overflow-wrap:anywhere;
 }
-#lab-knowledge .lab-knowledge-categories-head,
 #lab-knowledge .lab-knowledge-table-heading{
  display:flex;
  align-items:baseline;
@@ -2979,56 +2978,17 @@ details summary{cursor:pointer;font-size:12px;font-weight:700;color:#9eb7c9}
  flex-wrap:wrap;
  margin:19px 0 10px;
 }
-#lab-knowledge .lab-knowledge-categories-head h3,
 #lab-knowledge .lab-knowledge-table-heading h3{
  font-size:16px;
  color:var(--knowledge-text);
  margin:0;
 }
-#lab-knowledge .lab-knowledge-categories-head .hint,
 #lab-knowledge .lab-knowledge-table-heading .hint{
  font-size:12px;
  color:var(--knowledge-muted);
  margin:0;
 }
-#lab-knowledge .lab-knowledge-categories{
- display:flex;
- flex-wrap:wrap;
- gap:7px;
-}
-#lab-knowledge .lab-knowledge-category-chip{
- display:inline-flex;
- align-items:center;
- gap:8px;
- min-height:34px;
- padding:6px 10px;
- background:var(--knowledge-panel);
- border:1px solid var(--knowledge-line);
- border-radius:8px;
- font:inherit;
- font-size:11px;
- font-weight:650;
- color:#d7e8ed;
- cursor:pointer;
-}
-#lab-knowledge .lab-knowledge-category-chip>small{
- font-size:10px;
- color:var(--knowledge-muted);
- font-weight:500;
- white-space:nowrap;
-}
-#lab-knowledge .lab-knowledge-category-chip.is-selected{
- color:#d7fff1;
- border-color:#559884;
- background:#235047;
-}
-#lab-knowledge .lab-knowledge-category-chip.is-selected>small{color:#c2ebdf}
-#lab-knowledge .lab-knowledge-category-chip:hover{border-color:#579987}
-#lab-knowledge .lab-knowledge-category-chip:focus-visible{
- outline:2px solid var(--knowledge-accent);
- outline-offset:2px;
-}
-#lab-knowledge .lab-knowledge-table-heading{margin-top:24px}
+#lab-knowledge .lab-knowledge-table-heading{margin-top:12px}
 #lab-knowledge .lab-knowledge-toolbar{
  display:grid;
  grid-template-columns:minmax(185px,1.65fr) repeat(3,minmax(120px,1fr));
@@ -3150,23 +3110,25 @@ details summary{cursor:pointer;font-size:12px;font-weight:700;color:#9eb7c9}
  display:block;
  appearance:none;
  width:100%;
- height:7px;
- border:0;
- border-radius:5px;
+ height:12px;
+ border:1px solid #4f877b;
+ border-radius:8px;
  overflow:hidden;
- background:#0f2330;
+ background:#081d2a;
+ box-shadow:inset 0 1px 4px #0008,0 0 0 2px #62bda518;
 }
 #lab-knowledge .lab-knowledge-exp-progress::-webkit-progress-bar{
- background:#0f2330;
- border-radius:5px;
+ background:#081d2a;
+ border-radius:8px;
 }
 #lab-knowledge .lab-knowledge-exp-progress::-webkit-progress-value{
- background:#5ebc9a;
- border-radius:5px;
+ background:linear-gradient(90deg,#28b88b,#60e6aa 65%,#a1ffd0);
+ border-radius:8px;
+ box-shadow:0 0 10px #59efb76e;
 }
 #lab-knowledge .lab-knowledge-exp-progress::-moz-progress-bar{
- background:#5ebc9a;
- border-radius:5px;
+ background:linear-gradient(90deg,#28b88b,#60e6aa 65%,#a1ffd0);
+ border-radius:8px;
 }
 #lab-knowledge .lab-knowledge-exp-remaining,
 #lab-knowledge .lab-knowledge-ready{
@@ -3380,13 +3342,13 @@ details summary{cursor:pointer;font-size:12px;font-weight:700;color:#9eb7c9}
 /* Knowledge table: compact four-column layout with the tier reward under its name.
    Perfecto achievement is identified by a small overlay on the Sushi icon. */
 #lab-knowledge .lab-knowledge-table{
- min-width:900px;
+ min-width:960px;
  table-layout:fixed;
 }
-#lab-knowledge .lab-knowledge-table th:nth-child(1){width:38%}
-#lab-knowledge .lab-knowledge-table th:nth-child(2){width:10%}
-#lab-knowledge .lab-knowledge-table th:nth-child(3){width:29%}
-#lab-knowledge .lab-knowledge-table th:nth-child(4){width:23%}
+#lab-knowledge .lab-knowledge-table th:nth-child(1){width:33%}
+#lab-knowledge .lab-knowledge-table th:nth-child(2){width:9%}
+#lab-knowledge .lab-knowledge-table th:nth-child(3){width:30%}
+#lab-knowledge .lab-knowledge-table th:nth-child(4){width:28%}
 #lab-knowledge .lab-knowledge-table th,
 #lab-knowledge .lab-knowledge-table td{overflow-wrap:anywhere}
 #lab-knowledge .lab-knowledge-table th:nth-child(2),
@@ -3471,6 +3433,73 @@ details summary{cursor:pointer;font-size:12px;font-weight:700;color:#9eb7c9}
  font-variant-numeric:tabular-nums;
 }
 @media(max-width:730px){
- #lab-knowledge .lab-knowledge-table{min-width:840px}
+ #lab-knowledge .lab-knowledge-table{min-width:900px}
  #lab-knowledge .lab-knowledge-table td{padding:10px}
+}
+
+/* Values highlight like Upgrade Catalog: prose stays unboxed. */
+#lab-knowledge .lab-knowledge-bonus-line{
+ display:flex;
+ flex-wrap:wrap;
+ align-items:center;
+ gap:5px 9px;
+ min-width:0;
+ line-height:1.5;
+}
+#lab-knowledge .lab-knowledge-bonus-line.is-next{
+ margin-top:9px;
+ padding-top:8px;
+ border-top:1px solid #355363;
+}
+#lab-knowledge .lab-knowledge-bonus-label{
+ color:#d8e4e7;
+ font-size:11px;
+ font-weight:550;
+}
+#lab-knowledge .lab-knowledge-bonus-line.is-next .lab-knowledge-bonus-label{
+ color:var(--knowledge-muted);
+}
+#lab-knowledge .lab-knowledge-value-pill{
+ display:inline-block;
+ padding:3px 8px;
+ border-radius:6px;
+ border:1px solid #56ac8088;
+ background:#234a3f;
+ color:#aaf6cc;
+ font-size:11.5px;
+ font-weight:800;
+ font-variant-numeric:tabular-nums;
+ white-space:nowrap;
+}
+#lab-knowledge .lab-knowledge-value-pill.is-perfecto{
+ border-color:#a883c8;
+ background:#573a72;
+ color:#f1d6ff;
+}
+#lab-knowledge .lab-knowledge-value-pill.is-preview{opacity:.78}
+#lab-knowledge .lab-knowledge-preview-note{
+ display:block;
+ margin-top:6px;
+ color:var(--knowledge-muted);
+ font-size:10px;
+ line-height:1.4;
+}
+#lab-knowledge .lab-knowledge-exp-values>span{
+ display:inline-block;
+ color:#b1ffd7;
+ background:#174638;
+ border:1px solid #4fa87f;
+ border-radius:6px;
+ padding:2px 7px;
+ font-size:10px;
+ font-weight:800;
+ white-space:nowrap;
+}
+#lab-knowledge .lab-knowledge-exp-values>strong{
+ font-size:12px;
+ color:#e2f9f0;
+}
+#lab-knowledge .lab-knowledge-exp-remaining{
+ margin-top:7px;
+ font-size:11px;
 }
