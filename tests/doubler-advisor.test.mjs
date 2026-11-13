@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {readFileSync} from "node:fs";
-import {getDoublerPlacementPlan,DOUBLER_FOCUS_OPTIONS} from "../src/doubler-advisor.mjs";
+import {getDoublerPlacementPlan,getDoublerValueComparison,DOUBLER_FOCUS_OPTIONS} from "../src/doubler-advisor.mjs";
 
 function scenario({owned=5,levels={},assignments=[31,12,38,35,21]}={}){
  const upgrades=Array(46).fill(0);
@@ -110,4 +110,42 @@ test("Already-doubled upgrades use the Upgrade Catalog's purple highlight",()=>{
  assert.equal(plan.recommendations[0].doubled,true);
  assert.equal(plan.recommendations[0].status,"Keep");
  assert.equal(plan.recommendations[1].doubled,false);
+});
+
+test("Doubler cards compare current base and doubled values without inventing levels",()=>{
+ const knowledge=getDoublerPlacementPlan(scenario(),"knowledge");
+ const doubled=getDoublerValueComparison(knowledge.recommendations[0]);
+ const undoubled=getDoublerValueComparison(knowledge.recommendations[1]);
+ assert.equal(doubled.normal,"+100%");
+ assert.equal(doubled.doubled,"+200%");
+ assert.equal(doubled.label,"Knowledge EXP bonus");
+ assert.equal(undoubled.normal,"+80 EXP");
+ assert.equal(undoubled.doubled,"+160 EXP");
+ assert.equal(knowledge.recommendations[0].level,100);
+ assert.equal(knowledge.recommendations[1].level,80);
+ const perfecto=getDoublerPlacementPlan(scenario(),"perfecto");
+ assert.equal(getDoublerValueComparison(perfecto.recommendations[0]).doubled,"+40%");
+});
+
+test("Wholesale Pricing shows effective percent cheaper, not raw discount strength",()=>{
+ const discount=getDoublerPlacementPlan(scenario(),"discount").recommendations[0];
+ const values=getDoublerValueComparison(discount);
+ assert.equal(discount.level,50);
+ assert.equal(values.normal,"33.333%");
+ assert.equal(values.doubled,"50%");
+ assert.match(values.note,/Other discounts stack separately/);
+});
+
+test("Doubler Advisor compares values and highlights the active one in purple",()=>{
+ const ui=readFileSync(new URL("../src/lab-ui.mjs",import.meta.url),"utf8");
+ const css=readFileSync(new URL("../styles.css",import.meta.url),"utf8");
+ assert.match(ui,/getDoublerValueComparison\(u\)/);
+ assert.match(ui,/Without Doubler/);
+ assert.match(ui,/With Doubler · Active/);
+ assert.match(ui,/With Doubler · Potential/);
+ assert.match(ui,/value\.normal/);
+ assert.match(ui,/value\.doubled/);
+ assert.match(css,/\.lab-doubler-values\{/);
+ assert.match(css,/\.lab-doubler-value\.is-doubled\{/);
+ assert.match(css,/color:#f4d9ff/);
 });
