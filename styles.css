@@ -3514,24 +3514,7 @@ details summary{cursor:pointer;font-size:12px;font-weight:700;color:#9eb7c9}
 }
 
 
-/* Knowledge QoL: scroll the rows without losing the four column labels. */
-#lab-knowledge .lab-knowledge-scroll{
- max-height:min(68vh,680px);
- overflow:auto;
- overscroll-behavior:contain;
- scrollbar-gutter:stable;
-}
-#lab-knowledge .lab-knowledge-scroll:focus-visible{
- outline:2px solid var(--knowledge-accent);
- outline-offset:2px;
-}
-#lab-knowledge .lab-knowledge-table thead th{
- position:sticky;
- top:0;
- z-index:3;
- background:var(--knowledge-head);
- box-shadow:0 2px 0 var(--knowledge-line);
-}
+/* Knowledge column sorting retains normal page scrolling and horizontal overflow. */
 #lab-knowledge .lab-knowledge-sort-button{
  display:inline-flex;
  align-items:center;
@@ -3571,6 +3554,3 @@ details summary{cursor:pointer;font-size:12px;font-weight:700;color:#9eb7c9}
  font-weight:650;
 }
 #lab-knowledge .lab-knowledge-row-checkpoint td:first-child{box-shadow:inset 3px 0 0 #6ea5b5}
-@media(max-width:730px){
- #lab-knowledge .lab-knowledge-scroll{max-height:min(65vh,590px)}
-}
