@@ -131,7 +131,7 @@ test("Wholesale Pricing shows effective percent cheaper, not raw discount streng
  const discount=getDoublerPlacementPlan(scenario(),"discount").recommendations[0];
  const values=getDoublerValueComparison(discount);
  assert.equal(discount.level,50);
- assert.equal(values.normal,"33.333%");
+ assert.equal(values.normal,"33.33%");
  assert.equal(values.doubled,"50%");
  assert.match(values.note,/Other discounts stack separately/);
 });
