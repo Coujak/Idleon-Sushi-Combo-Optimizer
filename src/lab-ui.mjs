@@ -728,6 +728,8 @@ export function initializeSushiLab(getSave){
   overview.append(el("strong","",focusName+" · "+plan.totalOptions+" eligible upgrade"+
    (plan.totalOptions===1?"":"s")),
    el("span","","Assigned overall: "+assigned+" · Available: "+available));
+  if(!counts.exact)overview.title=
+   "Available is a lower bound from Menagerie boosts. Bundles and companions may grant additional Doublers.";
   feature.append(overview);
   addText(feature,"hint",
    "Showing only upgrades for "+focusName+". Number of choices depends on the eligible upgrades, "+
@@ -747,8 +749,17 @@ export function initializeSushiLab(getSave){
    name.append(el("strong","",upgradeLabel(u)),
     el("small","","Upgrade Lv "+fmt(u.level)));
    identity.append(name);
-   head.append(identity,el("span","lab-doubler-plan-status"+(u.doubled?" is-doubled":""),
-    u.doubled?"×2 Active · Keep":u.status));
+   const status=u.doubled?"×2 Active":
+    u.status==="Use available"?"Available":
+    u.status==="Level first"?"Level first":"Not doubled";
+   const badge=el("span","lab-doubler-plan-status"+(u.doubled?" is-doubled":""),null);
+   if(u.doubled)badge.append(doublerIcon("lab-doubler-plan-icon"));
+   badge.append(el("span","",status));
+   if(!u.doubled&&u.level>0&&u.status!=="Use available"){
+    badge.title=counts.exact?"All known Doublers are assigned. Move one if you want to double this upgrade.":
+     "Your save cannot confirm an unused Doubler. Check in-game before reassigning one.";
+   }
+   head.append(identity,badge);
    card.append(head,el("p","lab-doubler-plan-reason",u.reason));
    const value=getDoublerValueComparison(u);
    const values=el("div","lab-doubler-values");
@@ -765,18 +776,14 @@ export function initializeSushiLab(getSave){
    card.append(values,el("p","lab-doubler-value-caption",value.label+" · "+value.note));
    const detail={
     "Keep":"Already doubled. No change needed.",
-    "Use available":"Assign one unused Sushi Doubler to this upgrade.",
-    "Reassign needed":"No free Doublers. Move one from another upgrade only if you prefer this category.",
-    "Check / reassign":"No guaranteed unused Doublers in the save. Check in-game or reassign one if this focus matters more.",
-    "Check availability":"Check your unused Doubler count in-game before assigning one.",
-    "Level first":"The upgrade is currently Lv 0, so its Doubler has no effect yet."
+    "Use available":"You can assign an unused Doubler here.",
+    "Level first":"Level up this upgrade before assigning a Doubler."
    }[u.status];
    if(detail)card.append(el("p","lab-doubler-plan-from",detail));
    grid.append(card);
   }
   feature.append(grid);
-  if(!counts.exact)addText(feature,"hint",
-   "Available is a minimum based on known Menagerie boosts. Bonuses from companions or bundles may add more.");
+
  }
  function renderKnowledge(){
   const q=$("labKnowledgeSearch").value.trim().toLowerCase(),mode=$("labKnowledgeStatus").value;
