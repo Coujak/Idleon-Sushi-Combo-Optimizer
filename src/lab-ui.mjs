@@ -1,6 +1,7 @@
 // Sushi Station Lab: lightweight, accessible navigation and account-aware
 // information panels. All imported JSON stays in memory on the user's device.
-import {sushiUpgradeIconPath,sushiTierIconPath} from "./sushi-reference.mjs?v=1.16.6";
+import {sushiUpgradeIconPath,sushiTierIconPath,KNOWLEDGE_CATEGORIES} from "./sushi-reference.mjs?v=1.16.6";
+import {KNOWLEDGE_SORT_OPTIONS,KNOWLEDGE_STATUS_OPTIONS,filterKnowledgeRows,knowledgeOverview} from "./knowledge-view.mjs?v=1.0.0";
 import {initializePerfectoUI} from "./perfecto-ui.mjs?v=1.36.0";
 import {CATALOG_SORT_OPTIONS,CATALOG_STATUS_OPTIONS,upgradeSummary,readableUpgradeDescription,upgradeDescriptionSegments,catalogHasVariableValues,filterSortCatalog,upgradeCatalogDollarValue} from "./upgrade-catalog.mjs?v=1.16.7";
 import {ADVISOR_GOALS,numberText,getSushiSnapshot,getUpgradeRows,
@@ -55,6 +56,7 @@ export function initializeSushiLab(getSave){
  let doublerHideDoubled=false,doublerMenuOpen=false,doublerSort="best";
  let advisorSort="recommended",advisorFilter="all",advisorVisibleCount="all",purchaseView="list";
  let catalogSort="shop",catalogCategory="all",catalogStatus="all";
+ let knowledgeCategory="all",knowledgeSort="tier";
  let importedAt=null;
  const missingListExpanded={labMissingPerfectos:false,labMissingTiers:false};
  const expandedUpgradeDetails=new Set();
@@ -256,8 +258,27 @@ export function initializeSushiLab(getSave){
    renderCatalog();
   });
  }
+ const knowledgeCategoryInput=$("labKnowledgeCategory");
+ const knowledgeSortInput=$("labKnowledgeSort");
+ const knowledgeStatusInput=$("labKnowledgeStatus");
+ knowledgeCategoryInput.append(new Option("All effects","all"));
+ for(const [id,name] of KNOWLEDGE_CATEGORIES.entries())
+  knowledgeCategoryInput.append(new Option(name,String(id)));
+ for(const option of KNOWLEDGE_SORT_OPTIONS)
+  knowledgeSortInput.append(new Option(option.label,option.value));
+ for(const option of KNOWLEDGE_STATUS_OPTIONS)
+  knowledgeStatusInput.append(new Option(option.label,option.value));
+ knowledgeCategoryInput.value=knowledgeCategory;
+ knowledgeSortInput.value=knowledgeSort;
+ knowledgeStatusInput.value="all";
  $("labKnowledgeSearch").addEventListener("input",renderKnowledge);
- $("labKnowledgeStatus").addEventListener("change",renderKnowledge);
+ knowledgeCategoryInput.addEventListener("change",()=>{
+  knowledgeCategory=knowledgeCategoryInput.value;renderKnowledge();
+ });
+ knowledgeSortInput.addEventListener("change",()=>{
+  knowledgeSort=knowledgeSortInput.value;renderKnowledge();
+ });
+ knowledgeStatusInput.addEventListener("change",renderKnowledge);
 
  function sushiArtwork(tier){
   const frame=el("span","lab-sushi-art-frame");
@@ -914,22 +935,100 @@ export function initializeSushiLab(getSave){
 
  }
  function renderKnowledge(){
-  const q=$("labKnowledgeSearch").value.trim().toLowerCase(),mode=$("labKnowledgeStatus").value;
-  const s=save(),all=getKnowledgeRows(s);
-  const rows=all.filter(k=>
-   (k.name+" "+k.tier+" "+k.categoryName).toLowerCase().includes(q)&&
-   (mode==="all"||mode==="unfinished"&&k.discovered&&!k.perfecto||
-    mode==="perfecto"&&k.perfecto||mode==="undiscovered"&&!k.discovered));
+  const s=save(),hasSave=!!s,all=getKnowledgeRows(s);
+  const overview=knowledgeOverview(all,hasSave);
+  const countText=n=>n===null?"—":fmt(n);
+  const overviewHost=$("labKnowledgeOverview");
+  overviewHost.replaceChildren();
+  const metrics=[
+   ["DISCOVERED",overview.discovered===null?"—":overview.discovered+" / 64"],
+   ["PERFECTOS",countText(overview.perfectos)],
+   ["KNOWLEDGE LEVELS",countText(overview.totalLevels)],
+   ["READY TO LEVEL",countText(overview.ready)]
+  ];
+  for(const [label,value] of metrics){
+   const card=el("div","lab-knowledge-overview-stat");
+   card.append(el("small","",label),el("strong","",value));
+   overviewHost.append(card);
+  }
+
+  const chips=$("labKnowledgeCategoryChips");
+  chips.replaceChildren();
+  const availableCounts=new Map(overview.categoryTotals.map(k=>[k.id,k.tiers]));
+  const addChip=(value,label,count)=>{
+   const button=el("button","lab-knowledge-category-chip"+(knowledgeCategory===value?" is-selected":""));
+   button.type="button";
+   button.setAttribute("aria-pressed",String(knowledgeCategory===value));
+   button.append(el("span","",label));
+   if(count!==null)button.append(el("small","",count+" tiers"));
+   button.addEventListener("click",()=>{
+    knowledgeCategory=value;
+    knowledgeCategoryInput.value=value;
+    renderKnowledge();
+   });
+   chips.append(button);
+  };
+  addChip("all","All effects",hasSave?overview.discovered:null);
+  for(const [id,label] of KNOWLEDGE_CATEGORIES.entries()){
+   addChip(String(id),label,hasSave?(availableCounts.get(id)??0):null);
+  }
+
+  const rows=filterKnowledgeRows(all,{
+   query:$("labKnowledgeSearch").value,
+   category:knowledgeCategory,status:knowledgeStatusInput.value,sort:knowledgeSort
+  });
   $("labKnowledgeCount").textContent=rows.length+" / 64 tiers";
-  const body=$("labKnowledgeRows");body.replaceChildren();
+  const body=$("labKnowledgeRows"),empty=$("labKnowledgeEmpty");
+  body.replaceChildren();
+  empty.classList.toggle("hidden",rows.length!==0);
   for(const k of rows){
-   const tr=el("tr"),tier=el("td","lab-upgrade-name");
-   tier.append(el("strong","","T"+k.tier+" · "+k.name),el("span","lab-row-subtitle",k.categoryName));
-   const level=s?(k.discovered?fmt(k.level):"Undiscovered"):"Import save";
-   const xp=s&&k.discovered?fmt(k.xp)+" / "+fmt(k.xpReq):none;
-   const benefit=!k.mapped?"Reference unavailable":s&&k.discovered?numberDisplay(k.bonus):"Per level "+fmt(k.perLevel);
-   const status=s?(k.perfecto?"Perfecto":k.discovered?"Not Perfecto":"Undiscovered"):"—";
-   tr.append(tier,el("td","",level),el("td","",xp),el("td","",benefit),el("td","",status));
+   const tr=el("tr",k.readyToLevel?"lab-knowledge-row-ready":"");
+   const tier=el("td","lab-knowledge-tier");
+   const identity=el("div","lab-knowledge-identity");
+   identity.append(sushiArtwork(k.tier));
+   const info=el("div","lab-knowledge-tier-info");
+   info.append(el("strong","","T"+k.tier+" · "+k.name),
+    el("span","lab-row-subtitle",k.categoryName));
+   identity.append(info);
+   tier.append(identity);
+
+   const levelCell=el("td","lab-knowledge-level");
+   levelCell.append(el("strong","",!hasSave?"—":
+    !k.discovered?"Locked":k.levelKnown?fmt(k.level):"Unknown"));
+
+   const xpCell=el("td","lab-knowledge-exp");
+   if(hasSave&&k.discovered&&k.xpProgress!==null){
+    const values=el("div","lab-knowledge-exp-values");
+    values.append(el("strong","",fmt(k.xp)+" / "+fmt(k.xpReq)+" EXP"),
+     el("span","",Math.round(k.xpProgress*100)+"%"));
+    xpCell.append(values);
+    const progress=el("progress","lab-knowledge-exp-progress");
+    progress.max=100;progress.value=k.xpProgress*100;
+    progress.setAttribute("aria-label","EXP progress toward next Knowledge level for "+k.name);
+    xpCell.append(progress);
+    if(k.readyToLevel)xpCell.append(el("span","lab-knowledge-ready","Ready to level"));
+    else xpCell.append(el("small","lab-knowledge-exp-remaining",
+     fmt(k.xpRemaining)+" EXP remaining"));
+   }else{
+    xpCell.append(el("span","lab-knowledge-unavailable",
+     !hasSave?"Import save":!k.discovered?"Undiscovered":"EXP unavailable"));
+   }
+
+   const bonus=el("td","lab-knowledge-bonus");
+   if(hasSave&&k.discovered&&k.bonus!==null&&k.nextLevelGain!==null){
+    bonus.append(el("strong","",numberDisplay(k.bonus)));
+    bonus.append(el("small","","Next Lv "+fmt(k.level+1)+": "+
+     numberDisplay(k.bonus+k.nextLevelGain)));
+   }else bonus.append(el("span","lab-knowledge-unavailable",
+    !k.mapped?"Effect unavailable":!hasSave?"Import save":
+    !k.discovered?"Undiscovered":"Bonus unavailable"));
+
+   const status=el("td","lab-knowledge-status");
+   if(!hasSave)status.append(el("span","lab-knowledge-status-tag is-muted","—"));
+   else if(!k.discovered)status.append(el("span","lab-knowledge-status-tag is-muted","Undiscovered"));
+   else if(k.perfecto)status.append(el("span","lab-knowledge-status-tag is-perfecto","Perfecto"));
+   else status.append(el("span","lab-knowledge-status-tag","Normal"));
+   tr.append(tier,levelCell,xpCell,bonus,status);
    body.append(tr);
   }
  }
