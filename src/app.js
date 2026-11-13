@@ -81,10 +81,38 @@ function decodeSave(input){
     Object.prototype.hasOwnProperty.call(bundles,"bon_v")?
     Number(bundles.bon_v)>0:
     typeof input.bundleBonV==="boolean"?input.bundleBonV:undefined;
+  const bundleBanJ=bundles&&typeof bundles==="object"&&
+    Object.prototype.hasOwnProperty.call(bundles,"ban_j")?
+    Number(bundles.ban_j)>0:
+    typeof input.bundleBanJ==="boolean"?input.bundleBanJ:undefined;
+  // Idleon Toolbox: Sushi CurrencyMulti reads Sailing[3][39] (artifact grade),
+  // OptLacc[311] EventShopOwned(45), Gaming[12] Superbit(67) and Research grid189.
+  const readArray=(key)=>{
+   const raw=input.data?.[key]??input[key];
+   if(Array.isArray(raw))return raw;
+   if(typeof raw==="string"){try{const parsed=JSON.parse(raw);return Array.isArray(parsed)?parsed:null;}catch{}}
+   return null;
+  };
+  const sailing=readArray("Sailing");
+  const sailingArt39=Number(sailing?.[3]?.[39]);
+  const sailingArtifact39=Number.isFinite(sailingArt39)&&sailingArt39>=0?sailingArt39:null;
+  const accountOptions=readArray("OptLacc");
+  const eventCode=accountOptions?.[311];
+  // Number2Letter[45] is "S" in the game.
+  const eventShop45=typeof eventCode==="string"?eventCode.includes("S"):null;
+  const gaming=readArray("Gaming");
+  const superbitCodes=gaming?.[12];
+  // Number2Letter[67] is "筒" in the game.
+  const superbit67=typeof superbitCodes==="string"?superbitCodes.includes("筒"):null;
+  const research189Level=Number(research?.[0]?.[189]);
+  const research189Obs=Number(research?.[1]?.[189]);
+  const research189=Number.isFinite(research189Level)&&research189Level>=0?
+    {level:research189Level,observation:Number.isInteger(research189Obs)?research189Obs:-1}:null;
   // Processed account exports may carry the authoritative total.
   const sushiDoublerInfo=input.account?.menagerie?.doublers?.sushi
     ??input.data?.menagerie?.doublers?.sushi??null;
-  return {sushi,spelunk,menagerie,research,bundleBonV,sushiDoublerInfo,tiles,perfecto:Array.isArray(sushi[5])?sushi[5].map(Number):null,slots,fires:Array.isArray(sushi[3])?sushi[3].slice(0,15).map(Number):[],source:input.data?.Sushi!=null?"Game save export":"Raw game data"};
+  return {sushi,spelunk,menagerie,research,bundleBonV,bundleBanJ,sailingArtifact39,eventShop45,superbit67,research189,
+   sushiDoublerInfo,tiles,perfecto:Array.isArray(sushi[5])?sushi[5].map(Number):null,slots,fires:Array.isArray(sushi[3])?sushi[3].slice(0,15).map(Number):[],source:input.data?.Sushi!=null?"Game save export":"Raw game data"};
 }
 let previousPreparedTierForWind=Number($("seedTier").value);
 function syncWindTierLimit({normalize=false,followMaximum=false}={}){
