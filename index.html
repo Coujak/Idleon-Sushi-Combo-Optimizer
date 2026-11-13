@@ -432,14 +432,18 @@
   <label>Status <select id="labKnowledgeStatus" aria-label="Knowledge progression status"></select></label>
   <label>Sort by <select id="labKnowledgeSort" aria-label="Sort Knowledge tiers"></select></label>
  </div>
- <div class="lab-table-wrap">
+ <div class="lab-table-wrap lab-knowledge-scroll" role="region" tabindex="0" aria-label="Scrollable Sushi Knowledge table">
   <table class="lab-data-table lab-knowledge-table" aria-label="Sushi Knowledge levels, EXP and bonuses">
-   <thead><tr><th scope="col">Sushi tier</th><th scope="col">Knowledge level</th>
-    <th scope="col">EXP to next level</th><th scope="col">Knowledge Bonus</th></tr></thead>
+   <thead><tr>
+    <th scope="col" aria-sort="ascending"><button type="button" class="lab-knowledge-sort-button" data-knowledge-sort="tier" data-knowledge-reverse="tier-desc">Sushi tier <span class="lab-knowledge-sort-arrow" aria-hidden="true"></span></button></th>
+    <th scope="col" aria-sort="none"><button type="button" class="lab-knowledge-sort-button" data-knowledge-sort="level-desc" data-knowledge-reverse="level-asc">Knowledge level <span class="lab-knowledge-sort-arrow" aria-hidden="true"></span></button></th>
+    <th scope="col" aria-sort="none"><button type="button" class="lab-knowledge-sort-button" data-knowledge-sort="next" data-knowledge-reverse="next-desc">EXP to next level <span class="lab-knowledge-sort-arrow" aria-hidden="true"></span></button></th>
+    <th scope="col" aria-sort="none"><button type="button" class="lab-knowledge-sort-button" data-knowledge-sort="category" data-knowledge-reverse="category-desc">Knowledge Bonus <span class="lab-knowledge-sort-arrow" aria-hidden="true"></span></button></th>
+   </tr></thead>
    <tbody id="labKnowledgeRows"></tbody>
   </table>
  </div>
  <p id="labKnowledgeEmpty" class="hint lab-empty-state hidden">No Sushi tiers match the selected filters.</p>
  <p class="hint lab-disclaimer">Permanent tier rewards appear beneath each Sushi name. Knowledge Bonus shows the current effect with its value and the projected next-level effect, including the 2× Perfecto effect where unlocked. The original Perfecto icon marks Perfectos; undiscovered tiers show a base Lv 1 preview only. “Ready to level” means imported EXP reaches the next-level requirement, not an automatic level-up. Missing save data remains unavailable.</p>
 </section></div>
-</main><script type="module" src="src/app.js?v=1.50.14"></script></body></html>
+</main><script type="module" src="src/app.js?v=1.50.15"></script></body></html>
