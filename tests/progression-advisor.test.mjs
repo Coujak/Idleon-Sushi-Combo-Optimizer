@@ -191,3 +191,16 @@ test("Progression recommendations expose impact explanations and a configurable 
  assert.ok(ui.includes('u.impactText'));
  assert.ok(ui.includes('u.impactNote'));
 });
+
+test("Goal-improving upgrades outrank cheap unmeasured effects, even if saving is needed",()=>{
+ const save=sampleSave(1e20);
+ save.sushi[2][37]=25;
+ save.sushi[2][38]=25;
+ const advice=getProgressionAdvice(save,"knowledge");
+ assert.equal(advice.best.id,37);
+ assert.ok(advice.best.impactRankable);
+ assert.notEqual(advice.best.affordability,"affordable");
+ assert.ok(advice.rows.some(x=>x.affordability==="affordable"&&!x.impactRankable));
+ const first=advice.rows.find(x=>!x.atMax);
+ assert.equal(first.id,37);
+});
