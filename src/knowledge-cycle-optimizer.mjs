@@ -339,24 +339,38 @@ export function optimizeKnowledgeCycle(save,rawOptions={}){
     const fuelRateWithFullBoard=rateFor(prepared.board,choice.fires);
     for(let policy=0;policy<5;policy++){
      const sequence=greedyMerge(prepared.board,layout.slots,anchorTier,windCap,chain,
-      ctx.expAt,options.mode,targetTier,policy,cookGains);
-     const leftover=sequence.finalBoard.filter((v,i)=>
-      v>0&&!protectedIndices.includes(i)).length;
+      ctx.expAt,options.mode,targetTier,policy,cookGains,protectedIndices);
+     // A board is not clear until real, replay-validated same-tier merges
+     // consume every ingredient outside the original protected anchors.
+     const cleanup=finishSushiBoard(sequence.finalBoard,layout.slots,windCap,chain,protectedIndices);
+     const moves=[...sequence.moves,...cleanup.moves];
+     const gains=sequence.gains.slice();
+     for(const move of cleanup.moves)addGains(gains,gainEvents(move.events,ctx.expAt));
+     const leftover=cleanup.leftover.length;
+     const repeatable=cleanup.repeatable;
      const tCook=prepared.cooks.length*options.secondsPerCook;
-     const tMerge=sequence.moves.length*options.secondsPerMerge;
-     const tClear=leftover*options.secondsPerClear;
-     const activeSeconds=tCook+tMerge+tClear;
-     const fuelRateBeforeClearing=rateFor(sequence.finalBoard,choice.fires);
-     // Weighted modeled generation while refilling, merging, and clearing.
+     const tMerge=moves.length*options.secondsPerMerge;
+     const activeSeconds=tCook+tMerge;
+     const fuelRateBeforeClearing=rateFor(cleanup.board,choice.fires);
+     // Account for changing fuel output as the board empties by legal merges.
      const fuelRate=(fuelRateWhilePreparing*tCook+fuelRateWithFullBoard*tMerge+
-      fuelRateBeforeClearing*tClear)/Math.max(1,activeSeconds);
+      fuelRateBeforeClearing*options.secondsPerMerge)/Math.max(1,activeSeconds+options.secondsPerMerge);
      if(!(fuelRate>0))continue;
      const fuelWaitSeconds=fuel*3600/fuelRate;
      const cycleSeconds=Math.max(activeSeconds,fuelWaitSeconds);
-     const score=scoreRotation(sequence.gains,cycleSeconds,options.mode,targetTier,eligible);
+     const score=scoreRotation(gains,cycleSeconds,options.mode,targetTier,eligible);
      considered++;
-     if(!best||score>best.score){
-      best={...prepared,...sequence,startBoard:prepared.board,score,policy,windCap,chain,anchorTier,
+     // Prefer a board that actually resets. Among incomplete plans, minimize
+     // stranded Sushi before comparing EXP, never pretend they disappeared.
+     const isBetter=!best||
+      repeatable&&!best.repeatable||
+      repeatable===best.repeatable&&
+       (repeatable?score>best.score:
+        leftover<best.leftover||leftover===best.leftover&&score>best.score);
+     if(isBetter){
+      best={...prepared,finalBoard:cleanup.board,gains,moves,
+       optimizingMerges:sequence.moves.length,cleanupMerges:cleanup.mergeCount,
+       startBoard:prepared.board,score,policy,windCap,chain,anchorTier,
        protectedIndices,repeatable,layout,ctx,eligible,targetTier,economy,
        fireChoice:choice.name,fires:choice.fires,fuelRate,
        fuel,activeSeconds,fuelWaitSeconds,cycleSeconds,leftover};
@@ -391,7 +405,8 @@ export function optimizeKnowledgeCycle(save,rawOptions={}){
   proposedFires:ctx.fires,fireChoice:best.fireChoice,windCap:best.windCap,
   steps:frames,merges:best.moves.length,cooks:best.cooks.length,
   windEvents:best.moves.reduce((a,m)=>a+m.events.filter(e=>e.kind==="wind").length,0),
-  cleanup:best.leftover,expByTier:best.gains,perTier,considered,
+  cleanup:best.cleanupMerges,stranded:best.leftover,
+  optimizingMerges:best.optimizingMerges,expByTier:best.gains,perTier,considered,
   fuelPerCycle:best.fuel,estimatedFuelCapacity:economy.capacity,
   estimatedFuelGeneration:best.fuelRate,
   capacityManual:economy.manualCapacity,generationManual:economy.manualGeneration,
@@ -401,6 +416,6 @@ export function optimizeKnowledgeCycle(save,rawOptions={}){
    totalEXP*3600/best.cycleSeconds:null,
   targetExpPerHour:best.repeatable?
    best.gains[targetTier]*3600/best.cycleSeconds:null,
-  note:"Modeled active-creation EXP only. Lithium doubles EXP in pink columns, but passive Milktoast/Cold gains and random cooked-tier procs are not yet included. Estimated Fuel regeneration is scaled to the proposed fireplaces, even with a manually calibrated baseline; it remains approximate."
+  note:"Every merge and cleanup action is verified using the Combo Meter engine; no Sushi can be deleted. EXP/hr and time-to-level appear only if the board can be restored by legal merges. Lithium doubles EXP in pink columns. Passive Milktoast/Cold EXP and uncertain procs are not included; fuel regeneration remains approximate."
  };
 }
