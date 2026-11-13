@@ -50,7 +50,8 @@ function openButton(name,target){
 }
 let setTab=()=>{};
 export function initializeSushiLab(getSave){
- let mainTab="overview",upgradeTab="catalog",goal="bucks",doublerGoal="knowledge";
+ let mainTab="overview",upgradeTab="catalog",goal="bucks",doublerGoals=["knowledge"];
+ let doublerHideDoubled=false,doublerMenuOpen=false;
  let advisorSort="recommended",advisorFilter="all",purchaseView="cards";
  let catalogSort="shop",catalogCategory="all",catalogStatus="all";
  let importedAt=null;
@@ -99,13 +100,59 @@ export function initializeSushiLab(getSave){
  for(const nav of document.querySelectorAll("[data-upgrade-target]")){
   nav.addEventListener("click",()=>setUpgradeTab(nav.dataset.upgradeTarget));
  }
- const goalInput=$("labAdvisorGoal"),dblInput=$("labDoublerGoal");
+ const goalInput=$("labAdvisorGoal");
  for(const entry of ADVISOR_GOALS)goalInput.append(new Option(entry.name,entry.id));
- for(const entry of DOUBLER_FOCUS_OPTIONS)dblInput.append(new Option(entry.label,entry.value));
- dblInput.value=doublerGoal;
  goalInput.value=goal;
  goalInput.addEventListener("change",()=>{goal=goalInput.value;renderAdvisor();});
- dblInput.addEventListener("change",()=>{doublerGoal=dblInput.value;renderDoubler();});
+ const doublerTags=$("labDoublerTags"),doublerAdd=$("labDoublerAddCategory");
+ const doublerMenu=$("labDoublerCategoryMenu"),doublerHideInput=$("labDoublerHideDoubled");
+ function renderDoublerTags(){
+  doublerTags.replaceChildren();doublerMenu.replaceChildren();
+  for(const id of doublerGoals){
+   const option=DOUBLER_FOCUS_OPTIONS.find(x=>x.value===id);
+   if(!option)continue;
+   const tag=el("button","lab-doubler-tag");
+   tag.type="button";tag.setAttribute("aria-label","Remove "+option.label+" category");
+   tag.append(el("span","",option.label));
+   const close=el("span","lab-doubler-tag-x","×");close.setAttribute("aria-hidden","true");
+   tag.append(close);
+   tag.addEventListener("click",()=>{
+    doublerGoals=doublerGoals.filter(value=>value!==id);
+    doublerMenuOpen=false;renderDoubler();
+   });
+   doublerTags.append(tag);
+  }
+  for(const option of DOUBLER_FOCUS_OPTIONS.filter(o=>!doublerGoals.includes(o.value))){
+   const button=el("button","lab-doubler-menu-option",option.label);
+   button.type="button";
+   button.addEventListener("click",()=>{
+    doublerGoals=[...doublerGoals,option.value];
+    doublerMenuOpen=false;renderDoubler();doublerAdd.focus();
+   });
+   doublerMenu.append(button);
+  }
+  doublerAdd.disabled=doublerMenu.children.length===0;
+  if(doublerAdd.disabled)doublerMenuOpen=false;
+  doublerMenu.classList.toggle("hidden",!doublerMenuOpen);
+  doublerAdd.setAttribute("aria-expanded",String(doublerMenuOpen));
+ }
+ doublerAdd.addEventListener("click",()=>{
+  doublerMenuOpen=!doublerMenuOpen;renderDoublerTags();
+  if(doublerMenuOpen)doublerMenu.querySelector("button")?.focus();
+ });
+ doublerHideInput.addEventListener("change",()=>{
+  doublerHideDoubled=doublerHideInput.checked;renderDoubler();
+ });
+ document.addEventListener("click",event=>{
+  if(doublerMenuOpen&&!event.target.closest(".lab-doubler-add-wrap")){
+   doublerMenuOpen=false;renderDoublerTags();
+  }
+ });
+ document.addEventListener("keydown",event=>{
+  if(doublerMenuOpen&&event.key==="Escape"){
+   doublerMenuOpen=false;renderDoublerTags();doublerAdd.focus();
+  }
+ });
  const advisorSortInput=$("labAdvisorSort"),advisorFilterInput=$("labAdvisorFilter");
  const advisorMaxedInput=$("labAdvisorShowMaxed");
  for(const item of PROGRESSION_SORT_OPTIONS)advisorSortInput.append(new Option(item.label,item.value));
@@ -709,37 +756,47 @@ export function initializeSushiLab(getSave){
    "No other upgrades match these filters. Change the goal or filters to compare more options."));
  }
  function renderDoubler(){
+  renderDoublerTags();
   const feature=$("labDoublerAdvice");
   feature.replaceChildren();
-  if(!save()){
-   addText(feature,"hint","Import a full game save JSON to see Doubler advice for one category.");
+  if(!doublerGoals.length){
+   addText(feature,"hint","Add a category using + to view eligible Doubler upgrades.");
    return;
   }
-  const plan=getDoublerPlacementPlan(save(),doublerGoal);
+  if(!save()){
+   addText(feature,"hint","Import a full game save JSON to see Doubler advice for your selected categories.");
+   return;
+  }
+  const plan=getDoublerPlacementPlan(save(),doublerGoals);
   if(!plan?.ready){
    addText(feature,"hint",plan?.reason??"Doubler information is unavailable.");
    return;
   }
+  const visible=plan.recommendations.filter(u=>!doublerHideDoubled||!u.doubled);
   const overview=el("div","lab-doubler-summary"),counts=plan.counts;
   const assigned=counts.used===null?"Unknown":fmt(counts.used);
   const available=counts.available===null?"Unknown":
    (counts.exact?fmt(counts.available):"≥"+fmt(counts.available));
-  const focusName=DOUBLER_FOCUS_OPTIONS.find(x=>x.value===doublerGoal)?.label??"Selected category";
-  overview.append(el("strong","",focusName+" · "+plan.totalOptions+" eligible upgrade"+
-   (plan.totalOptions===1?"":"s")),
+  const focusNames=doublerGoals.map(id=>DOUBLER_FOCUS_OPTIONS.find(x=>x.value===id)?.label??id);
+  const countText=(visible.length===plan.totalOptions?fmt(plan.totalOptions):
+   fmt(visible.length)+" / "+fmt(plan.totalOptions))+" eligible upgrade"+
+   (plan.totalOptions===1?"":"s");
+  overview.append(el("strong","",focusNames.join(" + ")+" · "+countText),
    el("span","","Assigned overall: "+assigned+" · Available: "+available));
   if(!counts.exact)overview.title=
    "Available is a lower bound from Menagerie boosts. Bundles and companions may grant additional Doublers.";
   feature.append(overview);
   addText(feature,"hint",
-   "Showing only upgrades for "+focusName+". Number of choices depends on the eligible upgrades, "+
-   "not how many Doublers you own. A Doubler increases an upgrade's effect, not its level.");
-  if(!plan.recommendations.length){
-   addText(feature,"hint","No Doubler-eligible upgrades belong to this focus.");
+   "Only upgrades in your selected categories are shown. Each upgrade appears once. "+
+   "A Doubler increases an upgrade's effect, not its level.");
+  if(!visible.length){
+   addText(feature,"hint",doublerHideDoubled&&plan.totalOptions?
+    "All matching upgrades are already doubled. Uncheck Hide already doubled to see them.":
+    "No Doubler-eligible upgrades match these categories.");
    return;
   }
   const grid=el("div","lab-doubler-plan-grid");
-  for(const u of plan.recommendations){
+  for(const u of visible){
    const isAction=u.status!=="Keep"&&u.status!=="Level first";
    const card=el("article","lab-doubler-plan-card"+(u.doubled?" is-doubled":isAction?" is-change":""));
    const head=el("div","lab-doubler-plan-head");
