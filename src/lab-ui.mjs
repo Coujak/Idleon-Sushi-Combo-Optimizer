@@ -4,9 +4,9 @@ import {sushiUpgradeIconPath,sushiTierIconPath} from "./sushi-reference.mjs?v=1.
 import {initializePerfectoUI} from "./perfecto-ui.mjs?v=1.36.0";
 import {CATALOG_SORT_OPTIONS,CATALOG_STATUS_OPTIONS,upgradeSummary,readableUpgradeDescription,upgradeDescriptionSegments,catalogHasVariableValues,filterSortCatalog,upgradeCatalogDollarValue} from "./upgrade-catalog.mjs?v=1.16.7";
 import {ADVISOR_GOALS,numberText,getSushiSnapshot,getUpgradeRows,
- getKnowledgeRows,advisorUpgrades,doublerUpgrades,getSushiDoublerCounts,sushiUpgradeExtraText,upgradeAffordability} from "./lab-model.mjs?v=1.19.10";
+ getKnowledgeRows,advisorUpgrades,getSushiDoublerCounts,sushiUpgradeExtraText,upgradeAffordability} from "./lab-model.mjs?v=1.19.10";
 import {getProgressionAdvice,PROGRESSION_SORT_OPTIONS,PROGRESSION_FILTER_OPTIONS} from "./progression-advisor.mjs?v=1.16.6";
-import {DOUBLER_FOCUS_OPTIONS,getDoublerPlacementPlan} from "./doubler-advisor.mjs?v=1.0.0";
+import {DOUBLER_FOCUS_OPTIONS,getDoublerPlacementPlan} from "./doubler-advisor.mjs?v=1.1.0";
 import {buildProgressionPurchasePlan} from "./progression-roadmap.mjs?v=1.16.7";
 import {parseGameQuantity} from "./progression-calibration.mjs?v=1.16.3";
 import {overviewTierProgress,importAgeText} from "./overview-helpers.mjs?v=1.19.9";
@@ -50,7 +50,7 @@ function openButton(name,target){
 }
 let setTab=()=>{};
 export function initializeSushiLab(getSave){
- let mainTab="overview",upgradeTab="catalog",goal="bucks",doublerGoal="priorities";
+ let mainTab="overview",upgradeTab="catalog",goal="bucks",doublerGoal="knowledge";
  let advisorSort="recommended",advisorFilter="all",purchaseView="cards";
  let catalogSort="shop",catalogCategory="all",catalogStatus="all";
  let importedAt=null;
@@ -709,64 +709,60 @@ export function initializeSushiLab(getSave){
    "No other upgrades match these filters. Change the goal or filters to compare more options."));
  }
  function renderDoubler(){
-  const root=$("labDoublerResults"),feature=$("labDoublerAdvice");
-  root.replaceChildren();feature.replaceChildren();
+  const feature=$("labDoublerAdvice");
+  feature.replaceChildren();
   if(!save()){
-   addText(feature,"hint","Import a full game save JSON to plan where your Sushi Doublers should go.");
+   addText(feature,"hint","Import a full game save JSON to see Doubler advice for one category.");
    return;
   }
-  const data=save(),plan=getDoublerPlacementPlan(data,doublerGoal);
+  const plan=getDoublerPlacementPlan(save(),doublerGoal);
   if(!plan?.ready){
    addText(feature,"hint",plan?.reason??"Doubler information is unavailable.");
    return;
   }
-  const total=plan.slotCount;
-  const overview=el("div","lab-doubler-summary");
-  const counts=plan.counts;
+  const overview=el("div","lab-doubler-summary"),counts=plan.counts;
   const assigned=counts.used===null?"Unknown":fmt(counts.used);
-  const free=counts.available===null?"Unknown":(counts.exact?fmt(counts.available):"≥"+fmt(counts.available));
-  overview.append(el("strong","","Recommended Doubler placements"),
-   el("span","","Currently assigned: "+assigned+" · Available: "+free+
-    (plan.availableKnown?"":" · Cannot verify unassigned Doublers")));
+  const available=counts.available===null?"Unknown":
+   (counts.exact?fmt(counts.available):"≥"+fmt(counts.available));
+  const focusName=DOUBLER_FOCUS_OPTIONS.find(x=>x.value===doublerGoal)?.label??"Selected category";
+  overview.append(el("strong","",focusName+" · "+plan.totalOptions+" eligible upgrade"+
+   (plan.totalOptions===1?"":"s")),
+   el("span","","Assigned overall: "+assigned+" · Available: "+available));
   feature.append(overview);
-  const priorityText=doublerGoal==="priorities"?
-   "Preference order: Knowledge EXP → Perfecto opportunities → cheaper upgrades. ":
-   doublerGoal==="all"?"Preserve existing assignments unless the account has unused Doublers. ":
-   "Focus: "+(DOUBLER_FOCUS_OPTIONS.find(x=>x.value===doublerGoal)?.label??"Selected effect")+". ";
-  addText(feature,"hint",priorityText+
-   "A Doubler boosts an upgrade's effect; it does not grant upgrade levels. "+
-   "Other currently doubled bonuses stay put when possible.");
+  addText(feature,"hint",
+   "Showing only upgrades for "+focusName+". Number of choices depends on the eligible upgrades, "+
+   "not how many Doublers you own. A Doubler increases an upgrade's effect, not its level.");
   if(!plan.recommendations.length){
-   addText(feature,"hint","No known Doubler placements with a nonzero upgrade level. "+
-    "Unlock or level eligible upgrades to benefit from Doubler assignments.");
+   addText(feature,"hint","No Doubler-eligible upgrades belong to this focus.");
+   return;
   }
   const grid=el("div","lab-doubler-plan-grid");
   for(const u of plan.recommendations){
-   const card=el("article","lab-doubler-plan-card"+(u.status!=="Keep"?" is-change":""));
+   const isAction=u.status!=="Keep"&&u.status!=="Level first";
+   const card=el("article","lab-doubler-plan-card"+(isAction?" is-change":""));
    const head=el("div","lab-doubler-plan-head");
-   const title=el("div","lab-doubler-plan-identity");
-   title.append(upgradeArtwork(u));
+   const identity=el("div","lab-doubler-plan-identity");
+   identity.append(upgradeArtwork(u));
    const name=el("div","");
    name.append(el("strong","",upgradeLabel(u)),
     el("small","","Upgrade Lv "+fmt(u.level)));
-   title.append(name);
-   head.append(title,el("span","lab-doubler-plan-status",u.status));
+   identity.append(name);
+   head.append(identity,el("span","lab-doubler-plan-status",u.status));
    card.append(head,el("p","lab-doubler-plan-reason",u.reason));
-   if(u.from)card.append(el("p","lab-doubler-plan-from","Move the Doubler from "+u.from+" here."));
-   else if(u.status==="Use available")
-    card.append(el("p","lab-doubler-plan-from","Assign one unused Sushi Doubler here."));
-   if(u.status==="Keep")
-    card.append(el("p","lab-doubler-plan-from","Already assigned — no change needed."));
+   const detail={
+    "Keep":"Already doubled. No change needed.",
+    "Use available":"Assign one unused Sushi Doubler to this upgrade.",
+    "Reassign needed":"No free Doublers. Move one from another upgrade only if you prefer this category.",
+    "Check / reassign":"No guaranteed unused Doublers in the save. Check in-game or reassign one if this focus matters more.",
+    "Check availability":"Check your unused Doubler count in-game before assigning one.",
+    "Level first":"The upgrade is currently Lv 0, so its Doubler has no effect yet."
+   }[u.status];
+   if(detail)card.append(el("p","lab-doubler-plan-from",detail));
    grid.append(card);
   }
   feature.append(grid);
-  if(!plan.availableKnown)addText(feature,"hint",
-   "Only existing assignments can be planned with certainty. Import Menagerie data to find unassigned Doublers.");
-  const chosen=doublerUpgrades(data,doublerGoal==="priorities"?"all":doublerGoal);
-  const recommendedIds=new Set(plan.recommendations.map(u=>u.id));
-  const alternatives=chosen.filter(u=>!recommendedIds.has(u.id));
-  for(const u of alternatives)root.append(resultCard(u,"doubler"));
-  if(!alternatives.length)addText(root,"hint","No other eligible upgrades for this focus.");
+  if(!counts.exact)addText(feature,"hint",
+   "Available is a minimum based on known Menagerie boosts. Bonuses from companions or bundles may add more.");
  }
  function renderKnowledge(){
   const q=$("labKnowledgeSearch").value.trim().toLowerCase(),mode=$("labKnowledgeStatus").value;
