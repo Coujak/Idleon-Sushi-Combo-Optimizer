@@ -148,12 +148,12 @@ test("Knowledge tab actually renders imported tiers, ready filter and missing-sa
  const firstIdentity=displayRow.children[0].children[0];
  const firstInfo=firstIdentity.children[1];
  const rewardParts=firstInfo.children[1].children;
- assert.equal(rewardParts.map(part=>part.textContent).join(""),"2× Research EXP",
+ assert.equal(rewardParts.map(part=>part.textContent).join(""),"2× Research EXP.",
   "Permanent tier reward is visible beneath Sushi name");
  assert.equal(rewardParts[0].textContent,"2×");
  assert.equal(rewardParts[0].className,"lab-knowledge-value-pill lab-knowledge-tier-value",
   "Only the numeric tier reward is highlighted");
- assert.equal(rewardParts[1].textContent," Research EXP",
+ assert.equal(rewardParts[1].textContent," Research EXP.",
   "Reward explanation remains plain text");
  const firstBonus=displayRow.children[3];
  const current=firstBonus.children[0],next=firstBonus.children[1];
