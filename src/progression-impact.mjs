@@ -1,7 +1,7 @@
 // Goal metrics used consistently by Progression Advisor ranking and roadmap.
 // Keep partial estimates separate from verified whole-account totals.
-import {progressionGoalMetric} from "./progression-goal-impact.mjs?v=1.16.9";
-import {getKnowledgeRows,getUpgradeRows} from "./lab-model.mjs?v=1.19.10";
+import {progressionGoalMetric} from "./progression-goal-impact.mjs?v=1.17.0";
+import {getKnowledgeRows,getUpgradeRows} from "./lab-model.mjs?v=1.19.11";
 
 const finite=n=>typeof n==="number"&&Number.isFinite(n);
 const format=n=>!finite(n)?"Unavailable":n.toLocaleString("en-US",{maximumFractionDigits:3});
