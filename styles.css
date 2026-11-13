@@ -3189,7 +3189,6 @@ details summary{cursor:pointer;font-size:12px;font-weight:700;color:#9eb7c9}
  #lab-knowledge .lab-knowledge-toolbar{grid-template-columns:minmax(0,1fr)}
  #lab-knowledge .lab-knowledge-overview-stat{padding:12px 13px}
  #lab-knowledge .lab-knowledge-overview-stat>strong{font-size:17px}
- #lab-knowledge .lab-knowledge-category-chip{font-size:10px}
 }
 
 /* Dashboard production metrics share the Account Dashboard stat-card language. */
