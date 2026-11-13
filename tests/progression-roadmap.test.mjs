@@ -176,3 +176,25 @@ test("Purchase roadmap never invents a zero Sushi Bucks balance for partial impo
  noBalance.sushi[4][3]="unavailable";
  assert.equal(buildProgressionPurchasePlan(noBalance,"bucks",5).steps.length,0);
 });
+
+test("Roadmap and recommendation share the same goal metric and projected changes",async()=>{
+ const {progressionComparableMetric}=await import("../src/progression-impact.mjs");
+ const {getProgressionAdvice}=await import("../src/progression-advisor.mjs");
+ const save=fixture(1e20);
+ save.sushi[2][37]=10;
+ save.sushi[2][38]=10;
+ const knowledge=progressionComparableMetric(save,"knowledge");
+ const plan=buildProgressionPurchasePlan(save,"knowledge",5);
+ assert.equal(plan.initialGoal.value,knowledge.value);
+ assert.equal(plan.initialGoal.label,knowledge.label);
+ assert.equal(plan.steps.length,5);
+ assert.ok(plan.steps.some(x=>x.goalResult.changed));
+ assert.ok(plan.finalGoal.value>plan.initialGoal.value);
+ const first=getProgressionAdvice(save,"knowledge").best;
+ assert.equal(plan.steps[0].id,first.id);
+ const perfecto=fixture(1e20);
+ perfecto.sushi[2][21]=5;
+ const p=buildProgressionPurchasePlan(perfecto,"perfecto",2);
+ assert.equal(p.steps[0].id,18,"Pepper unlock is selected before free-use upgrades when available");
+ assert.match(p.steps[0].goalResult.projected,/Pepper unlocked/);
+});
