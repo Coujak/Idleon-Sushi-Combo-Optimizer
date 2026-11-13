@@ -25,6 +25,14 @@ const formatHours=n=>{
  return compact(n/24)+" days";
 };
 const preferenceKey="idleon-sushi-knowledge-cycle-v1";
+const FIREPLACE_IMAGES=[
+ "Charcoal Fireplace (Upgrade 17).png",
+ "Barium Firelighter (Upgrade 26).png",
+ "Copper Firelighter (Upgrade 33).png",
+ "Lithium Firelighter (Upgrade 40).png",
+ "Potassium Firelighter (Upgrade 42).png"
+];
+const FIREPLACE_NAMES=["Charcoal","Barium","Copper","Lithium","Potassium"];
 const showNames=[{key:"knowledgePlanCookSeconds",field:"secondsPerCook"},
  {key:"knowledgePlanMergeSeconds",field:"secondsPerMerge"},
  {key:"knowledgePlanClearSeconds",field:"secondsPerClear"}];
@@ -188,9 +196,17 @@ export function initializeKnowledgeLevelingUI(getSave){
   const fireRow=elem("div","lab-kp-fire-row");
   for(let c=0;c<15;c++){
    const type=result.proposedFires[c]??-1;
-   const fire=elem("span","lab-kp-fire fire-"+type,type===3?"●":type>=0?"♨":"");
+   const fire=elem("span","lab-kp-fire fire-"+type);
    fire.title="Column "+(c+1)+" · "+(type===3?"Lithium pink (2× Knowledge EXP)":
-    type===0?"Orange · Fuel production":type>=0?"Other fireplace":"Locked");
+    type===0?"Orange · Fuel production":type>=0?FIREPLACE_NAMES[type]+" fireplace":"Locked");
+   if(type>=0&&FIREPLACE_IMAGES[type]){
+    const img=elem("img","lab-kp-fire-art");
+    img.src="assets/campfires/"+encodeURIComponent(FIREPLACE_IMAGES[type]);
+    img.alt=FIREPLACE_NAMES[type]+" fireplace";
+    img.loading="lazy";
+    img.onerror=()=>{img.remove();fire.textContent="♨";};
+    fire.append(img);
+   }
    fireRow.append(fire);
   }
   board.append(fireRow);
