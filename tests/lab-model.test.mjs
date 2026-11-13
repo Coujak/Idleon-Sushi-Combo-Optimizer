@@ -131,7 +131,7 @@ test("Scientific notation omits the positive exponent plus sign across account n
  assert.equal(numberText(1.2345e12),"1.235T");
  assert.equal(numberText(1.234e-5),"1.234E-5");
  const fmt=readFileSync(new URL("../src/progression-goal-impact.mjs",import.meta.url),"utf8");
- assert.match(fmt,/toExponential\(3\)\.replace/);
+ assert.match(fmt,/formatCompactNumber\(n,\{digits\}\)/);
 });
 
 test("shaker daily refills include Shakin' It Research grid I3 without hardcoding +3",()=>{
