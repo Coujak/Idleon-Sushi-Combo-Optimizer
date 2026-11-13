@@ -186,3 +186,42 @@ test("The Sushi import captures Toolbox bundle and World 7 currency sources",()=
  assert.ok(model.includes("save.superbit67===true"));
  assert.match(model,/Arcade, Atom, Minehead, Button/);
 });
+
+test("Doubler ranking gain is the modeled relative account improvement, not an upgrade level",()=>{
+ const save=fixture();
+ const searing2=impact(save,37),searing3=impact(save,38);
+ assert.equal(searing2.gainRankable,true);
+ assert.equal(searing3.gainRankable,true);
+ assert.ok(searing2.gainScore>searing3.gainScore);
+ assert.ok(searing2.gainScore>0);
+ assert.match(searing2.gainText,/Knowledge EXP per created Sushi/);
+ // When already doubled, the gain still compares the same before-and-after
+ // states and does not multiply the existing doubled bonus a second time.
+ assert.equal(impact(save,38).currentSide,"with");
+});
+
+test("Discount ranking uses remaining price reduction rather than additive discount points",()=>{
+ const row=impact(fixture(),36);
+ assert.equal(row.gainRankable,true);
+ assert.match(row.gainText,/lower upgrade cost/);
+ assert.ok(row.gainScore>0);
+ assert.ok(row.gainScore<100);
+ const shakes=impact(fixture(),21);
+ assert.equal(shakes.gainRankable,true);
+ assert.equal(shakes.gainScore,15);
+ assert.match(shakes.gainText,/percentage points free-use chance/);
+});
+
+test("Per-use Bucks and Fuel effects cannot be sorted by unrelated passive income",()=>{
+ const save=fixture();
+ for(const id of [22,35,20]){
+  const row=impact(save,id);
+  assert.equal(row.gainRankable,false);
+  assert.equal(row.gainScore,null);
+  assert.match(row.gainText,/Per-use benefit/);
+ }
+ const zeroLevel=getUpgradeRows(save).find(u=>u.id===34);
+ const row=getDoublerAccountImpact(save,zeroLevel);
+ assert.equal(row.gainScore,null);
+ assert.equal(row.gainRankable,false);
+});
