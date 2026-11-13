@@ -148,3 +148,41 @@ test("Doubler UI shows account results beneath each raw comparison",()=>{
  assert.ok(css.includes(".lab-doubler-impact-note{"));
  assert.match(html,/labDoublerAdvice/);
 });
+
+test("Toolbox raw account multipliers change Sushi Bucks/hr by their documented factors",()=>{
+ const baseline=fixture();
+ const ref=impact(baseline,31);
+ const reference=quantity(ref.withDoubler);
+ assert.ok(reference>0);
+ const variants=[
+  [{bundleBonV:true},2],
+  [{bundleBanJ:true},2],
+  [{sailingArtifact39:6},7],
+  [{eventShop45:true},2],
+  [{research189:{level:4,observation:6}},2.25]
+ ];
+ for(const [extra,factor] of variants){
+  const before=JSON.stringify(baseline);
+  const save={...baseline,...extra};
+  const next=quantity(impact(save,31).withDoubler);
+  assert.ok(Math.abs(next/reference-factor)<.001,
+   JSON.stringify(extra)+" should multiply Bucks/hr by "+factor);
+  assert.equal(JSON.stringify(baseline),before);
+ }
+ const withSuperbit=quantity(impact({...baseline,superbit67:true},31).withDoubler);
+ assert.ok(withSuperbit>reference,"Superbit 67 adds 100% to the surcharge group");
+});
+
+test("The Sushi import captures Toolbox bundle and World 7 currency sources",()=>{
+ const app=readFileSync(new URL("../src/app.js",import.meta.url),"utf8");
+ const model=readFileSync(new URL("../src/progression-goal-impact.mjs",import.meta.url),"utf8");
+ for(const name of ["bundleBanJ","sailingArtifact39","eventShop45","superbit67","research189"])
+  assert.ok(app.includes(name),"Missing import: "+name);
+ assert.ok(app.includes('readArray("Sailing")'));
+ assert.ok(app.includes('readArray("OptLacc")'));
+ assert.ok(app.includes('readArray("Gaming")'));
+ assert.ok(model.includes("knownExternal"));
+ assert.ok(model.includes("gridObsPct"));
+ assert.ok(model.includes("save.superbit67===true"));
+ assert.match(model,/Arcade, Atom, Minehead, Button/);
+});
