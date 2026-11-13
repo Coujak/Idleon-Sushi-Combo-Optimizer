@@ -3,14 +3,10 @@
 // A partial multiplier is never mislabeled as the full hourly production.
 import {getKnowledgeRows,getUpgradeRows,sushiUpgradeDiscounts} from "./lab-model.mjs?v=1.16.6";
 import {estimateSushiFuelEconomy} from "./perfecto-fuel.mjs?v=1.16.6";
+import {formatCompactNumber} from "./number-format.mjs?v=1.0.0";
 
 const finite=value=>typeof value==="number"&&Number.isFinite(value);
-const format=(n,digits=3)=>{
- if(!finite(n))return "Unavailable";
- if(n===0)return "0";
- if(Math.abs(n)>=1e9||Math.abs(n)<.001)return n.toExponential(3).replace(/e\+?/i,"E");
- return n.toLocaleString("en-US",{maximumFractionDigits:digits});
-};
+const format=(n,digits=3)=>formatCompactNumber(n,{digits});
 const levels=save=>save?.sushi?.[2]??[];
 const leveled=(save,id)=>Math.max(0,Number(levels(save)[id])||0);
 const bonuses=save=>{
