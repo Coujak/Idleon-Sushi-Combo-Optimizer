@@ -737,15 +737,14 @@ export function initializeSushiLab(getSave){
   // purchases of the same upgrade as one easy-to-read level range.
   for(const group of groupProgressionPurchases(plan.steps)){
    const item=el("li","lab-advisor-purchase-step"+(group.firstNumber===1?" is-next":""));
-   const number=el("span","lab-advisor-purchase-number",
-    group.count>1?group.firstNumber+"–"+group.lastNumber:String(group.firstNumber));
+   const number=el("span","lab-advisor-purchase-number",String(group.firstNumber));
    const identity=el("div","lab-advisor-purchase-identity");
    const iconUpgrade=iconMap.get(group.id);
    if(iconUpgrade)identity.append(upgradeArtwork(iconUpgrade));
    const copy=el("div","lab-advisor-purchase-copy");
    copy.append(el("strong","",group.name),
     el("small","","Lv "+fmt(group.fromLevel)+" → "+fmt(group.toLevel)+
-     (group.count>1?" · "+group.count+" levels":"")+
+     (group.count>1?" · "+group.count+" levels (steps "+group.firstNumber+"–"+group.lastNumber+")":"")+
      (group.doubled?" · Doubled":"")));
    identity.append(copy);
 
