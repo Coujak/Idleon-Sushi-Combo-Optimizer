@@ -6,16 +6,27 @@ const html=readFileSync(new URL("../index.html",import.meta.url),"utf8");
 const ui=readFileSync(new URL("../src/lab-ui.mjs",import.meta.url),"utf8");
 const css=readFileSync(new URL("../styles.css",import.meta.url),"utf8");
 
-test("Progression Advisor uses a compact single-column plan with expandable details",()=>{
+test("Progression Advisor matches Catalog and Doubler styling and uses aligned upgrade rows",()=>{
  assert.match(html,/id="labAdvisorPurchaseSteps"/);
  assert.match(html,/id="labAdvisorViewList" class="selected"/);
  assert.match(html,/id="labAdvisorViewCards" aria-pressed="false"/);
+ assert.match(html,/class="lab-advisor-column-head lab-advisor-plan-columns"/);
+ assert.match(html,/class="lab-advisor-column-head lab-advisor-rank-columns"/);
+ assert.match(html,/class="lab-catalog-toolbar lab-advisor-compare-toolbar"/);
+ assert.match(html,/class="lab-advisor-goalbar lab-catalog-toolbar"/);
  assert.ok(ui.includes('purchaseView="list"'));
  assert.ok(ui.includes('detail.open=purchaseView==="cards"'));
  assert.ok(ui.includes('steps.querySelectorAll(".lab-advisor-step-details")'));
+ assert.ok(ui.includes('featured?"lab-advisor-feature-row":"lab-advisor-rank-row"'));
+ assert.ok(css.includes("#lab-upgrades{"));
+ assert.ok(css.includes("--up-head:#203548"));
+ assert.ok(css.includes("#lab-upgrade-catalog .lab-catalog-toolbar"));
+ assert.ok(css.includes("#lab-upgrade-doubler .lab-doubler-filters"));
+ assert.ok(css.includes("#lab-upgrade-advisor .lab-advisor-rank-row"));
  assert.ok(css.includes("#lab-upgrade-advisor .lab-advisor-purchase-list.lab-advisor-view-cards"));
  assert.ok(css.includes("grid-template-columns:minmax(0,1fr)"));
- assert.ok(css.includes("#lab-upgrade-advisor .lab-advisor-breakdown"));
+ assert.ok(css.includes("#lab-upgrade-advisor .lab-advisor-row-details"));
+ assert.ok(css.includes("#lab-upgrade-doubler .lab-doubler-plan-card.is-doubled"));
 });
 
 test("Rendering a purchase plan never removes its ordered-list mount",()=>{
