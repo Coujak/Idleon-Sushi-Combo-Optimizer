@@ -230,6 +230,7 @@ function buildFrames(candidate,slots,protectedIndices,expAt){
   append("cook","Cook T"+cook.requestedTier+" → T"+cook.tier,
    "Fill "+positionName(cook.at)+" · expected output from guaranteed cooking bonuses",
    [{kind:"cook",at:cook.at,tier:cook.tier}],gainEvents([{at:cook.at,tier:cook.tier}],expAt));
+  frames.at(-1).at=cook.at;
  }
  if(!board.every((tier,i)=>tier===candidate.startBoard[i]))
   throw Error("Starting board cannot be constructed from the planned direct cooks");
@@ -246,6 +247,9 @@ function buildFrames(candidate,slots,protectedIndices,expAt){
    positionName(move.src)+" → "+positionName(move.dst)+
    (move.events.length>1?" · "+(move.events.length-1)+" East Wind upgrades":""),
    move.events,gainEvents(move.events,expAt));
+  // Expose the source and destination for an independently verifiable replay.
+  frames.at(-1).src=move.src;
+  frames.at(-1).dst=move.dst;
  }
  if(!board.every((tier,i)=>tier===candidate.finalBoard[i]))
   throw Error("Knowledge cleanup must preserve the exact simulated board");
