@@ -233,6 +233,12 @@ function buildFrames(candidate,slots,protectedIndices,expAt){
    (move.events.length>1?" · "+(move.events.length-1)+" East Wind upgrades":""),
    move.events,gainEvents(move.events,expAt));
  }
+ if(!candidate.repeatable){
+  append("blocked","One-pass layout only",
+   "A protected, higher-tier Sushi is needed before the board can be safely cleared and repeated.",
+   [],Array(65).fill(0));
+  return frames;
+ }
  for(let i=0;i<CELLS;i++){
   if(board[i]===0||protectedSet.has(i))continue;
   if(candidate.anchorTier>0&&board[i]>=candidate.anchorTier)
@@ -267,8 +273,9 @@ export function optimizeKnowledgeCycle(save,rawOptions={}){
  const anchorTier=Math.max(...layout.tiles);
  const protectedIndices=layout.tiles.flatMap((v,i)=>v===anchorTier&&v>0?[i]:[]);
  const repeatable=anchorTier>0;
- const windCap=Number(save?.sushi?.[2]?.[29])>0?Math.max(0,Math.min(58,
-  (Number(save?.sushi?.[5]?.findLastIndex(v=>Number(v)>=0))+1)-6)):0;
+ const highestDiscovered=rows.filter(r=>r.discovered).reduce((a,r)=>Math.max(a,r.tier),0);
+ const windCap=Number(save?.sushi?.[2]?.[29])>0?
+  Math.max(0,Math.min(58,highestDiscovered-6)):0;
  // Level mechanics of Heat of East Wind depend on the highest discovered tier.
  const chain=windCap>0?25:0;
  const bases=candidateBases(economy,ctx.guaranteedCookBonus,{...options,targetTier});
@@ -294,7 +301,7 @@ export function optimizeKnowledgeCycle(save,rawOptions={}){
     const score=scoreRotation(sequence.gains,cycleSeconds,options.mode,targetTier,eligible);
     considered++;
     if(!best||score>best.score){
-     best={...prepared,...sequence,score,policy,windCap,chain,anchorTier,
+     best={...prepared,...sequence,startBoard:prepared.board,score,policy,windCap,chain,anchorTier,
       protectedIndices,repeatable,layout,ctx,eligible,targetTier,economy,
       fuel,activeSeconds,fuelWaitSeconds,cycleSeconds,leftover};
     }
