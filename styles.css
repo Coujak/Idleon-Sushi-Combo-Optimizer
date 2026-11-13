@@ -3377,70 +3377,93 @@ details summary{cursor:pointer;font-size:12px;font-weight:700;color:#9eb7c9}
  }
 }
 
-/* Knowledge: separate permanent discovery rewards from level-scaled bonuses.
-   Purple is reserved for the static tier reward; teal marks active Knowledge. */
+/* Knowledge table: compact four-column layout from user's reference.
+   Perfecto achievement is identified by a small overlay on the Sushi icon. */
 #lab-knowledge .lab-knowledge-table{
- min-width:1160px;
+ min-width:800px;
  table-layout:fixed;
 }
-#lab-knowledge .lab-knowledge-table th:nth-child(1){width:18%}
-#lab-knowledge .lab-knowledge-table th:nth-child(2){width:24%}
-#lab-knowledge .lab-knowledge-table th:nth-child(3){width:9%}
-#lab-knowledge .lab-knowledge-table th:nth-child(4){width:19%}
-#lab-knowledge .lab-knowledge-table th:nth-child(5){width:21%}
-#lab-knowledge .lab-knowledge-table th:nth-child(6){width:9%}
+#lab-knowledge .lab-knowledge-table th:nth-child(1){width:34%}
+#lab-knowledge .lab-knowledge-table th:nth-child(2){width:11%}
+#lab-knowledge .lab-knowledge-table th:nth-child(3){width:32%}
+#lab-knowledge .lab-knowledge-table th:nth-child(4){width:23%}
 #lab-knowledge .lab-knowledge-table th,
 #lab-knowledge .lab-knowledge-table td{overflow-wrap:anywhere}
-#lab-knowledge .lab-knowledge-table td.lab-knowledge-tier-reward{
- padding:12px 13px;
- vertical-align:middle;
- line-height:1.48;
+#lab-knowledge .lab-knowledge-table th:nth-child(2),
+#lab-knowledge .lab-knowledge-table td.lab-knowledge-level{text-align:center}
+#lab-knowledge .lab-knowledge-identity{
+ display:flex;
+ align-items:center;
+ gap:11px;
 }
-#lab-knowledge .lab-knowledge-reward-copy{
- display:block;
- color:#d9ccfb;
- font-size:11px;
- font-weight:650;
+#lab-knowledge .lab-knowledge-art-wrap{
+ display:inline-grid;
+ flex:0 0 42px;
+ position:relative;
+ isolation:isolate;
+ width:42px;
+ height:42px;
+ place-items:center;
 }
-#lab-knowledge .lab-knowledge-reward-state{
- display:block;
- color:var(--knowledge-muted);
- font-size:10px;
- font-weight:500;
- margin-top:5px;
+#lab-knowledge .lab-knowledge-art-wrap .lab-sushi-art-frame{
+ margin:0;
+ width:42px;
+ height:42px;
 }
-#lab-knowledge .lab-knowledge-bonus-caption{
- display:block;
- margin-bottom:5px;
- color:#83d8b4;
- font-size:10px;
+#lab-knowledge .lab-knowledge-perfecto-emblem{
+ position:absolute;
+ z-index:2;
+ top:-6px;
+ right:-7px;
+ display:grid;
+ place-items:center;
+ width:20px;
+ height:20px;
+ padding:0;
+ border:1px solid #ead9ad;
+ border-radius:50%;
+ background:linear-gradient(145deg,#f6d78a 0%,#dbb76e 60%,#b98bd1 100%);
+ color:#433459;
+ font-size:14px;
+ font-weight:900;
+ line-height:1;
+ text-shadow:0 1px 1px #fff9;
+ box-shadow:0 2px 5px #0008,0 0 0 2px #172839;
+ pointer-events:none;
+}
+#lab-knowledge .lab-knowledge-tier-info{
+ min-width:0;
+}
+#lab-knowledge .lab-knowledge-tier-info>strong{
+ color:var(--knowledge-text);
  font-weight:750;
- letter-spacing:.03em;
+ font-size:12px;
+}
+#lab-knowledge .lab-knowledge-tier-info .lab-row-subtitle{
+ color:#a8d1e7;
+ font-size:11px;
+ line-height:1.45;
 }
 #lab-knowledge .lab-knowledge-bonus>strong{
  display:block;
- font-size:12px;
- line-height:1.45;
- font-weight:750;
- color:#b6ffd1;
+ font-size:14px;
+ line-height:1.3;
+ font-weight:760;
+ color:#b5f7ca;
+ font-variant-numeric:tabular-nums;
 }
 #lab-knowledge .lab-knowledge-bonus>strong.lab-knowledge-bonus-preview{
- color:#b2c9d6;
+ color:var(--knowledge-muted);
 }
 #lab-knowledge .lab-knowledge-bonus>small{
  display:block;
  margin-top:6px;
- font-size:10px;
+ font-size:11px;
+ line-height:1.45;
  color:var(--knowledge-muted);
- line-height:1.5;
+ font-variant-numeric:tabular-nums;
 }
-#lab-knowledge .lab-knowledge-bonus>small.lab-knowledge-perfecto-note{
- color:#c1a5f4;
-}
-#lab-knowledge .lab-knowledge-tier-info .lab-row-subtitle{
- line-height:1.4;
-}
-@media(max-width:740px){
- #lab-knowledge .lab-knowledge-table{min-width:1090px}
+@media(max-width:730px){
+ #lab-knowledge .lab-knowledge-table{min-width:750px}
  #lab-knowledge .lab-knowledge-table td{padding:10px}
 }
