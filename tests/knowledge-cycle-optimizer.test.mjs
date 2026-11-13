@@ -20,13 +20,14 @@ function example(){
  return {slots,tiles,fires,sushi:[[],[],upgrades,[],[100,0,0,0],track,xp,knowledge]};
 }
 const settings={mode:"focused",targetTier:2,fuelGeneration:1e9,fuelCapacity:10000,
- secondsPerCook:2,secondsPerMerge:1.5,secondsPerClear:0.7};
+ secondsPerCook:2,secondsPerMerge:1.5};
 
-test("Knowledge EXP solver preserves highest tier and creates a genuinely repeatable recipe",()=>{
+test("Knowledge EXP solver preserves highest tier and rejects fictional cleanup",()=>{
  const save=example();
  const plan=optimizeKnowledgeCycle(save,settings);
  assert.equal(plan.available,true,plan.reason);
- assert.equal(plan.repeatable,true);
+ assert.equal(plan.repeatable,false);
+ assert.ok(plan.stranded>0);
  assert.equal(plan.anchorTier,12);
  assert.deepEqual(plan.protectedIndices,[14]);
  assert.equal(plan.startCookTier>=1,true);
@@ -36,16 +37,17 @@ test("Knowledge EXP solver preserves highest tier and creates a genuinely repeat
  assert.ok(plan.cooks>=2);
  assert.ok(plan.steps.length>plan.cooks);
  assert.equal(plan.steps[0].kind,"start");
- assert.equal(plan.steps.at(-1).kind,"repeat");
+ assert.equal(plan.steps.at(-1).kind,"blocked");
  assert.equal(plan.steps.at(-1).board[14],12);
- assert.ok(plan.steps.at(-1).board.every((tier,i)=>i===14?tier===12:tier===0));
+ assert.ok(plan.steps.at(-1).board.some((tier,i)=>i!==14&&tier>0));
+ assert.equal(plan.steps.some(step=>step.kind==="clear"),false);
  assert.ok(plan.considered>0);
  assert.ok(plan.totalExpPerCycle>0);
  assert.ok(plan.cycleSeconds>0);
- assert.ok(plan.totalExpPerHour>0);
+ assert.equal(plan.totalExpPerHour,null);
  assert.ok(Number.isFinite(plan.estimatedFuelGeneration));
  assert.ok(plan.fuelPerCycle>0);
- assert.ok(plan.perTier.some(t=>t.tier===2&&t.etaHours!==null));
+ assert.ok(plan.perTier.every(t=>t.expPerHour===null));
  assert.ok(plan.steps.some(step=>step.kind==="merge"));
  const total=plan.steps.reduce((n,step)=>n+step.exp,0);
  assert.ok(Math.abs(total-plan.totalExpPerCycle)<Math.max(1e-8,total*1e-8));
@@ -62,7 +64,9 @@ test("Lithium's 2x effect is applied automatically and pink setups are evaluated
  assert.equal(withoutLithium.available,true,withoutLithium.reason);
  assert.equal(withoutLithium.pinkMultiplier,null);
  assert.ok(!withoutLithium.proposedFires.includes(3));
- assert.ok(withLithium.targetExpPerHour>=withoutLithium.targetExpPerHour);
+ assert.equal(withLithium.targetExpPerHour,null);
+ assert.equal(withoutLithium.targetExpPerHour,null);
+ assert.ok(withLithium.totalExpPerCycle>0);
 });
 test("Balanced rotates actual creation events rather than a static tier list",()=>{
  const plan=optimizeKnowledgeCycle(example(),{...settings,mode:"balanced"});
@@ -70,9 +74,9 @@ test("Balanced rotates actual creation events rather than a static tier list",()
  assert.equal(plan.mode,"balanced");
  assert.ok(plan.expByTier.filter(x=>x>0).length>=2);
  assert.ok(plan.steps.some(step=>step.kind==="cook"));
- assert.ok(plan.steps.some(step=>step.kind==="clear"));
+ assert.equal(plan.steps.some(step=>step.kind==="clear"),false);
  assert.ok(plan.steps.every(step=>step.board.length===120));
- assert.ok(plan.totalExpPerHour>0);
+ assert.equal(plan.totalExpPerHour,null);
 });
 test("Invalid saves and locked Knowledge creation cannot fabricate EXP/hr",()=>{
  assert.equal(optimizeKnowledgeCycle(null).available,false);
