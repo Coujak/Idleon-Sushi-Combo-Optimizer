@@ -136,7 +136,20 @@ test("Knowledge EXP planner exposes board replay and rate controls without a sec
  assert.match(worker,/optimizeKnowledgeCycle\(save,options\)/);
  assert.match(ui,/createReplayController\(/);
  assert.match(ui,/pinkMultiplier/);
+ assert.match(ui,/assets\/campfires\//);
+ for(const name of ["Charcoal Fireplace (Upgrade 17).png",
+  "Barium Firelighter (Upgrade 26).png",
+  "Copper Firelighter (Upgrade 33).png",
+  "Lithium Firelighter (Upgrade 40).png",
+  "Potassium Firelighter (Upgrade 42).png"])
+  assert.ok(ui.includes(name),"Missing original fireplace icon: "+name);
+ assert.match(css,/#knowledgePlanner \.lab-kp-fire-art\{/);
  assert.match(css,/#knowledgePlanner \.lab-kp-board\{/);
  assert.doesNotMatch(html,/id="knowledgePlanGoal"/);
  assert.doesNotMatch(css,/#knowledgePlanner \.lab-kp-board thead th\{\s*position:sticky/);
+});
+
+test("Knowledge replay browser module parses without invoking the DOM",async()=>{
+ const module=await import("../src/knowledge-leveling-ui.mjs");
+ assert.equal(typeof module.initializeKnowledgeLevelingUI,"function");
 });
