@@ -77,8 +77,13 @@ export function progressionGoalMetric(save,goal){
   const observation=grid?.observation;
   const gridObsPct=Number.isInteger(observation)&&observation>=0?
    (observationPcts[observation]??0):0;
-  const grid189Bonus=grid&&Number.isFinite(grid.level)?
+  const external=save.sushiCurrencyExternal??{};
+  const priorGrid189=grid&&Number.isFinite(grid.level)?
    Math.max(0,grid.level)*25*(1+gridObsPct/100):0;
+  // Full Research grid189 when inputs are available: includes Pirate Deckhand,
+  // Equinox clouds, King Doot, and the Rest-of-Game Sushi research bonus.
+  const grid189Bonus=Number.isFinite(external.researchGrid189)?
+   external.researchGrid189:priorGrid189;
   const artifact39=Number.isFinite(save.sailingArtifact39)?
    Math.max(0,save.sailingArtifact39):0;
   const knownExternal={
@@ -86,7 +91,11 @@ export function progressionGoalMetric(save,goal){
    BanJ:save.bundleBanJ===true?2:1,
    event45:save.eventShop45===true?2:1,
    sailing39:1+artifact39,
-   grid189:1+grid189Bonus/100
+   grid189:1+grid189Bonus/100,
+   arcade:1+Math.max(0,external.arcadeSushi??0)/100,
+   minehead:Math.max(1,Math.min(1.25,1+Math.max(0,external.mineheadSushi??0)/100)),
+   atom:1+Math.max(0,external.atomSushi??0)/100,
+   button:1+Math.max(0,external.buttonSushi??0)/100
   };
   const global=Math.pow(1.1,unique)*comboMulti*
    (1+surcharge/100)*(1+knowledge[0]/100)*
@@ -117,10 +126,10 @@ export function progressionGoalMetric(save,goal){
    const value=base*global;
    return make(goal,"Modeled Sushi Bucks generation / hour",
     value,format(value)+" Bucks/hr",
-    "Includes board tiers, plates, fireplaces, Combo, Knowledge and verified bundle, Event Shop, Sailing and Research multipliers when available. Arcade, Atom, Minehead, Button, other Research and companion bonuses may still be missing; enter a measured in-game rate to anchor the projection.");
+    "Includes board, green fires, Combo, Knowledge, bundle, Event Shop, Sailing, Arcade, Atom, Minehead, Button and Research Grid multipliers supported by your IT save. Exactness depends on available pet/Research data and the active-character context; measured in-game rates remain available for calibration.");
   }
   return make(goal,"Modeled passive Bucks multiplier",global,format(global,3)+"×",
-   "Board earnings could not be reconstructed. Shows known upgrade, discovery, Combo, Knowledge and verified extra modifiers; other account bonuses may still be missing.");
+   "Board earnings could not be reconstructed. Shows known upgrade, Combo, Knowledge and available Arcade/Atom/Research/Button modifiers; other account sources may still be missing.");
  }
  if(goal==="knowledge"){
   const bonus=upgradeBonuses(save),knowledge=bonuses(save);
