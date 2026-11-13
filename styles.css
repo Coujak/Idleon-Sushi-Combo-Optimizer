@@ -2068,8 +2068,12 @@ details summary{cursor:pointer;font-size:12px;font-weight:700;color:#9eb7c9}
 .lab-doubler-plan-identity strong{font-size:12px;color:#e9faf3;line-height:1.35;overflow-wrap:anywhere}
 .lab-doubler-plan-identity small{font-size:11px;color:#9ec3c7}
 .lab-doubler-plan-status{
+ display:inline-flex;align-items:center;gap:6px;
  font-size:10px;font-weight:800;color:#b2e8d5;padding:5px 7px;
  border:1px solid #467768;border-radius:6px;white-space:nowrap
+}
+.lab-doubler-plan-status .lab-doubler-plan-icon{
+ width:22px;height:auto;max-height:19px;object-fit:contain;flex:0 0 22px
 }
 .lab-doubler-plan-reason{margin:11px 0 0;color:#b9d2d0;font-size:12px;line-height:1.55}
 .lab-doubler-values{
