@@ -140,9 +140,10 @@ test("Knowledge tab actually renders imported tiers, ready filter and missing-sa
  assert.ok(firstInfo.children[1].textContent.includes("2× Research EXP"),
   "Permanent tier reward is visible beneath Sushi name");
  const firstBonus=displayRow.children[3];
- assert.equal(firstBonus.children[0].textContent,"Bucks earned",
-  "Knowledge bonus type is in the bonus column");
- assert.ok(firstBonus.children[1].textContent.length>0);
+ assert.match(firstBonus.children[0].textContent,/\+\d+(?:\.\d+)?% Sushi Bucks/,
+  "Knowledge Bonus shows value and effect together");
+ assert.match(firstBonus.children[1].textContent,/Next Lv 6: \+.*Sushi Bucks/,
+  "Next Knowledge level shows its upgraded effect");
  const perfectoIdentity=nodes.get("labKnowledgeRows").children[1].children[0].children[0];
  assert.equal(perfectoIdentity.children[0].children[1].className,
   "lab-knowledge-perfecto-emblem","Perfecto mark overlays the Sushi icon");
