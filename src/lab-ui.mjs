@@ -578,6 +578,7 @@ export function initializeSushiLab(getSave){
   if(u.affordability==="affordable")return ["Can buy now","lab-advisor-badge-success"];
   if(u.affordability==="unaffordable")return ["Save more Bucks","lab-advisor-badge-secondary"];
   if(u.affordability==="uncertain")return ["Price uncertain","lab-advisor-badge-uncertain"];
+  if(u.bucks===null)return ["Balance unavailable","lab-advisor-badge-muted"];
   return ["Cost unknown","lab-advisor-badge-muted"];
  }
  function advisorPrice(u){
@@ -586,7 +587,7 @@ export function initializeSushiLab(getSave){
  function advisorShortfall(u){
   if(u.atMax)return "Already maxed";
   if(u.affordability==="affordable")return "Enough Bucks to purchase";
-  if(u.missing===null)return "Price information incomplete";
+  if(u.missing===null)return u.bucks===null?"Sushi Bucks balance unavailable":"Price information incomplete";
   if(u.affordability==="uncertain")
    return "Up to "+numberDisplay(u.missing)+" more Bucks at this estimate";
   return numberDisplay(u.missing)+" more Bucks needed";
