@@ -94,5 +94,5 @@ test("Doubler Advisor HTML and controls contain only one selected focus",()=>{
  assert.match(ui,/doublerGoal="knowledge"/);
  assert.doesNotMatch(code,/value:"priorities"/);
  assert.doesNotMatch(code,/value:"all"/);
- assert.match(ui,/u\.status==="Level first"/);
+ assert.match(ui,/u\.status!=="Level first"/);
 });
