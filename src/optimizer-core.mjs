@@ -10,13 +10,17 @@ export function effectiveWindChainLimit(requested){
 export function simulateMerge(board,src,dst,cap,chainLimit,maximumTier=64){
   if(!Number.isInteger(src)||!Number.isInteger(dst)||src<0||dst<0||
     src>=board.length||dst>=board.length||src===dst||
-    board[src]<1||board[src]!==board[dst]||board[src]>=maximumTier)return null;
+    board[src]<1||board[src]!==board[dst]||
+    (board[src]>=maximumTier&&!(maximumTier===64&&board[src]===64)))return null;
   const next=board.slice(),before=next[dst];
-  next[src]=0;next[dst]=before+1;
+  // At the game's fixed T64 cap, two T64 Sushi become one T64.
+  // This is a legal merge, not a deletion or an upgrade to T65.
+  const capped=maximumTier===64&&before===64;
+  next[src]=0;next[dst]=capped?64:before+1;
   let score=next[dst];
   const events=[{at:dst,tier:next[dst],kind:"merge"}];
   const windLimit=effectiveWindChainLimit(chainLimit);
-  if(src<dst&&before<=cap&&windLimit>0){
+  if(!capped&&src<dst&&before<=cap&&windLimit>0){
     let previous=before;
     for(let q=dst+1;q<next.length&&events.length-1<windLimit;q++){
       const tier=next[q];
