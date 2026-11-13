@@ -2069,6 +2069,17 @@ details summary{cursor:pointer;font-size:12px;font-weight:700;color:#9eb7c9}
  cursor:pointer;text-align:left;padding:9px 10px;font:inherit;font-size:12px
 }
 .lab-doubler-menu-option:hover{background:#275153;color:#f1fff9}
+.lab-doubler-sort-field{
+ display:flex;flex-direction:column;gap:5px;flex:0 1 210px;
+ min-width:165px;color:#bad9d8;font-size:11px;font-weight:750
+}
+.lab-doubler-sort-field select{
+ min-height:34px;width:100%;max-width:100%;
+ border:1px solid #56757f;border-radius:8px;padding:6px 10px;
+ background:#183641;color:#e1f5ee;font:inherit;font-size:12px;
+ cursor:pointer
+}
+.lab-doubler-sort-field select:focus-visible{outline:2px solid #9decca;outline-offset:2px}
 .lab-doubler-hide-toggle{
  display:inline-flex;align-items:center;gap:8px;flex:0 0 auto;
  color:#c8dfdb;font-size:12px;font-weight:650;cursor:pointer;
@@ -2079,6 +2090,7 @@ details summary{cursor:pointer;font-size:12px;font-weight:700;color:#9eb7c9}
 }
 @media(max-width:540px){
  .lab-doubler-filters{padding:11px;gap:12px}
+ .lab-doubler-sort-field{flex:1 1 100%;min-width:0}
  .lab-doubler-hide-toggle{width:100%}
  .lab-doubler-category-menu{left:auto;right:0}
 }
@@ -2129,6 +2141,22 @@ details summary{cursor:pointer;font-size:12px;font-weight:700;color:#9eb7c9}
 .lab-doubler-plan-status .lab-doubler-plan-icon{
  width:22px;height:auto;max-height:19px;object-fit:contain;flex:0 0 22px
 }
+.lab-doubler-gain{
+ display:flex;align-items:baseline;justify-content:space-between;
+ flex-wrap:wrap;gap:4px 10px;margin-top:12px;padding:9px 10px;
+ background:#1a403c;border:1px solid #4b8e77;border-radius:8px
+}
+.lab-doubler-gain-label{font-size:10px;color:#a2d8bf;font-weight:750}
+.lab-doubler-gain strong{
+ color:#bbf3d8;font-size:12px;font-weight:750;line-height:1.4
+}
+.lab-doubler-gain.is-unranked{background:#20303a;border-color:#47606b}
+.lab-doubler-gain.is-unranked strong{color:#b8cad1}
+.lab-doubler-gain.is-unranked .lab-doubler-gain-label{color:#a8bbc7}
+.lab-doubler-plan-card.is-doubled .lab-doubler-gain{
+ background:#402d51;border-color:#8d69ac
+}
+.lab-doubler-plan-card.is-doubled .lab-doubler-gain strong{color:#f4d9ff}
 .lab-doubler-plan-reason{margin:11px 0 0;color:#b9d2d0;font-size:12px;line-height:1.55}
 .lab-doubler-values{
  display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:12px
