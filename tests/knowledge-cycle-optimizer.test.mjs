@@ -22,12 +22,10 @@ function example(){
 const settings={mode:"focused",targetTier:2,fuelGeneration:1e9,fuelCapacity:10000,
  secondsPerCook:2,secondsPerMerge:1.5};
 
-test("Knowledge EXP solver preserves highest tier and rejects fictional cleanup",()=>{
+test("Knowledge EXP replay contains only legal creations and legal merges, never deletion",()=>{
  const save=example();
  const plan=optimizeKnowledgeCycle(save,settings);
  assert.equal(plan.available,true,plan.reason);
- assert.equal(plan.repeatable,false);
- assert.ok(plan.stranded>0);
  assert.equal(plan.anchorTier,12);
  assert.deepEqual(plan.protectedIndices,[14]);
  assert.equal(plan.startCookTier>=1,true);
@@ -37,18 +35,42 @@ test("Knowledge EXP solver preserves highest tier and rejects fictional cleanup"
  assert.ok(plan.cooks>=2);
  assert.ok(plan.steps.length>plan.cooks);
  assert.equal(plan.steps[0].kind,"start");
- assert.equal(plan.steps.at(-1).kind,"blocked");
+ assert.ok(["repeat","blocked"].includes(plan.steps.at(-1).kind));
  assert.equal(plan.steps.at(-1).board[14],12);
- assert.ok(plan.steps.at(-1).board.some((tier,i)=>i!==14&&tier>0));
- assert.equal(plan.steps.some(step=>step.kind==="clear"),false);
+ assert.ok(!plan.steps.some(frame=>frame.kind==="clear"));
  assert.ok(plan.considered>0);
  assert.ok(plan.totalExpPerCycle>0);
  assert.ok(plan.cycleSeconds>0);
- assert.equal(plan.totalExpPerHour,null);
  assert.ok(Number.isFinite(plan.estimatedFuelGeneration));
  assert.ok(plan.fuelPerCycle>0);
- assert.ok(plan.perTier.every(t=>t.expPerHour===null));
  assert.ok(plan.steps.some(step=>step.kind==="merge"));
+ for(let i=1;i<plan.steps.length;i++){
+  const before=plan.steps[i-1].board,frame=plan.steps[i];
+  const a=before.filter(x=>x>0).length,b=frame.board.filter(x=>x>0).length;
+  if(frame.kind==="cook"){
+   assert.equal(b,a+1,"Only cooking may add a Sushi");
+   assert.equal(before[frame.at],0);
+   assert.ok(frame.board[frame.at]>0);
+  }else if(frame.kind==="merge"){
+   assert.equal(b,a-1,"Merging consumes exactly one occupied position");
+   const legal=simulateMerge(before,frame.src,frame.dst,plan.windCap,
+    plan.windCap>0?25:0,64);
+   assert.ok(legal,"Every replay action must pass the Combo Meter merge engine");
+   assert.deepEqual(frame.board,legal.board);
+  }else assert.deepEqual(frame.board,before,"No hidden clearing outside merges");
+  assert.equal(frame.board[14],12,"Highest original Sushi must be preserved");
+ }
+ if(plan.repeatable){
+  assert.equal(plan.stranded,0);
+  assert.equal(plan.steps.at(-1).kind,"repeat");
+  assert.ok(plan.steps.at(-1).board.every((tier,i)=>i===14?tier===12:tier===0));
+  assert.ok(plan.totalExpPerHour>0);
+ }else{
+  assert.ok(plan.stranded>0);
+  assert.equal(plan.steps.at(-1).kind,"blocked");
+  assert.equal(plan.totalExpPerHour,null);
+  assert.ok(plan.perTier.every(t=>t.expPerHour===null));
+ }
  const total=plan.steps.reduce((n,step)=>n+step.exp,0);
  assert.ok(Math.abs(total-plan.totalExpPerCycle)<Math.max(1e-8,total*1e-8));
 });
@@ -64,9 +86,11 @@ test("Lithium's 2x effect is applied automatically and pink setups are evaluated
  assert.equal(withoutLithium.available,true,withoutLithium.reason);
  assert.equal(withoutLithium.pinkMultiplier,null);
  assert.ok(!withoutLithium.proposedFires.includes(3));
- assert.equal(withLithium.targetExpPerHour,null);
- assert.equal(withoutLithium.targetExpPerHour,null);
  assert.ok(withLithium.totalExpPerCycle>0);
+ assert.equal(withLithium.pinkMultiplier,2);
+ assert.equal(withoutLithium.pinkMultiplier,null);
+ if(withLithium.repeatable)assert.ok(withLithium.targetExpPerHour>=0);
+ else assert.equal(withLithium.targetExpPerHour,null);
 });
 test("Balanced rotates actual creation events rather than a static tier list",()=>{
  const plan=optimizeKnowledgeCycle(example(),{...settings,mode:"balanced"});
@@ -76,7 +100,8 @@ test("Balanced rotates actual creation events rather than a static tier list",()
  assert.ok(plan.steps.some(step=>step.kind==="cook"));
  assert.equal(plan.steps.some(step=>step.kind==="clear"),false);
  assert.ok(plan.steps.every(step=>step.board.length===120));
- assert.equal(plan.totalExpPerHour,null);
+ if(plan.repeatable)assert.ok(plan.totalExpPerHour>0);
+ else assert.equal(plan.totalExpPerHour,null);
 });
 test("Invalid saves and locked Knowledge creation cannot fabricate EXP/hr",()=>{
  assert.equal(optimizeKnowledgeCycle(null).available,false);
