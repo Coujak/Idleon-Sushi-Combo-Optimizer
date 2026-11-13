@@ -81,7 +81,7 @@ test("Goal-specific models don't pretend partial Bucks, Knowledge and Perfecto e
  assert.match(knowledge.note,/Partial global/);
  const perfecto=progressionGoalMetric(save,"perfecto");
  assert.match(perfecto.label,/Pepper/);
- assert.match(perfecto.note,/not the probability/);
+ assert.match(perfecto.note,/not the (?:chance|probability)/);
  const discount=progressionGoalMetric(save,"discount");
  assert.match(discount.label,/discount/);
 });
