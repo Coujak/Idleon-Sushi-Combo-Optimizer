@@ -113,10 +113,13 @@ export function initializePerfectoUI(getSave){
  const cookTierInput=$("perfectoCookTier");
  const summary=$("perfectoTargetSummary");
  function setPlannerTab(target){
-  plannerTab=target==="perfecto"?"perfecto":"combo";
+  const tabs=["combo","perfecto","knowledge"];
+  plannerTab=tabs.includes(target)?target:"combo";
   $("solver").classList.toggle("hidden",plannerTab!=="combo");
   $("perfectoPlanner").classList.toggle("hidden",plannerTab!=="perfecto");
   $("perfectoPlanner").setAttribute("aria-hidden",String(plannerTab!=="perfecto"));
+  $("knowledgePlanner").classList.toggle("hidden",plannerTab!=="knowledge");
+  $("knowledgePlanner").setAttribute("aria-hidden",String(plannerTab!=="knowledge"));
   for(const choice of document.querySelectorAll("[data-planner-target]")){
    const selected=choice.dataset.plannerTarget===plannerTab;
    choice.setAttribute("aria-selected",String(selected));
@@ -129,9 +132,11 @@ export function initializePerfectoUI(getSave){
   button.addEventListener("keydown",event=>{
    if(event.key!=="ArrowLeft"&&event.key!=="ArrowRight")return;
    event.preventDefault();
-   const target=plannerTab==="combo"?"perfecto":"combo";
-   document.querySelector('[data-planner-target="'+target+'"]').focus();
-   setPlannerTab(target);
+   const tabs=["combo","perfecto","knowledge"];
+   const index=tabs.indexOf(plannerTab);
+   const next=tabs[(index+(event.key==="ArrowRight"?1:tabs.length-1))%tabs.length];
+   document.querySelector('[data-planner-target="'+next+'"]').focus();
+   setPlannerTab(next);
   });
  }
  targetSelect.addEventListener("change",()=>{tierChoice=targetSelect.value;render();});
