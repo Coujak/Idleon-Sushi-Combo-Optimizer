@@ -92,7 +92,8 @@ export function initializeKnowledgeLevelingUI(getSave){
    targetTier:state.targetTier,
    fuelGeneration:quantityInput("knowledgePlanFuelRate"),
    fuelCapacity:quantityInput("knowledgePlanFuelCap"),
-   expPerCreation:quantityInput("knowledgePlanXpPerCreation")
+   expPerCreation:quantityInput("knowledgePlanXpPerCreation"),
+   rounds:Number($("knowledgePlanRounds").value)
   };
   for(const {key,field} of showNames)options[field]=Number($(key).value);
   return options;
@@ -108,20 +109,20 @@ export function initializeKnowledgeLevelingUI(getSave){
   summary.replaceChildren();summary.classList.remove("hidden");
   const heading=elem("div","lab-kp-headline");
   heading.append(elem("h3","",p.mode==="focused"?
-   "Focused EXP rotation · T"+p.targetTier:"Balanced EXP rotation"),
-   elem("p","","Starting with T"+p.startCookTier+" ("+p.startingPattern+") · "+
-    p.cooks+" cooked Sushi · "+p.merges+" manual merges · "+
-    p.windEvents+" Wind upgrades · "+p.cleanup+" verified cleanup merges · "+p.stranded+" unmerged Sushi"));
+   "Focused target-building rotation · T"+p.targetTier:"Balanced · toward one T64"),
+   elem("p","",p.roundsCompleted+" refill waves · started from imported board · "+
+    p.cooks+" cooks · "+p.merges+" merges · "+p.moves+" Sushi moves · "+
+    p.windEvents+" Wind upgrades"));
   summary.append(heading);
   const grid=elem("div","lab-kp-stats");
   for(const [label,value] of [
-   [p.repeatable?"EXP / cycle":"EXP in this plan",compact(p.totalExpPerCycle)],
-   ["Active EXP / hr",rate(p.totalExpPerHour)],
-   [p.repeatable?"Cycle duration":"One-pass time",formatHours(p.cycleSeconds/3600)],
-   [p.repeatable?"Fuel / cycle":"Fuel for this plan",compact(p.fuelPerCycle)],
+   ["EXP / preview",compact(p.totalExpPerCycle)],
+   ["Projected EXP / hr",rate(p.previewExpPerHour)],
+   ["Preview duration",formatHours(p.cycleSeconds/3600)],
+   ["Fuel / preview",compact(p.fuelPerCycle)],
    ["Modeled Fuel / hr",compact(p.estimatedFuelGeneration)],
    ["Starting tier","T"+p.startCookTier],
-   ["Fireplace setup",p.fireChoice],
+   ["Refill waves",p.roundsCompleted+" / "+p.roundsRequested],
    ["Candidates tested",compact(p.considered)]
   ])grid.append(metric(label,value));
   summary.append(grid);
@@ -130,8 +131,9 @@ export function initializeKnowledgeLevelingUI(getSave){
    if(focus){
     const box=elem("div","lab-kp-focus-summary");
     box.append(elem("strong","","T"+focus.tier+" · "+focus.name),
-     elem("span","","Active "+rate(focus.expPerHour)+" EXP/hr · "+
-      "Next level: "+formatHours(focus.etaHours)));
+     elem("span","","Projected "+rate(focus.expPerHour)+" EXP/hr · "+
+      "Estimated next level: "+formatHours(focus.etaHours)+
+      " · "+p.focusCopies+" target copies on board"));
     summary.append(box);
    }
   }
@@ -143,8 +145,14 @@ export function initializeKnowledgeLevelingUI(getSave){
     "lab-kp-lithium");
   }
   addNote(summary,p.note);
-  if(!p.repeatable)addNote(summary,
-   "This layout still has "+p.stranded+" Sushi that cannot be cleared with the planned legal merges. It is a one-pass preparation, not a repeatable EXP rotation; EXP/hr and leveling ETA are withheld until the board genuinely resets.",
+  addNote(summary,"Final board: "+p.stranded+" Sushi · highest T"+p.highestTier+
+   (p.mode==="focused"?" · T"+p.targetTier+" copies: "+p.focusCopies:"")+
+   ". "+p.haltReason,"lab-kp-note");
+  if(p.rotationTerminal)addNote(summary,
+   "Balanced objective reached: one T64 remains and the board is ready to refill.",
+   "lab-kp-lithium");
+  else addNote(summary,
+   "This is a continuing rotation preview. Leftover Sushi stay on the board for the next refill. EXP/hr is a projection over this finite window, not a verified long-term rate.",
    "lab-kp-warning");
  }
  function showProgress(p){
@@ -171,8 +179,9 @@ export function initializeKnowledgeLevelingUI(getSave){
   if(!result)return;
   const frame=result.steps[index];if(!frame)return;
   const slots=result.layout.slots;
-  const protectedSet=new Set(result.protectedIndices);
   const changed=new Set((frame.events??[]).map(e=>e.at));
+  if(frame.src!==undefined)changed.add(frame.src);
+  if(frame.dst!==undefined)changed.add(frame.dst);
   board.replaceChildren();
   board.setAttribute("aria-label","Sushi Knowledge board, step "+index+
    " of "+(result.steps.length-1));
@@ -182,7 +191,7 @@ export function initializeKnowledgeLevelingUI(getSave){
    box.title="Row "+(Math.floor(i/15)+1)+", column "+(i%15+1)+
     " · "+(slot<0?"Locked":tier?"T"+tier:"Empty");
    if(slot<0)box.classList.add("locked");
-   if(protectedSet.has(i)&&tier)box.classList.add("is-protected");
+   if(tier===64)box.classList.add("is-protected");
    if(changed.has(i))box.classList.add("is-affected");
    if(tier>0){
     const img=elem("img","lab-kp-tile-icon");
@@ -215,7 +224,7 @@ export function initializeKnowledgeLevelingUI(getSave){
   $("knowledgePlanStepCount").textContent=index+" / "+(result.steps.length-1);
   $("knowledgePlanStepXp").textContent="EXP in step: "+compact(frame.exp);
   const earned=result.steps.slice(0,index+1).reduce((s,x)=>s+x.exp,0);
-  $("knowledgePlanFrameXp").textContent="Cycle EXP so far: "+compact(earned);
+  $("knowledgePlanFrameXp").textContent="Preview EXP so far: "+compact(earned);
   $("knowledgePlanPrev").disabled=index===0;
   $("knowledgePlanNext").disabled=index===result.steps.length-1;
  }
@@ -230,7 +239,7 @@ export function initializeKnowledgeLevelingUI(getSave){
    },
    getDelay:()=>Number(speed.value)
   });
-  const initial=Math.min(p.cooks,p.steps.length-1);
+  const initial=Math.min(p.preparedStep??0,p.steps.length-1);
   if(initial>0)controller.goTo(initial);
   else renderFrame(0);
  }
@@ -239,10 +248,12 @@ export function initializeKnowledgeLevelingUI(getSave){
   const bullets=[
    "The optimizer uses the Combo Meter legal merge engine, including up to 25 East Wind upgrades when unlocked. Each verified creation event awards EXP to the created Sushi tier.",
    "Lithium Firelighter is 2× Knowledge EXP for Sushi above pink fireplaces; the solver also models reduced Fuel regeneration when orange fireplaces are changed to pink.",
-   "The starting board is a preparation goal, not the imported current board. Cook or merge each ingredient into position; keep the protected highest-tier Sushi.",
-   "Every cleanup step is a real merge. T64 + T64 becomes one T64; any unmergeable leftovers block repeating the cycle. Step 0 and Prepared layout help verify the exact board.",
-   "EXP/hour is an estimate from active creation events divided by the longer of interaction time or refill time. Milktoast and Cold passive EXP and uncertain bonuses are excluded.",
-   "Balanced optimizes distributed Knowledge EXP progress; Focused maximizes EXP/hour for one selected tier. Candidate search does not prove a global maximum."
+   "The first frame is the imported Sushi board. Survivors are carried forward between refills.",
+   "Balanced merges and parks survivors near the top, refills empty cells, and builds toward one T64. T64 + T64 yields one T64.",
+   "Focused accumulates target-tier copies while creating more. When the board fills, matching targets may merge to free space.",
+   "Moving Sushi into a vacant slot is a separate action. Movement Mittens toggles dragging to plates; disable it for Sushi repositioning.",
+   "Projected EXP/hr divides simulated creation EXP by estimated time and fuel regeneration. Milktoast and Cold passive EXP are not included.",
+   "The optimizer compares bounded candidate patterns; it does not prove a global optimum or a sustained EXP/hr rate."
   ];
   for(const note of bullets)tips.append(elem("li","",note));
  }
@@ -250,7 +261,7 @@ export function initializeKnowledgeLevelingUI(getSave){
   release();updateTargets();
   build.disabled=!getSave();
   status.textContent=getSave()?
-   "Choose your strategy and build a cycle. Fuel and timing are estimated unless calibrated.":
+   "Choose Balanced or Focused and simulate continuous refills. Timing and Fuel are estimated unless calibrated.":
    "Import a Sushi Station save in Overview before optimizing.";
   renderNotes();
  };
@@ -265,7 +276,7 @@ export function initializeKnowledgeLevelingUI(getSave){
   const save=getSave();
   if(!save)return;
   build.disabled=true;cancelButton.classList.remove("hidden");
-  status.textContent="Evaluating board layouts, merge sequences and Lithium/Fuel trade-offs…";
+  status.textContent="Simulating multi-refill Sushi rotations, East Wind merges and Lithium/Fuel trade-offs…";
   try{
    const search=new Worker(new URL("./knowledge-cycle-worker.mjs?v=1.0.1",
     import.meta.url),{type:"module"});
@@ -282,8 +293,8 @@ export function initializeKnowledgeLevelingUI(getSave){
     if(!plan.available){status.textContent=plan.reason;return;}
     renderSummary(plan);showProgress(plan);createReplay(plan);
     status.textContent="Compared "+compact(plan.considered)+
-     " candidates · "+compact(plan.totalExpPerCycle)+
-     " active EXP per cycle · starting T"+plan.startCookTier;
+     " candidates · "+plan.roundsCompleted+" refill waves · "+
+     compact(plan.totalExpPerCycle)+" active EXP · starting T"+plan.startCookTier;
    };
    search.onerror=event=>{
     if(worker!==search)return;
@@ -302,7 +313,12 @@ export function initializeKnowledgeLevelingUI(getSave){
  });
  $("knowledgePlanReset").addEventListener("click",()=>controller?.goTo(0));
  $("knowledgePlanPrepared").addEventListener("click",()=>{
-  if(result)controller?.goTo(Math.min(result.cooks,result.steps.length-1));
+  if(result)controller?.goTo(Math.min(result.preparedStep??0,result.steps.length-1));
+ });
+ $("knowledgePlanNextRefill").addEventListener("click",()=>{
+  if(!result||!controller)return;
+  const next=result.steps.findIndex((frame,i)=>i>controller.step&&frame.kind==="refill");
+  if(next>=0)controller.goTo(next);
  });
  $("knowledgePlanPrev").addEventListener("click",()=>controller?.goTo(
   Math.max(0,(controller?.step??0)-1)));
