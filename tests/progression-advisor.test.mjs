@@ -129,3 +129,18 @@ test("New advisor navigation and rendering are present without changing the upgr
  assert.ok(PROGRESSION_SORT_OPTIONS.some(x=>x.value==="value"));
  assert.ok(PROGRESSION_FILTER_OPTIONS.some(x=>x.value==="affordable"));
 });
+
+test("Missing Sushi Bucks is unknown, not a fabricated zero balance",()=>{
+ const missing=sampleSave();
+ missing.sushi[4].splice(3,1);
+ const advice=getProgressionAdvice(missing,"fuel");
+ assert.equal(advice.bucks,null);
+ assert.equal(advice.affordableCount,0);
+ assert.ok(advice.best);
+ assert.equal(advice.best.affordability,"unknown");
+ assert.equal(advice.best.missing,null);
+ assert.ok(advice.rows.every(u=>u.affordability==="unknown"));
+ const zero=getProgressionAdvice(sampleSave(0),"fuel");
+ assert.equal(zero.bucks,0);
+ assert.ok(zero.rows.some(u=>u.affordability!=="unknown"));
+});
