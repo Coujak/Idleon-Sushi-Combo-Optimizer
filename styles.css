@@ -3413,22 +3413,14 @@ details summary{cursor:pointer;font-size:12px;font-weight:700;color:#9eb7c9}
 #lab-knowledge .lab-knowledge-perfecto-emblem{
  position:absolute;
  z-index:2;
- top:-6px;
- right:-7px;
- display:grid;
- place-items:center;
- width:20px;
- height:20px;
- padding:0;
- border:1px solid #ead9ad;
- border-radius:50%;
- background:linear-gradient(145deg,#f6d78a 0%,#dbb76e 60%,#b98bd1 100%);
- color:#433459;
- font-size:14px;
- font-weight:900;
- line-height:1;
- text-shadow:0 1px 1px #fff9;
- box-shadow:0 2px 5px #0008,0 0 0 2px #172839;
+ top:-5px;
+ right:-6px;
+ display:block;
+ width:22px;
+ height:22px;
+ object-fit:contain;
+ image-rendering:pixelated;
+ filter:drop-shadow(0 1px 2px #000a);
  pointer-events:none;
 }
 #lab-knowledge .lab-knowledge-tier-info{
