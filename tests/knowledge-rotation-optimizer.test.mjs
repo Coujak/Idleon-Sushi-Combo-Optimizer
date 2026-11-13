@@ -1,0 +1,62 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import {optimizeKnowledgeRotation} from "../src/knowledge-rotation-optimizer.mjs";
+import {simulateMerge,simulateRelocation} from "../src/optimizer-core.mjs";
+function account(){
+ const slots=Array(120).fill(-1),tiles=Array(120).fill(-1),
+  fires=Array(15).fill(0);
+ for(let i=0;i<12;i++)slots[i]=i===2?3:0;
+ tiles[10]=10;tiles[11]=11;
+ const upgrades=Array(46).fill(0);
+ for(const [id,value] of [[6,5],[13,1],[26,1],[29,1],[37,2]])upgrades[id]=value;
+ const flags=Array(64).fill(-1),xp=Array(64).fill(0),levels=Array(64).fill(5);
+ for(let i=0;i<12;i++)flags[i]=0;
+ return {slots,tiles,fires,sushi:[[],[],upgrades,[],[100,0,0,0],flags,xp,levels]};
+}
+const options={mode:"balanced",targetTier:2,rounds:2,
+ fuelGeneration:1e9,fuelCapacity:10000,secondsPerCook:2,secondsPerMerge:1.5};
+test("Integrated Knowledge optimizer uses imported Sushi and never resets the board",()=>{
+ const save=account(),p=optimizeKnowledgeRotation(save,options);
+ assert.equal(p.available,true,p.reason);
+ assert.deepEqual(p.startingBoard.slice(0,12),
+  save.tiles.slice(0,12).map(n=>n<0?0:n+1));
+ assert.equal(p.layout.slots.length,120);
+ assert.equal(p.proposedFires.length,15);
+ assert.ok(p.roundsCompleted>=1&&p.roundsCompleted<=2);
+ assert.ok(p.cooks>0&&p.merges>0);
+ assert.ok(p.previewExpPerHour>0);
+ assert.ok(Number.isFinite(p.estimatedFuelGeneration));
+ assert.equal(p.pinkMultiplier,2);
+ assert.ok(p.steps.some(x=>x.kind==="refill"));
+ assert.ok(p.steps.some(x=>x.kind==="cook"));
+ assert.ok(p.steps.every(x=>x.kind!=="clear"));
+ assert.ok(p.perTier.some(x=>x.tier===2));
+ for(let i=1;i<p.steps.length;i++){
+  const previous=p.steps[i-1].board,frame=p.steps[i];
+  if(frame.kind==="merge"){
+   assert.deepEqual(simulateMerge(previous,frame.src,frame.dst,p.windCap,
+    p.windCap?25:0,64)?.board,frame.board);
+  }else if(frame.kind==="move"){
+   assert.deepEqual(simulateRelocation(previous,frame.src,frame.dst,p.layout.slots,64)?.board,frame.board);
+  }else if(frame.kind==="cook"){
+   assert.equal(previous[frame.at],0);
+   assert.equal(frame.board[frame.at]>0,true);
+  }else assert.deepEqual(frame.board,previous);
+ }
+});
+test("Focused Knowledge search picks a target and projects its EXP over legal refills",()=>{
+ const save=account(),p=optimizeKnowledgeRotation(save,{...options,mode:"focused",targetTier:2});
+ assert.equal(p.available,true,p.reason);
+ assert.equal(p.mode,"focused");
+ assert.equal(p.targetTier,2);
+ assert.equal(p.previewExpPerHour>0,true);
+ assert.equal(p.targetPreviewExpPerHour>=0,true);
+ assert.equal(p.roundsRequested,2);
+ assert.equal(p.perTier.find(x=>x.tier===2).expPerCycle,p.expByTier[2]);
+});
+test("Integrated optimizer refuses empty imported accounts",()=>{
+ assert.equal(optimizeKnowledgeRotation(null).available,false);
+ assert.equal(optimizeKnowledgeRotation({sushi:[],slots:[],tiles:[]}).available,false);
+ const locked=account();locked.sushi[2][13]=0;
+ assert.match(optimizeKnowledgeRotation(locked,options).reason,/Seared Knowledge/);
+});
