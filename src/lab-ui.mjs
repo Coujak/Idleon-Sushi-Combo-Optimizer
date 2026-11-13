@@ -1008,19 +1008,26 @@ export function initializeSushiLab(getSave){
    const tr=el("tr",k.readyToLevel?"lab-knowledge-row-ready":"");
    const tier=el("td","lab-knowledge-tier");
    const identity=el("div","lab-knowledge-identity");
-   identity.append(sushiArtwork(k.tier));
+   const artwork=el("span","lab-knowledge-art-wrap");
+   artwork.append(sushiArtwork(k.tier));
+   // A small Perfecto mark on the icon replaces the former status column.
+   if(k.perfecto){
+    const mark=el("span","lab-knowledge-perfecto-emblem","✦");
+    mark.title="Perfecto obtained · 2× Knowledge bonus";
+    mark.setAttribute("aria-label","Perfecto obtained");
+    artwork.append(mark);
+   }
+   identity.append(artwork);
    const info=el("div","lab-knowledge-tier-info");
-   info.append(el("strong","","T"+k.tier+" · "+k.name),
-    el("span","lab-row-subtitle",k.categoryName));
+   const name=el("strong","","T"+k.tier+" · "+k.name);
+   // Keep the permanent discovery reward discoverable without dedicating
+   // another full column to long descriptions.
+   name.title="Permanent tier reward: "+(k.tierReward??"Unavailable");
+   const effect=el("span","lab-row-subtitle",k.categoryName);
+   effect.title="Knowledge effect: "+k.categoryName;
+   info.append(name,effect);
    identity.append(info);
    tier.append(identity);
-
-   // A tier's account-wide discovery reward is NOT its level-scaled
-   // Knowledge effect. Show the reference reward even while undiscovered.
-   const reward=el("td","lab-knowledge-tier-reward");
-   reward.append(el("span","lab-knowledge-reward-copy",k.tierReward??"Reward unavailable"));
-   if(hasSave)reward.append(el("small","lab-knowledge-reward-state",
-    k.discovered?"Discovered":"Not yet discovered"));
 
    const levelCell=el("td","lab-knowledge-level");
    levelCell.append(el("strong","",!hasSave?"—":
@@ -1048,27 +1055,22 @@ export function initializeSushiLab(getSave){
    const bonus=el("td","lab-knowledge-bonus");
    if(hasSave&&k.discovered&&Number.isFinite(k.bonus)&&
       Number.isFinite(k.nextLevelGain)){
-    bonus.append(el("span","lab-knowledge-bonus-caption","CURRENT · LV "+fmt(k.level)),
-     el("strong","",describeKnowledgeBonus(k.category,k.bonus)),
-     el("small","","NEXT LV "+fmt(k.level+1)+": "+
-      describeKnowledgeBonus(k.category,k.bonus+k.nextLevelGain)));
-    if(k.perfecto)bonus.append(el("small","lab-knowledge-perfecto-note",
-     "Includes 2× Perfecto effect"));
+    const current=el("strong","",numberDisplay(k.bonus));
+    current.title=describeKnowledgeBonus(k.category,k.bonus);
+    const next=el("small","","Next Lv "+fmt(k.level+1)+": "+
+     numberDisplay(k.bonus+k.nextLevelGain));
+    next.title=describeKnowledgeBonus(k.category,k.bonus+k.nextLevelGain);
+    bonus.append(current,next);
    }else if(k.mapped&&Number.isFinite(k.baseLevelBonus)){
-    bonus.append(el("span","lab-knowledge-bonus-caption","BASE LV 1 · REFERENCE"),
-     el("strong","lab-knowledge-bonus-preview",
-      describeKnowledgeBonus(k.category,k.baseLevelBonus)),
-     el("small","",!hasSave?"Import save for your current level":
-      !k.discovered?"Unlock this tier to earn Knowledge EXP":
-      "Current Knowledge level unavailable"));
+    const preview=el("strong","lab-knowledge-bonus-preview",
+     numberDisplay(k.baseLevelBonus));
+    preview.title=describeKnowledgeBonus(k.category,k.baseLevelBonus);
+    bonus.append(preview,el("small","",
+     "Base Lv 1 · "+(!hasSave?"import save for current level":
+      !k.discovered?"undiscovered":"current level unavailable")));
    }else bonus.append(el("span","lab-knowledge-unavailable","Bonus unavailable"));
 
-   const status=el("td","lab-knowledge-status");
-   if(!hasSave)status.append(el("span","lab-knowledge-status-tag is-muted","—"));
-   else if(!k.discovered)status.append(el("span","lab-knowledge-status-tag is-muted","Undiscovered"));
-   else if(k.perfecto)status.append(el("span","lab-knowledge-status-tag is-perfecto","Perfecto"));
-   else status.append(el("span","lab-knowledge-status-tag","Normal"));
-   tr.append(tier,reward,levelCell,xpCell,bonus,status);
+   tr.append(tier,levelCell,xpCell,bonus);
    body.append(tr);
   }
  }
