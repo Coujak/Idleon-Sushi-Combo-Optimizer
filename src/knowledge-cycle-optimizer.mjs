@@ -271,8 +271,27 @@ export function optimizeKnowledgeCycle(save,rawOptions={}){
  if(!economy||!(economy.capacity>0)||!(economy.generationPerHour>0))
   return fail("Fuel capacity and generation are unavailable. Enter valid in-game values.");
  const metrics=getSushiDashboardMetrics(save);
- const ctx=expContext(save,options,rows,metrics,layout.fires);
- if(!ctx.unlocked)return fail("Unlock Seared Knowledge to gain EXP from cooking, merging and Wind creations.");
+ const baseCtx=expContext(save,options,rows,metrics,layout.fires);
+ if(!baseCtx.unlocked)return fail("Unlock Seared Knowledge to gain EXP from cooking, merging and Wind creations.");
+ // Compare real fireplace choices: pink gives 2× EXP on the column, while
+ // replacing an orange fuel fireplace can lower the sustainable refill rate.
+ const fireChoices=[{name:"Current fireplaces",fires:layout.fires}];
+ if(baseCtx.lithiumUnlocked&&layout.fires.some(x=>x>=0&&x!==3)){
+  const variant=which=>layout.fires.map((fire,i)=>fire>=0&&which(i,fire)?3:fire);
+  fireChoices.push({name:"All Lithium pink",fires:variant(()=>true)});
+  fireChoices.push({name:"Lithium pink on left columns",fires:variant(i=>i%2===0)});
+  fireChoices.push({name:"Lithium pink on right columns",fires:variant(i=>i%2===1)});
+ }
+ const uniqueFires=fireChoices.filter((choice,i,all)=>all.findIndex(
+  item=>item.fires.every((fire,j)=>fire===choice.fires[j]))===i);
+ const rateFor=(board,fires)=>{
+  const estimate=estimateSushiFuelEconomy({...save,
+   tiles:board.map(t=>t>0?t-1:-1),fires},{
+   capacityOverride:options.fuelCapacity,
+   generationOverride:options.fuelGeneration
+  });
+  return estimate?.generationPerHour??0;
+ };
  const anchorTier=Math.max(...layout.tiles);
  const protectedIndices=layout.tiles.flatMap((v,i)=>v===anchorTier&&v>0?[i]:[]);
  const repeatable=anchorTier>0;
@@ -281,37 +300,56 @@ export function optimizeKnowledgeCycle(save,rawOptions={}){
   Math.max(0,Math.min(58,highestDiscovered-6)):0;
  // Level mechanics of Heat of East Wind depend on the highest discovered tier.
  const chain=windCap>0?25:0;
- const bases=candidateBases(economy,ctx.guaranteedCookBonus,{...options,targetTier});
+ const bases=candidateBases(economy,baseCtx.guaranteedCookBonus,{...options,targetTier});
  if(!bases.length)return fail("No directly cookable Sushi tier fits the modeled fuel capacity.");
  let best=null,considered=0;
  for(const requestedTier of bases){
-  for(const pattern of ctx.guaranteedCookBonus>0?["uniform"]:["uniform","wind","bands","spread"]){
-   const prepared=fillPattern(layout,protectedIndices,requestedTier,ctx.guaranteedCookBonus,pattern);
+  for(const pattern of baseCtx.guaranteedCookBonus>0?["uniform"]:["uniform","wind","bands","spread"]){
+   const prepared=fillPattern(layout,protectedIndices,requestedTier,
+    baseCtx.guaranteedCookBonus,pattern);
    if(prepared.cooks.length<2)continue;
    if(anchorTier>0&&prepared.cooks.some(c=>c.tier>=anchorTier))continue;
    const fuel=prepared.cooks.reduce((sum,c)=>sum+c.fuel,0);
    if(!Number.isFinite(fuel)||fuel<=0)continue;
-   const cookGains=Array(65).fill(0);
-   for(const c of prepared.cooks) cookGains[c.tier]+=ctx.expAt(c.tier,c.at);
-   for(let policy=0;policy<5;policy++){
-    const sequence=greedyMerge(prepared.board,layout.slots,anchorTier,windCap,chain,
-     ctx.expAt,options.mode,targetTier,policy,cookGains);
-    const leftover=sequence.finalBoard.filter((v,i)=>v>0&&!protectedIndices.includes(i)).length;
-    const activeSeconds=prepared.cooks.length*options.secondsPerCook+
-     sequence.moves.length*options.secondsPerMerge+leftover*options.secondsPerClear;
-    const fuelWaitSeconds=fuel*3600/economy.generationPerHour;
-    const cycleSeconds=Math.max(activeSeconds,fuelWaitSeconds);
-    const score=scoreRotation(sequence.gains,cycleSeconds,options.mode,targetTier,eligible);
-    considered++;
-    if(!best||score>best.score){
-     best={...prepared,...sequence,startBoard:prepared.board,score,policy,windCap,chain,anchorTier,
-      protectedIndices,repeatable,layout,ctx,eligible,targetTier,economy,
-      fuel,activeSeconds,fuelWaitSeconds,cycleSeconds,leftover};
+   for(const choice of uniqueFires){
+    const ctx=expContext(save,options,rows,metrics,choice.fires);
+    const cookGains=Array(65).fill(0);
+    for(const c of prepared.cooks)cookGains[c.tier]+=ctx.expAt(c.tier,c.at);
+    const protectedBoard=Array(CELLS).fill(0);
+    for(const i of protectedIndices)protectedBoard[i]=layout.tiles[i];
+    const fuelRateWhilePreparing=rateFor(protectedBoard,choice.fires);
+    const fuelRateWithFullBoard=rateFor(prepared.board,choice.fires);
+    for(let policy=0;policy<5;policy++){
+     const sequence=greedyMerge(prepared.board,layout.slots,anchorTier,windCap,chain,
+      ctx.expAt,options.mode,targetTier,policy,cookGains);
+     const leftover=sequence.finalBoard.filter((v,i)=>
+      v>0&&!protectedIndices.includes(i)).length;
+     const tCook=prepared.cooks.length*options.secondsPerCook;
+     const tMerge=sequence.moves.length*options.secondsPerMerge;
+     const tClear=leftover*options.secondsPerClear;
+     const activeSeconds=tCook+tMerge+tClear;
+     const fuelRateBeforeClearing=rateFor(sequence.finalBoard,choice.fires);
+     // Weighted modeled generation while refilling, merging, and clearing.
+     const fuelRate=options.fuelGeneration??(
+      (fuelRateWhilePreparing*tCook+fuelRateWithFullBoard*tMerge+
+       fuelRateBeforeClearing*tClear)/Math.max(1,activeSeconds));
+     if(!(fuelRate>0))continue;
+     const fuelWaitSeconds=fuel*3600/fuelRate;
+     const cycleSeconds=Math.max(activeSeconds,fuelWaitSeconds);
+     const score=scoreRotation(sequence.gains,cycleSeconds,options.mode,targetTier,eligible);
+     considered++;
+     if(!best||score>best.score){
+      best={...prepared,...sequence,startBoard:prepared.board,score,policy,windCap,chain,anchorTier,
+       protectedIndices,repeatable,layout,ctx,eligible,targetTier,economy,
+       fireChoice:choice.name,fires:choice.fires,fuelRate,
+       fuel,activeSeconds,fuelWaitSeconds,cycleSeconds,leftover};
+     }
     }
    }
   }
  }
  if(!best)return fail("No repeatable board could be prepared within the available fuel, space and highest-tier restrictions.");
+ const ctx=best.ctx;
  const frames=buildFrames(best,layout.slots,protectedIndices,ctx.expAt);
  const actual=frames.reduce((out,f)=>{addGains(out,f.gains);return out;},Array(65).fill(0));
  if(!actual.every((v,i)=>Math.abs(v-best.gains[i])<=1e-8*Math.max(1,v)))
@@ -333,12 +371,12 @@ export function optimizeKnowledgeCycle(save,rawOptions={}){
   startingPattern:best.pattern,guaranteedCookBonus:ctx.guaranteedCookBonus,
   cookRemainder:ctx.cookRemainder,bonusXpPerCreation:ctx.raw*ctx.multiplier,
   pinkMultiplier:ctx.pinkCalibrated?ctx.lithiumMultiplier:null,
-  proposedFires:ctx.fires,windCap:best.windCap,
+  proposedFires:ctx.fires,fireChoice:best.fireChoice,windCap:best.windCap,
   steps:frames,merges:best.moves.length,cooks:best.cooks.length,
   windEvents:best.moves.reduce((a,m)=>a+m.events.filter(e=>e.kind==="wind").length,0),
   cleanup:best.leftover,expByTier:best.gains,perTier,considered,
   fuelPerCycle:best.fuel,estimatedFuelCapacity:economy.capacity,
-  estimatedFuelGeneration:economy.generationPerHour,
+  estimatedFuelGeneration:best.fuelRate,
   capacityManual:economy.manualCapacity,generationManual:economy.manualGeneration,
   activeSeconds:best.activeSeconds,fuelWaitSeconds:best.fuelWaitSeconds,
   cycleSeconds:best.cycleSeconds,
@@ -346,6 +384,6 @@ export function optimizeKnowledgeCycle(save,rawOptions={}){
    totalEXP*3600/best.cycleSeconds:null,
   targetExpPerHour:best.repeatable?
    best.gains[targetTier]*3600/best.cycleSeconds:null,
-  note:"Active-creation EXP only. Milktoast, Cold, event multipliers, random +tier procs and exact interaction latency are not simulated. EXP multipliers and modeled fuel rates may differ in-game."
+  note:"Modeled active-creation EXP only. Lithium doubles creation EXP in pink columns. Milktoast and Cold passive EXP, random cooking-tier procs and exact interaction latency are excluded. Fuel rate is adjusted for the proposed fireplace setup but remains approximate."
  };
 }
