@@ -99,7 +99,12 @@ test("Knowledge EXP planner exposes board replay and rate controls without a sec
   "knowledgePlanFuelRate","knowledgePlanFuelCap","knowledgePlanStepXp"]){
   assert.ok(html.includes('id="'+id+'"'),id+" missing");
  }
- assert.match(ui,/optimizeKnowledgeCycle\(getSave\(\),calibration\(\)\)/);
+ assert.match(ui,/new Worker\(new URL\(/);
+ assert.match(ui,/search\.postMessage\(\{save,options:calibration\(\)\}\)/);
+ assert.match(ui,/stopSearch\(\)/);
+ assert.ok(html.includes('id="knowledgePlanCancel"'));
+ const worker=readFileSync(new URL("../src/knowledge-cycle-worker.mjs",import.meta.url),"utf8");
+ assert.match(worker,/optimizeKnowledgeCycle\(save,options\)/);
  assert.match(ui,/createReplayController\(/);
  assert.match(ui,/pinkMultiplier/);
  assert.match(css,/#knowledgePlanner \.lab-kp-board\{/);
