@@ -53,7 +53,7 @@ let setTab=()=>{};
 export function initializeSushiLab(getSave){
  let mainTab="overview",upgradeTab="catalog",goal="bucks",doublerGoals=["knowledge"];
  let doublerHideDoubled=false,doublerMenuOpen=false,doublerSort="best";
- let advisorSort="recommended",advisorFilter="all",advisorVisibleCount="all",purchaseView="cards";
+ let advisorSort="recommended",advisorFilter="all",advisorVisibleCount="all",purchaseView="list";
  let catalogSort="shop",catalogCategory="all",catalogStatus="all";
  let importedAt=null;
  const missingListExpanded={labMissingPerfectos:false,labMissingTiers:false};
@@ -211,11 +211,14 @@ export function initializeSushiLab(getSave){
   if(steps){
    steps.classList.toggle("lab-advisor-view-cards",view==="cards");
    steps.classList.toggle("lab-advisor-view-list",view==="list");
+   steps.querySelectorAll(".lab-advisor-step-details").forEach(detail=>{
+    detail.open=view==="cards";
+   });
   }
  }
  viewCardsButton.addEventListener("click",()=>setPurchaseView("cards"));
  viewListButton.addEventListener("click",()=>setPurchaseView("list"));
- setPurchaseView("cards");
+ setPurchaseView("list");
  const measuredInputs={
   bucks:$("labAdvisorMeasuredBucks"),fuel:$("labAdvisorMeasuredFuel"),
   capacity:$("labAdvisorMeasuredCapacity")
@@ -609,73 +612,86 @@ export function initializeSushiLab(getSave){
   const [label,klass]=advisorBadge(u);
   header.append(el("span","lab-advisor-badge "+klass,label));
   item.append(header);
-  item.append(el("p","lab-advisor-one-line",upgradeSummary(u)));
-  const metrics=el("div","lab-advisor-metrics");
-  function metric(caption,value,className=""){
-   const cell=el("div","lab-advisor-metric "+className);
-   cell.append(el("small","",caption),el("strong","",value));
-   metrics.append(cell);
-  }
-  if(featured)metric("YOUR SUSHI BUCKS",numberDisplay(u.bucks));
-  metric(u.exactCost?"ESTIMATED DISCOUNTED PRICE":"UPPER PRICE ESTIMATE",
-   u.atMax?"Maxed":advisorPrice(u));
-  metric("BUYING POWER",advisorShortfall(u),u.affordability==="affordable"?
-   "lab-advisor-good":"");
-  item.append(metrics);
-  const benefit=el("div","lab-advisor-benefit");
-  benefit.append(el("span","","NEXT LEVEL BENEFIT"),el("strong","",u.effect.label));
-  item.append(benefit);
-  const goalImpact=el("div","lab-advisor-modeled-impact");
-  goalImpact.append(el("span","","GOAL IMPACT · "+(u.impactEstimated?"PARTIAL MODEL":"MODELED")),
+  if(featured)item.append(el("p","lab-advisor-one-line",upgradeSummary(u)));
+
+  const impact=el("div","lab-advisor-modeled-impact");
+  impact.append(el("span","","ESTIMATED "+(featured?"NEXT-LEVEL ":"")+"GOAL IMPACT"),
    el("strong","",u.impactText));
-  if(u.impactRankable&&u.impactBefore&&u.impactAfter){
-   goalImpact.append(el("small","",u.impactBefore+" → "+u.impactAfter));
+  item.append(impact);
+
+  const facts=el("div","lab-advisor-quickfacts");
+  const fact=(caption,value)=>{
+   const field=el("div","lab-advisor-quickfact");
+   field.append(el("small","",caption),el("strong","",value));
+   facts.append(field);
+  };
+  fact(u.exactCost?"NEXT COST":"NEXT COST · ESTIMATE",u.atMax?"Maxed":advisorPrice(u)+" Bucks");
+  fact("YOUR BUCKS / TO SAVE",u.affordability==="affordable"?
+   "Affordable now":advisorShortfall(u));
+  item.append(facts);
+
+  const details=el("details","lab-advisor-breakdown");
+  const summary=el("summary","","Why this recommendation?");
+  details.append(summary);
+  if(u.impactBefore&&u.impactAfter){
+   details.append(el("p","","Modeled result: "+u.impactBefore+" → "+u.impactAfter));
   }
-  goalImpact.append(el("small","",u.impactNote));
-  item.append(goalImpact);
-  if(featured){
-   item.append(el("p","lab-advisor-reason",u.reason+" "+u.budgetNote));
-   if(!u.exactCost)item.append(el("p","lab-advisor-price-note",
-    "The imported save may omit a discount. Your actual in-game price can be lower than shown."));
-  }else if(!u.exactCost){
-   item.append(el("p","lab-advisor-price-note","Price may be lower if discounts are missing."));
-  }
+  details.append(el("p","","Next level: "+u.effect.label),
+   el("p","",u.reason),
+   el("p","",u.impactNote),
+   el("p","",u.budgetNote));
+  if(!u.exactCost)details.append(el("p","",
+   "Missing discounts may reduce the estimated next cost."));
+  item.append(details);
   return item;
  }
  function renderAdvisor(){
   const root=$("labAdvisorResults"),feature=$("labAdvisorFeature"),
    roadmap=$("labAdvisorRoadmap"),summary=$("labAdvisorSummary"),
    count=$("labAdvisorResultsCount");
-  root.replaceChildren();feature.replaceChildren();roadmap.replaceChildren();summary.replaceChildren();
+  // Never replace roadmap's children: that would remove the OL that
+  // subsequent renders need to populate (the original empty-plan bug).
+  root.replaceChildren();feature.replaceChildren();summary.replaceChildren();
   count.textContent="";
+  const planSummary=ensureAdvisorResultMount("labAdvisorPlanSummary","lab-advisor-plan-summary");
+  const projection=ensureAdvisorResultMount("labAdvisorGoalProjection","lab-advisor-goal-projection");
+  planSummary.replaceChildren();projection.replaceChildren();
+  roadmap.querySelectorAll(".lab-advisor-plan-end,.lab-advisor-plan-empty").forEach(node=>node.remove());
+  let purchaseList=$("labAdvisorPurchaseSteps");
+  if(!purchaseList){
+   // Recover an older cached HTML shell rather than showing an empty plan.
+   purchaseList=el("ol","lab-advisor-purchase-list lab-advisor-view-"+purchaseView);
+   purchaseList.id="labAdvisorPurchaseSteps";
+   roadmap.prepend(purchaseList);
+  }
+  purchaseList.replaceChildren();
+  purchaseList.classList.toggle("lab-advisor-view-cards",purchaseView==="cards");
+  purchaseList.classList.toggle("lab-advisor-view-list",purchaseView==="list");
+
   if(!save()){
-   summary.append(el("p","hint","Import your Sushi Station game save on Overview to receive a personalized buying recommendation."));
+   summary.append(el("p","hint","Import your game save on Overview to see upgrade recommendations."));
+   roadmap.append(el("p","hint lab-advisor-plan-empty","Import a save to build your next purchases plan."));
    return;
   }
   const advice=getProgressionAdvice(save(),goal,{
    sort:advisorSort,filter:advisorFilter,includeMaxed:advisorMaxedInput.checked
   });
-  summary.append(el("strong","",advice.affordableCount+" affordable now · "+
-   advice.count+" upgrades not maxed · "+(advice.bucks===null?"Sushi Bucks balance unavailable":numberDisplay(advice.bucks)+" Sushi Bucks available")));
-  if(advice.partialPrices)summary.append(el("span","",
-   "Some prices are upper estimates because the imported save lacks one or more discounts."));
-  if(advice.bucks===null)summary.append(el("span","",
-   "This import has no usable Sushi Bucks balance. Prices can be shown, but purchase affordability cannot be confirmed."));
+  summary.append(el("strong","",numberDisplay(advice.bucks)+" Sushi Bucks"),
+   el("span","",advice.affordableCount+" affordable · "+advice.count+" upgrades available"));
+  if(advice.partialPrices||advice.bucks===null)summary.append(el("span","",
+   advice.bucks===null?"Bucks balance unavailable — import a complete save to plan purchases.":
+   "Some upgrade prices are estimates."));
+
   if(!advice.best){
-   feature.append(el("p","hint","Every upgrade mapped to this goal is already maxed, or no applicable upgrades are available."));
+   feature.append(el("p","hint","No remaining upgrades are available for this goal."));
   }else{
    const head=el("div","lab-advisor-feature-heading");
-   head.append(el("span","lab-advisor-kicker",
-    advice.best.affordability==="affordable"?"RECOMMENDED NEXT PURCHASE":
-    advice.bucks===null?"RECOMMENDED UPGRADE · BALANCE UNAVAILABLE":"RECOMMENDED UPGRADE TO SAVE FOR"),
-     el("span","lab-advisor-method","Account-aware priority"));
+   head.append(el("span","lab-advisor-kicker","BEST NEXT UPGRADE"),
+    el("span","lab-advisor-method",advice.best.affordability==="affordable"?
+     "Ready to buy":advice.bucks===null?"Balance unavailable":"Plan ahead"));
    feature.append(head,advisorDetail(advice.best,true));
-   if(advice.best.affordability!=="affordable")
-    feature.append(el("p","lab-advisor-feature-footnote",
-     advice.bucks===null?
-     "The import has no usable Sushi Bucks balance, so this upgrade cannot be classified as affordable or a savings target.":
-     "No upgrades for this goal are currently confirmed affordable. The suggestion above is a savings target, not an instruction to buy immediately."));
   }
+
   const requested=purchasesInput.value==="custom"?
    (customInput.value===""?5:customInput.value):purchasesInput.value;
   const readings=Object.fromEntries(Object.entries(measuredInputs).map(([key,input])=>
@@ -686,92 +702,85 @@ export function initializeSushiLab(getSave){
    .map(([name])=>name);
   $("labAdvisorCalibrationStatus").textContent=invalid.length?
    "Invalid "+invalid.join(", ")+" reading(s). Use values such as 2.5T or 1.2E30.":
-   active.length?"Using measured "+active.join(", ")+" baseline(s) for matching goals.":
-   "No readings entered. Estimates use the imported save's modeled values.";
+   active.length?"Using in-game "+active.join(", ")+" baseline(s).":
+   "Using modeled rates from your imported save.";
   const plan=buildProgressionPurchasePlan(save(),goal,requested,{readings});
-  const planSummary=ensureAdvisorResultMount("labAdvisorPlanSummary","lab-advisor-plan-summary");
-  const purchaseList=$("labAdvisorPurchaseSteps");
-  planSummary.replaceChildren();
-  if(!purchaseList){
-   // A stale page shell may lack the newer list while the JSON is valid.
-   const place=ensureAdvisorResultMount("labAdvisorRoadmap","lab-advisor-purchase-scroll");
-   place.replaceChildren(el("p","hint",
-    "Purchase list is unavailable in this cached page. Reload to view the latest layout."));
-   return;
-  }
-  purchaseList.replaceChildren();
+
   const summaryParts=[
-   [String(plan.steps.length)+" / "+plan.requestedCount,"PURCHASES PLANNED"],
-   [String(plan.initiallyFunded),"COVERED BY CURRENT BUCKS"],
-   [numberDisplay(plan.totalEstimatedCost),"ESTIMATED TOTAL COST"],
-   [numberDisplay(plan.additionalBucksNeeded),
-    plan.partialPrices?"FUTURE BUCKS TO SAVE (EST.)":"FUTURE BUCKS TO SAVE"]
+   [String(plan.steps.length)+" / "+plan.requestedCount,"PURCHASES"],
+   [String(plan.initiallyFunded),"AFFORDABLE NOW"],
+   [numberDisplay(plan.totalEstimatedCost),"TOTAL COST (EST.)"],
+   [numberDisplay(plan.additionalBucksNeeded),"EXTRA BUCKS TO SAVE"]
   ];
   for(const [value,label] of summaryParts){
    const stat=el("div","lab-advisor-plan-stat");
    stat.append(el("strong","",value),el("small","",label));
    planSummary.append(stat);
   }
-  const projection=ensureAdvisorResultMount("labAdvisorGoalProjection","lab-advisor-goal-projection");
-  projection.replaceChildren();
+
   if(plan.initialGoal&&plan.finalGoal){
-   const header=el("div","lab-advisor-goal-label");
-   header.append(el("strong","",plan.initialGoal.label),
-    el("span","",plan.initialGoal.estimated||plan.finalGoal.estimated?
-     "ESTIMATED / PARTIAL":"MODELED"));
-   projection.append(header);
+   const label=el("div","lab-advisor-goal-label");
+   label.append(el("strong","","Projected "+plan.initialGoal.label),
+    el("span","",plan.initialGoal.estimated||plan.finalGoal.estimated?"PARTIAL ESTIMATE":"MODELED"));
+   projection.append(label);
    const compare=el("div","lab-advisor-goal-comparison");
-   const initial=el("div","lab-advisor-goal-number");
-   initial.append(el("small","","FROM YOUR IMPORTED ACCOUNT"),
-    el("strong","",plan.initialGoal.display));
-   const projected=el("div","lab-advisor-goal-number lab-advisor-goal-projected");
-   projected.append(el("small","","AFTER "+plan.steps.length+" PLANNED PURCHASES"),
+   const before=el("div","lab-advisor-goal-number");
+   before.append(el("small","","CURRENT"),el("strong","",plan.initialGoal.display));
+   const after=el("div","lab-advisor-goal-number lab-advisor-goal-projected");
+   after.append(el("small","","AFTER "+plan.steps.length+" PURCHASES"),
     el("strong","",plan.finalGoal.display));
-   compare.append(initial,el("span","lab-advisor-goal-arrow","→"),projected);
-   projection.append(compare,el("p","lab-advisor-goal-note",plan.finalGoal.note));
+   compare.append(before,el("span","lab-advisor-goal-arrow","→"),after);
+   projection.append(compare);
+   if(plan.finalGoal.note){
+    const info=el("details","lab-advisor-goal-note-wrap");
+    info.append(el("summary","","About this estimate"),
+     el("p","lab-advisor-goal-note",plan.finalGoal.note));
+    projection.append(info);
+   }
   }
+
+  const iconMap=new Map(advice.all.map(u=>[u.id,u]));
   for(const step of plan.steps){
-   const item=el("li","lab-advisor-purchase-step");
+   const item=el("li","lab-advisor-purchase-step"+(step.number===1?" is-next":""));
    const number=el("span","lab-advisor-purchase-number",String(step.number));
    const identity=el("div","lab-advisor-purchase-identity");
-   const iconUpgrade=advice.all.find(u=>u.id===step.id);
+   const iconUpgrade=iconMap.get(step.id);
    if(iconUpgrade)identity.append(upgradeArtwork(iconUpgrade));
    const copy=el("div","lab-advisor-purchase-copy");
    copy.append(el("strong","",step.name),
-    el("small","","Level "+fmt(step.fromLevel)+" → "+fmt(step.toLevel)+
-      (step.doubled?" · Doubled":"")));
+    el("small","","Lv "+fmt(step.fromLevel)+" → "+fmt(step.toLevel)+
+     (step.doubled?" · Doubled":"")));
    identity.append(copy);
    const price=el("div","lab-advisor-purchase-price");
    price.append(el("strong","",numberDisplay(step.price)+" Bucks"),
-    el("small","",step.exactPrice?"Estimated discounted cost":"Upper price estimate"));
+    el("small","",step.exactPrice?"Estimated cost":"Upper cost estimate"));
    const action=el("div","lab-advisor-purchase-status "+(step.fundedByImport?
     "lab-advisor-purchase-ready":"lab-advisor-purchase-save"));
-   action.append(el("strong","",step.fundedByImport?"FROM CURRENT BUCKS":
-    "SAVE "+numberDisplay(step.missingBucks)+" BUCKS"));
-   if(!step.fundedByImport)action.append(el("small","",
-    step.missingBucks>0?"Additional Bucks required before this step":
-    "Projected after earlier savings"));
-   const goalResult=el("div","lab-advisor-step-result");
-   goalResult.append(el("span","lab-advisor-step-result-label",step.goalResult.label));
-   const diff=el("div","lab-advisor-step-result-values");
-   diff.append(el("span","",step.goalResult.current),
+   const actionText=step.fundedByImport?"Affordable now":
+    step.missingBucks>0?"Save "+numberDisplay(step.missingBucks)+" more":"After earlier steps";
+   action.append(el("strong","",actionText));
+   const detail=el("details","lab-advisor-step-details");
+   detail.open=purchaseView==="cards";
+   const trigger=el("summary","","Stat change");
+   const change=el("div","lab-advisor-step-result");
+   const values=el("div","lab-advisor-step-result-values");
+   values.append(el("span","",step.goalResult.current),
     el("span","lab-advisor-step-result-arrow","→"),
     el("strong","",step.goalResult.projected));
-   goalResult.append(diff);
-   if(!step.goalResult.changed)goalResult.append(el("small","",
-    "No modeled change to this total; "+step.nextLevelEffect));
-   item.append(number,identity,goalResult,price,action);
-   item.title=step.goalResult.note;
+   change.append(el("span","lab-advisor-step-result-label",step.goalResult.label),values);
+   if(!step.goalResult.changed)change.append(el("small","",
+    "No quantified change in this partial model. "+step.nextLevelEffect));
+   else change.append(el("small","",step.nextLevelEffect));
+   detail.append(trigger,change);
+   item.append(number,identity,price,action,detail);
    purchaseList.append(item);
   }
-  if(plan.stopReason){
-   roadmap.append(el("p","lab-advisor-plan-end",plan.stopReason));
-  }
-  if(!plan.steps.length&&save()){
-   roadmap.append(el("p","hint","No valid future purchases are available for this goal."));
-  }
-  // The recommended purchase is already featured. List other candidates
-  // under the requested filters without repeating the same upgrade.
+
+  if(plan.stopReason)roadmap.append(el("p","lab-advisor-plan-end",plan.stopReason));
+  else if(!plan.steps.length)roadmap.append(el("p","hint lab-advisor-plan-empty",
+   "No further purchases are available for this goal."));
+
+  // The featured next upgrade is already shown above this list.
   const alternatives=advice.rows.filter(u=>u.id!==advice.best?.id);
   const visibleLimit=advisorVisibleCount==="all"?Infinity:Number(advisorVisibleCount);
   const shown=alternatives.slice(0,Number.isFinite(visibleLimit)&&visibleLimit>0?visibleLimit:Infinity);
@@ -780,7 +789,7 @@ export function initializeSushiLab(getSave){
    "Showing "+shown.length+" of "+alternatives.length+" alternatives";
   for(const u of shown)root.append(advisorDetail(u,false));
   if(!alternatives.length)root.append(el("p","hint",
-   "No other upgrades match these filters. Change the goal or filters to compare more options."));
+   "No other upgrades match these filters."));
  }
  function renderDoubler(){
   renderDoublerTags();
