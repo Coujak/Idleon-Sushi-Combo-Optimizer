@@ -50,7 +50,8 @@ The **Knowledge** section is a read-only account overview for all 64 Sushi tiers
 
 - Overview counts: discovered tiers, Perfectos, known Knowledge levels and tiers with enough EXP for the next Knowledge level (where the save includes complete progress data).
 - Clickable Knowledge-effect categories, plus search, category, status (including **Ready to level**) and sort controls.
-- Sushi icons, current level, EXP needed for the next level with progress bars, current modeled Knowledge bonus, next-level bonus, and Perfecto status.
+- Sushi icons, **permanent tier discovery rewards** (all 64 mapped from the Idleon Toolbox Sushi reference) and a separate **Knowledge bonus** column with units, current modeled effect, next-level effect, and Perfecto status. Undiscovered tiers show the permanent reward as a reference and the base Lv 1 Knowledge preview rather than implying it is active. The tier reward mapping lives in `src/sushi-tier-rewards.mjs`; category-aware effect descriptions live in `src/knowledge-bonus-format.mjs`.
+- Current Knowledge level and EXP progress toward the next level. Search also matches words from permanent tier rewards.
 - Missing EXP or level data is marked **unavailable**, not incorrectly treated as zero. A "Ready to level" label indicates a modeled threshold, **not that the game has automatically collected the level**.
 
 The Knowledge tab currently tracks progression; it does not estimate EXP earned per hour, optimal farming boards, or time-to-level. A separate Knowledge Leveling Planner can be developed once EXP gain models and game observations have been validated.
