@@ -154,13 +154,24 @@ export function getKnowledgeRows(save){
   const index=entry.tier-1,level=num(s.knowledge[index]),track=num(s.tracking[index]??-1);
   const discovered=save!=null&&Number(s.tracking[index]??-1)>=0;
   const perfecto=discovered&&track>=1;
-  const xp=num(s.xp[index]);
-  const xpReq=(3+(level+Math.pow(level,1.5)))*Math.pow(1.5,Math.max(0,level-2));
+  const xpValue=save?.sushi?.[6]?.[index];
+  const levelValue=save?.sushi?.[7]?.[index];
+  const xpKnown=xpValue!==undefined&&xpValue!==null&&xpValue!==""&&
+   Number.isFinite(Number(xpValue))&&Number(xpValue)>=0;
+  const levelKnown=levelValue!==undefined&&levelValue!==null&&levelValue!==""&&
+   Number.isFinite(Number(levelValue))&&Number(levelValue)>=0;
+  const xp=xpKnown?Number(xpValue):null;
+  const xpReq=levelKnown?(3+(level+Math.pow(level,1.5)))*
+   Math.pow(1.5,Math.max(0,level-2)):null;
+  const hasXpProgress=discovered&&xpKnown&&levelKnown&&Number.isFinite(xpReq)&&xpReq>0;
+  const xpProgress=hasXpProgress?Math.max(0,Math.min(1,xp/xpReq)):null;
+  const xpRemaining=hasXpProgress?Math.max(0,xpReq-xp):null;
+  const readyToLevel=hasXpProgress&&xp>=xpReq;
   const factor=Math.min(2,1+Math.max(0,track));
   const mapped=Number.isInteger(entry.category)&&entry.category>=0&&entry.category<KNOWLEDGE_CATEGORIES.length;
   return {...entry,mapped,categoryName:mapped?KNOWLEDGE_CATEGORIES[entry.category]:"Effect not yet mapped",
-   level,discovered,perfecto,xp,xpReq,
-   bonus:mapped&&discovered?Math.max(0,entry.perLevel*level*factor*(1+index/30)):null,
+   level,levelKnown,discovered,perfecto,xp,xpKnown,xpReq,xpProgress,xpRemaining,readyToLevel,
+   bonus:mapped&&discovered&&levelKnown?Math.max(0,entry.perLevel*level*factor*(1+index/30)):null,
    nextLevelGain:mapped?entry.perLevel*factor*(1+index/30):null};
  });
 }
