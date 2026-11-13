@@ -2,17 +2,17 @@
 // information panels. All imported JSON stays in memory on the user's device.
 import {sushiUpgradeIconPath,sushiTierIconPath,KNOWLEDGE_CATEGORIES} from "./sushi-reference.mjs?v=1.16.6";
 import {KNOWLEDGE_SORT_OPTIONS,KNOWLEDGE_STATUS_OPTIONS,filterKnowledgeRows,knowledgeOverview} from "./knowledge-view.mjs?v=1.0.1";
-import {describeKnowledgeBonus,formatKnowledgeBonusValue} from "./knowledge-bonus-format.mjs?v=1.0.1";
-import {initializePerfectoUI} from "./perfecto-ui.mjs?v=1.36.1";
-import {CATALOG_SORT_OPTIONS,CATALOG_STATUS_OPTIONS,upgradeSummary,readableUpgradeDescription,upgradeDescriptionSegments,catalogHasVariableValues,filterSortCatalog,upgradeCatalogDollarValue} from "./upgrade-catalog.mjs?v=1.16.8";
+import {describeKnowledgeBonus,formatKnowledgeBonusValue} from "./knowledge-bonus-format.mjs?v=1.0.2";
+import {initializePerfectoUI} from "./perfecto-ui.mjs?v=1.36.2";
+import {CATALOG_SORT_OPTIONS,CATALOG_STATUS_OPTIONS,upgradeSummary,readableUpgradeDescription,upgradeDescriptionSegments,catalogHasVariableValues,filterSortCatalog,upgradeCatalogDollarValue} from "./upgrade-catalog.mjs?v=1.16.9";
 import {ADVISOR_GOALS,numberText,getSushiSnapshot,getUpgradeRows,
- getKnowledgeRows,advisorUpgrades,getSushiDoublerCounts,sushiUpgradeExtraText,upgradeAffordability} from "./lab-model.mjs?v=1.19.12";
-import {getSushiDashboardMetrics} from "./dashboard-metrics.mjs?v=1.0.1";
-import {getProgressionAdvice,PROGRESSION_SORT_OPTIONS,PROGRESSION_FILTER_OPTIONS} from "./progression-advisor.mjs?v=1.17.2";
-import {DOUBLER_FOCUS_OPTIONS,DOUBLER_SORT_OPTIONS,getDoublerPlacementPlan,getDoublerValueComparison} from "./doubler-advisor.mjs?v=1.5.1";
-import {getDoublerAccountImpact} from "./doubler-stat-impact.mjs?v=1.3.1";
-import {buildProgressionPurchasePlan,groupProgressionPurchases} from "./progression-roadmap.mjs?v=1.17.3";
-import {parseGameQuantity} from "./progression-calibration.mjs?v=1.17.0";
+ getKnowledgeRows,advisorUpgrades,getSushiDoublerCounts,sushiUpgradeExtraText,upgradeAffordability} from "./lab-model.mjs?v=1.19.13";
+import {getSushiDashboardMetrics} from "./dashboard-metrics.mjs?v=1.0.2";
+import {getProgressionAdvice,PROGRESSION_SORT_OPTIONS,PROGRESSION_FILTER_OPTIONS} from "./progression-advisor.mjs?v=1.17.3";
+import {DOUBLER_FOCUS_OPTIONS,DOUBLER_SORT_OPTIONS,getDoublerPlacementPlan,getDoublerValueComparison} from "./doubler-advisor.mjs?v=1.5.2";
+import {getDoublerAccountImpact} from "./doubler-stat-impact.mjs?v=1.3.2";
+import {buildProgressionPurchasePlan,groupProgressionPurchases} from "./progression-roadmap.mjs?v=1.17.4";
+import {parseGameQuantity} from "./progression-calibration.mjs?v=1.17.1";
 import {overviewTierProgress,importAgeText} from "./overview-helpers.mjs?v=1.19.9";
 import {fireplaceOverviewAdvice,formatSparkBonusPoints} from "./fireplace-advice.mjs?v=1.2.0";
 
