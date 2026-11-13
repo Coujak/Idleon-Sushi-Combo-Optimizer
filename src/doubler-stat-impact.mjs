@@ -3,7 +3,7 @@
 // upgrade, board tile and modifier exactly as found in the imported save.
 // A preview is a what-if, not proof that an extra Doubler is available.
 import {getUpgradeRows,getKnowledgeRows,sushiUpgradeDiscounts} from "./lab-model.mjs?v=1.19.10";
-import {progressionGoalMetric} from "./progression-goal-impact.mjs?v=1.16.7";
+import {progressionGoalMetric} from "./progression-goal-impact.mjs?v=1.16.8";
 import {formatGameQuantity,parseGameQuantity} from "./progression-calibration.mjs?v=1.16.3";
 
 const finite=v=>typeof v==="number"&&Number.isFinite(v);
