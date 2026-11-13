@@ -16,6 +16,12 @@
 <section class="panel lab-welcome-panel"><div class="heading"><div><div class="eyebrow">SUSHI STATION · OVERVIEW</div><h2>Account dashboard</h2></div><span id="overviewImportTime" class="status" title="Shows when the JSON was imported into this browser">No save imported</span></div>
 <p class="hint">See your Sushi Station progress from a local JSON import. Your Combo Meter research and the new guides live in separate tabs.</p>
 <div class="lab-stat-grid" id="labOverviewStats" aria-live="polite"></div>
+<section class="lab-dashboard-section lab-dashboard-production" aria-labelledby="labProductionTitle">
+ <div class="lab-dashboard-section-heading"><h3 id="labProductionTitle">Sushi production & tier chances</h3>
+  <span class="hint">Modeled from imported Sushi Station data</span></div>
+ <div id="labProductionStats" class="lab-production-stats" aria-live="polite"></div>
+ <p class="hint lab-production-note">Bucks/hr and Fuel values are estimates and may differ from Idleon Toolbox or in-game readings. Cooking +2 tier chance assumes tier-up percentages roll over above 100%; Copper Firelighter's blue-fire effect is separate.</p>
+</section>
 <section class="lab-dashboard-section" aria-labelledby="labShakerTitle"><h3 id="labShakerTitle">Available shakers</h3><p class="hint">Current uses and daily refills from your imported save.</p><div id="labShakerCards" class="lab-shaker-grid" aria-live="polite"></div></section>
 <div class="lab-dashboard-lists">
 <section class="lab-dashboard-section" aria-labelledby="labMissingPerfectosTitle"><h3 id="labMissingPerfectosTitle">Missing Perfectos <span id="labMissingPerfectosCount" class="lab-section-count"></span></h3><p class="hint">Discovered sushi that are not Perfecto yet.</p><div id="labMissingPerfectos" class="lab-sushi-grid" aria-live="polite"></div><button id="labMissingPerfectosToggle" class="button secondary lab-list-toggle hidden" type="button" aria-controls="labMissingPerfectos" aria-expanded="false">Show all</button></section>
