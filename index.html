@@ -316,56 +316,78 @@
 <th scope="col" data-catalog-column="doubler" aria-sort="none"><button type="button" class="lab-sort-header" data-catalog-sort="doubled-first" data-catalog-sort-reverse="shop">Doubler<span class="lab-sort-indicator" aria-hidden="true"> ↕</span></button></th>
 </tr></thead><tbody id="labUpgradeRows"></tbody></table></div>
 <p id="labUpgradeEmpty" class="hint lab-empty-state hidden">No upgrades match these search terms or filters.</p></div>
-<div id="lab-upgrade-advisor" class="hidden" role="tabpanel" aria-hidden="true">
- <div class="lab-toolbar lab-advisor-toolbar">
-  <label>Your progression goal <select id="labAdvisorGoal"></select></label>
-  <label>Show upgrades <select id="labAdvisorFilter"></select></label>
-  <label>Sort options by <select id="labAdvisorSort"></select></label>
-  <label class="lab-advisor-check"><input id="labAdvisorShowMaxed" type="checkbox"> Include maxed</label>
+<div id="lab-upgrade-advisor" class="lab-advisor-workspace hidden" role="tabpanel" aria-hidden="true">
+ <div class="lab-advisor-goalbar lab-catalog-toolbar">
+  <label>Progression goal <select id="labAdvisorGoal"></select></label>
+  <span id="labAdvisorSummary" class="lab-advisor-summary" role="status"></span>
  </div>
- <details class="lab-advisor-help"><summary>How recommendations are ranked</summary><p>Purchases are compared by their modeled benefit for your chosen goal, estimated cost and available Bucks. This is not a guaranteed optimal strategy. Unknown effects and missing discounts are marked as estimates.</p></details>
- <div id="labAdvisorSummary" class="lab-advisor-summary" role="status"></div>
+ <div class="lab-advisor-section-head lab-advisor-main-head">
+  <div><h3>Recommended upgrade</h3><p class="hint">Best next purchase for your selected goal.</p></div>
+  <details class="lab-advisor-help"><summary>How is it chosen?</summary>
+   <p>Compares the modeled improvement from the next upgrade level, estimated discounted price and current Sushi Bucks. Some effects and discounts may be unavailable.</p>
+  </details>
+ </div>
  <div id="labAdvisorFeature" class="lab-advisor-feature" aria-label="Recommended next upgrade"></div>
- <div class="lab-advisor-section-head lab-advisor-plan-head">
-  <div><h3>Next purchases</h3><p class="hint">Your suggested buying order, updated after each purchase.</p></div>
-  <div class="lab-advisor-purchase-controls">
-   <label>Plan <select id="labAdvisorPurchaseCount" aria-label="How many next purchases to plan">
-    <option value="5" selected>5 purchases</option><option value="10">10 purchases</option>
-    <option value="25">25 purchases</option><option value="50">50 purchases</option>
-    <option value="100">100 purchases</option><option value="custom">Custom amount…</option>
-   </select></label>
-   <label id="labAdvisorCustomCountLabel" class="hidden">Custom purchases
-    <input id="labAdvisorCustomPurchases" type="number" min="1" max="500" step="1" value="15" inputmode="numeric">
-   </label>
-   <div class="lab-advisor-view-toggle" role="group" aria-label="Purchase plan display">
-    <button type="button" id="labAdvisorViewList" class="selected" aria-pressed="true">Compact</button>
-    <button type="button" id="labAdvisorViewCards" aria-pressed="false">Expanded</button>
+
+ <section class="lab-advisor-roadmap-section" aria-label="Next purchases plan">
+  <div class="lab-advisor-section-head lab-advisor-plan-head">
+   <div><h3>Next purchases</h3><p class="hint">A buying order that updates after each planned purchase.</p></div>
+   <div class="lab-advisor-purchase-controls">
+    <label>Plan <select id="labAdvisorPurchaseCount" aria-label="How many next purchases to plan">
+      <option value="5" selected>5 purchases</option><option value="10">10 purchases</option>
+      <option value="25">25 purchases</option><option value="50">50 purchases</option>
+      <option value="100">100 purchases</option><option value="custom">Custom amount…</option>
+    </select></label>
+    <label id="labAdvisorCustomCountLabel" class="hidden">Custom purchases
+     <input id="labAdvisorCustomPurchases" type="number" min="1" max="500" step="1" value="15" inputmode="numeric">
+    </label>
+    <div class="lab-advisor-view-toggle" role="group" aria-label="Purchase plan detail level">
+     <button type="button" id="labAdvisorViewList" class="selected" aria-pressed="true">Simple</button>
+     <button type="button" id="labAdvisorViewCards" aria-pressed="false">Details</button>
+    </div>
    </div>
   </div>
- </div>
- <details class="lab-advisor-calibration">
-  <summary>Use your in-game rates (optional)</summary>
-  <p class="hint">Enter the values shown in your own Sushi Station. This anchors the current total to your game display and scales projected changes from the upgrade model. Entries stay in your browser while this page is open; they are not saved to the repository.</p>
-  <div class="lab-advisor-calibration-grid">
-   <label>Current Bucks per hour <input id="labAdvisorMeasuredBucks" type="text" inputmode="decimal" placeholder="e.g. 1.25E35" autocomplete="off"></label>
-   <label>Current Fuel per hour <input id="labAdvisorMeasuredFuel" type="text" inputmode="decimal" placeholder="e.g. 10T" autocomplete="off"></label>
-   <label>Current maximum Fuel <input id="labAdvisorMeasuredCapacity" type="text" inputmode="decimal" placeholder="e.g. 5T" autocomplete="off"></label>
+  <div id="labAdvisorPlanSummary" class="lab-advisor-plan-summary" role="status"></div>
+  <div id="labAdvisorGoalProjection" class="lab-advisor-goal-projection" role="status"></div>
+  <div class="lab-advisor-column-head lab-advisor-plan-columns" aria-hidden="true">
+   <span>#</span><span>Upgrade</span><span>Next cost</span><span>Purchase status</span>
   </div>
-  <p id="labAdvisorCalibrationStatus" class="hint" role="status"></p>
- </details>
- <div id="labAdvisorPlanSummary" class="lab-advisor-plan-summary" role="status"></div>
- <div id="labAdvisorGoalProjection" class="lab-advisor-goal-projection" role="status"></div>
- <details class="lab-advisor-help lab-advisor-plan-disclaimer"><summary>How the purchase plan works</summary><p>Every planned purchase updates upgrade levels, prices and the next recommendation. When your current Bucks run out, future steps assume you save the required amount. No future earnings or purchase times are predicted. Some costs and projected stats are partial estimates.</p></details>
- <div id="labAdvisorRoadmap" class="lab-advisor-purchase-scroll"><ol id="labAdvisorPurchaseSteps" class="lab-advisor-purchase-list lab-advisor-view-cards"></ol></div>
- <div class="lab-advisor-section-head"><h3>Other upgrades</h3>
- <div class="lab-advisor-compare-controls">
-  <label class="lab-advisor-visible-count">Show <select id="labAdvisorVisibleCount" aria-label="Number of other upgrades to display">
-   <option value="3">3 upgrades</option><option value="5">5 upgrades</option>
-   <option value="10">10 upgrades</option><option value="all" selected>All upgrades</option>
-  </select></label>
-  <span id="labAdvisorResultsCount" class="hint"></span>
- </div></div>
- <div class="lab-result-list lab-advisor-list" id="labAdvisorResults"></div>
+  <div id="labAdvisorRoadmap" class="lab-advisor-purchase-scroll">
+   <ol id="labAdvisorPurchaseSteps" class="lab-advisor-purchase-list lab-advisor-view-list"></ol>
+  </div>
+  <details class="lab-advisor-help lab-advisor-plan-disclaimer"><summary>About this plan</summary>
+   <p>Levels, discounts and priorities are recalculated after every purchase. When your imported Bucks run out, future purchases assume saving the extra amount. No earnings timeline is predicted. Goal effects are modeled estimates.</p>
+  </details>
+  <details class="lab-advisor-calibration">
+   <summary>Use displayed in-game rates (optional)</summary>
+   <p class="hint">Enter your current in-game readings to anchor the projections. The values stay in your browser.</p>
+   <div class="lab-advisor-calibration-grid">
+    <label>Current Bucks per hour <input id="labAdvisorMeasuredBucks" type="text" inputmode="decimal" placeholder="e.g. 1.25E35" autocomplete="off"></label>
+    <label>Current Fuel per hour <input id="labAdvisorMeasuredFuel" type="text" inputmode="decimal" placeholder="e.g. 10T" autocomplete="off"></label>
+    <label>Current maximum Fuel <input id="labAdvisorMeasuredCapacity" type="text" inputmode="decimal" placeholder="e.g. 5T" autocomplete="off"></label>
+   </div>
+   <p id="labAdvisorCalibrationStatus" class="hint" role="status"></p>
+  </details>
+ </section>
+
+ <section class="lab-advisor-alternatives" aria-label="Other upgrade options">
+  <div class="lab-advisor-section-head"><div><h3>Other upgrades</h3><p class="hint">Compare the remaining options for your goal.</p></div>
+   <span id="labAdvisorResultsCount" class="hint"></span>
+  </div>
+  <div class="lab-catalog-toolbar lab-advisor-compare-toolbar">
+   <label>Show upgrades <select id="labAdvisorFilter"></select></label>
+   <label>Sort by <select id="labAdvisorSort"></select></label>
+   <label>Number to show <select id="labAdvisorVisibleCount" aria-label="Number of other upgrades to display">
+    <option value="3">3 upgrades</option><option value="5">5 upgrades</option>
+    <option value="10">10 upgrades</option><option value="all" selected>All upgrades</option>
+   </select></label>
+   <label class="lab-advisor-check"><input id="labAdvisorShowMaxed" type="checkbox"> Include maxed</label>
+  </div>
+  <div class="lab-advisor-column-head lab-advisor-rank-columns" aria-hidden="true">
+   <span>#</span><span>Upgrade</span><span>Modeled gain</span><span>Next cost</span><span>Status</span>
+  </div>
+  <div id="labAdvisorResults" class="lab-advisor-ranked-list" aria-live="polite"></div>
+ </section>
 </div>
 <div id="lab-upgrade-doubler" class="hidden" role="tabpanel" aria-hidden="true">
 <div class="lab-doubler-filters">
