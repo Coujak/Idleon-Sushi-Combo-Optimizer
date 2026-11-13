@@ -66,13 +66,18 @@ export function buildKnowledgeRotation(save,knowledgeRows,rawOptions={}){
    valueKnown:row.levelKnown&&row.xpKnown};
  };
  const createPhase=(index,targets,kind)=>{
-  const columns=unique(milkPositions.slice(0,targets.length).map(i=>i%COLS))
-   .filter(i=>fires[i]>=0);
-  const slotPairs=targets.map((t,j)=>({
+  // Focused rotation uses EVERY owned Milktoast plate for one Sushi type;
+  // balanced waves assign one target tier per plate before advancing.
+  const assignments=mode==="focused"&&targets.length===1?
+   milkPositions.map((position)=>({tier:targets[0],position})):
+   targets.map((tier,j)=>({tier,position:milkPositions[j]??null}));
+  const columns=unique(assignments.filter(a=>a.position!==null)
+   .map(a=>a.position%COLS)).filter(i=>fires[i]>=0);
+  const slotPairs=assignments.map(({tier:t,position})=>({
    tier:t.tier,name:t.name,
-   platePosition:milkPositions[j]??null,
+   platePosition:position,
    existingPosition:t.occupiedPositions[0]??null,
-   alreadyOnPlate:t.milktoastPositions.includes(milkPositions[j]),
+   alreadyOnPlate:t.milktoastPositions.includes(position),
    onAnyMilktoast:t.milktoastPositions.length>0
   }));
   return {index:index+1,kind,targets,slotPairs,columns,
