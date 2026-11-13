@@ -178,7 +178,8 @@ test("Knowledge tab actually renders imported tiers, ready filter and missing-sa
  assert.equal(perfectoMark.src,"assets/Perfecto_Symbol.png");
  assert.equal(perfectoMark.alt,"Perfecto");
  const perfectoReward=nodes.get("labKnowledgeRows").children[1].children[0].children[0].children[1].children[1];
- assert.ok(perfectoReward.children[0].className.includes("is-perfecto"),
+ assert.ok(perfectoReward.children.some(part=>
+  part.className.includes("lab-knowledge-tier-value")&&part.className.includes("is-perfecto")),
   "Perfecto tier reward value uses purple status styling");
  assert.equal(firstIdentity.children[0].children.length,1,
   "Non-Perfecto Sushi should have no achievement symbol");
