@@ -4,7 +4,8 @@ import {readFileSync} from "node:fs";
 import {getKnowledgeRows} from "../src/lab-model.mjs";
 import {formatKnowledgeBonusValue} from "../src/knowledge-bonus-format.mjs";
 import {describeKnowledgeBonus} from "../src/knowledge-bonus-format.mjs";
-import {filterKnowledgeRows,knowledgeOverview,KNOWLEDGE_SORT_OPTIONS,KNOWLEDGE_STATUS_OPTIONS}
+import {filterKnowledgeRows,knowledgeOverview,KNOWLEDGE_SORT_OPTIONS,KNOWLEDGE_STATUS_OPTIONS,
+ KNOWLEDGE_PREFERENCES_KEY,normalizeKnowledgePreferences,nextKnowledgeHeaderSort,knowledgeCheckpoint}
  from "../src/knowledge-view.mjs";
 
 function fixture(){
@@ -131,7 +132,7 @@ test("Knowledge tab actually renders imported tiers, ready filter and missing-sa
   knowledgeCategoryInput,knowledgeStatusInput,
   knowledgeCategory:"all",knowledgeSort:"tier",
   getKnowledgeRows,knowledgeOverview,filterKnowledgeRows,describeKnowledgeBonus,
-  formatKnowledgeBonusValue,
+  formatKnowledgeBonusValue,knowledgeCheckpoint,
   KNOWLEDGE_CATEGORIES:["Bucks earned","Knowledge XP","Cooking +1 tier chance",
    "Fuel capacity","Fuel generation","Free Shaker chance","Upgrade discounts",
    "Fuel generation multiplier","Slot strength","Fireplace strength","Perfecto chance"],
@@ -223,4 +224,50 @@ test("Tier reward prose remains neutral, and only Perfecto bubbles use purple",(
  assert.doesNotMatch(plain[1],/#d5c3f0|#f1d6ff/);
  assert.match(normalPill[1],/background:#234a3f;/);
  assert.match(perfectoPill[1],/background:#573a72;/);
+});
+
+ 
+test("Knowledge preferences restore only validated filters, without storing account JSON",()=>{
+ assert.equal(KNOWLEDGE_PREFERENCES_KEY,"idleon-sushi-knowledge-ui-v1");
+ assert.deepEqual(normalizeKnowledgePreferences(null),{
+  search:"",category:"all",status:"all",sort:"tier"});
+ assert.deepEqual(normalizeKnowledgePreferences({search:"T50",category:"10",status:"perfecto",sort:"next-desc"}),{
+  search:"T50",category:"10",status:"perfecto",sort:"next-desc"});
+ assert.deepEqual(normalizeKnowledgePreferences({search:42,category:"99",status:"bogus",sort:"nope"}),{
+  search:"",category:"all",status:"all",sort:"tier"});
+ assert.equal(normalizeKnowledgePreferences({search:"a".repeat(200)}).search.length,120);
+ const ui=readFileSync(new URL("../src/lab-ui.mjs",import.meta.url),"utf8");
+ assert.match(ui,/localStorage\.getItem\(KNOWLEDGE_PREFERENCES_KEY\)/);
+ assert.match(ui,/localStorage\.setItem\(KNOWLEDGE_PREFERENCES_KEY/);
+ assert.ok(!ui.includes('localStorage.setItem("account'));
+});
+test("Knowledge table headers share dropdown sorting and expose accessible sticky headers",()=>{
+ const html=readFileSync(new URL("../index.html",import.meta.url),"utf8");
+ const css=readFileSync(new URL("../styles.css",import.meta.url),"utf8");
+ const ui=readFileSync(new URL("../src/lab-ui.mjs",import.meta.url),"utf8");
+ assert.equal((html.match(/data-knowledge-sort=/g)||[]).length,4);
+ assert.match(html,/lab-knowledge-scroll" role="region" tabindex="0"/);
+ assert.match(css,/#lab-knowledge \.lab-knowledge-table thead th\{/);
+ assert.match(css,/position:sticky/);
+ assert.match(css,/#lab-knowledge \.lab-knowledge-sort-button:focus-visible/);
+ assert.match(ui,/nextKnowledgeHeaderSort\(knowledgeSort/);
+ assert.match(ui,/setAttribute\("aria-sort",state\)/);
+ assert.equal(nextKnowledgeHeaderSort("tier","tier","tier-desc"),"tier-desc");
+ assert.equal(nextKnowledgeHeaderSort("tier-desc","tier","tier-desc"),"tier");
+ assert.equal(nextKnowledgeHeaderSort("tier","level-desc","level-asc"),"level-desc");
+ const rows=getKnowledgeRows(fixture());
+ assert.equal(filterKnowledgeRows(rows,{sort:"level-asc"})[0].tier,3);
+ assert.equal(filterKnowledgeRows(rows,{sort:"next-desc",status:"discovered"}).at(-1).tier,3);
+});
+test("Knowledge 5-level checkpoint hints are only near a real upcoming level and never invent a reward",()=>{
+ const rows=getKnowledgeRows(fixture());
+ assert.equal(knowledgeCheckpoint(rows[49]).nextLevel,30);
+ assert.equal(knowledgeCheckpoint(rows[49]).levelsAway,1);
+ assert.equal(knowledgeCheckpoint(rows[0]),null);
+ assert.equal(knowledgeCheckpoint(rows[3]),null);
+ assert.equal(knowledgeCheckpoint({...rows[49],levelKnown:false}),null);
+ assert.equal(knowledgeCheckpoint({...rows[49],discovered:false}),null);
+ const ui=readFileSync(new URL("../src/lab-ui.mjs",import.meta.url),"utf8");
+ assert.match(ui,/lab-knowledge-checkpoint/);
+ assert.match(ui,/not an extra in-game reward/);
 });
