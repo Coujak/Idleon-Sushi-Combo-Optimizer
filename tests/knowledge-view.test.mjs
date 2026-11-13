@@ -134,9 +134,20 @@ test("Knowledge tab actually renders imported tiers, ready filter and missing-sa
  renderer();
  assert.equal(nodes.get("labKnowledgeRows").children.length,64);
  const displayRow=nodes.get("labKnowledgeRows").children[0];
- assert.equal(displayRow.children.length,6,"Tier reward has its own table column");
- assert.ok(displayRow.children[1].children[0].textContent.includes("Research EXP"));
- assert.ok(displayRow.children[4].children.some(x=>x.textContent.includes("Sushi Bucks")));
+ assert.equal(displayRow.children.length,4,"Compact table has four columns");
+ const firstIdentity=displayRow.children[0].children[0];
+ const firstInfo=firstIdentity.children[1];
+ assert.ok(firstInfo.children[1].textContent.includes("2× Research EXP"),
+  "Permanent tier reward is visible beneath Sushi name");
+ const firstBonus=displayRow.children[3];
+ assert.equal(firstBonus.children[0].textContent,"Bucks earned",
+  "Knowledge bonus type is in the bonus column");
+ assert.ok(firstBonus.children[1].textContent.length>0);
+ const perfectoIdentity=nodes.get("labKnowledgeRows").children[1].children[0].children[0];
+ assert.equal(perfectoIdentity.children[0].children[1].className,
+  "lab-knowledge-perfecto-emblem","Perfecto mark overlays the Sushi icon");
+ assert.equal(firstIdentity.children[0].children.length,1,
+  "Non-Perfecto Sushi should have no achievement symbol");
  assert.equal(nodes.get("labKnowledgeOverview").children.length,4);
  assert.equal(nodes.get("labKnowledgeCategoryChips").children.length,12);
  const first=nodes.get("labKnowledgeRows").children[0];
