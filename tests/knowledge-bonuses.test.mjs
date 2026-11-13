@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import {readFileSync} from "node:fs";
 import {SUSHI_KNOWLEDGE} from "../src/sushi-reference.mjs";
 import {sushiTierReward,SUSHI_TIER_REWARDS} from "../src/sushi-tier-rewards.mjs";
-import {describeKnowledgeBonus} from "../src/knowledge-bonus-format.mjs";
+import {describeKnowledgeBonus,formatKnowledgeBonusValue} from "../src/knowledge-bonus-format.mjs";
 import {getKnowledgeRows} from "../src/lab-model.mjs";
 import {filterKnowledgeRows} from "../src/knowledge-view.mjs";
 
@@ -79,4 +79,18 @@ test("Knowledge table combines name and tier reward, keeps four columns and Perf
  assert.match(ui,/describeKnowledgeBonus\(k\.category,k\.bonus\)/);
  assert.match(ui,/describeKnowledgeBonus\(k\.category,nextAmount\)/);
  assert.match(ui,/describeKnowledgeBonus\(k\.category,k\.baseLevelBonus\)/);
+});
+
+test("Knowledge bubble formatter keeps only numbers and preserves bonus units",()=>{
+ const cases=[
+  [0,120,"+120%"],[1,30,"+30%"],[2,1200,"+1.2K%"],
+  [3,50,"1.5×"],[4,75,"+75%"],[5,10,"+10%"],
+  [6,10,"+10%"],[7,25,"1.25×"],[8,2,"+2%"],
+  [9,8,"+8%"],[10,263,"3.63×"]
+ ];
+ for(const [category,amount,expected] of cases)
+  assert.equal(formatKnowledgeBonusValue(category,amount),expected);
+ assert.equal(formatKnowledgeBonusValue(0,Infinity),null);
+ assert.equal(formatKnowledgeBonusValue(1,NaN),null);
+ assert.equal(formatKnowledgeBonusValue(12,5),null);
 });
