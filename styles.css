@@ -2072,6 +2072,31 @@ details summary{cursor:pointer;font-size:12px;font-weight:700;color:#9eb7c9}
  border:1px solid #467768;border-radius:6px;white-space:nowrap
 }
 .lab-doubler-plan-reason{margin:11px 0 0;color:#b9d2d0;font-size:12px;line-height:1.55}
+.lab-doubler-values{
+ display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:12px
+}
+.lab-doubler-value{
+ display:flex;flex-direction:column;gap:6px;padding:10px 12px;min-width:0;
+ border:1px solid #355260;background:#102834;border-radius:8px
+}
+.lab-doubler-value small{
+ color:#a5c2cc;font-size:10px;font-weight:700;line-height:1.35
+}
+.lab-doubler-value strong{
+ color:#d9e9e9;font-size:clamp(13px,1.4vw,17px);
+ overflow-wrap:anywhere;font-variant-numeric:tabular-nums
+}
+.lab-doubler-value.is-current{border-color:#508b78;background:#1a3d38}
+.lab-doubler-value.is-current strong{color:#9bf3cb}
+.lab-doubler-value.is-doubled{
+ border-color:#9f77cb;background:#553b6f
+}
+.lab-doubler-value.is-doubled strong{color:#f4d9ff}
+.lab-doubler-value.is-doubled small{color:#e2c7f5}
+.lab-doubler-value-caption{color:#9bb6c0;font-size:10.5px;line-height:1.5;margin:7px 0 0}
+@media(max-width:440px){
+ .lab-doubler-values{grid-template-columns:1fr}
+}
 .lab-doubler-plan-from{margin:8px 0 0;color:#9ee5c5;font-size:11px;line-height:1.45}
 @media(max-width:700px){
  .lab-doubler-plan-grid{grid-template-columns:1fr}
