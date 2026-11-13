@@ -133,19 +133,25 @@ export function progressionGoalMetric(save,goal){
  }
  if(goal==="knowledge"){
   const bonus=upgradeBonuses(save),knowledge=bonuses(save);
-  const multiplier=(1+Math.max(0,knowledge[1]+bonus(38))/100);
-  return make(goal,"Modeled global Knowledge EXP multiplier",multiplier,format(multiplier,3)+"×",
-   "Partial global EXP multiplier. Plate EXP/day, EXP per cooked Sushi and fire-specific bonuses are separate effects.");
+  // Both Searing upgrades change newly created Sushi EXP: 2nd Degree
+  // increases the base EXP per creation, 3rd Degree scales all EXP.
+  // A global-only multiplier would rank 2nd Degree as having no benefit.
+  const multiplier=(1+Math.max(0,bonus(37))/10)*
+   (1+Math.max(0,knowledge[1]+bonus(38))/100);
+  return make(goal,"Modeled Knowledge EXP multiplier (created Sushi)",multiplier,
+   format(multiplier,3)+"×",
+   "Partial global EXP model for newly created Sushi. Includes 2nd and 3rd Degree Searing; plate EXP/day, Fireplace effects and other external modifiers are not a complete total.");
  }
  if(goal==="perfecto"){
   const peppersUnlocked=leveled(save,18)>0;
   // Use the effective level-scaled bonus: Bottomless Shakers can be doubled.
 // Read the same modeled upgrade contribution used by the catalog and advisor.
   const freeChance=Math.max(0,Math.min(100,upgradeBonuses(save)(21)));
-  return make(goal,"Pepper access and free Shaker chance",
-   peppersUnlocked?100+freeChance:freeChance,
+  // Pepper access is a separate yes/no unlock, not a fictional +100 percentage
+  // points. Keep the numeric metric strictly the known free-use chance.
+  return make(goal,"Pepper access and free Shaker chance",freeChance,
    (peppersUnlocked?"Pepper unlocked":"Pepper locked")+" · "+format(freeChance,1)+"% free Shaker use",
-   "Shows the upgrade-controlled unlock and free Shaker chance, not the probability a Sushi becomes Perfecto.");
+   "The numeric metric is the known free Shaker-use chance; Pepper access is a separate unlock. This is not the chance that Sushi becomes Perfecto.");
  }
  return make(goal,"Goal result",null,"Unavailable","This goal has no reliable total model.");
 }
