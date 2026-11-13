@@ -6,7 +6,7 @@ import {CATALOG_SORT_OPTIONS,CATALOG_STATUS_OPTIONS,upgradeSummary,readableUpgra
 import {ADVISOR_GOALS,numberText,getSushiSnapshot,getUpgradeRows,
  getKnowledgeRows,advisorUpgrades,getSushiDoublerCounts,sushiUpgradeExtraText,upgradeAffordability} from "./lab-model.mjs?v=1.19.10";
 import {getProgressionAdvice,PROGRESSION_SORT_OPTIONS,PROGRESSION_FILTER_OPTIONS} from "./progression-advisor.mjs?v=1.16.6";
-import {DOUBLER_FOCUS_OPTIONS,getDoublerPlacementPlan} from "./doubler-advisor.mjs?v=1.1.0";
+import {DOUBLER_FOCUS_OPTIONS,getDoublerPlacementPlan,getDoublerValueComparison} from "./doubler-advisor.mjs?v=1.2.0";
 import {buildProgressionPurchasePlan} from "./progression-roadmap.mjs?v=1.16.7";
 import {parseGameQuantity} from "./progression-calibration.mjs?v=1.16.3";
 import {overviewTierProgress,importAgeText} from "./overview-helpers.mjs?v=1.19.9";
@@ -750,6 +750,19 @@ export function initializeSushiLab(getSave){
    head.append(identity,el("span","lab-doubler-plan-status"+(u.doubled?" is-doubled":""),
     u.doubled?"×2 Active · Keep":u.status));
    card.append(head,el("p","lab-doubler-plan-reason",u.reason));
+   const value=getDoublerValueComparison(u);
+   const values=el("div","lab-doubler-values");
+   for(const option of [
+    {label:"Without Doubler",amount:value.normal,active:!u.doubled},
+    {label:u.doubled?"With Doubler · Active":"With Doubler · Potential",
+     amount:value.doubled,active:u.doubled}
+   ]){
+    const metric=el("div","lab-doubler-value"+(option.active?" is-current":"")+
+     (u.doubled&&option.active?" is-doubled":""));
+    metric.append(el("small","",option.label),el("strong","",option.amount));
+    values.append(metric);
+   }
+   card.append(values,el("p","lab-doubler-value-caption",value.label+" · "+value.note));
    const detail={
     "Keep":"Already doubled. No change needed.",
     "Use available":"Assign one unused Sushi Doubler to this upgrade.",
