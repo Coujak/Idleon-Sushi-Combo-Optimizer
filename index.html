@@ -360,8 +360,13 @@
  <div class="lab-advisor-section-head"><h3>Compare other upgrades</h3><span id="labAdvisorResultsCount" class="hint"></span></div>
  <div class="lab-result-list lab-advisor-list" id="labAdvisorResults"></div>
 </div>
-<div id="lab-upgrade-doubler" class="hidden" role="tabpanel" aria-hidden="true"><div class="lab-toolbar"><label>Advice for <select id="labDoublerGoal"><option value="all">All eligible upgrades</option></select></label></div>
-<p class="hint lab-disclaimer">Uses eligible Sushi upgrade IDs and your current Menagerie assignments from Spelunk[52]. Estimates the extra raw upgrade effect you would receive from a Doubler; it never changes your save.</p><div class="lab-result-list" id="labDoublerResults"></div></div>
+<div id="lab-upgrade-doubler" class="hidden" role="tabpanel" aria-hidden="true">
+<div class="lab-toolbar lab-doubler-toolbar"><label>Placement focus <select id="labDoublerGoal"></select></label></div>
+<p class="hint lab-disclaimer">Plan your existing Sushi Doubler placements using your imported upgrade levels and assignments. These are suggestions only: nothing is changed in-game. Different effects cannot be ranked by a single universal number.</p>
+<div id="labDoublerAdvice" class="lab-doubler-advice" aria-live="polite"></div>
+<details class="lab-doubler-compare"><summary>Compare other eligible upgrades</summary>
+<div class="lab-result-list" id="labDoublerResults"></div></details>
+</div>
 
 </section></div>
 <div id="lab-knowledge" class="lab-tab-content hidden" role="tabpanel" aria-label="Knowledge" aria-hidden="true"><section class="panel">
