@@ -26,7 +26,6 @@ export function normalizeKnowledgeCycleOptions(raw={}){
   targetTier:Number.isInteger(target)&&target>=1&&target<=64?target:null,
   secondsPerCook:safeSeconds(x.secondsPerCook,2),
   secondsPerMerge:safeSeconds(x.secondsPerMerge,1.5),
-  secondsPerClear:safeSeconds(x.secondsPerClear,0.7),
   fuelGeneration:validPositive(x.fuelGeneration)?Number(x.fuelGeneration):null,
   fuelCapacity:validPositive(x.fuelCapacity)?Number(x.fuelCapacity):null,
   lithiumMultiplier:validPositive(x.lithiumMultiplier)?clamp(Number(x.lithiumMultiplier),1,100):null,
