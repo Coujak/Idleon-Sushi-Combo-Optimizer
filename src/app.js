@@ -24,6 +24,7 @@ import {BOARD_COLUMNS,BOARD_CELLS,normalizeBoardData,layoutOptions} from "./boar
 import {windTierMaximum,clampWindTier,windTierAfterPreparedChange} from "./wind-limit.mjs?v=1.9.10";
 import {detectSushiProgress} from "./sushi-progression.mjs?v=1.17.0";
 import {initializeSushiLab} from "./lab-ui.mjs?v=1.48.0";
+import {parseSushiCurrencyExternal} from "./sushi-currency-external.mjs?v=1.0.0";
 import {sushiTierIconPath} from "./sushi-reference.mjs?v=1.16.6";
 import {countOverviewPlates,overviewTileInfo} from "./overview-helpers.mjs?v=1.19.9";
 import {getPreparedBoardSections,hasSlotLayoutChanges,preparedSectionOutlinePath,preparedOutlineCoordinates} from "./prepared-sections.mjs?v=1.17.1";
@@ -111,7 +112,8 @@ function decodeSave(input){
   // Processed account exports may carry the authoritative total.
   const sushiDoublerInfo=input.account?.menagerie?.doublers?.sushi
     ??input.data?.menagerie?.doublers?.sushi??null;
-  return {sushi,spelunk,menagerie,research,bundleBonV,bundleBanJ,sailingArtifact39,eventShop45,superbit67,research189,
+  const sushiCurrencyExternal=parseSushiCurrencyExternal(input);
+  return {sushi,spelunk,menagerie,research,bundleBonV,bundleBanJ,sailingArtifact39,eventShop45,superbit67,research189,sushiCurrencyExternal,
    sushiDoublerInfo,tiles,perfecto:Array.isArray(sushi[5])?sushi[5].map(Number):null,slots,fires:Array.isArray(sushi[3])?sushi[3].slice(0,15).map(Number):[],source:input.data?.Sushi!=null?"Game save export":"Raw game data"};
 }
 let previousPreparedTierForWind=Number($("seedTier").value);
