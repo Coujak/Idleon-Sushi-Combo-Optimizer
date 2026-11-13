@@ -214,7 +214,7 @@ test("Normal Knowledge bonuses use green value bubbles; Perfecto uses purple",()
 test("Tier reward prose remains neutral, and only Perfecto bubbles use purple",()=>{
  const css=readFileSync(new URL("../styles.css",import.meta.url),"utf8");
  const plain=css.match(/#lab-knowledge \.lab-knowledge-tier-reward-text\{([^}]+)\}/);
- const subtitle=css.match(/#lab-knowledge \.lab-knowledge-tier-info \.lab-row-subtitle\{([^}]+)\}/);
+ const subtitle=[...css.matchAll(/#lab-knowledge \.lab-knowledge-tier-info \.lab-row-subtitle\{([^}]+)\}/g)].at(-1);
  const normalPill=css.match(/#lab-knowledge \.lab-knowledge-value-pill\{([^}]+)\}/);
  const perfectoPill=css.match(/#lab-knowledge \.lab-knowledge-value-pill\.is-perfecto\{([^}]+)\}/);
  assert.ok(plain&&subtitle&&normalPill&&perfectoPill);
