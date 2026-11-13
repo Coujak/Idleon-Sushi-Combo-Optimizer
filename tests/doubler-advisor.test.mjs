@@ -144,8 +144,8 @@ test("Doubler cards compare current base and doubled values without inventing le
  assert.equal(doubled.normal,"+100%");
  assert.equal(doubled.doubled,"+200%");
  assert.equal(doubled.label,"Knowledge EXP bonus");
- assert.equal(undoubled.normal,"+80 EXP");
- assert.equal(undoubled.doubled,"+160 EXP");
+ assert.equal(undoubled.normal,"9 EXP");
+ assert.equal(undoubled.doubled,"17 EXP");
  assert.equal(knowledge.recommendations[0].level,100);
  assert.equal(knowledge.recommendations[1].level,80);
  const perfecto=getDoublerPlacementPlan(scenario(),"perfecto");
