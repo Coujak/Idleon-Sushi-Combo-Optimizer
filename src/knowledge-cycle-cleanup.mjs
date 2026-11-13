@@ -23,10 +23,18 @@ export function finishSushiBoard(start,slots,windCap,chainLimit,protectedIndices
   for(const tier of tiers){
    const positions=byTier.get(tier);
    if(positions.length<2)continue;
-   const destinations=positions.filter(i=>!keep.has(i)||
+   const candidates=positions.filter(i=>!keep.has(i)||
     tier===64&&expected[protectedIndices.indexOf(i)]===64);
+   const destinations=candidates.length<=12?candidates:
+    [...candidates.slice(0,6),...candidates.slice(-6)];
    for(const dst of destinations){
-    const sources=positions.filter(src=>src!==dst&&!keep.has(src));
+    const available=positions.filter(src=>src!==dst&&!keep.has(src))
+     .sort((a,b)=>Math.abs(a-dst)-Math.abs(b-dst));
+    const sources=available.length<=4?available:[
+     ...available.slice(0,2),
+     ...available.filter(src=>src<dst).slice(-1),
+     ...available.filter(src=>src>dst).slice(-1)
+    ].filter((src,i,all)=>all.indexOf(src)===i);
     for(const src of sources){
      const action=simulateMerge(current,src,dst,windCap,chainLimit,64);
      if(!action)continue;
