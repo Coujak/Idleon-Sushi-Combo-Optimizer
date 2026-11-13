@@ -144,3 +144,50 @@ test("Missing Sushi Bucks is unknown, not a fabricated zero balance",()=>{
  assert.equal(zero.bucks,0);
  assert.ok(zero.rows.some(u=>u.affordability!=="unknown"));
 });
+
+test("Recommendations compare modeled next-level goal impact, including both Searing upgrades",async()=>{
+ const {progressionComparableMetric}=await import("../src/progression-impact.mjs");
+ const save=sampleSave(1e20);
+ save.sushi[2][37]=25;
+ save.sushi[2][38]=25;
+ const metric=progressionComparableMetric(save,"knowledge");
+ const oldGlobalOnly=1+(save.sushi[2][38])/100;
+ assert.ok(metric.value>oldGlobalOnly,"Created-Sushi EXP includes 2nd Degree Searing");
+ const plan=getProgressionAdvice(save,"knowledge");
+ for(const id of [37,38]){
+  const option=plan.all.find(x=>x.id===id);
+  assert.ok(option.impactRankable);
+  assert.ok(option.relativeGain>0);
+  assert.match(option.impactText,/knowledge improvement/i);
+  assert.match(option.impactNote,/partial model/i);
+ }
+ const chosen=plan.all.filter(x=>x.impactRankable).sort((a,b)=>b.valueScore-a.valueScore);
+ assert.equal(chosen[0].id,plan.best.id);
+});
+
+test("Perfecto priority recognizes Pepper unlock without inventing percent chances",async()=>{
+ const {progressionComparableMetric}=await import("../src/progression-impact.mjs");
+ const save=sampleSave(1e20);
+ save.sushi[2][21]=5;
+ const before=progressionComparableMetric(save,"perfecto");
+ assert.equal(before.value,5);
+ const planner=getProgressionAdvice(save,"perfecto");
+ assert.equal(planner.best.id,18);
+ assert.equal(planner.best.importantUnlock,true);
+ assert.match(planner.best.impactText,/Unlocks Pepper Shaker/);
+ save.sushi[2][18]=1;
+ assert.equal(progressionComparableMetric(save,"perfecto").value,5);
+ save.spelunk[52]=[21];
+ assert.equal(progressionComparableMetric(save,"perfecto").value,10);
+});
+
+test("Progression recommendations expose impact explanations and a configurable visible result limit",()=>{
+ const html=readFileSync(new URL("../index.html",import.meta.url),"utf8");
+ const ui=readFileSync(new URL("../src/lab-ui.mjs",import.meta.url),"utf8");
+ assert.equal(html.split('id="labAdvisorVisibleCount"').length-1,1);
+ for(const count of ["3","5","10","all"])assert.ok(html.includes('<option value="'+count+'"'));
+ assert.ok(ui.includes('advisorVisibleCount="all"'));
+ assert.ok(ui.includes('alternatives.slice(0,'));
+ assert.ok(ui.includes('u.impactText'));
+ assert.ok(ui.includes('u.impactNote'));
+});
