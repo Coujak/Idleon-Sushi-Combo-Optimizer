@@ -106,3 +106,23 @@ test("Rendering a purchase plan never removes its ordered-list mount",()=>{
  render();
  assert.equal(list.children.length,1,"Importing again restores planned purchases");
 });
+
+test("Upgrade Center shares filter styles, semantic colors and aligned row tracks",()=>{
+ assert.match(ui,/featured\?"★":String\(rank\?\?"—"\)/);
+ assert.match(ui,/lab-advisor-badge-danger/);
+ assert.match(css,/--up-rank-columns:30px/);
+ assert.match(css,/--up-purchase-columns:30px/);
+ const finalRules=css.slice(css.indexOf("/* Upgrade Center polish"));
+ assert.ok(finalRules.includes("#lab-upgrades .lab-catalog-toolbar :is(select,input:not([type=\"checkbox\"]))"));
+ assert.ok(finalRules.includes("#lab-upgrade-doubler .lab-doubler-sort-field select"));
+ assert.ok(finalRules.includes("grid-template-columns:var(--up-rank-columns)"));
+ assert.ok(finalRules.includes("grid-template-columns:var(--up-purchase-columns)"));
+ assert.ok(finalRules.includes("background:var(--up-danger-bg)"));
+ assert.ok(finalRules.includes("background:var(--up-warning-bg)"));
+ assert.ok(finalRules.includes("background:var(--up-success-bg)"));
+ assert.ok(finalRules.includes("background:var(--up-purple-bg)"));
+ assert.ok(finalRules.includes("@media(max-width:850px)"));
+ assert.ok(finalRules.includes('content:"MODELED GAIN"'));
+ assert.ok(finalRules.includes('content:"NEXT COST"'));
+ assert.ok(finalRules.includes('content:"STATUS"'));
+});
