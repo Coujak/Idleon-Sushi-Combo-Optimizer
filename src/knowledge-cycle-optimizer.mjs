@@ -28,7 +28,7 @@ export function normalizeKnowledgeCycleOptions(raw={}){
   secondsPerClear:safeSeconds(x.secondsPerClear,0.7),
   fuelGeneration:validPositive(x.fuelGeneration)?Number(x.fuelGeneration):null,
   fuelCapacity:validPositive(x.fuelCapacity)?Number(x.fuelCapacity):null,
-  lithiumMultiplier:validPositive(x.lithiumMultiplier)?clamp(Number(x.lithiumMultiplier),1,100):1,
+  lithiumMultiplier:validPositive(x.lithiumMultiplier)?clamp(Number(x.lithiumMultiplier),1,100):null,
   expPerCreation:validPositive(x.expPerCreation)?clamp(Number(x.expPerCreation),0.001,1e12):null
  };
 }
@@ -43,12 +43,15 @@ function expContext(save,options,rows,metrics,layoutFires){
  const multiplier=(1+Math.max(0,third)/100)*(1+Math.max(0,knowledge)/100);
  const raw=options.expPerCreation??(1+Math.max(0,searing));
  const lithiumUnlocked=Number(save?.sushi?.[2]?.[26])>0;
- // All unlocked fireplaces can be switched to pink if Lithium is unlocked.
- const fires=layoutFires.map(x=>x>=0&&lithiumUnlocked?3:x);
+ // Lithium Firelighter is a 2× Knowledge EXP multiplier on Sushi above pink
+ // fireplaces, including creation and passive sources (passive is not yet
+ // included in this active-only cycle). Allow explicit calibration override.
+ const lithiumMultiplier=lithiumUnlocked?(options.lithiumMultiplier??2):1;
+ const fires=layoutFires.slice();
  const expAt=(tier,index)=>!unlocked?0:
-  raw*multiplier*(fires[index%COLS]===3?options.lithiumMultiplier:1);
- return {unlocked,fires,lithiumUnlocked,raw,multiplier,knowledge,third,
-  pinkCalibrated:options.lithiumMultiplier>1,
+  raw*multiplier*(fires[index%COLS]===3?lithiumMultiplier:1);
+ return {unlocked,fires,lithiumUnlocked,lithiumMultiplier,raw,multiplier,knowledge,third,
+  pinkCalibrated:lithiumUnlocked,
   expAt,
   knownCooks:metrics?.cookBonusComplete===true,
   guaranteedCookBonus:metrics?.cookBonusComplete?
@@ -329,7 +332,7 @@ export function optimizeKnowledgeCycle(save,rawOptions={}){
   anchorTier,repeatable,startCookTier:best.cooks[0].requestedTier,
   startingPattern:best.pattern,guaranteedCookBonus:ctx.guaranteedCookBonus,
   cookRemainder:ctx.cookRemainder,bonusXpPerCreation:ctx.raw*ctx.multiplier,
-  pinkMultiplier:ctx.pinkCalibrated?options.lithiumMultiplier:null,
+  pinkMultiplier:ctx.pinkCalibrated?ctx.lithiumMultiplier:null,
   proposedFires:ctx.fires,windCap:best.windCap,
   steps:frames,merges:best.moves.length,cooks:best.cooks.length,
   windEvents:best.moves.reduce((a,m)=>a+m.events.filter(e=>e.kind==="wind").length,0),
