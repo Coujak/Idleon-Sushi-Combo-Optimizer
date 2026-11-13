@@ -83,35 +83,54 @@ test("Exact, incomplete and missing ownership data remain distinguishable",()=>{
  assert.equal(getDoublerPlacementPlan(scenario(),"priorities").ready,false);
 });
 
-test("Doubler Advisor HTML and controls contain only one selected focus",()=>{
- const html=readFileSync(new URL("../index.html",import.meta.url),"utf8");
- const ui=readFileSync(new URL("../src/lab-ui.mjs",import.meta.url),"utf8");
- const code=readFileSync(new URL("../src/doubler-advisor.mjs",import.meta.url),"utf8");
- for(const id of ["labDoublerGoal","labDoublerAdvice"])
-  assert.equal(html.split('id="'+id+'"').length-1,1);
- assert.ok(!html.includes('id="labDoublerResults"'));
- assert.match(ui,/getDoublerPlacementPlan\(save\(\),doublerGoal\)/);
- assert.match(ui,/doublerGoal="knowledge"/);
- assert.doesNotMatch(code,/value:"priorities"/);
- assert.doesNotMatch(code,/value:"all"/);
- assert.match(ui,/u\.status!=="Level first"/);
+test("Category tags combine independent focus results without duplicates or an arbitrary cap",()=>{
+ const save=scenario();
+ const combined=getDoublerPlacementPlan(save,["knowledge","perfecto","knowledge","discount"]);
+ assert.deepEqual(combined.goals,["knowledge","perfecto","discount"]);
+ assert.deepEqual(combined.recommendations.map(u=>u.id),[38,37,21,36]);
+ assert.equal(combined.totalOptions,4);
+ assert.equal(new Set(combined.recommendations.map(u=>u.id)).size,4);
+ const reversed=getDoublerPlacementPlan(save,["perfecto","knowledge"]);
+ assert.deepEqual(reversed.recommendations.map(u=>u.id),[21,38,37]);
+ assert.deepEqual(getDoublerPlacementPlan(save,["knowledge","unrecognized"]).goals,["knowledge"]);
+ assert.equal(getDoublerPlacementPlan(save,[]).ready,false);
 });
 
-test("Already-doubled upgrades use the Upgrade Catalog's purple highlight",()=>{
+test("Doubler Advisor provides removable tags, a plus-menu, and a hide-doubled checkbox",()=>{
+ const html=readFileSync(new URL("../index.html",import.meta.url),"utf8");
  const ui=readFileSync(new URL("../src/lab-ui.mjs",import.meta.url),"utf8");
  const css=readFileSync(new URL("../styles.css",import.meta.url),"utf8");
- assert.match(ui,/u\.doubled\?" is-doubled"/);
- assert.match(ui,/u\\.doubled\\?"×2 Active"/);
- assert.match(ui,/doublerIcon\\("lab-doubler-plan-icon"\\)/);
- assert.match(ui,/badge\\.append\\(el\\("span","",status\\)\\)/);
- assert.match(ui,/u\\.status==="Use available"\\?"Available"/);
- assert.match(ui,/u\\.status==="Level first"\\?"Level first":"Not doubled"/);
- assert.doesNotMatch(ui,/No guaranteed unused Doublers in the save/);
- assert.match(css,/\.lab-doubler-plan-card\.is-doubled\{/);
- assert.match(css,/background:#26273b;border-color:#9f77cb/);
- assert.match(css,/box-shadow:inset 3px 0 0 #cda2fa/);
- assert.match(css,/\\.lab-doubler-plan-status\\.is-doubled\\{/);
- assert.match(css,/\\.lab-doubler-plan-status \\.lab-doubler-plan-icon\\{/);
+ for(const id of ["labDoublerTags","labDoublerAddCategory","labDoublerCategoryMenu",
+  "labDoublerHideDoubled","labDoublerAdvice"])
+  assert.equal(html.split('id="'+id+'"').length-1,1);
+ assert.ok(!html.includes('id="labDoublerGoal"'));
+ assert.ok(ui.includes('doublerGoals=["knowledge"]'));
+ assert.ok(ui.includes('getDoublerPlacementPlan(save(),doublerGoals)'));
+ assert.ok(ui.includes('doublerGoals=[...doublerGoals,option.value]'));
+ assert.ok(ui.includes('doublerGoals=doublerGoals.filter(value=>value!==id)'));
+ assert.ok(ui.includes('visible=plan.recommendations.filter(u=>!doublerHideDoubled||!u.doubled)'));
+ assert.ok(ui.includes('doublerHideDoubled=doublerHideInput.checked'));
+ assert.ok(ui.includes('renderDoublerTags()'));
+ assert.ok(css.includes('.lab-doubler-tag-row'));
+ assert.ok(css.includes('.lab-doubler-category-menu.hidden'));
+ assert.ok(css.includes('.lab-doubler-hide-toggle input'));
+});
+
+test("Already-doubled upgrades retain purple catalog treatment and existing Doubler icon",()=>{
+ const ui=readFileSync(new URL("../src/lab-ui.mjs",import.meta.url),"utf8");
+ const css=readFileSync(new URL("../styles.css",import.meta.url),"utf8");
+ assert.ok(ui.includes('u.doubled?" is-doubled"'));
+ assert.ok(ui.includes('u.doubled?"×2 Active"'));
+ assert.ok(ui.includes('doublerIcon("lab-doubler-plan-icon")'));
+ assert.ok(ui.includes('badge.append(el("span","",status))'));
+ assert.ok(ui.includes('u.status==="Use available"?"Available"'));
+ assert.ok(ui.includes('u.status==="Level first"?"Level first":"Not doubled"'));
+ assert.ok(!ui.includes('No guaranteed unused Doublers in the save'));
+ assert.ok(css.includes('.lab-doubler-plan-card.is-doubled{'));
+ assert.ok(css.includes('background:#26273b;border-color:#9f77cb'));
+ assert.ok(css.includes('box-shadow:inset 3px 0 0 #cda2fa'));
+ assert.ok(css.includes('.lab-doubler-plan-status.is-doubled{'));
+ assert.ok(css.includes('.lab-doubler-plan-status .lab-doubler-plan-icon{'));
  const plan=getDoublerPlacementPlan(scenario(),"knowledge");
  assert.equal(plan.recommendations[0].doubled,true);
  assert.equal(plan.recommendations[0].status,"Keep");
