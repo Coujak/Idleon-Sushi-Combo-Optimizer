@@ -23,7 +23,8 @@ const $=id=>document.getElementById(id);
 import {BOARD_COLUMNS,BOARD_CELLS,normalizeBoardData,layoutOptions} from "./board-geometry.mjs?v=1.42.0";
 import {windTierMaximum,clampWindTier,windTierAfterPreparedChange} from "./wind-limit.mjs?v=1.9.10";
 import {detectSushiProgress} from "./sushi-progression.mjs?v=1.17.0";
-import {initializeSushiLab} from "./lab-ui.mjs?v=1.50.8";
+import {initializeSushiLab} from "./lab-ui.mjs?v=1.50.9";
+import {formatCompactNumber} from "./number-format.mjs?v=1.0.0";
 import {parseSushiCurrencyExternal} from "./sushi-currency-external.mjs?v=1.0.0";
 import {sushiTierIconPath} from "./sushi-reference.mjs?v=1.16.6";
 import {countOverviewPlates,overviewTileInfo} from "./overview-helpers.mjs?v=1.19.9";
@@ -41,7 +42,7 @@ function setComboScoreBubble(running,score=null){
  const bubble=$("solverScoreBubble");
  bubble.classList.remove("hidden");
  $("solverScoreLabel").textContent=running?"Best score so far:":"Estimated combo score:";
- $("solverScore").textContent=Number.isFinite(score)?score.toLocaleString():"—";
+ $("solverScore").textContent=Number.isFinite(score)?formatCompactNumber(score):"—";
 }
 function cancelRunningSearch(){activeSearch?.abort();}
 function disposeReplay(){replayCleanup();replayCleanup=()=>{};}
@@ -575,21 +576,21 @@ async function showSolver(signal,foundId=null,savedOnly=false){
   const statsUpdate=()=>{
    if(!dualSplit)return;
    const initial=previousRecord?.search?.score??null;
-   $("researchSavedBest").textContent=overallWinner?.search?.score?.toLocaleString()??"—";
-   $("researchRunBest").textContent=runBest?.toLocaleString()??"—";
-   $("researchLifetime").textContent=(researchState.checkedBefore+evaluatedCount).toLocaleString();
-   $("researchRunCount").textContent=evaluatedCount.toLocaleString();
-   $("researchSkipped").textContent=researchState.checkedBefore.toLocaleString();
+   $("researchSavedBest").textContent=formatCompactNumber(overallWinner?.search?.score,{unavailable:"—"});
+   $("researchRunBest").textContent=formatCompactNumber(runBest,{unavailable:"—"});
+   $("researchLifetime").textContent=formatCompactNumber(researchState.checkedBefore+evaluatedCount);
+   $("researchRunCount").textContent=formatCompactNumber(evaluatedCount);
+   $("researchSkipped").textContent=formatCompactNumber(researchState.checkedBefore);
    $("researchImprovement").textContent=initial===null?
     (runBest===null?"—":"New record"):(overallWinner?.search?
-    "+"+Math.max(0,overallWinner.search.score-initial).toLocaleString():"—");
+    "+"+formatCompactNumber(Math.max(0,overallWinner.search.score-initial)):"—");
   };
   statsUpdate();
   if(dualSplit){
     $("researchHistoryStatus").textContent=
-     researchState.checkedBefore.toLocaleString()+" previously evaluated boards for these game settings · "+
-     total.toLocaleString()+" new preparations this run · "+
-     (solution?"Best saved score: "+solution.search.score.toLocaleString():"No saved best yet")+
+     formatCompactNumber(researchState.checkedBefore)+" previously evaluated boards for these game settings · "+
+     formatCompactNumber(total)+" new preparations this run · "+
+     (solution?"Best saved score: "+formatCompactNumber(solution.search.score):"No saved best yet")+
      (researchState.persistent?". Results remain on this device.":" · Browser storage unavailable; history lasts only until this page closes.");
   }
   $("optimizerSingleProgress").classList.toggle("hidden",dualSplit);
@@ -803,11 +804,11 @@ async function showSolver(signal,foundId=null,savedOnly=false){
   if(!solution||!solution.search)throw Error("No valid preparations for these tier settings.");
   if(dualSplit){
     $("researchHistoryStatus").textContent=
-      (researchState.checkedBefore+evaluatedCount).toLocaleString()+
+      formatCompactNumber(researchState.checkedBefore+evaluatedCount)+
       " boards evaluated across sessions for these game settings · "+
-      "Saved best verified score: "+(overallWinner?.search?.score??solution.search.score).toLocaleString()+
+      "Saved best verified score: "+formatCompactNumber(overallWinner?.search?.score??solution.search.score)+
       (showCurrentRun?
-       " · Showing this run's best: "+solution.search.score.toLocaleString():
+       " · Showing this run's best: "+formatCompactNumber(solution.search.score):
        savedOnly?" · Viewing saved best":
        evaluatedCount===0?" · No new boards; showing saved best":"")+
       (researchState.persistent?" · Saved in this browser.":" · Session-only memory.");
@@ -1113,7 +1114,7 @@ async function showSolver(signal,foundId=null,savedOnly=false){
     }
   }
   function completedScore(move){
-    scoreLine.textContent="Combo Meter: "+cumulative[selected].toLocaleString()+" points"+
+    scoreLine.textContent="Combo Meter: "+formatCompactNumber(cumulative[selected])+" points"+
       (move?(move.kind==="move"?" · Reposition · +0":" · This merge: +"+move.score):
        " · Ready to begin");
   }
@@ -1218,8 +1219,8 @@ async function showSolver(signal,foundId=null,savedOnly=false){
   addStep("Step 0 · Prepared board","All sushi positioned; combo not started",0);
   replayGuide.forEach((item,i)=>{
     addStep("Step "+item.step+" · "+item.action+" · "+item.short,
-      "+"+item.score.toLocaleString()+" pts · "+item.windUpgrades+
-      " Wind · Total "+cumulative[i+1].toLocaleString()+
+      "+"+formatCompactNumber(item.score)+" pts · "+item.windUpgrades+
+      " Wind · Total "+formatCompactNumber(cumulative[i+1])+
       " · "+(timing.events[i].safe?"Timing OK":"Timeout risk"),item.step);
   });
   function showPlaybackState(playing){
@@ -1288,11 +1289,11 @@ async function showSolver(signal,foundId=null,savedOnly=false){
   copySteps.addEventListener("click",async()=>{
     const lines=["Sushi Station · Combo Meter replay",
       "Starting prepared board: "+solution.board.join(","),
-      "Total simulated score: "+result.score.toLocaleString()+" points",""];
+      "Total simulated score: "+formatCompactNumber(result.score)+" points",""];
     replayGuide.forEach((item,index)=>{
       lines.push("Step "+item.step+": "+item.instruction);
       lines.push("  "+item.outcome+" · Running total: "+
-        cumulative[index+1].toLocaleString()+" points");
+        formatCompactNumber(cumulative[index+1])+" points");
     });
     const body=lines.join("\n");
     try{
@@ -1334,7 +1335,7 @@ function initModePicker(){
  for(const entry of FOUND_CONFIGURATIONS){
   const option=document.createElement("option");
   option.value=entry.id;
-  option.textContent=entry.name+" · "+entry.benchmark.toLocaleString()+" simulated pts";
+  option.textContent=entry.name+" · "+formatCompactNumber(entry.benchmark)+" simulated pts";
   found.append(option);
  }
  found.value=FOUND_CONFIGURATIONS.some(entry=>entry.id===oldFound)?oldFound:"";
@@ -1361,7 +1362,7 @@ function updateOptimizerModeHint(){
  const preview=tier>64&&tier>discovered;
  $("optimizerModeBenchmark").textContent=info.benchmark===null?
   (info.kind==="split"?"Search at your settings":info.id==="adaptive"?"Simulated at your settings":preview?"Future-tier preview":"Flexible setups"):
-  (preview?"Historical T64 benchmark: ":"")+info.benchmark.toLocaleString()+" simulated pts";
+  (preview?"Historical T64 benchmark: ":"")+formatCompactNumber(info.benchmark)+" simulated pts";
  $("optimizerModeHint").textContent=info.summary+(preview?
   " Above-T64 tiers have not been confirmed in this save. Historical experiment benchmarks remain T64/T58 only.":"");
  const isCustom=info.id==="optimizer5";
@@ -1375,7 +1376,7 @@ function updateOptimizerModeHint(){
   ...comboSplitPercentages(resolution,"engine")]);
  $("customSearchEstimate").textContent=budget?
   ratios.size+" unique splits × "+budget+" distinct configurations = up to "+
-  (ratios.size*budget).toLocaleString()+" preparations per slot arrangement. Actual counts can be lower where the search cannot generate enough unique boards.":
+  formatCompactNumber(ratios.size*budget)+" preparations per slot arrangement. Actual counts can be lower where the search cannot generate enough unique boards.":
   "Enter a whole number between 1 and 1,000.";
  for(const row of $("modeComparisonRows").rows)row.classList.toggle("is-selected",row.dataset.mode===info.id);
 }
@@ -1448,7 +1449,7 @@ $("exportResearch").addEventListener("click",async()=>{
   document.body.append(link);link.click();link.remove();
   setTimeout(()=>URL.revokeObjectURL(url),1000);
   $("researchHistoryStatus").textContent="Exported "+
-   payload.checked.length.toLocaleString()+" board fingerprints and "+
+   formatCompactNumber(payload.checked.length)+" board fingerprints and "+
    payload.best.length+" saved best configurations. No account data included.";
  }catch(error){
   $("researchHistoryStatus").textContent="Research export failed: "+String(error.message??error);
@@ -1466,7 +1467,7 @@ $("importResearch").addEventListener("change",async event=>{
   const data=JSON.parse(await file.text());
   const result=await importResearchData(data,verifyImportedResearchBest);
   $("researchHistoryStatus").textContent="Imported "+
-   result.checked.toLocaleString()+" evaluated board fingerprints and "+
+   formatCompactNumber(result.checked)+" evaluated board fingerprints and "+
    result.best+" validated best configurations. Run the optimizer to use them.";
  }catch(error){
   $("researchHistoryStatus").textContent="Research import failed: "+String(error.message??error);
