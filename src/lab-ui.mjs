@@ -1009,7 +1009,7 @@ export function initializeSushiLab(getSave){
    for(const segment of rewardText.split(/([+-]?\d+(?:\.\d+)?(?:×|x|%)?)/g)){
     if(!segment)continue;
     const isValue=/^[+-]?\d+(?:\.\d+)?(?:×|x|%)?$/.test(segment);
-    tierReward.append(el("span",isValue?"lab-knowledge-tier-value":"lab-knowledge-tier-reward-text",segment));
+    tierReward.append(el("span",isValue?"lab-knowledge-value-pill lab-knowledge-tier-value"+(k.perfecto?" is-perfecto":""):"lab-knowledge-tier-reward-text",segment));
    }
    tierReward.title="Permanent tier reward"+(k.discovered?" · discovered":" · reference only");
    info.append(name,tierReward);
