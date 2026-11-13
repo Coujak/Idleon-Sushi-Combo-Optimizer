@@ -361,8 +361,20 @@
  <div class="lab-result-list lab-advisor-list" id="labAdvisorResults"></div>
 </div>
 <div id="lab-upgrade-doubler" class="hidden" role="tabpanel" aria-hidden="true">
-<div class="lab-toolbar lab-doubler-toolbar"><label>Category <select id="labDoublerGoal"></select></label></div>
-<p class="hint lab-disclaimer">Choose one focus to view only its Doubler-eligible upgrades. The number of options depends on the category, not on how many Doublers you own. Assignment advice uses your imported save and never changes it.</p>
+<div class="lab-doubler-filters">
+ <div class="lab-doubler-category-field">
+  <span id="labDoublerCategoryLabel" class="lab-doubler-filter-label">Categories</span>
+  <div class="lab-doubler-tag-row">
+   <div id="labDoublerTags" class="lab-doubler-tags" role="group" aria-labelledby="labDoublerCategoryLabel"></div>
+   <div class="lab-doubler-add-wrap">
+    <button id="labDoublerAddCategory" type="button" class="lab-doubler-add" aria-label="Add category" aria-controls="labDoublerCategoryMenu" aria-expanded="false">+ <span>Add category</span></button>
+    <div id="labDoublerCategoryMenu" class="lab-doubler-category-menu hidden" role="group" aria-label="Available Doubler categories"></div>
+   </div>
+  </div>
+ </div>
+ <label class="lab-doubler-hide-toggle"><input id="labDoublerHideDoubled" type="checkbox"> Hide already doubled</label>
+</div>
+<p class="hint lab-disclaimer">Add or remove category tags to view their eligible upgrades together. Check "Hide already doubled" to focus on remaining options. Doubler assignments and upgrade levels are never changed.</p>
 <div id="labDoublerAdvice" class="lab-doubler-advice" aria-live="polite"></div>
 </div>
 
