@@ -5,10 +5,10 @@ import {initializePerfectoUI} from "./perfecto-ui.mjs?v=1.36.0";
 import {CATALOG_SORT_OPTIONS,CATALOG_STATUS_OPTIONS,upgradeSummary,readableUpgradeDescription,upgradeDescriptionSegments,catalogHasVariableValues,filterSortCatalog,upgradeCatalogDollarValue} from "./upgrade-catalog.mjs?v=1.16.7";
 import {ADVISOR_GOALS,numberText,getSushiSnapshot,getUpgradeRows,
  getKnowledgeRows,advisorUpgrades,getSushiDoublerCounts,sushiUpgradeExtraText,upgradeAffordability} from "./lab-model.mjs?v=1.19.10";
-import {getProgressionAdvice,PROGRESSION_SORT_OPTIONS,PROGRESSION_FILTER_OPTIONS} from "./progression-advisor.mjs?v=1.16.8";
+import {getProgressionAdvice,PROGRESSION_SORT_OPTIONS,PROGRESSION_FILTER_OPTIONS} from "./progression-advisor.mjs?v=1.17.0";
 import {DOUBLER_FOCUS_OPTIONS,DOUBLER_SORT_OPTIONS,getDoublerPlacementPlan,getDoublerValueComparison} from "./doubler-advisor.mjs?v=1.5.0";
 import {getDoublerAccountImpact} from "./doubler-stat-impact.mjs?v=1.3.0";
-import {buildProgressionPurchasePlan} from "./progression-roadmap.mjs?v=1.16.8";
+import {buildProgressionPurchasePlan} from "./progression-roadmap.mjs?v=1.17.0";
 import {parseGameQuantity} from "./progression-calibration.mjs?v=1.16.3";
 import {overviewTierProgress,importAgeText} from "./overview-helpers.mjs?v=1.19.9";
 import {fireplaceOverviewAdvice,formatSparkBonusPoints} from "./fireplace-advice.mjs?v=1.2.0";
@@ -53,7 +53,7 @@ let setTab=()=>{};
 export function initializeSushiLab(getSave){
  let mainTab="overview",upgradeTab="catalog",goal="bucks",doublerGoals=["knowledge"];
  let doublerHideDoubled=false,doublerMenuOpen=false,doublerSort="best";
- let advisorSort="recommended",advisorFilter="all",purchaseView="cards";
+ let advisorSort="recommended",advisorFilter="all",advisorVisibleCount="all",purchaseView="cards";
  let catalogSort="shop",catalogCategory="all",catalogStatus="all";
  let importedAt=null;
  const missingListExpanded={labMissingPerfectos:false,labMissingTiers:false};
@@ -160,6 +160,10 @@ export function initializeSushiLab(getSave){
  });
  const advisorSortInput=$("labAdvisorSort"),advisorFilterInput=$("labAdvisorFilter");
  const advisorMaxedInput=$("labAdvisorShowMaxed");
+ const advisorVisibleInput=$("labAdvisorVisibleCount");
+ advisorVisibleInput.addEventListener("change",()=>{
+  advisorVisibleCount=advisorVisibleInput.value;renderAdvisor();
+ });
  for(const item of PROGRESSION_SORT_OPTIONS)advisorSortInput.append(new Option(item.label,item.value));
  for(const item of PROGRESSION_FILTER_OPTIONS)advisorFilterInput.append(new Option(item.label,item.value));
  advisorSortInput.value=advisorSort;advisorFilterInput.value=advisorFilter;
@@ -620,6 +624,14 @@ export function initializeSushiLab(getSave){
   const benefit=el("div","lab-advisor-benefit");
   benefit.append(el("span","","NEXT LEVEL BENEFIT"),el("strong","",u.effect.label));
   item.append(benefit);
+  const goalImpact=el("div","lab-advisor-modeled-impact");
+  goalImpact.append(el("span","","GOAL IMPACT · "+(u.impactEstimated?"PARTIAL MODEL":"MODELED")),
+   el("strong","",u.impactText));
+  if(u.impactRankable&&u.impactBefore&&u.impactAfter){
+   goalImpact.append(el("small","",u.impactBefore+" → "+u.impactAfter));
+  }
+  goalImpact.append(el("small","",u.impactNote));
+  item.append(goalImpact);
   if(featured){
    item.append(el("p","lab-advisor-reason",u.reason+" "+u.budgetNote));
    if(!u.exactCost)item.append(el("p","lab-advisor-price-note",
@@ -760,8 +772,12 @@ export function initializeSushiLab(getSave){
   // The recommended purchase is already featured. List other candidates
   // under the requested filters without repeating the same upgrade.
   const alternatives=advice.rows.filter(u=>u.id!==advice.best?.id);
-  count.textContent=alternatives.length+" alternatives"+(advisorFilter==="all"?"":" in this filter");
-  for(const u of alternatives)root.append(advisorDetail(u,false));
+  const visibleLimit=advisorVisibleCount==="all"?Infinity:Number(advisorVisibleCount);
+  const shown=alternatives.slice(0,Number.isFinite(visibleLimit)&&visibleLimit>0?visibleLimit:Infinity);
+  count.textContent=shown.length===alternatives.length?
+   alternatives.length+" alternatives"+(advisorFilter==="all"?"":" in this filter"):
+   "Showing "+shown.length+" of "+alternatives.length+" alternatives";
+  for(const u of shown)root.append(advisorDetail(u,false));
   if(!alternatives.length)root.append(el("p","hint",
    "No other upgrades match these filters. Change the goal or filters to compare more options."));
  }
