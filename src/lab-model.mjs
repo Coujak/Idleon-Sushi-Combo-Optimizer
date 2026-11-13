@@ -1,5 +1,5 @@
 import {SUSHI_UPGRADES,SUSHI_KNOWLEDGE,KNOWLEDGE_CATEGORIES,ELIGIBLE_DOUBLERS} from "./sushi-reference.mjs?v=1.16.6";
-import {formatCompactNumber} from "./number-format.mjs?v=1.0.0";
+import {formatCompactNumber} from "./number-format.mjs?v=1.0.1";
 import {sushiTierReward} from "./sushi-tier-rewards.mjs?v=1.0.0";
 export const ADVISOR_GOALS=[
  {id:"bucks",name:"Bucks generation"},
