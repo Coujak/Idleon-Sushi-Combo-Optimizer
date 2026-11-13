@@ -21,7 +21,7 @@ export function filterKnowledgeRows(rows,{query="",category="all",status="all",s
  const q=String(query).trim().toLowerCase();
  const selected=String(category);
  const filtered=rows.filter(k=>{
-  const search=(k.name+" "+k.tier+" t"+k.tier+" "+k.categoryName).toLowerCase();
+  const search=(k.name+" "+k.tier+" t"+k.tier+" "+k.categoryName+" "+(k.tierReward??"")).toLowerCase();
   if(q&&!search.includes(q))return false;
   if(selected!=="all"&&String(k.category)!==selected)return false;
   if(status==="ready"&&!k.readyToLevel)return false;
