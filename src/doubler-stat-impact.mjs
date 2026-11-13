@@ -66,6 +66,41 @@ const incidental={
   20:"Shake N' Bake adds Fuel when a Shaker is used; it does not increase passive Fuel/hr."
  }
 };
+// Action-only effects must not be ranked as 0% benefit just because they
+// don't alter the passive hourly number displayed by the advisor.
+const actionOnly={
+ bucks:new Set([22,35]),
+ fuel:new Set([20])
+};
+const fmtGain=value=>value.toLocaleString("en-US",{maximumFractionDigits:2});
+function gainRanking(goal,upgrade,no,yes){
+ if(upgrade.level<=0)return {gainScore:null,gainText:"Level this upgrade before doubling",gainRankable:false};
+ if(actionOnly[goal]?.has(upgrade.id))return {
+  gainScore:null,gainText:"Per-use benefit · not comparable by passive rate",gainRankable:false
+ };
+ if(!finite(no.value)||!finite(yes.value))return {
+  gainScore:null,gainText:"No reliable modeled stat gain available",gainRankable:false
+ };
+ if(goal==="discount"){
+  // Discounts multiply price factors. A gain of 10 percentage points in the
+  // displayed discount is NOT the same as a 10% reduction of remaining cost.
+  const before=Math.max(0,1-no.value/100);
+  const after=Math.max(0,1-yes.value/100);
+  if(before<=0)return {gainScore:0,gainText:"No further modeled price reduction",gainRankable:true};
+  const savedPct=Math.max(0,(1-after/before)*100);
+  return {gainScore:savedPct,gainText:"≈"+fmtGain(savedPct)+"% lower upgrade cost",gainRankable:true};
+ }
+ if(goal==="perfecto"){
+  const points=Math.max(0,yes.value-no.value);
+  return {gainScore:points,gainText:"+"+fmtGain(points)+" percentage points free-use chance",gainRankable:true};
+ }
+ if(no.value<=0){
+  if(yes.value>0)return {gainScore:null,gainText:"Enables this stat · relative gain unavailable",gainRankable:false};
+  return {gainScore:0,gainText:"No modeled increase in this stat",gainRankable:true};
+ }
+ const gain=Math.max(0,(yes.value/no.value-1)*100);
+ return {gainScore:gain,gainText:"≈+"+fmtGain(gain)+"% "+names[goal],gainRankable:true};
+}
 
 export function getDoublerAccountImpact(save,upgrade,{readings={}}={}){
  if(!save||!upgrade||!Array.isArray(save.spelunk?.[52]))return null;
@@ -97,7 +132,8 @@ export function getDoublerAccountImpact(save,upgrade,{readings={}}={}){
  const note=(extra?extra+" ":"")+(measured!==null&&units[goal]?
   "Scaled from your entered current in-game rate using the modeled relative change. Other bonuses may affect the real result.":
   no.note);
+ const ranking=gainRanking(goal,upgrade,no,yes);
  return {goal,label,basis,without,withDoubler:withDoublerDisplay,
   current:upgrade.doubled?withDoublerDisplay:without,note,
-  currentSide:upgrade.doubled?"with":"without"};
+  currentSide:upgrade.doubled?"with":"without",...ranking};
 }
