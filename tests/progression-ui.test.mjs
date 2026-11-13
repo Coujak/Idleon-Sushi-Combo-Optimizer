@@ -64,7 +64,7 @@ test("Rendering a purchase plan never removes its ordered-list mount",()=>{
  const deps={
   $:id=>nodes.get(id)??null,
   el:make,save:()=>imported,
-  advisorSort:"recommended",advisorFilter:"all",advisorVisibleCount:"all",
+  goal:"fuel",advisorSort:"recommended",advisorFilter:"all",advisorVisibleCount:"all",
   advisorMaxedInput:{checked:false},purchaseView:"list",
   purchasesInput:{value:"5"},customInput:{value:"5"},
   measuredInputs:{bucks:{value:""},fuel:{value:""},capacity:{value:""}},
