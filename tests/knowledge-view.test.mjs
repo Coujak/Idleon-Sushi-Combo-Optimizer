@@ -241,14 +241,15 @@ test("Knowledge preferences restore only validated filters, without storing acco
  assert.match(ui,/localStorage\.setItem\(KNOWLEDGE_PREFERENCES_KEY/);
  assert.ok(!ui.includes('localStorage.setItem("account'));
 });
-test("Knowledge table headers share dropdown sorting and expose accessible sticky headers",()=>{
+test("Knowledge table headers share dropdown sorting with natural page scrolling",()=>{
  const html=readFileSync(new URL("../index.html",import.meta.url),"utf8");
  const css=readFileSync(new URL("../styles.css",import.meta.url),"utf8");
  const ui=readFileSync(new URL("../src/lab-ui.mjs",import.meta.url),"utf8");
  assert.equal((html.match(/data-knowledge-sort=/g)||[]).length,4);
- assert.match(html,/lab-knowledge-scroll" role="region" tabindex="0"/);
- assert.match(css,/#lab-knowledge \.lab-knowledge-table thead th\{/);
- assert.match(css,/position:sticky/);
+ assert.match(html,/<div class="lab-table-wrap">\s*<table class="lab-data-table lab-knowledge-table"/);
+ assert.doesNotMatch(html,/lab-knowledge-scroll/);
+ assert.doesNotMatch(css,/#lab-knowledge \.lab-knowledge-table thead th\{\s*position:sticky/);
+ assert.doesNotMatch(css,/#lab-knowledge \.lab-knowledge-scroll/);
  assert.match(css,/#lab-knowledge \.lab-knowledge-sort-button:focus-visible/);
  assert.match(ui,/nextKnowledgeHeaderSort\(knowledgeSort/);
  assert.match(ui,/setAttribute\("aria-sort",state\)/);
