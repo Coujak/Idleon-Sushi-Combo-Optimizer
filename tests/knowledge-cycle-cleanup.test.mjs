@@ -35,7 +35,8 @@ test("Orphan Sushi cannot be deleted or marked repeatable",()=>{
 test("Cleanup never consumes permanently preserved high-tier Sushi",()=>{
  const input=[64,64,63,63],slots=[0,0,0,0];
  const result=finishSushiBoard(input,slots,0,0,[0,1]);
- assert.equal(result.repeatable,false);
+ assert.equal(result.repeatable,true);
+ assert.deepEqual(result.board,[64,64,0,0]);
  assert.equal(result.board[0],64);
  assert.equal(result.board[1],64);
  assert.ok(result.moves.every(x=>x.src!==0&&x.src!==1));
