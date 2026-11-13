@@ -422,8 +422,8 @@
 </section></div>
 <div id="lab-knowledge" class="lab-tab-content hidden" role="tabpanel" aria-label="Knowledge" aria-hidden="true">
 <section class="panel">
- <div class="heading"><div><div class="eyebrow">SUSHI STATION · KNOWLEDGE</div><h2>Knowledge & tier rewards</h2></div><span class="status">64 Sushi tiers</span></div>
- <p class="hint">See the permanent reward from discovering each Sushi tier alongside its separate, level-based Knowledge effect. Your imported save supplies current Knowledge levels, EXP, and Perfecto status.</p>
+ <div class="heading"><div><div class="eyebrow">SUSHI STATION · KNOWLEDGE</div><h2>Knowledge overview</h2></div><span class="status">64 Sushi tiers</span></div>
+ <p class="hint">See each Sushi tier's Knowledge effect, level, EXP progress, and current versus next bonus. The ✦ on a Sushi icon marks a Perfecto. Hover the tier name to view its separate permanent discovery reward.</p>
  <div id="labKnowledgeOverview" class="lab-knowledge-overview" role="status" aria-live="polite"></div>
  <div class="lab-knowledge-categories-head"><h3>Knowledge effects</h3><span class="hint">Select an effect to filter the Sushi list.</span></div>
  <div id="labKnowledgeCategoryChips" class="lab-knowledge-categories" aria-label="Filter Sushi tiers by Knowledge effect"></div>
@@ -436,14 +436,13 @@
   <label>Sort by <select id="labKnowledgeSort" aria-label="Sort Knowledge tiers"></select></label>
  </div>
  <div class="lab-table-wrap">
-  <table class="lab-data-table lab-knowledge-table" aria-label="Sushi tier rewards and Knowledge bonuses">
-   <thead><tr><th scope="col">Sushi tier</th><th scope="col">Tier reward · permanent</th><th scope="col">Knowledge level</th>
-    <th scope="col">EXP to next level</th><th scope="col">Knowledge bonus · current / next</th>
-    <th scope="col">Perfecto</th></tr></thead>
+  <table class="lab-data-table lab-knowledge-table" aria-label="Sushi Knowledge levels, EXP and bonuses">
+   <thead><tr><th scope="col">Sushi tier / effect</th><th scope="col">Knowledge level</th>
+    <th scope="col">EXP to next level</th><th scope="col">Knowledge bonus · current / next</th></tr></thead>
    <tbody id="labKnowledgeRows"></tbody>
   </table>
  </div>
  <p id="labKnowledgeEmpty" class="hint lab-empty-state hidden">No Sushi tiers match the selected filters.</p>
- <p class="hint lab-disclaimer">Tier rewards are reference effects associated with discovering a new Sushi type; their activation also depends on in-game unlocks. They are separate from level-based Knowledge effects. Knowledge values use pinned formulas and include Perfecto when unlocked; undiscovered tiers show a base Lv 1 preview only. “Ready to level” means imported EXP reaches the next-level requirement, not an automatic level-up. Missing save data remains unavailable.</p>
+ <p class="hint lab-disclaimer">Knowledge effects and numeric bonuses use pinned formulas and include the 2× Perfecto effect where unlocked. The ✦ icon marks Perfectos; permanent discovery rewards are available by hovering the Sushi name. Undiscovered tiers show a base Lv 1 preview only. “Ready to level” means imported EXP reaches the next-level requirement, not an automatic level-up. Missing save data remains unavailable.</p>
 </section></div>
 </main><script type="module" src="src/app.js?v=1.50.10"></script></body></html>
