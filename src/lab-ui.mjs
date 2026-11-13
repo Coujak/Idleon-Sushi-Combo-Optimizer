@@ -6,7 +6,8 @@ import {CATALOG_SORT_OPTIONS,CATALOG_STATUS_OPTIONS,upgradeSummary,readableUpgra
 import {ADVISOR_GOALS,numberText,getSushiSnapshot,getUpgradeRows,
  getKnowledgeRows,advisorUpgrades,getSushiDoublerCounts,sushiUpgradeExtraText,upgradeAffordability} from "./lab-model.mjs?v=1.19.10";
 import {getProgressionAdvice,PROGRESSION_SORT_OPTIONS,PROGRESSION_FILTER_OPTIONS} from "./progression-advisor.mjs?v=1.16.6";
-import {DOUBLER_FOCUS_OPTIONS,getDoublerPlacementPlan,getDoublerValueComparison} from "./doubler-advisor.mjs?v=1.3.0";
+import {DOUBLER_FOCUS_OPTIONS,getDoublerPlacementPlan,getDoublerValueComparison} from "./doubler-advisor.mjs?v=1.4.0";
+import {getDoublerAccountImpact} from "./doubler-stat-impact.mjs?v=1.0.0";
 import {buildProgressionPurchasePlan} from "./progression-roadmap.mjs?v=1.16.7";
 import {parseGameQuantity} from "./progression-calibration.mjs?v=1.16.3";
 import {overviewTierProgress,importAgeText} from "./overview-helpers.mjs?v=1.19.9";
@@ -212,7 +213,7 @@ export function initializeSushiLab(getSave){
   capacity:$("labAdvisorMeasuredCapacity")
  };
  for(const input of Object.values(measuredInputs))
-  input.addEventListener("change",renderAdvisor);
+  input.addEventListener("change",()=>{renderAdvisor();renderDoubler();});
 
  const categoryInput=$("labUpgradeCategory");
  const statusInput=$("labUpgradeStatus");
@@ -796,6 +797,8 @@ export function initializeSushiLab(getSave){
    return;
   }
   const grid=el("div","lab-doubler-plan-grid");
+  const readings=Object.fromEntries(Object.entries(measuredInputs).map(([key,input])=>
+   [key,input.value.trim()]));
   for(const u of visible){
    const isAction=u.status!=="Keep"&&u.status!=="Level first";
    const card=el("article","lab-doubler-plan-card"+(u.doubled?" is-doubled":isAction?" is-change":""));
@@ -819,18 +822,27 @@ export function initializeSushiLab(getSave){
    head.append(identity,badge);
    card.append(head,el("p","lab-doubler-plan-reason",u.reason));
    const value=getDoublerValueComparison(u);
+   const impact=getDoublerAccountImpact(save(),u,{readings});
    const values=el("div","lab-doubler-values");
    for(const option of [
-    {label:"Without Doubler",amount:value.normal,active:!u.doubled},
+    {label:"Without Doubler",amount:value.normal,active:!u.doubled,
+     account:impact?.without},
     {label:u.doubled?"With Doubler · Active":"With Doubler · Potential",
-     amount:value.doubled,active:u.doubled}
+     amount:value.doubled,active:u.doubled,account:impact?.withDoubler}
    ]){
     const metric=el("div","lab-doubler-value"+(option.active?" is-current":"")+
      (u.doubled&&option.active?" is-doubled":""));
     metric.append(el("small","",option.label),el("strong","",option.amount));
+    if(impact){
+     const account=el("div","lab-doubler-account-stat");
+     account.append(el("small","",impact.label),
+      el("strong","",option.account));
+     metric.append(account);
+    }
     values.append(metric);
    }
    card.append(values,el("p","lab-doubler-value-caption",value.label+" · "+value.note));
+   if(impact)card.append(el("p","lab-doubler-impact-note",impact.basis+" · "+impact.note));
    const detail={
     "Keep":"Already doubled. No change needed.",
     "Use available":"You can assign an unused Doubler here.",
