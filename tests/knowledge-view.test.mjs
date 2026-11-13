@@ -145,8 +145,11 @@ test("Knowledge tab actually renders imported tiers, ready filter and missing-sa
  assert.match(firstBonus.children[1].textContent,/Next Lv 6: \+.*Sushi Bucks/,
   "Next Knowledge level shows its upgraded effect");
  const perfectoIdentity=nodes.get("labKnowledgeRows").children[1].children[0].children[0];
- assert.equal(perfectoIdentity.children[0].children[1].className,
-  "lab-knowledge-perfecto-emblem","Perfecto mark overlays the Sushi icon");
+ const perfectoMark=perfectoIdentity.children[0].children[1];
+ assert.equal(perfectoMark.tag,"img","Perfecto overlay uses existing PNG");
+ assert.equal(perfectoMark.className,"lab-knowledge-perfecto-emblem");
+ assert.equal(perfectoMark.src,"assets/Perfecto_Symbol.png");
+ assert.equal(perfectoMark.alt,"Perfecto");
  assert.equal(firstIdentity.children[0].children.length,1,
   "Non-Perfecto Sushi should have no achievement symbol");
  assert.equal(nodes.get("labKnowledgeOverview").children.length,4);
