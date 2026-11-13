@@ -8,7 +8,7 @@ import {ADVISOR_GOALS,numberText,getSushiSnapshot,getUpgradeRows,
 import {getProgressionAdvice,PROGRESSION_SORT_OPTIONS,PROGRESSION_FILTER_OPTIONS} from "./progression-advisor.mjs?v=1.17.1";
 import {DOUBLER_FOCUS_OPTIONS,DOUBLER_SORT_OPTIONS,getDoublerPlacementPlan,getDoublerValueComparison} from "./doubler-advisor.mjs?v=1.5.0";
 import {getDoublerAccountImpact} from "./doubler-stat-impact.mjs?v=1.3.0";
-import {buildProgressionPurchasePlan} from "./progression-roadmap.mjs?v=1.17.0";
+import {buildProgressionPurchasePlan,groupProgressionPurchases} from "./progression-roadmap.mjs?v=1.17.2";
 import {parseGameQuantity} from "./progression-calibration.mjs?v=1.16.3";
 import {overviewTierProgress,importAgeText} from "./overview-helpers.mjs?v=1.19.9";
 import {fireplaceOverviewAdvice,formatSparkBonusPoints} from "./fireplace-advice.mjs?v=1.2.0";
@@ -733,38 +733,66 @@ export function initializeSushiLab(getSave){
   }
 
   const iconMap=new Map(advice.all.map(u=>[u.id,u]));
-  for(const step of plan.steps){
-   const item=el("li","lab-advisor-purchase-step"+(step.number===1?" is-next":""));
-   const number=el("span","lab-advisor-purchase-number",String(step.number));
+  // Preserve the full purchase sequence and totals, but show adjacent
+  // purchases of the same upgrade as one easy-to-read level range.
+  for(const group of groupProgressionPurchases(plan.steps)){
+   const item=el("li","lab-advisor-purchase-step"+(group.firstNumber===1?" is-next":""));
+   const number=el("span","lab-advisor-purchase-number",
+    group.count>1?group.firstNumber+"–"+group.lastNumber:String(group.firstNumber));
    const identity=el("div","lab-advisor-purchase-identity");
-   const iconUpgrade=iconMap.get(step.id);
+   const iconUpgrade=iconMap.get(group.id);
    if(iconUpgrade)identity.append(upgradeArtwork(iconUpgrade));
    const copy=el("div","lab-advisor-purchase-copy");
-   copy.append(el("strong","",step.name),
-    el("small","","Lv "+fmt(step.fromLevel)+" → "+fmt(step.toLevel)+
-     (step.doubled?" · Doubled":"")));
+   copy.append(el("strong","",group.name),
+    el("small","","Lv "+fmt(group.fromLevel)+" → "+fmt(group.toLevel)+
+     (group.count>1?" · "+group.count+" levels":"")+
+     (group.doubled?" · Doubled":"")));
    identity.append(copy);
+
    const price=el("div","lab-advisor-purchase-price");
-   price.append(el("strong","",numberDisplay(step.price)+" Bucks"),
-    el("small","",step.exactPrice?"Estimated cost":"Upper cost estimate"));
-   const action=el("div","lab-advisor-purchase-status "+(step.fundedByImport?
+   price.append(el("strong","",numberDisplay(group.totalCost)+" Bucks"),
+    el("small","",group.count>1?"Combined cost"+(!group.exactPrice?" · upper estimate":""):
+     group.exactPrice?"Estimated cost":"Upper cost estimate"));
+
+   const fullyFunded=group.fundedCount===group.count;
+   const action=el("div","lab-advisor-purchase-status "+(fullyFunded?
     "lab-advisor-purchase-ready":"lab-advisor-purchase-save"));
-   const actionText=step.fundedByImport?"Affordable now":
-    step.missingBucks>0?"Save "+numberDisplay(step.missingBucks)+" more":"After earlier steps";
+   const actionText=fullyFunded?"Affordable now":
+    group.totalMissingBucks>0?
+    (group.fundedCount>0?group.fundedCount+"/"+group.count+" affordable · ":"")+
+     "Save "+numberDisplay(group.totalMissingBucks)+" Bucks":
+    "After earlier steps";
    action.append(el("strong","",actionText));
+
    const detail=el("details","lab-advisor-step-details");
    detail.open=purchaseView==="cards";
-   const trigger=el("summary","","Stat change");
+   detail.append(el("summary","",
+    group.count>1?"View "+group.count+" individual purchases":"Stat change"));
    const change=el("div","lab-advisor-step-result");
    const values=el("div","lab-advisor-step-result-values");
-   values.append(el("span","",step.goalResult.current),
+   values.append(el("span","",group.goalResult.current),
     el("span","lab-advisor-step-result-arrow","→"),
-    el("strong","",step.goalResult.projected));
-   change.append(el("span","lab-advisor-step-result-label",step.goalResult.label),values);
-   if(!step.goalResult.changed)change.append(el("small","",
-    "No quantified change in this partial model. "+step.nextLevelEffect));
-   else change.append(el("small","",step.nextLevelEffect));
-   detail.append(trigger,change);
+    el("strong","",group.goalResult.projected));
+   change.append(el("span","lab-advisor-step-result-label",group.goalResult.label),values);
+   if(group.count===1){
+    change.append(el("small","",group.goalResult.changed?
+     group.nextLevelEffect:"No quantified change in this partial model. "+group.nextLevelEffect));
+   }else{
+    const breakdown=el("ol","lab-advisor-group-breakdown");
+    for(const step of group.steps){
+     const line=el("li","lab-advisor-group-line");
+     line.append(el("span","","#"+step.number+" · Lv "+fmt(step.fromLevel)+" → "+fmt(step.toLevel)),
+      el("span","",numberDisplay(step.price)+" Bucks"),
+      el("span","",step.fundedByImport?"From current Bucks":
+       step.missingBucks>0?"Save "+numberDisplay(step.missingBucks):"Future step"));
+     const effect=el("small","",step.goalResult.current+" → "+step.goalResult.projected+
+      " · "+step.nextLevelEffect);
+     line.append(effect);
+     breakdown.append(line);
+    }
+    change.append(breakdown);
+   }
+   detail.append(change);
    item.append(number,identity,price,action,detail);
    purchaseList.append(item);
   }
