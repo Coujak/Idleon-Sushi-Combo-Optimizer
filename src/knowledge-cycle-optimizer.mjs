@@ -41,7 +41,9 @@ function expContext(save,options,rows,metrics,layoutFires){
  const knowledge=rows.filter(x=>x.discovered&&x.category===1&&Number.isFinite(x.bonus))
   .reduce((a,x)=>a+x.bonus,0);
  const multiplier=(1+Math.max(0,third)/100)*(1+Math.max(0,knowledge)/100);
- const raw=options.expPerCreation??(1+Math.max(0,searing));
+ // 2nd Degree Searing starts at 1.1 EXP (Lv 1), increasing by 0.1 per
+ // effective level. The optional in-game EXP input takes precedence.
+ const raw=options.expPerCreation??(1+Math.max(0,searing)/10);
  const lithiumUnlocked=Number(save?.sushi?.[2]?.[26])>0;
  // Lithium Firelighter is a 2× Knowledge EXP multiplier on Sushi above pink
  // fireplaces, including creation and passive sources (passive is not yet
@@ -284,13 +286,21 @@ export function optimizeKnowledgeCycle(save,rawOptions={}){
  }
  const uniqueFires=fireChoices.filter((choice,i,all)=>all.findIndex(
   item=>item.fires.every((fire,j)=>fire===choice.fires[j]))===i);
+ const baseline=estimateSushiFuelEconomy(save,{
+  capacityOverride:options.fuelCapacity
+ });
+ const baselineRate=baseline?.modeledGenerationPerHour??0;
  const rateFor=(board,fires)=>{
   const estimate=estimateSushiFuelEconomy({...save,
    tiles:board.map(t=>t>0?t-1:-1),fires},{
-   capacityOverride:options.fuelCapacity,
-   generationOverride:options.fuelGeneration
+   capacityOverride:options.fuelCapacity
   });
-  return estimate?.generationPerHour??0;
+  const modeled=estimate?.modeledGenerationPerHour??0;
+  // A manually entered live rate refers to the imported fireplace setup.
+  // Scale it by modeled orange-fire changes rather than treating it as a
+  // constant after switching to Lithium pink.
+  return options.fuelGeneration!==null&&baselineRate>0?
+   options.fuelGeneration*(modeled/baselineRate):modeled;
  };
  const anchorTier=Math.max(...layout.tiles);
  const protectedIndices=layout.tiles.flatMap((v,i)=>v===anchorTier&&v>0?[i]:[]);
@@ -330,9 +340,8 @@ export function optimizeKnowledgeCycle(save,rawOptions={}){
      const activeSeconds=tCook+tMerge+tClear;
      const fuelRateBeforeClearing=rateFor(sequence.finalBoard,choice.fires);
      // Weighted modeled generation while refilling, merging, and clearing.
-     const fuelRate=options.fuelGeneration??(
-      (fuelRateWhilePreparing*tCook+fuelRateWithFullBoard*tMerge+
-       fuelRateBeforeClearing*tClear)/Math.max(1,activeSeconds));
+     const fuelRate=(fuelRateWhilePreparing*tCook+fuelRateWithFullBoard*tMerge+
+      fuelRateBeforeClearing*tClear)/Math.max(1,activeSeconds);
      if(!(fuelRate>0))continue;
      const fuelWaitSeconds=fuel*3600/fuelRate;
      const cycleSeconds=Math.max(activeSeconds,fuelWaitSeconds);
@@ -384,6 +393,6 @@ export function optimizeKnowledgeCycle(save,rawOptions={}){
    totalEXP*3600/best.cycleSeconds:null,
   targetExpPerHour:best.repeatable?
    best.gains[targetTier]*3600/best.cycleSeconds:null,
-  note:"Modeled active-creation EXP only. Lithium doubles creation EXP in pink columns. Milktoast and Cold passive EXP, random cooking-tier procs and exact interaction latency are excluded. Fuel rate is adjusted for the proposed fireplace setup but remains approximate."
+  note:"Modeled active-creation EXP only. Lithium doubles EXP in pink columns, but passive Milktoast/Cold gains and random cooked-tier procs are not yet included. Estimated Fuel regeneration is scaled to the proposed fireplaces, even with a manually calibrated baseline; it remains approximate."
  };
 }
