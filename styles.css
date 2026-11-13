@@ -2837,3 +2837,5 @@ details summary{cursor:pointer;font-size:12px;font-weight:700;color:#9eb7c9}
   padding-right:8px;
  }
 }
+/* Center the rank/purchase-number headers over their numeric column. */
+#lab-upgrade-advisor .lab-advisor-column-head>span:first-child{text-align:center}
