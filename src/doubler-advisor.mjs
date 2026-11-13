@@ -2,6 +2,7 @@
 // Each focus shows exactly the upgrades eligible for that effect category.
 // Owned Doubler counts affect assignment actions, never the number of options.
 import {getUpgradeRows,getSushiDoublerCounts,numberText} from "./lab-model.mjs?v=1.19.10";
+import {getDoublerAccountImpact} from "./doubler-stat-impact.mjs?v=1.3.0";
 
 export const DOUBLER_FOCUS_OPTIONS=[
  {value:"knowledge",label:"Knowledge EXP"},
@@ -64,7 +65,14 @@ export function getDoublerValueComparison(upgrade){
   label,note:"Level-scaled effect only; other game modifiers are not included."};
 }
 
-export function getDoublerPlacementPlan(save,goal="knowledge"){
+export const DOUBLER_SORT_OPTIONS=[
+ {value:"best",label:"Best modeled gain"},
+ {value:"current",label:"Already doubled first"},
+ {value:"level",label:"Highest upgrade level"},
+ {value:"shop",label:"Upgrade catalog order"}
+];
+
+export function getDoublerPlacementPlan(save,goal="knowledge",{sort="best"}={}){
  if(!save)return null;
  // Each tag filters an independent category. Combine only the matching
  // upgrade lists; never turn this into a mixed-effect scoring category.
@@ -77,32 +85,50 @@ export function getDoublerPlacementPlan(save,goal="knowledge"){
  if(counts.used===null)return {ready:false,
   reason:"Doubler assignments are missing from this save. Import a full game save."};
  const categoryRank=u=>goals.findIndex(id=>u.goals.includes(id));
- const focusOrder=(u)=>{
+ const focusOrder=u=>{
   const category=goals[categoryRank(u)];
   return (focusPriority[category]??[]).indexOf(u.id);
  };
+ // Score by the actual modeled effect of switching this single Doubler,
+ // holding all other assignments fixed. A raw percentage on one upgrade
+ // cannot be compared with an unrelated upgrade's raw bonus.
  const upgrades=getUpgradeRows(save)
   .filter(u=>u.doublerEligible&&u.maxLevel>0&&goals.some(id=>u.goals.includes(id)))
-  .sort((a,b)=>{
-   // Group each explicitly selected category together in tag order.
-   // Within each category, keep the known effect preferences, then
-   // active Doubler assignments. Never compare unlike raw effect units.
-   const groupDiff=categoryRank(a)-categoryRank(b);
-   if(groupDiff)return groupDiff;
-   const zeroDiff=Number(a.level<=0)-Number(b.level<=0);
-   if(zeroDiff)return zeroDiff;
-   const ar=focusOrder(a),br=focusOrder(b);
-   if(ar>=0||br>=0){
-    if(ar<0)return 1;if(br<0)return -1;
-    if(ar!==br)return ar-br;
-   }
-   return Number(b.doubled)-Number(a.doubled)||b.level-a.level||a.shop-b.shop;
+  .map(u=>{
+   const impact=getDoublerAccountImpact(save,u);
+   return {...u,impact,gainScore:impact?.gainScore??null,
+    gainText:impact?.gainText??"Gain unavailable",
+    gainRankable:impact?.gainRankable===true};
   });
+ const commonOrder=(a,b)=>
+  Number(a.level<=0)-Number(b.level<=0)||
+  Number(b.doubled)-Number(a.doubled)||
+  b.level-a.level||a.shop-b.shop;
+ const modeledOrder=(a,b)=>{
+  const groupDiff=categoryRank(a)-categoryRank(b);
+  if(groupDiff)return groupDiff;
+  const zeroDiff=Number(a.level<=0)-Number(b.level<=0);
+  if(zeroDiff)return zeroDiff;
+  const unavailable=Number(b.gainRankable)-Number(a.gainRankable);
+  if(unavailable)return unavailable;
+  if(a.gainRankable&&b.gainRankable&&a.gainScore!==b.gainScore)
+   return b.gainScore-a.gainScore;
+  const ar=focusOrder(a),br=focusOrder(b);
+  if(ar>=0||br>=0){
+   if(ar<0)return 1;
+   if(br<0)return -1;
+   if(ar!==br)return ar-br;
+  }
+  return commonOrder(a,b);
+ };
+ // Placement guidance always uses modeled best-first order, even when the
+ // user switches the DISPLAY to "already doubled" or "catalog order".
+ const ranked=upgrades.slice().sort(modeledOrder);
 
  // An unknown total cannot be interpreted as zero free Doublers. Menagerie
  // totals that omit bundles/companions provide a guaranteed lower bound.
  let unusedGuaranteed=Number.isFinite(counts.available)?Math.max(0,counts.available):null;
- const recommendations=upgrades.map(u=>{
+ const prioritized=ranked.map(u=>{
   let status;
   if(u.level<=0)status="Level first";
   else if(u.doubled)status="Keep";
@@ -115,7 +141,17 @@ export function getDoublerPlacementPlan(save,goal="knowledge"){
   );
   return {...u,status,reason};
  });
- return {ready:true,goal,goals,counts,recommendations,
+ const choices=new Set(DOUBLER_SORT_OPTIONS.map(o=>o.value));
+ const displaySort=choices.has(sort)?sort:"best";
+ const recommendations=prioritized.slice();
+ if(displaySort!=="best")recommendations.sort((a,b)=>{
+  const groupDiff=categoryRank(a)-categoryRank(b);
+  if(groupDiff)return groupDiff;
+  if(displaySort==="current")return Number(b.doubled)-Number(a.doubled)||modeledOrder(a,b);
+  if(displaySort==="level")return b.level-a.level||modeledOrder(a,b);
+  return a.shop-b.shop||a.id-b.id;
+ });
+ return {ready:true,goal,goals,sort:displaySort,counts,recommendations,
   totalOptions:recommendations.length,
   actionable:recommendations.filter(u=>u.level>0).length,
   changes:recommendations.filter(u=>u.status==="Use available").length,
