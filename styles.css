@@ -2929,3 +2929,303 @@ details summary{cursor:pointer;font-size:12px;font-weight:700;color:#9eb7c9}
   grid-column:1/-1;
  }
 }
+
+/* Knowledge tab — same surfaces, form sizing, spacing and teal accents as Upgrades. */
+#lab-knowledge{
+ --knowledge-panel:#192c3b;
+ --knowledge-surface:#122a35;
+ --knowledge-head:#203548;
+ --knowledge-line:#344e5f;
+ --knowledge-muted:#aebfcd;
+ --knowledge-accent:#89d9b7;
+ --knowledge-text:#e8faf1;
+}
+#lab-knowledge .lab-knowledge-overview{
+ display:grid;
+ grid-template-columns:repeat(4,minmax(0,1fr));
+ gap:10px;
+ margin:17px 0 22px;
+}
+#lab-knowledge .lab-knowledge-overview-stat{
+ display:flex;
+ flex-direction:column;
+ gap:7px;
+ padding:15px 16px;
+ background:var(--knowledge-panel);
+ border:1px solid var(--knowledge-line);
+ border-radius:10px;
+ min-width:0;
+}
+#lab-knowledge .lab-knowledge-overview-stat>small{
+ font-size:10px;
+ font-weight:700;
+ letter-spacing:.035em;
+ color:var(--knowledge-muted);
+}
+#lab-knowledge .lab-knowledge-overview-stat>strong{
+ font-size:20px;
+ font-weight:750;
+ line-height:1.35;
+ font-variant-numeric:tabular-nums;
+ color:var(--knowledge-text);
+ overflow-wrap:anywhere;
+}
+#lab-knowledge .lab-knowledge-categories-head,
+#lab-knowledge .lab-knowledge-table-heading{
+ display:flex;
+ align-items:baseline;
+ justify-content:space-between;
+ gap:10px;
+ flex-wrap:wrap;
+ margin:19px 0 10px;
+}
+#lab-knowledge .lab-knowledge-categories-head h3,
+#lab-knowledge .lab-knowledge-table-heading h3{
+ font-size:16px;
+ color:var(--knowledge-text);
+ margin:0;
+}
+#lab-knowledge .lab-knowledge-categories-head .hint,
+#lab-knowledge .lab-knowledge-table-heading .hint{
+ font-size:12px;
+ color:var(--knowledge-muted);
+ margin:0;
+}
+#lab-knowledge .lab-knowledge-categories{
+ display:flex;
+ flex-wrap:wrap;
+ gap:7px;
+}
+#lab-knowledge .lab-knowledge-category-chip{
+ display:inline-flex;
+ align-items:center;
+ gap:8px;
+ min-height:34px;
+ padding:6px 10px;
+ background:var(--knowledge-panel);
+ border:1px solid var(--knowledge-line);
+ border-radius:8px;
+ font:inherit;
+ font-size:11px;
+ font-weight:650;
+ color:#d7e8ed;
+ cursor:pointer;
+}
+#lab-knowledge .lab-knowledge-category-chip>small{
+ font-size:10px;
+ color:var(--knowledge-muted);
+ font-weight:500;
+ white-space:nowrap;
+}
+#lab-knowledge .lab-knowledge-category-chip.is-selected{
+ color:#d7fff1;
+ border-color:#559884;
+ background:#235047;
+}
+#lab-knowledge .lab-knowledge-category-chip.is-selected>small{color:#c2ebdf}
+#lab-knowledge .lab-knowledge-category-chip:hover{border-color:#579987}
+#lab-knowledge .lab-knowledge-category-chip:focus-visible{
+ outline:2px solid var(--knowledge-accent);
+ outline-offset:2px;
+}
+#lab-knowledge .lab-knowledge-table-heading{margin-top:24px}
+#lab-knowledge .lab-knowledge-toolbar{
+ display:grid;
+ grid-template-columns:minmax(185px,1.65fr) repeat(3,minmax(120px,1fr));
+ gap:11px 13px;
+ align-items:end;
+ margin:12px 0 14px;
+ padding:12px 14px;
+ background:var(--knowledge-surface);
+ border:1px solid #355661;
+ border-radius:11px;
+}
+#lab-knowledge .lab-knowledge-toolbar label{
+ display:flex;
+ flex-direction:column;
+ gap:5px;
+ min-width:0;
+ color:#bad9d8;
+ font-size:11px;
+ font-weight:700;
+}
+#lab-knowledge .lab-knowledge-toolbar :is(select,input){
+ width:100%;
+ min-width:0;
+ min-height:36px;
+ padding:8px 10px;
+ color:var(--knowledge-text);
+ background:#112333;
+ border:1px solid #476075;
+ border-radius:9px;
+ font:inherit;
+ font-size:12px;
+ line-height:1.4;
+}
+#lab-knowledge .lab-knowledge-toolbar :is(select,input):focus-visible{
+ outline:2px solid var(--knowledge-accent);
+ outline-offset:2px;
+}
+#lab-knowledge .lab-knowledge-table{min-width:890px;table-layout:fixed}
+#lab-knowledge .lab-knowledge-table th{
+ background:var(--knowledge-head);
+ color:#b9d8dc;
+ vertical-align:middle;
+}
+#lab-knowledge .lab-knowledge-table th:nth-child(1){width:30%}
+#lab-knowledge .lab-knowledge-table th:nth-child(2){width:13%}
+#lab-knowledge .lab-knowledge-table th:nth-child(3){width:25%}
+#lab-knowledge .lab-knowledge-table th:nth-child(4){width:20%}
+#lab-knowledge .lab-knowledge-table th:nth-child(5){width:12%}
+#lab-knowledge .lab-knowledge-table td{
+ vertical-align:middle;
+ border-color:#293f50;
+ padding:12px;
+}
+#lab-knowledge .lab-knowledge-table td:first-child{
+ min-width:0;
+}
+#lab-knowledge .lab-knowledge-identity{
+ display:flex;
+ align-items:center;
+ gap:10px;
+ min-width:0;
+}
+#lab-knowledge .lab-sushi-art-frame{
+ flex:0 0 42px;
+ width:42px;
+ height:42px;
+ border-radius:8px;
+ background:#203e49;
+}
+#lab-knowledge .lab-sushi-icon{object-fit:contain}
+#lab-knowledge .lab-knowledge-tier-info{
+ display:flex;
+ flex-direction:column;
+ gap:4px;
+ min-width:0;
+}
+#lab-knowledge .lab-knowledge-tier-info>strong{
+ font-size:12px;
+ font-weight:750;
+ color:var(--knowledge-text);
+ overflow-wrap:anywhere;
+ line-height:1.4;
+}
+#lab-knowledge .lab-knowledge-tier-info .lab-row-subtitle{
+ color:var(--knowledge-muted);
+ margin:0;
+ font-size:11px;
+}
+#lab-knowledge .lab-knowledge-level,
+#lab-knowledge .lab-knowledge-status{
+ text-align:center;
+}
+#lab-knowledge .lab-knowledge-level>strong{
+ color:var(--knowledge-text);
+ font-size:13px;
+ font-variant-numeric:tabular-nums;
+}
+#lab-knowledge .lab-knowledge-exp{min-width:0}
+#lab-knowledge .lab-knowledge-exp-values{
+ display:flex;
+ justify-content:space-between;
+ gap:8px;
+ align-items:baseline;
+ margin-bottom:7px;
+ font-variant-numeric:tabular-nums;
+}
+#lab-knowledge .lab-knowledge-exp-values>strong{
+ color:var(--knowledge-text);
+ font-size:11px;
+ font-weight:650;
+ overflow-wrap:anywhere;
+}
+#lab-knowledge .lab-knowledge-exp-values>span{
+ color:var(--knowledge-muted);
+ font-size:11px;
+ flex:0 0 auto;
+}
+#lab-knowledge .lab-knowledge-exp-progress{
+ display:block;
+ appearance:none;
+ width:100%;
+ height:7px;
+ border:0;
+ border-radius:5px;
+ overflow:hidden;
+ background:#0f2330;
+}
+#lab-knowledge .lab-knowledge-exp-progress::-webkit-progress-bar{
+ background:#0f2330;
+ border-radius:5px;
+}
+#lab-knowledge .lab-knowledge-exp-progress::-webkit-progress-value{
+ background:#5ebc9a;
+ border-radius:5px;
+}
+#lab-knowledge .lab-knowledge-exp-progress::-moz-progress-bar{
+ background:#5ebc9a;
+ border-radius:5px;
+}
+#lab-knowledge .lab-knowledge-exp-remaining,
+#lab-knowledge .lab-knowledge-ready{
+ display:block;
+ margin-top:6px;
+ font-size:10px;
+ line-height:1.4;
+}
+#lab-knowledge .lab-knowledge-exp-remaining{color:var(--knowledge-muted)}
+#lab-knowledge .lab-knowledge-ready{font-weight:750;color:#aaf6cc}
+#lab-knowledge .lab-knowledge-row-ready td{background:#183a38}
+#lab-knowledge .lab-knowledge-row-ready:hover td{background:#1e4943}
+#lab-knowledge .lab-knowledge-bonus{font-variant-numeric:tabular-nums}
+#lab-knowledge .lab-knowledge-bonus>strong{
+ display:block;
+ font-size:12px;
+ color:#b6ffd1;
+}
+#lab-knowledge .lab-knowledge-bonus>small{
+ display:block;
+ color:var(--knowledge-muted);
+ margin-top:5px;
+ font-size:10px;
+}
+#lab-knowledge .lab-knowledge-unavailable{
+ font-size:11px;
+ color:var(--knowledge-muted);
+}
+#lab-knowledge .lab-knowledge-status-tag{
+ display:inline-flex;
+ align-items:center;
+ justify-content:center;
+ min-width:70px;
+ padding:4px 8px;
+ border-radius:7px;
+ background:#223544;
+ border:1px solid #405468;
+ color:#c4d1d8;
+ font-size:10px;
+ font-weight:700;
+}
+#lab-knowledge .lab-knowledge-status-tag.is-perfecto{
+ color:#d7fff1;
+ background:#235047;
+ border-color:#559884;
+}
+#lab-knowledge .lab-knowledge-status-tag.is-muted{
+ color:var(--knowledge-muted);
+ background:#1b2c3a;
+ border-color:var(--knowledge-line);
+}
+#lab-knowledge .lab-empty-state{margin:12px 0}
+@media(max-width:920px){
+ #lab-knowledge .lab-knowledge-toolbar{grid-template-columns:repeat(2,minmax(0,1fr))}
+ #lab-knowledge .lab-knowledge-overview{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media(max-width:560px){
+ #lab-knowledge .lab-knowledge-toolbar{grid-template-columns:minmax(0,1fr)}
+ #lab-knowledge .lab-knowledge-overview-stat{padding:12px 13px}
+ #lab-knowledge .lab-knowledge-overview-stat>strong{font-size:17px}
+ #lab-knowledge .lab-knowledge-category-chip{font-size:10px}
+}
