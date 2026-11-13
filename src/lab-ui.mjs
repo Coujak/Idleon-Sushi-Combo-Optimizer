@@ -1,7 +1,8 @@
 // Sushi Station Lab: lightweight, accessible navigation and account-aware
 // information panels. All imported JSON stays in memory on the user's device.
 import {sushiUpgradeIconPath,sushiTierIconPath,KNOWLEDGE_CATEGORIES} from "./sushi-reference.mjs?v=1.16.6";
-import {KNOWLEDGE_SORT_OPTIONS,KNOWLEDGE_STATUS_OPTIONS,filterKnowledgeRows,knowledgeOverview} from "./knowledge-view.mjs?v=1.0.0";
+import {KNOWLEDGE_SORT_OPTIONS,KNOWLEDGE_STATUS_OPTIONS,filterKnowledgeRows,knowledgeOverview} from "./knowledge-view.mjs?v=1.0.1";
+import {describeKnowledgeBonus} from "./knowledge-bonus-format.mjs?v=1.0.0";
 import {initializePerfectoUI} from "./perfecto-ui.mjs?v=1.36.1";
 import {CATALOG_SORT_OPTIONS,CATALOG_STATUS_OPTIONS,upgradeSummary,readableUpgradeDescription,upgradeDescriptionSegments,catalogHasVariableValues,filterSortCatalog,upgradeCatalogDollarValue} from "./upgrade-catalog.mjs?v=1.16.8";
 import {ADVISOR_GOALS,numberText,getSushiSnapshot,getUpgradeRows,
@@ -1014,6 +1015,13 @@ export function initializeSushiLab(getSave){
    identity.append(info);
    tier.append(identity);
 
+   // A tier's account-wide discovery reward is NOT its level-scaled
+   // Knowledge effect. Show the reference reward even while undiscovered.
+   const reward=el("td","lab-knowledge-tier-reward");
+   reward.append(el("span","lab-knowledge-reward-copy",k.tierReward??"Reward unavailable"));
+   if(hasSave)reward.append(el("small","lab-knowledge-reward-state",
+    k.discovered?"Discovered":"Not yet discovered"));
+
    const levelCell=el("td","lab-knowledge-level");
    levelCell.append(el("strong","",!hasSave?"—":
     !k.discovered?"Locked":k.levelKnown?fmt(k.level):"Unknown"));
@@ -1038,20 +1046,29 @@ export function initializeSushiLab(getSave){
    }
 
    const bonus=el("td","lab-knowledge-bonus");
-   if(hasSave&&k.discovered&&k.bonus!==null&&k.nextLevelGain!==null){
-    bonus.append(el("strong","",numberDisplay(k.bonus)));
-    bonus.append(el("small","","Next Lv "+fmt(k.level+1)+": "+
-     numberDisplay(k.bonus+k.nextLevelGain)));
-   }else bonus.append(el("span","lab-knowledge-unavailable",
-    !k.mapped?"Effect unavailable":!hasSave?"Import save":
-    !k.discovered?"Undiscovered":"Bonus unavailable"));
+   if(hasSave&&k.discovered&&Number.isFinite(k.bonus)&&
+      Number.isFinite(k.nextLevelGain)){
+    bonus.append(el("span","lab-knowledge-bonus-caption","CURRENT · LV "+fmt(k.level)),
+     el("strong","",describeKnowledgeBonus(k.category,k.bonus)),
+     el("small","","NEXT LV "+fmt(k.level+1)+": "+
+      describeKnowledgeBonus(k.category,k.bonus+k.nextLevelGain)));
+    if(k.perfecto)bonus.append(el("small","lab-knowledge-perfecto-note",
+     "Includes 2× Perfecto effect"));
+   }else if(k.mapped&&Number.isFinite(k.baseLevelBonus)){
+    bonus.append(el("span","lab-knowledge-bonus-caption","BASE LV 1 · REFERENCE"),
+     el("strong","lab-knowledge-bonus-preview",
+      describeKnowledgeBonus(k.category,k.baseLevelBonus)),
+     el("small","",!hasSave?"Import save for your current level":
+      !k.discovered?"Unlock this tier to earn Knowledge EXP":
+      "Current Knowledge level unavailable"));
+   }else bonus.append(el("span","lab-knowledge-unavailable","Bonus unavailable"));
 
    const status=el("td","lab-knowledge-status");
    if(!hasSave)status.append(el("span","lab-knowledge-status-tag is-muted","—"));
    else if(!k.discovered)status.append(el("span","lab-knowledge-status-tag is-muted","Undiscovered"));
    else if(k.perfecto)status.append(el("span","lab-knowledge-status-tag is-perfecto","Perfecto"));
    else status.append(el("span","lab-knowledge-status-tag","Normal"));
-   tr.append(tier,levelCell,xpCell,bonus,status);
+   tr.append(tier,reward,levelCell,xpCell,bonus,status);
    body.append(tr);
   }
  }
