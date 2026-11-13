@@ -3512,3 +3512,65 @@ details summary{cursor:pointer;font-size:12px;font-weight:700;color:#9eb7c9}
  margin-top:7px;
  font-size:11px;
 }
+
+
+/* Knowledge QoL: scroll the rows without losing the four column labels. */
+#lab-knowledge .lab-knowledge-scroll{
+ max-height:min(68vh,680px);
+ overflow:auto;
+ overscroll-behavior:contain;
+ scrollbar-gutter:stable;
+}
+#lab-knowledge .lab-knowledge-scroll:focus-visible{
+ outline:2px solid var(--knowledge-accent);
+ outline-offset:2px;
+}
+#lab-knowledge .lab-knowledge-table thead th{
+ position:sticky;
+ top:0;
+ z-index:3;
+ background:var(--knowledge-head);
+ box-shadow:0 2px 0 var(--knowledge-line);
+}
+#lab-knowledge .lab-knowledge-sort-button{
+ display:inline-flex;
+ align-items:center;
+ justify-content:flex-start;
+ gap:6px;
+ width:100%;
+ min-height:32px;
+ padding:0;
+ border:0;
+ background:transparent;
+ color:inherit;
+ font:inherit;
+ font-weight:750;
+ text-align:inherit;
+ cursor:pointer;
+}
+#lab-knowledge .lab-knowledge-sort-button:hover{color:#e5fff1}
+#lab-knowledge .lab-knowledge-sort-button:focus-visible{
+ outline:2px solid var(--knowledge-accent);
+ outline-offset:3px;
+ border-radius:3px;
+}
+#lab-knowledge .lab-knowledge-table th:nth-child(2) .lab-knowledge-sort-button{justify-content:center}
+#lab-knowledge .lab-knowledge-sort-arrow{display:inline-block;color:var(--knowledge-accent);font-size:12px}
+#lab-knowledge .lab-knowledge-table th[aria-sort="ascending"] .lab-knowledge-sort-arrow::after{content:"▲"}
+#lab-knowledge .lab-knowledge-table th[aria-sort="descending"] .lab-knowledge-sort-arrow::after{content:"▼"}
+/* No fake rewards: this is a gentle reminder of an approaching 5-level checkpoint. */
+#lab-knowledge .lab-knowledge-checkpoint{
+ display:inline-block;
+ margin-top:5px;
+ padding:2px 7px;
+ border-radius:6px;
+ border:1px solid #466c76;
+ background:#203f4a;
+ color:#bedfe5;
+ font-size:10px;
+ font-weight:650;
+}
+#lab-knowledge .lab-knowledge-row-checkpoint td:first-child{box-shadow:inset 3px 0 0 #6ea5b5}
+@media(max-width:730px){
+ #lab-knowledge .lab-knowledge-scroll{max-height:min(65vh,590px)}
+}
