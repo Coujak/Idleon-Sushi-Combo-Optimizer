@@ -323,13 +323,13 @@
   <label>Sort options by <select id="labAdvisorSort"></select></label>
   <label class="lab-advisor-check"><input id="labAdvisorShowMaxed" type="checkbox"> Include maxed</label>
  </div>
- <p class="hint lab-disclaimer">Personalized suggestions compare the modeled change from buying one level, with discounted costs and available Bucks. Priority is goal-specific and budget-aware, <strong>not a proven global ROI ranking</strong>; partial models and unsupported effects are identified. Unverified discounts are marked as estimates.</p>
+ <details class="lab-advisor-help"><summary>How recommendations are ranked</summary><p>Purchases are compared by their modeled benefit for your chosen goal, estimated cost and available Bucks. This is not a guaranteed optimal strategy. Unknown effects and missing discounts are marked as estimates.</p></details>
  <div id="labAdvisorSummary" class="lab-advisor-summary" role="status"></div>
  <div id="labAdvisorFeature" class="lab-advisor-feature" aria-label="Recommended next upgrade"></div>
  <div class="lab-advisor-section-head lab-advisor-plan-head">
-  <div><h3>Next purchases plan</h3><p class="hint">A step-by-step buying order, including repeated levels of the same upgrade.</p></div>
+  <div><h3>Next purchases</h3><p class="hint">Your suggested buying order, updated after each purchase.</p></div>
   <div class="lab-advisor-purchase-controls">
-   <label>Plan length <select id="labAdvisorPurchaseCount" aria-label="How many next purchases to plan">
+   <label>Plan <select id="labAdvisorPurchaseCount" aria-label="How many next purchases to plan">
     <option value="5" selected>5 purchases</option><option value="10">10 purchases</option>
     <option value="25">25 purchases</option><option value="50">50 purchases</option>
     <option value="100">100 purchases</option><option value="custom">Custom amount…</option>
@@ -338,13 +338,13 @@
     <input id="labAdvisorCustomPurchases" type="number" min="1" max="500" step="1" value="15" inputmode="numeric">
    </label>
    <div class="lab-advisor-view-toggle" role="group" aria-label="Purchase plan display">
-    <button type="button" id="labAdvisorViewCards" class="selected" aria-pressed="true">Cards</button>
-    <button type="button" id="labAdvisorViewList" aria-pressed="false">List</button>
+    <button type="button" id="labAdvisorViewList" class="selected" aria-pressed="true">Compact</button>
+    <button type="button" id="labAdvisorViewCards" aria-pressed="false">Expanded</button>
    </div>
   </div>
  </div>
  <details class="lab-advisor-calibration">
-  <summary>Optional: use your displayed in-game rates as a starting point</summary>
+  <summary>Use your in-game rates (optional)</summary>
   <p class="hint">Enter the values shown in your own Sushi Station. This anchors the current total to your game display and scales projected changes from the upgrade model. Entries stay in your browser while this page is open; they are not saved to the repository.</p>
   <div class="lab-advisor-calibration-grid">
    <label>Current Bucks per hour <input id="labAdvisorMeasuredBucks" type="text" inputmode="decimal" placeholder="e.g. 1.25E35" autocomplete="off"></label>
@@ -355,9 +355,9 @@
  </details>
  <div id="labAdvisorPlanSummary" class="lab-advisor-plan-summary" role="status"></div>
  <div id="labAdvisorGoalProjection" class="lab-advisor-goal-projection" role="status"></div>
- <p class="hint lab-advisor-plan-disclaimer">Each step estimates a purchase, updates that upgrade's level and price, then recalculates priorities. Once your starting Sushi Bucks run out, the plan assumes you <strong>save enough Bucks for the next purchase</strong>. It does not predict Bucks generation or claim that future purchases are already affordable. Discounted prices can be estimates. Goal results use available formulas; unsupported full totals are clearly labeled as partial models.</p>
+ <details class="lab-advisor-help lab-advisor-plan-disclaimer"><summary>How the purchase plan works</summary><p>Every planned purchase updates upgrade levels, prices and the next recommendation. When your current Bucks run out, future steps assume you save the required amount. No future earnings or purchase times are predicted. Some costs and projected stats are partial estimates.</p></details>
  <div id="labAdvisorRoadmap" class="lab-advisor-purchase-scroll"><ol id="labAdvisorPurchaseSteps" class="lab-advisor-purchase-list lab-advisor-view-cards"></ol></div>
- <div class="lab-advisor-section-head"><h3>Compare other upgrades</h3>
+ <div class="lab-advisor-section-head"><h3>Other upgrades</h3>
  <div class="lab-advisor-compare-controls">
   <label class="lab-advisor-visible-count">Show <select id="labAdvisorVisibleCount" aria-label="Number of other upgrades to display">
    <option value="3">3 upgrades</option><option value="5">5 upgrades</option>
