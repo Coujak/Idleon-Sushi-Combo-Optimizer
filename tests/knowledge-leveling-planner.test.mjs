@@ -67,17 +67,17 @@ test("Knowledge Leveling has its own planner tab, simple controls, and no duplic
  const css=readFileSync(new URL("../styles.css",import.meta.url),"utf8");
  assert.ok(html.includes('data-planner-target="knowledge"'));
  assert.ok(html.includes('id="knowledgePlanner"'));
- for(const id of ["knowledgePlanGoal","knowledgePlanOrder","knowledgePlanFeatured",
-  "knowledgePlanAlternatives","knowledgePlanTips","knowledgePlanStatus"])
+ for(const id of ["knowledgePlanMode","knowledgePlanTarget","knowledgePlanFeatured",
+  "knowledgePlanRotation","knowledgePlanMore","knowledgePlanTips","knowledgePlanStatus"])
   assert.ok(html.includes('id="'+id+'"'),id+" missing");
  assert.ok(nav.includes('const tabs=["combo","perfecto","knowledge"]'));
  assert.ok(nav.includes('$("knowledgePlanner").classList.toggle'));
  assert.ok(lab.includes("initializeKnowledgeLevelingUI(getSave)"));
  assert.ok(lab.includes("knowledgeLevelingUI.refresh()"));
- assert.match(ui,/planKnowledgeLeveling\(getKnowledgeRows\(save\)/);
+ assert.match(ui,/buildKnowledgeRotation\(save,rows,state\)/);
  assert.ok(ui.includes("localStorage.setItem(PREF_KEY"));
- assert.ok(ui.includes('formatKnowledgeBonusValue(item.category,item.nextBonus)'));
- assert.ok(ui.includes('assets/Perfecto_Symbol.png'));
- assert.ok(css.includes("#knowledgePlanner .lab-kp-card.is-featured"));
+ assert.ok(ui.includes('Balanced EXP rotation'));
+ assert.ok(ui.includes('Focused EXP rotation'));
+ assert.ok(css.includes("#knowledgePlanner .lab-kp-wave"));
  assert.ok(!css.includes("#knowledgePlanner .lab-knowledge-table thead th"));
 });
