@@ -1,7 +1,7 @@
 // Goal-based purchase guidance. All calculations are advisory heuristics:
 // game-wide upgrades with different units cannot be compared as true ROI.
 // Keep the ranking deterministic, budget-aware, and honest about missing data.
-import {getSushiSnapshot,getUpgradeRows,upgradeAffordability} from "./lab-model.mjs?v=1.16.6";
+import {getUpgradeRows,upgradeAffordability} from "./lab-model.mjs?v=1.16.6";
 
 export const PROGRESSION_SORT_OPTIONS=[
  {value:"recommended",label:"Recommended priority"},
@@ -16,6 +16,14 @@ export const PROGRESSION_FILTER_OPTIONS=[
  {value:"maxed",label:"Already maxed"}
 ];
 const finite=n=>typeof n==="number"&&Number.isFinite(n);
+// Do not treat an absent or malformed Sushi Bucks balance as zero.
+// A real zero balance is valid; a partial import is not a savings forecast.
+export function readSushiBucks(save){
+ const raw=save?.sushi?.[4]?.[3];
+ if(typeof raw!=="number"&&typeof raw!=="string"||typeof raw==="string"&&!raw.trim())return null;
+ const value=Number(raw);
+ return finite(value)&&value>=0?value:null;
+}
 const bounded=(x,min=0,max=1)=>Math.max(min,Math.min(max,x));
 
 export function progressionEffect(upgrade){
@@ -77,7 +85,7 @@ function deriveUpgrade(upgrade,bucks){
   affordability==="unaffordable"?"Not affordable from your last imported balance.":
   affordability==="unavailable"?"Already at its maximum level.":
   "Price or balance could not be verified.";
- return {...upgrade,effect,affordability,missing,
+ return {...upgrade,bucks,effect,affordability,missing,
   exactCost,costKnown,score,valueScore,relativeGain,reason,budgetNote};
 }
 function sortRecommended(a,b){
@@ -88,7 +96,7 @@ export function getProgressionAdvice(save,goal,{
  sort="recommended",filter="all",includeMaxed=false
 }={}){
  if(!save)return {goal,bucks:null,all:[],rows:[],best:null,roadmap:[],count:0,affordableCount:0};
- const bucks=getSushiSnapshot(save).bucks;
+ const bucks=readSushiBucks(save);
  const all=getUpgradeRows(save).filter(u=>u.goals.includes(goal)&&u.maxLevel>0)
   .map(u=>deriveUpgrade(u,bucks));
  const buyable=all.filter(u=>!u.atMax);
