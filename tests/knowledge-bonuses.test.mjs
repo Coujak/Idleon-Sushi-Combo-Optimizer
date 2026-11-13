@@ -83,7 +83,7 @@ test("Knowledge table combines name and tier reward, keeps four columns and Perf
 
 test("Knowledge bubble formatter keeps only numbers and preserves bonus units",()=>{
  const cases=[
-  [0,120,"+120%"],[1,30,"+30%"],[2,1200,"+1.2K%"],
+  [0,120,"+120%"],[1,30,"+30%"],[2,1200,"+1,200%"],
   [3,50,"1.5×"],[4,75,"+75%"],[5,10,"+10%"],
   [6,10,"+10%"],[7,25,"1.25×"],[8,2,"+2%"],
   [9,8,"+8%"],[10,263,"3.63×"]
