@@ -48,8 +48,14 @@ export function getDoublerValueComparison(upgrade){
    label:"Extra Bucks multiplier factor",
    note:"This is the added multiplier component before other bonuses."};
  }
+ if(upgrade?.id===37){
+  // The game panel displays 1 + UpgradeQTY / 10, rather than +QTY EXP.
+  return {normal:format(1+base/10)+" EXP",doubled:format(1+boosted/10)+" EXP",
+   label:"Base Knowledge EXP per created Sushi",
+   note:"Before global Knowledge EXP bonuses and other multipliers."};
+ }
  const percent=String(upgrade?.description??"").includes("{%");
- const suffix=percent?"%":upgrade?.id===37?" EXP":"";
+ const suffix=percent?"%":"";
  const label=upgrade?.id===37?"Extra EXP per created Sushi":
   upgrade?.id===38?"Knowledge EXP bonus":
   upgrade?.id===21?"Free Shaker-use chance":
