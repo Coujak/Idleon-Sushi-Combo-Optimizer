@@ -122,8 +122,9 @@ export function simulateContinuousKnowledgeRotation({
        Math.min(e.tier,targetTier)/targetTier),0);
       const wind=events.length-1;
       const creates64=events.filter(x=>x.tier===64).length;
-      const close=action.board.reduce((sum,t)=>
-       sum+(t>0&&t<64&&action.board.filter(x=>x===t).length>1?1:0),0);
+      const pairs=new Map();
+      for(const t of action.board)if(t>0&&t<64)pairs.set(t,(pairs.get(t)??0)+1);
+      const close=[...pairs.values()].reduce((sum,n)=>sum+Math.floor(n/2),0);
       let score=mode==="focused"?
        createsTarget*180+reach*8+wind*6+close*.1:
        wind*23+creates64*18+events.length*5+close*.1;
@@ -139,8 +140,9 @@ export function simulateContinuousKnowledgeRotation({
    if(!best)break;
    if(!applyMerge(best.src,best.dst))break;
    performed++;
-   if(mode==="balanced"&&balancedComplete()){completed=true;break;}
-   
+   if(mode==="balanced"&&roundsDone>0&&balancedComplete()){completed=true;break;}
+   if(compressFocus&&slotsFree.length-occupied(board)>=
+    Math.min(10,Math.ceil(slotsFree.length*.15)))break;
   }
   return performed;
  }
@@ -186,11 +188,11 @@ export function simulateContinuousKnowledgeRotation({
  // The imported board may already be full; first create room only by merging.
  for(let wave=1;wave<=Math.max(1,Math.min(16,Math.floor(rounds)||6));wave++){
   if(frames.length>=maxActions){haltReason="Replay step limit reached";break;}
-  if(mode==="balanced"&&balancedComplete()){completed=true;haltReason="One T64 remains";break;}
+  if(wave>1&&mode==="balanced"&&balancedComplete()){completed=true;haltReason="One T64 remains";break;}
   record("wave","Merge and refill wave "+wave,
    "Merge matching tiers and East Wind cascades, park survivors, and refill only empty slots.");
   mergePass({compressFocus:false});
-  if(mode==="balanced"&&balancedComplete()){completed=true;haltReason="One T64 remains";break;}
+  if(mode==="balanced"&&roundsDone>0&&balancedComplete()){completed=true;haltReason="One T64 remains";break;}
   if(mode==="focused"&&canConsolidateFocus()&&focusCount()>=2){
    const was=focusCount();
    mergePass({compressFocus:true});
