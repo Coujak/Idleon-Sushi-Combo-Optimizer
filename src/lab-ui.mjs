@@ -1020,12 +1020,10 @@ export function initializeSushiLab(getSave){
    identity.append(artwork);
    const info=el("div","lab-knowledge-tier-info");
    const name=el("strong","","T"+k.tier+" · "+k.name);
-   // Keep the permanent discovery reward discoverable without dedicating
-   // another full column to long descriptions.
-   name.title="Permanent tier reward: "+(k.tierReward??"Unavailable");
-   const effect=el("span","lab-row-subtitle",k.categoryName);
-   effect.title="Knowledge effect: "+k.categoryName;
-   info.append(name,effect);
+   const tierReward=el("span","lab-row-subtitle lab-knowledge-tier-reward-label",
+    k.tierReward??"Tier reward unavailable");
+   tierReward.title="Permanent tier reward"+(k.discovered?" · discovered":" · reference only");
+   info.append(name,tierReward);
    identity.append(info);
    tier.append(identity);
 
@@ -1060,12 +1058,15 @@ export function initializeSushiLab(getSave){
     const next=el("small","","Next Lv "+fmt(k.level+1)+": "+
      numberDisplay(k.bonus+k.nextLevelGain));
     next.title=describeKnowledgeBonus(k.category,k.bonus+k.nextLevelGain);
-    bonus.append(current,next);
+    const effect=el("span","lab-knowledge-effect-label",k.categoryName);
+    effect.title="Knowledge effect: "+describeKnowledgeBonus(k.category,k.bonus);
+    bonus.append(effect,current,next);
    }else if(k.mapped&&Number.isFinite(k.baseLevelBonus)){
     const preview=el("strong","lab-knowledge-bonus-preview",
      numberDisplay(k.baseLevelBonus));
     preview.title=describeKnowledgeBonus(k.category,k.baseLevelBonus);
-    bonus.append(preview,el("small","",
+    bonus.append(el("span","lab-knowledge-effect-label",k.categoryName),
+     preview,el("small","",
      "Base Lv 1 · "+(!hasSave?"import save for current level":
       !k.discovered?"undiscovered":"current level unavailable")));
    }else bonus.append(el("span","lab-knowledge-unavailable","Bonus unavailable"));
