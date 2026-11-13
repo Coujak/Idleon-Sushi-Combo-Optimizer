@@ -3,8 +3,8 @@
 import {getKnowledgeRows,numberText} from "./lab-model.mjs?v=1.19.13";
 import {sushiTierIconPath} from "./sushi-reference.mjs?v=1.16.6";
 import {parseGameQuantity} from "./progression-calibration.mjs?v=1.17.1";
-import {optimizeKnowledgeCycle,normalizeKnowledgeCycleOptions}
- from "./knowledge-cycle-optimizer.mjs?v=1.0.0";
+import {normalizeKnowledgeCycleOptions}
+ from "./knowledge-cycle-optimizer.mjs?v=1.0.1";
 import {createReplayController} from "./replay-controller.mjs";
 
 const $=id=>document.getElementById(id);
@@ -39,12 +39,13 @@ const quantityInput=id=>{
 export function initializeKnowledgeLevelingUI(getSave){
  const mode=$("knowledgePlanMode"),target=$("knowledgePlanTarget");
  const targetLabel=$("knowledgePlanTargetLabel");
- const build=$("knowledgePlanRun"),status=$("knowledgePlanStatus");
+ const build=$("knowledgePlanRun"),cancelButton=$("knowledgePlanCancel");
+ const status=$("knowledgePlanStatus");
  const summary=$("knowledgePlanFeatured"),replay=$("knowledgePlanRotation");
  const board=$("knowledgePlanBoard"),tips=$("knowledgePlanTips");
  const speed=$("knowledgePlanSpeed");
  let state={mode:"balanced",targetTier:null};
- let result=null,controller=null;
+ let result=null,controller=null,worker=null;
  try{
   const old=JSON.parse(window.localStorage.getItem(preferenceKey)||"null");
   state=normalizeKnowledgeCycleOptions(old);
@@ -55,7 +56,13 @@ export function initializeKnowledgeLevelingUI(getSave){
    mode:mode.value,targetTier:state.targetTier
   }));}catch{/* Browser-local settings are optional. */}
  };
+ const stopSearch=()=>{
+  worker?.terminate();worker=null;
+  cancelButton.classList.add("hidden");
+  build.disabled=!getSave();
+ };
  const release=()=>{
+  stopSearch();
   controller?.dispose();controller=null;
   result=null;summary.replaceChildren();board.replaceChildren();
   $("knowledgePlanLevelRows").replaceChildren();
@@ -238,25 +245,44 @@ export function initializeKnowledgeLevelingUI(getSave){
   state.targetTier=Number(target.value);persist();release();
  });
  build.addEventListener("click",()=>{
-  release();build.disabled=true;
-  status.textContent="Evaluating prepared boards, merge sequences and fireplace layouts…";
-  // Give the status time to paint before the synchronous deterministic search.
-  window.setTimeout(()=>{
-   try{
-    const plan=optimizeKnowledgeCycle(getSave(),calibration());
-    if(!plan.available){
-     status.textContent=plan.reason;return;
+  release();
+  const save=getSave();
+  if(!save)return;
+  build.disabled=true;cancelButton.classList.remove("hidden");
+  status.textContent="Evaluating board layouts, merge sequences and Lithium/Fuel trade-offs…";
+  try{
+   const search=new Worker(new URL("./knowledge-cycle-worker.mjs?v=1.0.0",
+    import.meta.url),{type:"module"});
+   worker=search;
+   search.onmessage=event=>{
+    if(worker!==search)return; // A new search replaced this one.
+    stopSearch();
+    const msg=event.data;
+    if(!msg?.ok){
+     status.textContent="Unable to complete this cycle: "+(msg?.error??"Unknown search error");
+     return;
     }
+    const plan=msg.result;
+    if(!plan.available){status.textContent=plan.reason;return;}
     renderSummary(plan);showProgress(plan);createReplay(plan);
     status.textContent="Compared "+compact(plan.considered)+
      " candidates · "+compact(plan.totalExpPerCycle)+
      " active EXP per cycle · starting T"+plan.startCookTier;
-   }catch(error){
-    status.textContent="Unable to complete this cycle: "+(error?.message??String(error));
-   }finally{
-    build.disabled=!getSave();
-   }
-  },0);
+   };
+   search.onerror=event=>{
+    if(worker!==search)return;
+    stopSearch();
+    status.textContent="The Knowledge search worker failed. Refresh and retry the optimization.";
+   };
+   search.postMessage({save,options:calibration()});
+  }catch(error){
+   stopSearch();
+   status.textContent="Knowledge optimizer unavailable in this browser: "+
+    (error?.message??String(error));
+  }
+ });
+ cancelButton.addEventListener("click",()=>{
+  if(worker){stopSearch();status.textContent="Knowledge optimization canceled.";}
  });
  $("knowledgePlanReset").addEventListener("click",()=>controller?.goTo(0));
  $("knowledgePlanPrepared").addEventListener("click",()=>{
