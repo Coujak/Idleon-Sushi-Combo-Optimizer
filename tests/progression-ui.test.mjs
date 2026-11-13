@@ -83,6 +83,10 @@ test("Rendering a purchase plan never removes its ordered-list mount",()=>{
   getProgressionAdvice:()=>({bucks:1000,affordableCount:1,count:1,
    partialPrices:false,best:upgrade,all:[upgrade],rows:[upgrade]}),
   buildProgressionPurchasePlan:()=>plan,
+  groupProgressionPurchases:steps=>steps.map(step=>({...step,
+   firstNumber:step.number,lastNumber:step.number,count:1,totalCost:step.price,
+   totalMissingBucks:step.missingBucks,fundedCount:Number(step.fundedByImport),
+   steps:[step]})),
   advisorDetail:()=>make("article"),
   ensureAdvisorResultMount:id=>nodes.get(id),
   numberDisplay:value=>String(value),
@@ -125,4 +129,27 @@ test("Upgrade Center shares filter styles, semantic colors and aligned row track
  assert.ok(finalRules.includes('content:"MODELED GAIN"'));
  assert.ok(finalRules.includes('content:"NEXT COST"'));
  assert.ok(finalRules.includes('content:"STATUS"'));
+});
+
+test("Both plan explanations align beneath their content instead of sharing metric columns",()=>{
+ const cssRules=css.slice(css.indexOf("/* Purchase group breakdown + aligned informational disclosures. */"));
+ assert.ok(cssRules.includes("#lab-upgrade-advisor .lab-advisor-goal-note-wrap{"));
+ assert.ok(cssRules.includes("flex:1 1 100%"));
+ assert.ok(cssRules.includes("width:100%"));
+ assert.ok(cssRules.includes("border-top:1px solid var(--up-line)"));
+ assert.ok(cssRules.includes("#lab-upgrade-advisor .lab-advisor-help.lab-advisor-plan-disclaimer{"));
+ assert.ok(cssRules.includes("padding:11px 14px 12px"));
+ assert.ok(cssRules.includes("text-align:left"));
+ assert.ok(html.includes('<summary>About this plan</summary>'));
+ assert.ok(ui.includes('el("summary","","About this estimate")'));
+});
+
+test("Next Purchases shows grouped purchase ranges with drill-down for individual levels",()=>{
+ assert.ok(ui.includes("groupProgressionPurchases(plan.steps)"));
+ assert.ok(ui.includes('group.count>1?"View "+group.count+" individual purchases":"Stat change"'));
+ assert.ok(ui.includes('group.totalCost'));
+ assert.ok(ui.includes('group.totalMissingBucks'));
+ assert.ok(ui.includes('group.steps'));
+ assert.ok(css.includes("#lab-upgrade-advisor .lab-advisor-group-breakdown{"));
+ assert.ok(css.includes("#lab-upgrade-advisor .lab-advisor-group-line{"));
 });
