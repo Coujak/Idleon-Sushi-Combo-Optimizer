@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Idleon Sushi Station Lab</title><link rel="stylesheet" href="styles.css?v=1.50.17"></head>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Idleon Sushi Station Lab</title><link rel="stylesheet" href="styles.css?v=1.50.18"></head>
 <body><main class="shell"><header class="hero"><div class="hero-copy"><div class="eyebrow hero-eyebrow"><span class="eyebrow-dot"></span> IDLEON · SUSHI STATION TOOLKIT</div><h1>Sushi Station <span>Lab</span></h1><p>Your Sushi Station companion: explore your account, plan the next upgrade, study knowledge tiers, and optimize your Combo Meter.</p><div class="hero-chips"><span>✦ Account overview</span><span>↗ Combo Meter planner</span><span>◈ Upgrade & Knowledge guides</span></div></div><div class="hero-visual" aria-hidden="true"><div class="hero-orbit"></div><img src="assets/sushi/Leviathan%20Roll%20(Tier%2058).png" alt=""><div class="hero-visual-label">TIER 58</div></div></header>
 <nav class="lab-navigation" aria-label="Sushi Station sections" role="tablist">
 <button type="button" class="lab-nav-button" role="tab" data-lab-target="overview" aria-controls="lab-overview" aria-selected="true">Overview</button>
@@ -305,17 +305,21 @@
  </div>
 </section>
 <section id="knowledgePlanner" class="panel lab-knowledge-planner hidden" role="tabpanel" aria-label="Knowledge Leveling Planner" aria-hidden="true">
- <div class="heading"><div><div class="eyebrow">03 · KNOWLEDGE LEVELING</div><h2>Knowledge Leveling Planner</h2></div><span class="status">Beta · account-based</span></div>
- <p class="hint">Choose the Knowledge effect you want to strengthen. Recommendations use your imported Sushi Knowledge levels, current EXP, next-level requirement, and Perfecto doubling. They rank bonus gained per remaining EXP—not EXP earned per minute or fuel spent.</p>
+ <div class="heading"><div><div class="eyebrow">03 · KNOWLEDGE LEVELING</div><h2>Knowledge Leveling Planner</h2></div><span class="status">Beta · EXP rotations</span></div>
+ <p class="hint">Build an EXP farming rotation from your unlocked Sushi tiers, current board, Milktoast and Cold plates, and fireplaces. Balanced gives each discovered tier a turn; Focused repeats one selected tier.</p>
  <div class="lab-kp-controls">
-  <label>Focus on <select id="knowledgePlanGoal" aria-label="Knowledge leveling goal"></select></label>
-  <label>Prioritize by <select id="knowledgePlanOrder" aria-label="Knowledge leveling ranking"></select></label>
+  <label>Rotation strategy <select id="knowledgePlanMode" aria-label="Knowledge leveling rotation strategy">
+   <option value="balanced">Balanced · distribute EXP</option>
+   <option value="focused">Focused · one Sushi tier</option>
+  </select></label>
+  <label id="knowledgePlanTargetLabel" class="hidden">Target Sushi <select id="knowledgePlanTarget" aria-label="Focused Sushi target"></select></label>
  </div>
- <p class="lab-kp-status" id="knowledgePlanStatus" role="status" aria-live="polite">Import your game save in Overview to receive Knowledge targets.</p>
- <div id="knowledgePlanFeatured"></div>
- <div id="knowledgePlanAlternatives"></div>
- <details class="lab-kp-guide"><summary>Knowledge EXP farming tips</summary><ul id="knowledgePlanTips"></ul></details>
- <p class="hint lab-kp-disclaimer">Only discovered tiers with known, finite EXP and bonus data are ranked. Ready levels appear first. Higher Sushi tiers may require far more cooking or merging to produce, so bonus per remaining EXP is a comparison of Knowledge progression—not a guarantee of fastest farming. No automatic level-ups, time-to-level estimates, or exact board EXP rates are assumed.</p>
+ <p class="lab-kp-status" id="knowledgePlanStatus" role="status" aria-live="polite">Import your game save in Overview to build an EXP rotation.</p>
+ <div id="knowledgePlanFeatured" aria-live="polite"></div>
+ <div id="knowledgePlanRotation"></div>
+ <button id="knowledgePlanMore" type="button" class="button secondary hidden">Show all rotation waves</button>
+ <details class="lab-kp-guide"><summary>Preparation and Knowledge EXP mechanics</summary><ul id="knowledgePlanTips"></ul></details>
+ <p class="hint lab-kp-disclaimer">Rotations are preparation guides, not automated board moves or verified maximum EXP/second. Balanced schedules equal target opportunities, not guaranteed equal EXP amounts. Cook or merge Sushi into legal positions; Movement Mittens move plates, not Sushi. No unverified EXP/hour, fuel costs, or time-to-level estimates are shown.</p>
 </section>
 
 </div>
@@ -460,4 +464,4 @@
  <p id="labKnowledgeEmpty" class="hint lab-empty-state hidden">No Sushi tiers match the selected filters.</p>
  <p class="hint lab-disclaimer">Permanent tier rewards appear beneath each Sushi name. Knowledge Bonus shows the current effect with its value and the projected next-level effect, including the 2× Perfecto effect where unlocked. The original Perfecto icon marks Perfectos; undiscovered tiers show a base Lv 1 preview only. “Ready to level” means imported EXP reaches the next-level requirement, not an automatic level-up. Missing save data remains unavailable.</p>
 </section></div>
-</main><script type="module" src="src/app.js?v=1.50.16"></script></body></html>
+</main><script type="module" src="src/app.js?v=1.50.17"></script></body></html>
