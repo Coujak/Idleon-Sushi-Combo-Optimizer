@@ -59,11 +59,3 @@ export function planKnowledgeLeveling(rows,options={}){
  };
  return result.sort(compare);
 }
-export function knowledgeLevelingPreparation(save){
- if(!save)return [];
- const rows=save?.sushi?.[2];
- if(!Array.isArray(rows))return [];
- // Source upgrade IDs are matched by the catalog, not guessed from shop order.
- // These are general tips only; individual board EXP rates are not simulated.
- return [];
-}
