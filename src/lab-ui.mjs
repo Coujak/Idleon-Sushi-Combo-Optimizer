@@ -5,7 +5,8 @@ import {KNOWLEDGE_SORT_OPTIONS,KNOWLEDGE_STATUS_OPTIONS,filterKnowledgeRows,know
 import {initializePerfectoUI} from "./perfecto-ui.mjs?v=1.36.0";
 import {CATALOG_SORT_OPTIONS,CATALOG_STATUS_OPTIONS,upgradeSummary,readableUpgradeDescription,upgradeDescriptionSegments,catalogHasVariableValues,filterSortCatalog,upgradeCatalogDollarValue} from "./upgrade-catalog.mjs?v=1.16.7";
 import {ADVISOR_GOALS,numberText,getSushiSnapshot,getUpgradeRows,
- getKnowledgeRows,advisorUpgrades,getSushiDoublerCounts,sushiUpgradeExtraText,upgradeAffordability} from "./lab-model.mjs?v=1.19.10";
+ getKnowledgeRows,advisorUpgrades,getSushiDoublerCounts,sushiUpgradeExtraText,upgradeAffordability} from "./lab-model.mjs?v=1.19.11";
+import {getSushiDashboardMetrics} from "./dashboard-metrics.mjs?v=1.0.1";
 import {getProgressionAdvice,PROGRESSION_SORT_OPTIONS,PROGRESSION_FILTER_OPTIONS} from "./progression-advisor.mjs?v=1.17.1";
 import {DOUBLER_FOCUS_OPTIONS,DOUBLER_SORT_OPTIONS,getDoublerPlacementPlan,getDoublerValueComparison} from "./doubler-advisor.mjs?v=1.5.0";
 import {getDoublerAccountImpact} from "./doubler-stat-impact.mjs?v=1.3.0";
@@ -392,6 +393,27 @@ export function initializeSushiLab(getSave){
    const card=el("div","lab-stat");
    card.append(el("span","lab-stat-label",label),el("strong","lab-stat-value",value));
    host.append(card);
+  }
+  const production=$("labProductionStats");
+  production.replaceChildren();
+  const productStats=getSushiDashboardMetrics(data);
+  const statValue=n=>Number.isFinite(n)?fmt(n):"Unavailable";
+  const percentValue=n=>Number.isFinite(n)?fmt(n)+"%":"Unavailable";
+  const productionRows=[
+   ["Bucks / hour",statValue(productStats?.bucksRate),"Modeled passive Bucks; may differ from Toolbox and in-game rates."],
+   ["Fuel / hour",statValue(productStats?.fuelRate),"Estimated passive generation. Some external modifiers are not included."],
+   ["Maximum Fuel",statValue(productStats?.fuelCapacity),"Estimated maximum capacity; external event bonuses may be missing."],
+   ["Cooking: at least +1 tier",percentValue(productStats?.chanceAtLeastOne),
+    "Modeled from Quality Freshness and Knowledge bonus; chance above 100% is assumed to roll over."],
+   ["Cooking: at least +2 tiers",percentValue(productStats?.chanceAtLeastTwo),
+    "Modeled rollover of the cooking tier-up bonus; does not include Copper Firelighter's separate 1% replacement effect."]
+  ];
+  for(const [label,value,description] of productionRows){
+   const card=el("div","lab-production-stat");
+   card.title=description;
+   card.append(el("span","lab-stat-label",label),
+    el("strong","lab-stat-value",value));
+   production.append(card);
   }
   renderShakerCards(stats);
   const fireAdvice=fireplaceOverviewAdvice(data);
@@ -997,13 +1019,14 @@ export function initializeSushiLab(getSave){
     !k.discovered?"Locked":k.levelKnown?fmt(k.level):"Unknown"));
 
    const xpCell=el("td","lab-knowledge-exp");
-   if(hasSave&&k.discovered&&k.xpProgress!==null){
+   if(hasSave&&k.discovered&&Number.isFinite(k.xpProgress)&&k.xpProgress>=0&&k.xpProgress<=1){
     const values=el("div","lab-knowledge-exp-values");
     values.append(el("strong","",fmt(k.xp)+" / "+fmt(k.xpReq)+" EXP"),
      el("span","",Math.round(k.xpProgress*100)+"%"));
     xpCell.append(values);
     const progress=el("progress","lab-knowledge-exp-progress");
-    progress.max=100;progress.value=k.xpProgress*100;
+    progress.max=100;progress.value=Number.isFinite(k.xpProgress*100)?
+     Math.max(0,Math.min(100,k.xpProgress*100)):0;
     progress.setAttribute("aria-label","EXP progress toward next Knowledge level for "+k.name);
     xpCell.append(progress);
     if(k.readyToLevel)xpCell.append(el("span","lab-knowledge-ready","Ready to level"));
