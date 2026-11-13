@@ -147,8 +147,14 @@ test("Knowledge tab actually renders imported tiers, ready filter and missing-sa
  assert.equal(displayRow.children.length,4,"Compact table has four columns");
  const firstIdentity=displayRow.children[0].children[0];
  const firstInfo=firstIdentity.children[1];
- assert.ok(firstInfo.children[1].textContent.includes("2× Research EXP"),
+ const rewardParts=firstInfo.children[1].children;
+ assert.equal(rewardParts.map(part=>part.textContent).join(""),"2× Research EXP",
   "Permanent tier reward is visible beneath Sushi name");
+ assert.equal(rewardParts[0].textContent,"2×");
+ assert.equal(rewardParts[0].className,"lab-knowledge-value-pill lab-knowledge-tier-value",
+  "Only the numeric tier reward is highlighted");
+ assert.equal(rewardParts[1].textContent," Research EXP",
+  "Reward explanation remains plain text");
  const firstBonus=displayRow.children[3];
  const current=firstBonus.children[0],next=firstBonus.children[1];
  assert.equal(current.className,"lab-knowledge-bonus-line");
@@ -171,6 +177,9 @@ test("Knowledge tab actually renders imported tiers, ready filter and missing-sa
  assert.equal(perfectoMark.className,"lab-knowledge-perfecto-emblem");
  assert.equal(perfectoMark.src,"assets/Perfecto_Symbol.png");
  assert.equal(perfectoMark.alt,"Perfecto");
+ const perfectoReward=nodes.get("labKnowledgeRows").children[1].children[0].children[0].children[1].children[1];
+ assert.ok(perfectoReward.children[0].className.includes("is-perfecto"),
+  "Perfecto tier reward value uses purple status styling");
  assert.equal(firstIdentity.children[0].children.length,1,
   "Non-Perfecto Sushi should have no achievement symbol");
  assert.equal(nodes.get("labKnowledgeOverview").children.length,4);
