@@ -1006,9 +1006,9 @@ export function initializeSushiLab(getSave){
    const tierReward=el("span","lab-row-subtitle lab-knowledge-tier-reward-label");
    // Highlight only numbers in permanent rewards, just like variable values
    // inside Upgrade Catalog descriptions. The wording remains normal text.
-   for(const segment of rewardText.split(/([+-]?\\d+(?:\\.\\d+)?(?:×|x|%)?)/g)){
+   for(const segment of rewardText.split(/([+-]?\d+(?:\.\d+)?(?:×|x|%)?)/g)){
     if(!segment)continue;
-    const isValue=/^[+-]?\\d+(?:\\.\\d+)?(?:×|x|%)?$/.test(segment);
+    const isValue=/^[+-]?\d+(?:\.\d+)?(?:×|x|%)?$/.test(segment);
     tierReward.append(el("span",isValue?"lab-knowledge-tier-value":"lab-knowledge-tier-reward-text",segment));
    }
    tierReward.title="Permanent tier reward"+(k.discovered?" · discovered":" · reference only");
