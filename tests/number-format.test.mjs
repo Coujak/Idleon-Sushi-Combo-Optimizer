@@ -4,10 +4,13 @@ import {formatCompactNumber} from "../src/number-format.mjs";
 import {numberText,getKnowledgeRows} from "../src/lab-model.mjs";
 import {parseGameQuantity,formatGameQuantity} from "../src/progression-calibration.mjs";
 
-test("Shared notation uses M B T Q QQ then E21 and above",()=>{
- const cases=[[0,"0"],[1e3,"1K"],[1e6,"1M"],[1e9,"1B"],
-  [1e12,"1T"],[1e15,"1Q"],[1e18,"1QQ"],[1e21,"1E21"],
-  [1e22,"1E22"],[1e45,"1E45"],[-1e18,"-1QQ"]];
+test("Shared notation keeps numbers below 1M and abbreviates M B T Q QQ E21+",()=>{
+ const cases=[[0,"0"],[1,"1"],[10,"10"],[999,"999"],
+  [1e3,"1,000"],[1e4,"10,000"],[1e5,"100,000"],
+  [999999,"999,999"],[999999.5,"999,999.5"],
+  [1e6,"1M"],[1e9,"1B"],[1e12,"1T"],[1e15,"1Q"],
+  [1e18,"1QQ"],[1e21,"1E21"],[1e22,"1E22"],
+  [1e45,"1E45"],[-1e3,"-1,000"],[-1e18,"-1QQ"]];
  for(const [value,want] of cases){
   assert.equal(formatCompactNumber(value),want);
   assert.equal(formatGameQuantity(value),want);
@@ -17,6 +20,7 @@ test("Shared notation uses M B T Q QQ then E21 and above",()=>{
  assert.equal(formatCompactNumber(2.5e18),"2.5QQ");
  assert.equal(formatCompactNumber(Infinity),"Unavailable");
  assert.equal(formatCompactNumber(NaN),"Unavailable");
+ assert.equal(parseGameQuantity("1K"),1e3); // Legacy input remains supported.
  assert.equal(parseGameQuantity("1QQ"),1e18);
  assert.equal(parseGameQuantity("1E21"),1e21);
  assert.equal(parseGameQuantity("2.5Q"),2.5e15);
