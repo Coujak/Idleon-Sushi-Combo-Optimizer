@@ -1,8 +1,8 @@
 // Goal-based purchase guidance. All calculations are advisory heuristics:
 // game-wide upgrades with different units cannot be compared as true ROI.
 // Keep the ranking deterministic, budget-aware, and honest about missing data.
-import {getUpgradeRows,upgradeAffordability} from "./lab-model.mjs?v=1.16.6";
-import {progressionComparableMetric} from "./progression-impact.mjs?v=1.0.0";
+import {getUpgradeRows,upgradeAffordability} from "./lab-model.mjs?v=1.19.11";
+import {progressionComparableMetric} from "./progression-impact.mjs?v=1.0.1";
 
 export const PROGRESSION_SORT_OPTIONS=[
  {value:"recommended",label:"Recommended priority"},
