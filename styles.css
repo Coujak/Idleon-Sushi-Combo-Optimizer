@@ -3393,7 +3393,7 @@ details summary{cursor:pointer;font-size:12px;font-weight:700;color:#9eb7c9}
  font-size:12px;
 }
 #lab-knowledge .lab-knowledge-tier-info .lab-row-subtitle{
- color:#d5c3f0;
+ color:#b5cbd4;
  font-size:11px;
  line-height:1.5;
  overflow-wrap:anywhere;
@@ -3478,7 +3478,7 @@ details summary{cursor:pointer;font-size:12px;font-weight:700;color:#9eb7c9}
 }
 #lab-knowledge .lab-knowledge-tier-reward-text{
  display:inline;
- color:#d5c3f0;
+ color:#b5cbd4;
 }
 #lab-knowledge .lab-knowledge-value-pill.is-perfecto{
  border-color:#a883c8;
