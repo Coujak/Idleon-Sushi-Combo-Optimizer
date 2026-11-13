@@ -3,7 +3,7 @@
 // A partial multiplier is never mislabeled as the full hourly production.
 import {getKnowledgeRows,getUpgradeRows,sushiUpgradeDiscounts} from "./lab-model.mjs?v=1.19.11";
 import {estimateSushiFuelEconomy} from "./perfecto-fuel.mjs?v=1.16.7";
-import {formatCompactNumber} from "./number-format.mjs?v=1.0.0";
+import {formatCompactNumber} from "./number-format.mjs?v=1.0.1";
 
 const finite=value=>typeof value==="number"&&Number.isFinite(value);
 const format=(n,digits=3)=>formatCompactNumber(n,{digits});
