@@ -1,7 +1,7 @@
 // Human-readable, unit-aware Sushi Knowledge descriptions.
 // Inputs are the existing modeled bonus amount (raw percentage points);
 // these labels must never be confused with a permanent tier reward.
-import {formatCompactNumber} from "./number-format.mjs?v=1.0.0";
+import {formatCompactNumber} from "./number-format.mjs?v=1.0.1";
 
 export function describeKnowledgeBonus(category,amount){
  if(typeof amount!=="number"||!Number.isFinite(amount)||amount<0)return "Unavailable";
