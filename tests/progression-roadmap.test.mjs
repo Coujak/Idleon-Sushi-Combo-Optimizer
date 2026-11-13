@@ -153,3 +153,26 @@ test("Calibration parser accepts scientific and game-unit notation but rejects i
  assert.equal(parseGameQuantity("invalid"),null);
  assert.equal(formatGameQuantity(12e12),"12T");
 });
+
+test("Perfecto projection uses active Bottomless Shakers Doubler",()=>{
+ const save=fixture(1e20);
+ save.sushi[2][18]=1;
+ save.sushi[2][21]=10;
+ const normal=progressionGoalMetric(save,"perfecto");
+ assert.match(normal.display,/10% free Shaker use/);
+ save.spelunk[52]=[21];
+ const doubled=progressionGoalMetric(save,"perfecto");
+ assert.match(doubled.display,/20% free Shaker use/);
+ assert.ok(doubled.value>normal.value);
+});
+test("Purchase roadmap never invents a zero Sushi Bucks balance for partial imports",()=>{
+ const save=fixture();
+ save.sushi[4].splice(3,1);
+ const plan=buildProgressionPurchasePlan(save,"fuel",5);
+ assert.equal(plan.initialBucks,null);
+ assert.equal(plan.steps.length,0);
+ assert.match(plan.stopReason,/missing or invalid/i);
+ const noBalance=fixture();
+ noBalance.sushi[4][3]="unavailable";
+ assert.equal(buildProgressionPurchasePlan(noBalance,"bucks",5).steps.length,0);
+});
