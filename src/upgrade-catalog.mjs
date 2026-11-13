@@ -1,7 +1,7 @@
 // Upgrade Catalog presentation helpers. Game data is unchanged.
-import {estimateSushiFuelEconomy} from "./perfecto-fuel.mjs?v=1.16.6";
-import {sushiUpgradeExtraText} from "./lab-model.mjs?v=1.16.7";
-import {formatGameQuantity} from "./progression-calibration.mjs";
+import {estimateSushiFuelEconomy} from "./perfecto-fuel.mjs?v=1.16.7";
+import {sushiUpgradeExtraText} from "./lab-model.mjs?v=1.19.11";
+import {formatGameQuantity} from "./progression-calibration.mjs?v=1.17.0";
 const SHORT_DESCRIPTIONS=[
   "Shows hourly Bucks earnings and increases overall sushi Bucks production.",
   "Increases how quickly Sushi Station generates fuel.",
