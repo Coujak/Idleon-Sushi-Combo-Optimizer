@@ -1,8 +1,8 @@
 // Read-only dashboard metrics. Never present an incomplete formula as an
 // exact in-game rate or a per-fireplace effect as a global proc chance.
-import {getKnowledgeRows,getUpgradeRows} from "./lab-model.mjs?v=1.19.11";
-import {progressionGoalMetric} from "./progression-goal-impact.mjs?v=1.17.0";
-import {estimateSushiFuelEconomy} from "./perfecto-fuel.mjs?v=1.16.7";
+import {getKnowledgeRows,getUpgradeRows} from "./lab-model.mjs?v=1.19.13";
+import {progressionGoalMetric} from "./progression-goal-impact.mjs?v=1.17.1";
+import {estimateSushiFuelEconomy} from "./perfecto-fuel.mjs?v=1.16.8";
 
 const finite=n=>typeof n==="number"&&Number.isFinite(n)&&n>=0;
 /** The rollover model is informed by observed in-game behavior, not yet verified game code. */
