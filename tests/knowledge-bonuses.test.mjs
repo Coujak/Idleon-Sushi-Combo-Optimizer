@@ -78,7 +78,7 @@ test("Knowledge table combines name and tier reward, keeps four columns and Perf
  assert.match(ui,/k\.tierReward\?\?"Tier reward unavailable"/);
  assert.match(ui,/describeKnowledgeBonus\(k\.category,k\.bonus\)/);
  assert.match(ui,/describeKnowledgeBonus\(k\.category,nextAmount\)/);
- assert.match(ui,/describeKnowledgeBonus\(k\.category,k\.baseLevelBonus\)/);
+ assert.match(ui,/formatKnowledgeBonusValue\(k\.category,k\.baseLevelBonus\)/);
 });
 
 test("Knowledge bubble formatter keeps only numbers and preserves bonus units",()=>{
