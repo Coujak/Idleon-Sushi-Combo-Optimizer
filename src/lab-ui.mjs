@@ -2,7 +2,7 @@
 // information panels. All imported JSON stays in memory on the user's device.
 import {sushiUpgradeIconPath,sushiTierIconPath,KNOWLEDGE_CATEGORIES} from "./sushi-reference.mjs?v=1.16.6";
 import {KNOWLEDGE_SORT_OPTIONS,KNOWLEDGE_STATUS_OPTIONS,filterKnowledgeRows,knowledgeOverview} from "./knowledge-view.mjs?v=1.0.1";
-import {describeKnowledgeBonus} from "./knowledge-bonus-format.mjs?v=1.0.0";
+import {describeKnowledgeBonus,formatKnowledgeBonusValue} from "./knowledge-bonus-format.mjs?v=1.0.1";
 import {initializePerfectoUI} from "./perfecto-ui.mjs?v=1.36.1";
 import {CATALOG_SORT_OPTIONS,CATALOG_STATUS_OPTIONS,upgradeSummary,readableUpgradeDescription,upgradeDescriptionSegments,catalogHasVariableValues,filterSortCatalog,upgradeCatalogDollarValue} from "./upgrade-catalog.mjs?v=1.16.8";
 import {ADVISOR_GOALS,numberText,getSushiSnapshot,getUpgradeRows,
@@ -975,27 +975,6 @@ export function initializeSushiLab(getSave){
    overviewHost.append(card);
   }
 
-  const chips=$("labKnowledgeCategoryChips");
-  chips.replaceChildren();
-  const availableCounts=new Map(overview.categoryTotals.map(k=>[k.id,k.tiers]));
-  const addChip=(value,label,count)=>{
-   const button=el("button","lab-knowledge-category-chip"+(knowledgeCategory===value?" is-selected":""));
-   button.type="button";
-   button.setAttribute("aria-pressed",String(knowledgeCategory===value));
-   button.append(el("span","",label));
-   if(count!==null)button.append(el("small","",count+" tiers"));
-   button.addEventListener("click",()=>{
-    knowledgeCategory=value;
-    knowledgeCategoryInput.value=value;
-    renderKnowledge();
-   });
-   chips.append(button);
-  };
-  addChip("all","All effects",hasSave?overview.discovered:null);
-  for(const [id,label] of KNOWLEDGE_CATEGORIES.entries()){
-   addChip(String(id),label,hasSave?(availableCounts.get(id)??0):null);
-  }
-
   const rows=filterKnowledgeRows(all,{
    query:$("labKnowledgeSearch").value,
    category:knowledgeCategory,status:knowledgeStatusInput.value,sort:knowledgeSort
@@ -1054,19 +1033,32 @@ export function initializeSushiLab(getSave){
    }
 
    const bonus=el("td","lab-knowledge-bonus");
+   const bubbleClass="lab-knowledge-value-pill"+(k.perfecto?" is-perfecto":"");
+   const bonusLine=(label,value,extraClass="")=>{
+    const line=el("div","lab-knowledge-bonus-line"+(extraClass?" "+extraClass:""));
+    line.append(el("span","lab-knowledge-bonus-label",label));
+    line.append(el("span",bubbleClass+(extraClass==="is-preview"?" is-preview":""),value));
+    return line;
+   };
    if(hasSave&&k.discovered&&Number.isFinite(k.bonus)&&
       Number.isFinite(k.nextLevelGain)){
-    // The displayed amount must identify the effect, not just show a raw
-    // number: +X% Sushi Bucks, +Y% Knowledge EXP, X× Fuel capacity, etc.
-    const current=el("strong","",describeKnowledgeBonus(k.category,k.bonus));
+    const currentValue=formatKnowledgeBonusValue(k.category,k.bonus);
     const nextAmount=k.bonus+k.nextLevelGain;
-    const next=el("small","","Next Lv "+fmt(k.level+1)+": "+
-     describeKnowledgeBonus(k.category,nextAmount));
-    bonus.append(current,next);
+    const nextValue=formatKnowledgeBonusValue(k.category,nextAmount);
+    if(currentValue!==null){
+     const current=bonusLine(k.categoryName,currentValue);
+     current.title=describeKnowledgeBonus(k.category,k.bonus);
+     bonus.append(current);
+    }
+    if(nextValue!==null){
+     const next=bonusLine("Next Lv "+fmt(k.level+1),nextValue,"is-next");
+     next.title=describeKnowledgeBonus(k.category,nextAmount);
+     bonus.append(next);
+    }else bonus.append(el("small","lab-knowledge-unavailable","Next bonus unavailable"));
    }else if(k.mapped&&Number.isFinite(k.baseLevelBonus)){
-    const preview=el("strong","lab-knowledge-bonus-preview",
-     describeKnowledgeBonus(k.category,k.baseLevelBonus));
-    bonus.append(preview,el("small","",
+    const previewValue=formatKnowledgeBonusValue(k.category,k.baseLevelBonus);
+    if(previewValue!==null)bonus.append(bonusLine(k.categoryName,previewValue,"is-preview"));
+    bonus.append(el("small","lab-knowledge-preview-note",
      "Base Lv 1 · "+(!hasSave?"import save for current level":
       !k.discovered?"undiscovered":"current level unavailable")));
    }else bonus.append(el("span","lab-knowledge-unavailable","Bonus unavailable"));
