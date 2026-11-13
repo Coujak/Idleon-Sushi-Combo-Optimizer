@@ -5,10 +5,10 @@ import {initializePerfectoUI} from "./perfecto-ui.mjs?v=1.36.0";
 import {CATALOG_SORT_OPTIONS,CATALOG_STATUS_OPTIONS,upgradeSummary,readableUpgradeDescription,upgradeDescriptionSegments,catalogHasVariableValues,filterSortCatalog,upgradeCatalogDollarValue} from "./upgrade-catalog.mjs?v=1.16.7";
 import {ADVISOR_GOALS,numberText,getSushiSnapshot,getUpgradeRows,
  getKnowledgeRows,advisorUpgrades,getSushiDoublerCounts,sushiUpgradeExtraText,upgradeAffordability} from "./lab-model.mjs?v=1.19.10";
-import {getProgressionAdvice,PROGRESSION_SORT_OPTIONS,PROGRESSION_FILTER_OPTIONS} from "./progression-advisor.mjs?v=1.16.6";
+import {getProgressionAdvice,PROGRESSION_SORT_OPTIONS,PROGRESSION_FILTER_OPTIONS} from "./progression-advisor.mjs?v=1.16.8";
 import {DOUBLER_FOCUS_OPTIONS,DOUBLER_SORT_OPTIONS,getDoublerPlacementPlan,getDoublerValueComparison} from "./doubler-advisor.mjs?v=1.5.0";
 import {getDoublerAccountImpact} from "./doubler-stat-impact.mjs?v=1.3.0";
-import {buildProgressionPurchasePlan} from "./progression-roadmap.mjs?v=1.16.7";
+import {buildProgressionPurchasePlan} from "./progression-roadmap.mjs?v=1.16.8";
 import {parseGameQuantity} from "./progression-calibration.mjs?v=1.16.3";
 import {overviewTierProgress,importAgeText} from "./overview-helpers.mjs?v=1.19.9";
 import {fireplaceOverviewAdvice,formatSparkBonusPoints} from "./fireplace-advice.mjs?v=1.2.0";
@@ -611,7 +611,7 @@ export function initializeSushiLab(getSave){
    cell.append(el("small","",caption),el("strong","",value));
    metrics.append(cell);
   }
-  if(featured)metric("YOUR SUSHI BUCKS",numberDisplay(getSushiSnapshot(save()).bucks));
+  if(featured)metric("YOUR SUSHI BUCKS",numberDisplay(u.bucks));
   metric(u.exactCost?"ESTIMATED DISCOUNTED PRICE":"UPPER PRICE ESTIMATE",
    u.atMax?"Maxed":advisorPrice(u));
   metric("BUYING POWER",advisorShortfall(u),u.affordability==="affordable"?
@@ -643,19 +643,24 @@ export function initializeSushiLab(getSave){
    sort:advisorSort,filter:advisorFilter,includeMaxed:advisorMaxedInput.checked
   });
   summary.append(el("strong","",advice.affordableCount+" affordable now · "+
-   advice.count+" upgrades not maxed · "+numberDisplay(advice.bucks)+" Sushi Bucks available"));
+   advice.count+" upgrades not maxed · "+(advice.bucks===null?"Sushi Bucks balance unavailable":numberDisplay(advice.bucks)+" Sushi Bucks available")));
   if(advice.partialPrices)summary.append(el("span","",
    "Some prices are upper estimates because the imported save lacks one or more discounts."));
+  if(advice.bucks===null)summary.append(el("span","",
+   "This import has no usable Sushi Bucks balance. Prices can be shown, but purchase affordability cannot be confirmed."));
   if(!advice.best){
    feature.append(el("p","hint","Every upgrade mapped to this goal is already maxed, or no applicable upgrades are available."));
   }else{
    const head=el("div","lab-advisor-feature-heading");
    head.append(el("span","lab-advisor-kicker",
-    advice.best.affordability==="affordable"?"RECOMMENDED NEXT PURCHASE":"RECOMMENDED UPGRADE TO SAVE FOR"),
+    advice.best.affordability==="affordable"?"RECOMMENDED NEXT PURCHASE":
+    advice.bucks===null?"RECOMMENDED UPGRADE · BALANCE UNAVAILABLE":"RECOMMENDED UPGRADE TO SAVE FOR"),
      el("span","lab-advisor-method","Account-aware priority"));
    feature.append(head,advisorDetail(advice.best,true));
    if(advice.best.affordability!=="affordable")
     feature.append(el("p","lab-advisor-feature-footnote",
+     advice.bucks===null?
+     "The import has no usable Sushi Bucks balance, so this upgrade cannot be classified as affordable or a savings target.":
      "No upgrades for this goal are currently confirmed affordable. The suggestion above is a savings target, not an instruction to buy immediately."));
   }
   const requested=purchasesInput.value==="custom"?
