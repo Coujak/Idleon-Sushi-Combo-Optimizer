@@ -3754,3 +3754,14 @@ details summary{cursor:pointer;font-size:12px;font-weight:700;color:#9eb7c9}
  #knowledgePlanner .lab-kp-settings-grid{grid-template-columns:minmax(0,1fr)}
  #knowledgePlanner .lab-kp-board-wrap{padding:5px}
 }
+
+#knowledgePlanner .lab-kp-fire-art{
+ display:block;
+ width:calc(100% - 3px);
+ max-width:38px;
+ height:27px;
+ object-fit:contain;
+ image-rendering:pixelated;
+ filter:drop-shadow(0 1px 2px #0009);
+}
+#knowledgePlanner .lab-kp-fire{min-height:29px;padding:1px}
