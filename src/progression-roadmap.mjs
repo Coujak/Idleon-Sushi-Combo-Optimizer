@@ -89,3 +89,36 @@ export function buildProgressionPurchasePlan(save,goal,requestedCount=5,{reading
   stopReason
  };
 }
+
+/**
+ * Group only adjacent purchases of the same upgrade. Combining non-adjacent
+ * steps would hide the actual recommended buying order and give misleading
+ * level ranges. Every original step remains available for the expanded view.
+ */
+export function groupProgressionPurchases(steps=[]){
+ const groups=[];
+ for(const step of steps){
+  const last=groups.at(-1);
+  if(last&&last.id===step.id&&last.toLevel===step.fromLevel&&
+   last.lastNumber+1===step.number){
+   last.lastNumber=step.number;
+   last.toLevel=step.toLevel;
+   last.count++;
+   last.totalCost+=step.price;
+   last.totalMissingBucks+=step.missingBucks;
+   last.fundedCount+=Number(step.fundedByImport);
+   last.exactPrice=last.exactPrice&&step.exactPrice;
+   last.goalResult.projected=step.goalResult.projected;
+   last.goalResult.changed=last.goalResult.current!==step.goalResult.projected;
+   last.goalResult.note=step.goalResult.note;
+   last.goalResult.estimated=last.goalResult.estimated||step.goalResult.estimated;
+   last.steps.push(step);
+  }else{
+   groups.push({...step,firstNumber:step.number,lastNumber:step.number,count:1,
+    totalCost:step.price,totalMissingBucks:step.missingBucks,
+    fundedCount:Number(step.fundedByImport),
+    goalResult:{...step.goalResult},steps:[step]});
+  }
+ }
+ return groups;
+}
