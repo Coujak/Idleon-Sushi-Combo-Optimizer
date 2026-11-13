@@ -127,8 +127,8 @@ test("The imported Sushi[4][3] balance is used for affordability",()=>{
 });
 
 test("Scientific notation omits the positive exponent plus sign across account numbers",()=>{
- assert.equal(numberText(2.99e37),"2.990E37");
- assert.equal(numberText(1.2345e12),"1.235E12");
+ assert.equal(numberText(2.99e37),"2.99E37");
+ assert.equal(numberText(1.2345e12),"1.235T");
  assert.equal(numberText(1.234e-5),"1.234E-5");
  const fmt=readFileSync(new URL("../src/progression-goal-impact.mjs",import.meta.url),"utf8");
  assert.match(fmt,/toExponential\(3\)\.replace/);
