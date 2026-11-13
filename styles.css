@@ -2025,9 +2025,63 @@ details summary{cursor:pointer;font-size:12px;font-weight:700;color:#9eb7c9}
  }
 }
 
-/* Doubler Advisor: actionable account-specific assignment plan. */
-.lab-doubler-toolbar{align-items:end;max-width:440px}
-.lab-doubler-toolbar label{flex:1}
+/* Doubler Advisor: selectable category tags and account-aware plan. */
+.lab-doubler-filters{
+ display:flex;align-items:flex-end;justify-content:space-between;
+ flex-wrap:wrap;gap:14px;padding:12px 14px;
+ background:#122a35;border:1px solid #355661;border-radius:11px
+}
+.lab-doubler-category-field{flex:1 1 400px;min-width:0}
+.lab-doubler-filter-label{
+ display:block;color:#bad9d8;font-size:11px;font-weight:750;margin-bottom:8px
+}
+.lab-doubler-tag-row,.lab-doubler-tags{
+ display:flex;align-items:center;flex-wrap:wrap;gap:7px
+}
+.lab-doubler-tag,.lab-doubler-add{
+ display:inline-flex;align-items:center;justify-content:center;gap:9px;
+ min-height:34px;padding:6px 10px;border-radius:8px;font:inherit;
+ font-size:11px;font-weight:750;cursor:pointer
+}
+.lab-doubler-tag{
+ color:#d7fff1;background:#235047;border:1px solid #559884
+}
+.lab-doubler-tag:hover{background:#316456;border-color:#75bb9f}
+.lab-doubler-tag-x{font-size:16px;line-height:1;color:#a6e6d0}
+.lab-doubler-add-wrap{position:relative}
+.lab-doubler-add{
+ color:#bce7d7;background:#183641;border:1px dashed #579987
+}
+.lab-doubler-add:hover:not(:disabled){background:#214b4c;border-color:#83c8ad}
+.lab-doubler-add:disabled{opacity:.45;cursor:default}
+.lab-doubler-tag:focus-visible,.lab-doubler-add:focus-visible,
+.lab-doubler-menu-option:focus-visible{outline:2px solid #9decca;outline-offset:2px}
+.lab-doubler-category-menu{
+ position:absolute;z-index:30;top:calc(100% + 6px);left:0;
+ min-width:205px;max-width:min(280px,90vw);
+ display:flex;flex-direction:column;gap:3px;padding:6px;
+ background:#142e3c;border:1px solid #56757f;border-radius:9px;
+ box-shadow:0 14px 28px #0008
+}
+.lab-doubler-category-menu.hidden{display:none}
+.lab-doubler-menu-option{
+ border:0;border-radius:6px;background:transparent;color:#d4eae8;
+ cursor:pointer;text-align:left;padding:9px 10px;font:inherit;font-size:12px
+}
+.lab-doubler-menu-option:hover{background:#275153;color:#f1fff9}
+.lab-doubler-hide-toggle{
+ display:inline-flex;align-items:center;gap:8px;flex:0 0 auto;
+ color:#c8dfdb;font-size:12px;font-weight:650;cursor:pointer;
+ min-height:34px;white-space:nowrap
+}
+.lab-doubler-hide-toggle input{
+ accent-color:#8cddbd;width:16px;height:16px;min-width:16px;margin:0
+}
+@media(max-width:540px){
+ .lab-doubler-filters{padding:11px;gap:12px}
+ .lab-doubler-hide-toggle{width:100%}
+ .lab-doubler-category-menu{left:auto;right:0}
+}
 .lab-doubler-advice{margin:15px 0 16px}
 .lab-doubler-summary{
  display:flex;align-items:baseline;justify-content:space-between;gap:10px;
