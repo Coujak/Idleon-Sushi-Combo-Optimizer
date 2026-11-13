@@ -1,4 +1,4 @@
-import {formatCompactNumber} from "./number-format.mjs?v=1.0.0";
+import {formatCompactNumber} from "./number-format.mjs?v=1.0.1";
 // Optional in-game readings. Never store a player's values in the repo.
 // A measured baseline anchors the result; projected changes remain estimates.
 const SUFFIXES={k:1e3,m:1e6,b:1e9,t:1e12,qa:1e15,q:1e15,qi:1e18,
