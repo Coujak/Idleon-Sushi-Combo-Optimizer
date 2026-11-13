@@ -40,7 +40,7 @@ The cooking chance preview combines Quality Freshness with known Sushi Knowledge
 
 ### Shared numeric formatting
 
-Displayed quantities across the Dashboard, Combo Meter, Perfecto Planner, Upgrades and Knowledge use the same notation: **M** (10^6), **B** (10^9), **T** (10^12), **Q** (10^15), **QQ** (10^18), then **E21** and higher scientific notation. Input values and simulation arithmetic stay numeric. Legacy input abbreviations remain accepted where supported.
+Displayed quantities across the Dashboard, Combo Meter, Perfecto Planner, Upgrades and Knowledge stay as **comma-grouped numbers below 1 million** (such as `1,000`, `10,000`, or `999,999`). At **1,000,000**, displays switch to **M** (10^6), then **B** (10^9), **T** (10^12), **Q** (10^15), **QQ** (10^18), and **E21** or higher scientific notation. Input values and simulation arithmetic remain unchanged. Legacy inputs such as `1K` remain accepted where supported, even though the displayed value is `1,000`.
 
 The Knowledge EXP table does not pass non-finite percentages to HTML progress bars. Extremely large or incomplete EXP requirements show as unavailable instead of interrupting a successful JSON import.
 
