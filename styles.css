@@ -2151,6 +2151,23 @@ details summary{cursor:pointer;font-size:12px;font-weight:700;color:#9eb7c9}
 }
 .lab-doubler-value.is-doubled strong{color:#f4d9ff}
 .lab-doubler-value.is-doubled small{color:#e2c7f5}
+.lab-doubler-account-stat{
+ display:flex;flex-direction:column;gap:5px;
+ margin-top:9px;padding-top:9px;border-top:1px solid #ffffff20;
+ min-width:0
+}
+.lab-doubler-account-stat small{
+ color:#b0cbd2;font-size:10px;font-weight:600;line-height:1.45
+}
+.lab-doubler-account-stat strong{
+ font-size:clamp(12px,1.3vw,15px);color:#d6f7ea;
+ line-height:1.45;overflow-wrap:anywhere;font-variant-numeric:tabular-nums
+}
+.lab-doubler-value.is-doubled .lab-doubler-account-stat strong{color:#f4d9ff}
+.lab-doubler-value.is-current:not(.is-doubled) .lab-doubler-account-stat strong{color:#a2efca}
+.lab-doubler-impact-note{
+ font-size:10.5px;color:#a8c5c9;line-height:1.55;margin:7px 0 0
+}
 .lab-doubler-value-caption{color:#9bb6c0;font-size:10.5px;line-height:1.5;margin:7px 0 0}
 @media(max-width:440px){
  .lab-doubler-values{grid-template-columns:1fr}
