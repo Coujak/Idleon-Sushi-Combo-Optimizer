@@ -409,12 +409,30 @@
 </div>
 
 </section></div>
-<div id="lab-knowledge" class="lab-tab-content hidden" role="tabpanel" aria-label="Knowledge" aria-hidden="true"><section class="panel">
-<div class="heading"><div><div class="eyebrow">SUSHI STATION · KNOWLEDGE</div><h2>Sushi knowledge tiers</h2></div><span class="status">T1 – T64</span></div>
-<p class="hint">Browse each sushi tier, its knowledge level, EXP progress, known effects and Perfecto status. If the game reference does not identify a tier’s bonus category, it is marked unavailable instead of showing an invented value.</p>
-<div class="lab-toolbar"><label>Search tiers <input type="search" id="labKnowledgeSearch" placeholder="Tier, name or effect…"></label>
-<label>Show <select id="labKnowledgeStatus"><option value="all">All tiers</option><option value="unfinished">Discovered, not Perfecto</option><option value="perfecto">Perfecto</option><option value="undiscovered">Not discovered</option></select></label><span id="labKnowledgeCount" class="hint">64 tiers</span></div>
-<div class="lab-table-wrap"><table class="lab-data-table" aria-label="Sushi knowledge tiers"><thead><tr><th>Tier and knowledge effect</th><th>Knowledge level</th><th>EXP / next</th><th>Current bonus</th><th>Perfecto status</th></tr></thead><tbody id="labKnowledgeRows"></tbody></table></div>
-<p class="hint lab-disclaimer">Values reflect the imported save. Perfecto doubles the relevant knowledge bonus; EXP and bonuses may differ from the game if the rules change in an update.</p>
+<div id="lab-knowledge" class="lab-tab-content hidden" role="tabpanel" aria-label="Knowledge" aria-hidden="true">
+<section class="panel">
+ <div class="heading"><div><div class="eyebrow">SUSHI STATION · KNOWLEDGE</div><h2>Knowledge overview</h2></div><span class="status">64 Sushi tiers</span></div>
+ <p class="hint">Track Knowledge EXP, level-up readiness, bonuses and Perfectos using your imported Idleon Toolbox JSON. This is a progression overview, not an EXP farming efficiency prediction.</p>
+ <div id="labKnowledgeOverview" class="lab-knowledge-overview" role="status" aria-live="polite"></div>
+ <div class="lab-knowledge-categories-head"><h3>Knowledge effects</h3><span class="hint">Select an effect to filter the Sushi list.</span></div>
+ <div id="labKnowledgeCategoryChips" class="lab-knowledge-categories" aria-label="Filter Sushi tiers by Knowledge effect"></div>
+
+ <div class="lab-knowledge-table-heading"><h3>Sushi Knowledge</h3><span id="labKnowledgeCount" class="hint" role="status">64 tiers</span></div>
+ <div class="lab-toolbar lab-catalog-toolbar lab-knowledge-toolbar">
+  <label class="lab-knowledge-search">Search tiers <input type="search" id="labKnowledgeSearch" placeholder="Name, tier or effect…"></label>
+  <label>Effect <select id="labKnowledgeCategory" aria-label="Knowledge bonus category"></select></label>
+  <label>Status <select id="labKnowledgeStatus" aria-label="Knowledge progression status"></select></label>
+  <label>Sort by <select id="labKnowledgeSort" aria-label="Sort Knowledge tiers"></select></label>
+ </div>
+ <div class="lab-table-wrap">
+  <table class="lab-data-table lab-knowledge-table" aria-label="Sushi Knowledge levels and EXP progress">
+   <thead><tr><th scope="col">Sushi / effect</th><th scope="col">Knowledge level</th>
+    <th scope="col">EXP to next level</th><th scope="col">Bonus · current / next</th>
+    <th scope="col">Perfecto</th></tr></thead>
+   <tbody id="labKnowledgeRows"></tbody>
+  </table>
+ </div>
+ <p id="labKnowledgeEmpty" class="hint lab-empty-state hidden">No Sushi tiers match the selected filters.</p>
+ <p class="hint lab-disclaimer">EXP progress and bonuses use the currently pinned Sushi Station formulas. “Ready to level” means the imported EXP meets the next-level requirement; it does not automatically claim a level. Missing save data is shown as unavailable rather than zero.</p>
 </section></div>
 </main><script type="module" src="src/app.js?v=1.50.7"></script></body></html>
