@@ -32,6 +32,17 @@ The Combo Meter planner is a **heuristic** search tool, not a guarantee of the h
 
 The advisors are informational and never modify the imported save. Price estimates use account discounts when their source data is available. Reference metadata is derived from the public Sushi Station game rules, and can change as the game updates.
 
+## Knowledge tab
+
+The **Knowledge** section is a read-only account overview for all 64 Sushi tiers, derived from the locally imported Idleon Toolbox JSON:
+
+- Overview counts: discovered tiers, Perfectos, known Knowledge levels and tiers with enough EXP for the next Knowledge level (where the save includes complete progress data).
+- Clickable Knowledge-effect categories, plus search, category, status (including **Ready to level**) and sort controls.
+- Sushi icons, current level, EXP needed for the next level with progress bars, current modeled Knowledge bonus, next-level bonus, and Perfecto status.
+- Missing EXP or level data is marked **unavailable**, not incorrectly treated as zero. A "Ready to level" label indicates a modeled threshold, **not that the game has automatically collected the level**.
+
+The Knowledge tab currently tracks progression; it does not estimate EXP earned per hour, optimal farming boards, or time-to-level. A separate Knowledge Leveling Planner can be developed once EXP gain models and game observations have been validated.
+
 ## Personalized Progression Advisor
 
 The **Upgrades → Progression Advisor** evaluates a one-level upgrade purchase against the selected goal's **before → after account model**, current Sushi Bucks, assigned Doublers and estimated discounted price. Within the chosen goal, measurable gains come before upgrades whose benefits cannot yet be quantified; affordability and estimated cost efficiency then guide the order. The featured next purchase, modeled gain and its confidence/limitations are shown separately from the raw upgrade effect. This is a transparent **partial model**, not a mathematically proven ROI ranking across unrelated effects.
