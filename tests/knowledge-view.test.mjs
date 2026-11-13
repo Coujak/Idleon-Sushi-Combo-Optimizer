@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {readFileSync} from "node:fs";
 import {getKnowledgeRows} from "../src/lab-model.mjs";
+import {describeKnowledgeBonus} from "../src/knowledge-bonus-format.mjs";
 import {filterKnowledgeRows,knowledgeOverview,KNOWLEDGE_SORT_OPTIONS,KNOWLEDGE_STATUS_OPTIONS}
  from "../src/knowledge-view.mjs";
 
@@ -120,7 +121,7 @@ test("Knowledge tab actually renders imported tiers, ready filter and missing-sa
   $:id=>nodes.get(id),el:make,save:()=>account,
   knowledgeCategoryInput,knowledgeStatusInput,
   knowledgeCategory:"all",knowledgeSort:"tier",
-  getKnowledgeRows,knowledgeOverview,filterKnowledgeRows,
+  getKnowledgeRows,knowledgeOverview,filterKnowledgeRows,describeKnowledgeBonus,
   KNOWLEDGE_CATEGORIES:["Bucks earned","Knowledge XP","Cooking +1 tier chance",
    "Fuel capacity","Fuel generation","Free Shaker chance","Upgrade discounts",
    "Fuel generation multiplier","Slot strength","Fireplace strength","Perfecto chance"],
@@ -132,6 +133,10 @@ test("Knowledge tab actually renders imported tiers, ready filter and missing-sa
  let account=fixture();
  renderer();
  assert.equal(nodes.get("labKnowledgeRows").children.length,64);
+ const displayRow=nodes.get("labKnowledgeRows").children[0];
+ assert.equal(displayRow.children.length,6,"Tier reward has its own table column");
+ assert.ok(displayRow.children[1].children[0].textContent.includes("Research EXP"));
+ assert.ok(displayRow.children[4].children.some(x=>x.textContent.includes("Sushi Bucks")));
  assert.equal(nodes.get("labKnowledgeOverview").children.length,4);
  assert.equal(nodes.get("labKnowledgeCategoryChips").children.length,12);
  const first=nodes.get("labKnowledgeRows").children[0];
