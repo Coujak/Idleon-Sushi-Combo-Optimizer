@@ -739,7 +739,7 @@ export function initializeSushiLab(getSave){
   const grid=el("div","lab-doubler-plan-grid");
   for(const u of plan.recommendations){
    const isAction=u.status!=="Keep"&&u.status!=="Level first";
-   const card=el("article","lab-doubler-plan-card"+(isAction?" is-change":""));
+   const card=el("article","lab-doubler-plan-card"+(u.doubled?" is-doubled":isAction?" is-change":""));
    const head=el("div","lab-doubler-plan-head");
    const identity=el("div","lab-doubler-plan-identity");
    identity.append(upgradeArtwork(u));
@@ -747,7 +747,8 @@ export function initializeSushiLab(getSave){
    name.append(el("strong","",upgradeLabel(u)),
     el("small","","Upgrade Lv "+fmt(u.level)));
    identity.append(name);
-   head.append(identity,el("span","lab-doubler-plan-status",u.status));
+   head.append(identity,el("span","lab-doubler-plan-status"+(u.doubled?" is-doubled":""),
+    u.doubled?"×2 Active · Keep":u.status));
    card.append(head,el("p","lab-doubler-plan-reason",u.reason));
    const detail={
     "Keep":"Already doubled. No change needed.",
