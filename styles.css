@@ -2204,3 +2204,13 @@ details summary{cursor:pointer;font-size:12px;font-weight:700;color:#9eb7c9}
 @media(max-width:700px){
  .lab-doubler-plan-grid{grid-template-columns:1fr}
 }
+
+/* Progression Advisor: goal-specific marginal impact and visible-results control. */
+.lab-advisor-compare-controls{display:flex;align-items:center;justify-content:flex-end;gap:12px;flex-wrap:wrap}
+.lab-advisor-visible-count{display:flex;align-items:center;gap:8px;font-size:.9rem}
+.lab-advisor-visible-count select{min-width:130px}
+.lab-advisor-modeled-impact{display:grid;gap:5px;padding:12px 14px;margin-top:10px;border:1px solid var(--border, #4a4859);border-radius:12px}
+.lab-advisor-modeled-impact>span{font-size:.72rem;font-weight:700;letter-spacing:.05em;color:var(--muted,#acacba)}
+.lab-advisor-modeled-impact>strong{font-size:1rem;overflow-wrap:anywhere}
+.lab-advisor-modeled-impact>small{font-size:.85rem;opacity:.84;overflow-wrap:anywhere}
+@media(max-width:700px){.lab-advisor-compare-controls{justify-content:flex-start}.lab-advisor-visible-count select{min-width:115px}}
