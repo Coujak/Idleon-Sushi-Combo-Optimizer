@@ -84,7 +84,7 @@ test("Optional in-game rates anchor projections without claiming exact simulatio
  const before=JSON.stringify(save);
  const bucks=impact(save,31,{bucks:"1.25E30"});
  assert.match(bucks.basis,/Anchored to in-game reading/);
- assert.equal(bucks.withDoubler,"1.250E30 Bucks/hr");
+ assert.equal(bucks.withDoubler,"1.25No Bucks/hr");
  assert.ok(quantity(bucks.without)<quantity(bucks.withDoubler));
  const fuel=impact(save,9,{fuel:"22.2T"});
  assert.match(fuel.without,/Fuel\/hr/);
