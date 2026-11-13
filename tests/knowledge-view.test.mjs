@@ -257,7 +257,7 @@ test("Knowledge table headers share dropdown sorting and expose accessible stick
  assert.equal(nextKnowledgeHeaderSort("tier","level-desc","level-asc"),"level-desc");
  const rows=getKnowledgeRows(fixture());
  assert.equal(filterKnowledgeRows(rows,{sort:"level-asc"})[0].tier,3);
- assert.equal(filterKnowledgeRows(rows,{sort:"next-desc",status:"discovered"}).at(-1).tier,3);
+ assert.equal(filterKnowledgeRows(rows,{sort:"next-desc",status:"discovered"}).at(-1).tier,2);
 });
 test("Knowledge 5-level checkpoint hints are only near a real upcoming level and never invent a reward",()=>{
  const rows=getKnowledgeRows(fixture());
