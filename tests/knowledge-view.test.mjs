@@ -92,3 +92,58 @@ test("Knowledge tab renders progress, category chips and a shared visual style",
  assert.ok(css.includes("#lab-knowledge .lab-knowledge-toolbar"));
  assert.ok(css.includes("#lab-knowledge .lab-knowledge-category-chip.is-selected"));
 });
+
+test("Knowledge tab actually renders imported tiers, ready filter and missing-save state",()=>{
+ const ui=readFileSync(new URL("../src/lab-ui.mjs",import.meta.url),"utf8");
+ const start=ui.indexOf(" function renderKnowledge(){");
+ const end=ui.indexOf(" const perfectoUI=initializePerfectoUI(",start);
+ assert.ok(start>=0&&end>start,"Locate Knowledge renderer");
+ class Node{
+  constructor(tag="div",css="",value=""){
+   this.tag=tag;this.className=css;this.textContent=String(value??"");
+   this.children=[];this.attributes={};this.events={};
+   this.classList={toggle(){}};
+  }
+  append(...items){this.children.push(...items)}
+  replaceChildren(...items){this.children=[...items]}
+  setAttribute(k,v){this.attributes[k]=v}
+  addEventListener(k,fn){this.events[k]=fn}
+ }
+ const nodes=new Map(["labKnowledgeOverview","labKnowledgeCategoryChips",
+  "labKnowledgeCount","labKnowledgeRows","labKnowledgeEmpty"]
+  .map(id=>[id,new Node()]));
+ nodes.set("labKnowledgeSearch",{value:""});
+ const knowledgeCategoryInput={value:"all"};
+ const knowledgeStatusInput={value:"all"};
+ const make=(tag,css="",value="")=>new Node(tag,css,value);
+ const values={
+  $:id=>nodes.get(id),el:make,save:()=>account,
+  knowledgeCategoryInput,knowledgeStatusInput,
+  knowledgeCategory:"all",knowledgeSort:"tier",
+  getKnowledgeRows,knowledgeOverview,filterKnowledgeRows,
+  KNOWLEDGE_CATEGORIES:["Bucks earned","Knowledge XP","Cooking +1 tier chance",
+   "Fuel capacity","Fuel generation","Free Shaker chance","Upgrade discounts",
+   "Fuel generation multiplier","Slot strength","Fireplace strength","Perfecto chance"],
+  fmt:n=>String(n),numberDisplay:n=>String(n),
+  sushiArtwork:tier=>make("span","art","T"+tier)
+ };
+ const renderer=new Function(...Object.keys(values),ui.slice(start,end)+
+  "\nreturn renderKnowledge;")(...Object.values(values));
+ let account=fixture();
+ renderer();
+ assert.equal(nodes.get("labKnowledgeRows").children.length,64);
+ assert.equal(nodes.get("labKnowledgeOverview").children.length,4);
+ assert.equal(nodes.get("labKnowledgeCategoryChips").children.length,12);
+ const first=nodes.get("labKnowledgeRows").children[0];
+ assert.ok(first.children.some(cell=>cell.className==="lab-knowledge-exp"));
+ knowledgeStatusInput.value="ready";
+ renderer();
+ assert.equal(nodes.get("labKnowledgeRows").children.length,1);
+ assert.equal(nodes.get("labKnowledgeCount").textContent,"1 / 64 tiers");
+ account=null;
+ knowledgeStatusInput.value="all";
+ renderer();
+ assert.equal(nodes.get("labKnowledgeRows").children.length,64);
+ const metrics=nodes.get("labKnowledgeOverview").children;
+ assert.equal(metrics[0].children[1].textContent,"—");
+});
