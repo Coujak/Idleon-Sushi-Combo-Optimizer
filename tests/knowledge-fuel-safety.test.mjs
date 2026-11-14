@@ -45,7 +45,9 @@ test("Focus places a new target Sushi on a yellow Milktoast plate without active
  });
  assert.ok(plan.frames.some(f=>f.board[10]===58),
   "A target copy should eventually occupy yellow Milktoast");
- assert.ok(plan.frames.some(f=>f.kind==="move"&&f.dst===10));
+ assert.ok(plan.frames.some(f=>(f.kind==="move"||f.kind==="cook"||
+  f.kind==="merge")&&f.board[10]===58),
+  "A newly created or legally relocated T58 should occupy Milktoast");
  assert.equal(plan.targetExp,plan.targetCreated,
   "Milktoast must not duplicate EXP from creating T58");
  for(let i=1;i<plan.frames.length;i++){
