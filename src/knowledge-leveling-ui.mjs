@@ -511,11 +511,12 @@ export function initializeKnowledgeLevelingUI(getSave){
    },
    getDelay:()=>Number(speed.value)
   });
-  // The only completion condition is creating a NEW T64. A 64-wave
-  // preview or an action budget is not game completion if moves remain.
+  // Balanced ends on a newly created T64; Focused keeps building and
+  // harvesting its selected target while legal progress is possible.
   continueButton.classList.toggle("hidden",!canExtendBalancedRotation(p));
   continueButton.textContent=knowledgeContinueButtonLabel(p.roundsCompleted);
-  continueButton.title="Advance the Balanced rotation by 5% of its current completed refill count";
+  continueButton.title="Advance the "+(p.mode==="focused"?"Focused":"Balanced")+
+   " rotation by 5% of its current completed refill count";
   continueButton.disabled=false;
   const initial=Math.min(resumeIndex??p.preparedStep??0,p.steps.length-1);
   if(initial>0)controller.goTo(initial);
@@ -528,7 +529,7 @@ export function initializeKnowledgeLevelingUI(getSave){
    "Lithium Firelighter is 2× Knowledge EXP for Sushi above pink fireplaces; the solver also models reduced Fuel regeneration when orange fireplaces are changed to pink.",
    "The optimizer chooses a NEW prepared Sushi board rather than copying the imported inventory. It retains your highest-tier Sushi at its original location. Clearing other current Sushi to reach this preparation is a separate, unsolved task.",
    "Balanced requests the lowest cookable tier (normally T1), but guaranteed +tier bonuses raise the actual Sushi tier produced. Merge and refill without deleting survivors. A full rotation ends ONLY when a new T64 is created. The existing protected T64 does not count. Continue advances by 5% of the current refill count, calculated in small validated batches.",
-   "Focused: first produce and bank as many selected-tier Sushi as possible. Only after the board runs out of space does an explicit Harvest phase merge the saved copies into higher tiers. EXP belongs to the newly created tier, not the ingredient being consumed.",
+   "Focused: produce and bank the selected tier, then harvest pairs only when necessary to recover space. Use Continue to extend its legal preparation and harvest in 5% refill increments. Focused does not stop when a T64 is created; its goal is continued target EXP.",
    "Moving Sushi into a vacant slot is a separate action. Movement Mittens toggles dragging to plates; disable it for Sushi repositioning.",
    "The first full-board fill is screened using the imported Fuel balance, Fuel capacity, estimated generation and actual tier costs. A separate warning appears if no tested recipe avoids regeneration waits. Milktoast/Cold provide passive EXP/day and can be optionally protected.",
    "The optimizer compares bounded candidate patterns and counts only verified active creation EXP. The replay's final state and stop reason are always shown; the walkthrough never claims to continue beyond its simulated actions."
@@ -638,7 +639,9 @@ export function initializeKnowledgeLevelingUI(getSave){
   cancelButton.classList.remove("hidden");
   build.disabled=true;
   announceContinuation("Simulating +"+additionalWaves+" refills (5%) from the current board, through refill "+nextRounds+"…");
-  status.textContent="Simulating "+additionalWaves+" Balanced refill waves (5% of "+previous.roundsCompleted+")…";
+  status.textContent="Simulating "+additionalWaves+" "+
+   (previous.mode==="focused"?"Focused":"Balanced")+
+   " refill waves (5% of "+previous.roundsCompleted+")…";
   try{
    const search=createKnowledgeWorker();
    worker=search;
@@ -682,8 +685,11 @@ export function initializeKnowledgeLevelingUI(getSave){
      continueButton.textContent=knowledgeContinueButtonLabel(plan.roundsCompleted);
      const progressed=plan.roundsCompleted-previous.roundsCompleted;
      const message=plan.rotationTerminal?
-      "Full rotation complete! A NEW T64 was created after "+
+      "Full Balanced rotation complete! A NEW T64 was created after "+
       progressed+" additional refills.":
+      (plan.mode==="focused"?
+       "Focused T"+plan.targetTier+" · "+plan.targetCreated+
+       " target creations · "+plan.harvestCount+" harvests · ":"")+
       "Advanced "+progressed+" / "+additionalWaves+
       " requested refills (5%) · total "+plan.roundsCompleted+
       " · highest newly created T"+plan.highestNewTier+
@@ -708,14 +714,15 @@ export function initializeKnowledgeLevelingUI(getSave){
     failContinuation("the browser could not receive the continued replay.");
    };
    search.postMessage({save,waves:additionalWaves,continuation:{
-    mode:"balanced",completed:previous.completed,
+    mode:previous.mode,completed:previous.completed,
     options:previous.options,finalBoard:previous.finalBoard,
     slots:previous.layout.slots,protectedIndices:previous.protectedIndices,
     proposedFires:previous.proposedFires,
     guaranteedCookBonus:previous.guaranteedCookBonus,windCap:previous.windCap,
     startCookTier:previous.startCookTier,startingPattern:previous.startingPattern,
     recipeOffset:previous.recipeOffset,packingMode:previous.packingMode,
-    roundsCompleted:previous.roundsCompleted,targetTier:previous.targetTier
+    roundsCompleted:previous.roundsCompleted,targetTier:previous.targetTier,
+    targetCreated:previous.targetCreated
    }});
   }catch(error){
    stopSearch();
