@@ -125,7 +125,7 @@ export function initializeKnowledgeLevelingUI(getSave){
   for(const [label,value] of [
    ...(p.mode==="focused"?[
     ["T"+p.targetTier+" created",compact(p.targetCreated)],
-    ["Largest prepared batch",compact(p.peakTargetCopies)+" copies"],
+    ["Peak T"+p.targetTier+" on board",compact(p.peakTargetCopies)+" copies"],
     ["T"+p.targetTier+" Knowledge EXP",compact(p.targetExp)],
     ["Batch harvests",compact(p.harvestCount)],
     ["T"+p.targetTier+" consumed in harvest",compact(p.targetMergedInHarvest)]
@@ -344,7 +344,7 @@ export function initializeKnowledgeLevelingUI(getSave){
    (frame.phase==="harvest"?"HARVEST":"PREPARE")+" T"+result.targetTier+
    " · "+frame.targetCreated+" created · "+frame.targetCopies+" banked";
   $("knowledgePlanNextHarvest").disabled=!result.steps.some((f,i)=>
-   i>index&&f.kind==="stage"&&f.phase==="harvest");
+   i>index&&f.kind==="stage"&&f.phase==="harvest"&&f.title.startsWith("Harvest prepared"));
   $("knowledgePlanPrev").disabled=index===0;
   $("knowledgePlanNext").disabled=index===result.steps.length-1;
  }
@@ -452,7 +452,7 @@ export function initializeKnowledgeLevelingUI(getSave){
  $("knowledgePlanNextHarvest").addEventListener("click",()=>{
   if(!result||!controller)return;
   const next=result.steps.findIndex((f,i)=>i>controller.step&&
-   f.kind==="stage"&&f.phase==="harvest");
+   f.kind==="stage"&&f.phase==="harvest"&&f.title.startsWith("Harvest prepared"));
   if(next>=0)controller.goTo(next);
  });
  $("knowledgePlanPrev").addEventListener("click",()=>controller?.goTo(
