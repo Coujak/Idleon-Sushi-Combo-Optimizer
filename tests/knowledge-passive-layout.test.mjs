@@ -100,3 +100,23 @@ test("Focused T58 hybrid farming protects parked Cold/Milktoast sources",()=>{
   }else assert.deepEqual(frame.board,old);
  }
 });
+
+test("Newly cooked focused T58 on vacant Milktoast automatically becomes a protected seed",()=>{
+ const {board,slots}=setup();
+ board[99]=64;slots[99]=2;
+ slots[80]=3;
+ const plan=simulateContinuousKnowledgeRotation({
+  startingBoard:board,slots,mode:"focused",targetTier:58,
+  requestedTier:58,windCap:58,chain:25,expAt:()=>1,cookCost:()=>1,
+  rounds:2,pattern:"uniform",maximumActions:1100,
+  protectedIndices:[99],protectFocusedMilktoast:true
+ });
+ const creation=plan.frames.find(frame=>frame.kind==="cook"&&frame.at===80);
+ assert.ok(creation,"Expected a newly cooked T58 in a vacant Milktoast Plate");
+ assert.equal(creation.board[80],58);
+ assert.ok(creation.protectedIndices.includes(80));
+ assert.ok(plan.frames.every(frame=>frame.board[99]===64));
+ assert.ok(plan.frames.slice(plan.frames.indexOf(creation))
+  .every(frame=>frame.board[80]===58),
+  "A parked Milktoast target must never be consumed or tiered-up by Wind");
+});
