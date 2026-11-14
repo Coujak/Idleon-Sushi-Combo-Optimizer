@@ -205,7 +205,7 @@ export function initializeKnowledgeLevelingUI(getSave){
     ["Highest newly created tier","T"+p.highestNewTier]
    ]:[
     ["Tiers missing active EXP",String(p.uncoveredTiers.length)],
-    ["Completed T64 rotations",String(p.balancedCycles)],
+    ["Completed goal-tier rotations",String(p.balancedCycles)],
     ["Survivor parking",p.packingMode==="ascending"?"Staircase low → high":
      p.packingMode==="descending"?"Staircase high → low":"Simple parking"]
    ]),
@@ -636,7 +636,7 @@ export function initializeKnowledgeLevelingUI(getSave){
    },
    getDelay:()=>Number(speed.value)
   });
-  // Balanced ends on a newly created T64; Focused keeps building and
+  // Balanced ends on the selected new End tier; Focused keeps building and
   // harvesting its selected target while legal progress is possible.
   continueButton.classList.toggle("hidden",!canExtendBalancedRotation(p));
   continueButton.textContent=knowledgeContinueButtonLabel(p.roundsCompleted);
@@ -652,7 +652,7 @@ export function initializeKnowledgeLevelingUI(getSave){
    "The optimizer uses the Combo Meter legal merge engine, including up to 25 East Wind upgrades when unlocked. Each verified creation event awards EXP to the created Sushi tier.",
    "Lithium Firelighter is 2× Knowledge EXP for Sushi above pink fireplaces; the solver also models reduced Fuel regeneration when orange fireplaces are changed to pink.",
    "The optimizer chooses a NEW prepared Sushi board rather than copying the imported inventory. It retains your highest-tier Sushi at its original location. Clearing other current Sushi to reach this preparation is a separate, unsolved task.",
-   "Balanced requests the lowest cookable tier (normally T1), but guaranteed +tier bonuses raise the actual Sushi tier produced. A full rotation ends ONLY when a new T64 is created; the original T64 does not count. Click Continue to advance by 5%, or press and hold to repeat until release (the in-flight increment finishes).",
+   "Balanced requests the lowest cookable tier (normally T1), but guaranteed +tier bonuses raise the actual Sushi tier produced. Its selected End tier is the completion goal; an existing protected Sushi does not count. Click Continue to advance by 5%, or press and hold to repeat until release (the in-flight increment finishes).",
    "Focused: produce and bank the selected tier, then harvest pairs only when necessary to recover space. Click Continue to extend by 5%, or hold it down to repeat until release (an in-flight increment finishes). Focused does not stop when a T64 is created; its goal is continued target EXP.",
    "Moving Sushi into a vacant slot is a separate action. Movement Mittens toggles dragging to plates; disable it for Sushi repositioning.",
    "The first full-board fill is screened using the imported Fuel balance, Fuel capacity, estimated generation and actual tier costs. A separate warning appears if no tested recipe avoids regeneration waits. Milktoast/Cold provide passive EXP/day and can be optionally protected.",
@@ -802,7 +802,8 @@ export function initializeKnowledgeLevelingUI(getSave){
     if(msg?.progress){
      const message="Simulating "+msg.completedWaves+" / "+
       msg.requestedWaves+" refills · current total "+
-      msg.totalRefills+(msg.completed?" · T64 created!":"");
+      msg.totalRefills+(msg.completed?
+       " · T"+(previous.balancedEndTier??64)+" created!":"");
      continueButton.textContent="Simulating "+msg.completedWaves+
       "/"+msg.requestedWaves+"…";
      announceContinuation(message);
