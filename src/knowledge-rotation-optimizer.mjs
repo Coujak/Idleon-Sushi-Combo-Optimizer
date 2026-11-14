@@ -67,7 +67,8 @@ function expProfile(save,rows,options,fires,metrics){
  const created=calculateKnowledgeCreationExp({
   upgradeRows:getUpgradeRows(save),knowledgeRows:rows,options,
   lithiumUnlocked:num(save?.sushi?.[2]?.[26])>0,
-  searedUnlocked:num(save?.sushi?.[2]?.[13])>0
+  searedUnlocked:num(save?.sushi?.[2]?.[13])>0,
+  sparks:save?.sushi?.[4]?.[2]
  });
  return {
   ...created,
@@ -344,6 +345,13 @@ export function optimizeKnowledgeRotation(save,rawOptions={}){
    thirdMultiplier:best.xp.thirdMultiplier,
    knowledgeMultiplier:best.xp.knowledgeMultiplier,
    pinkMultiplier:best.xp.lithium,
+   fireplaceStrength:best.xp.fireplaceStrength,
+   fireplaceKnowledgeBonus:best.xp.fireplaceKnowledgeBonus,
+   fireplaceSparkBonus:best.xp.fireplaceSparkBonus,
+   fireplaceKnowledgeMultiplier:best.xp.fireplaceKnowledgeMultiplier,
+   fireplaceSparkMultiplier:best.xp.fireplaceSparkMultiplier,
+   sparksKnown:best.xp.sparksKnown,
+   manualLithium:best.xp.manualLithium,
    lithiumEnabled:best.xp.lithiumEnabled,
    manuallyCalibrated:best.xp.manuallyCalibrated
   },
