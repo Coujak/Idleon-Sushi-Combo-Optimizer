@@ -4289,3 +4289,54 @@ details summary{cursor:pointer;font-size:12px;font-weight:700;color:#9eb7c9}
   align-items:flex-start;flex-wrap:wrap;
  }
 }
+
+/* Balanced Knowledge range: two constrained thumbs with live tier labels. */
+#knowledgePlanner .lab-kp-balanced-range{
+ margin:10px 0 13px;padding:14px 17px;border-radius:12px;
+ background:linear-gradient(145deg,#132e3d,#163839);
+ border:1px solid #416b69;
+}
+#knowledgePlanner .lab-kp-balanced-range.hidden{display:none}
+#knowledgePlanner .lab-kp-range-heading{
+ display:flex;align-items:center;justify-content:space-between;
+ flex-wrap:wrap;gap:10px;
+}
+#knowledgePlanner .lab-kp-range-heading strong{
+ color:#dcf7e9;font-size:13px;font-weight:800;
+}
+#knowledgePlanner .lab-kp-range-badge{
+ display:inline-flex;align-items:center;justify-content:center;
+ padding:5px 12px;border:1px solid #579978;border-radius:8px;
+ background:#215043;color:#aef8d4;font-weight:850;
+ font-variant-numeric:tabular-nums;font-size:13px;
+}
+#knowledgePlanner .lab-kp-balanced-range>.hint{
+ margin:7px 0 11px;color:#a8c9c9;font-size:11.5px;line-height:1.55;
+}
+#knowledgePlanner .lab-kp-range-sliders{
+ display:grid;grid-template-columns:repeat(2,minmax(0,1fr));
+ gap:14px;align-items:stretch;
+}
+#knowledgePlanner .lab-kp-range-sliders label{
+ display:grid;grid-template-columns:minmax(0,1fr) auto;
+ grid-template-rows:auto auto;column-gap:9px;row-gap:9px;
+ align-items:center;min-width:0;
+ padding:12px 13px;border:1px solid #395c66;
+ background:#102a38;border-radius:10px;
+ font-size:11.5px;font-weight:700;color:#bfdddd;
+}
+#knowledgePlanner .lab-kp-range-sliders output{
+ font-size:12px;line-height:1.4;color:#adf5d2;
+ background:#214b42;border:1px solid #417a64;
+ border-radius:7px;padding:4px 8px;font-variant-numeric:tabular-nums;
+}
+#knowledgePlanner .lab-kp-range-sliders input[type="range"]{
+ grid-column:1/-1;width:100%;min-width:0;margin:0;
+ height:19px;accent-color:#71d8ac;cursor:pointer;
+}
+#knowledgePlanner .lab-kp-range-sliders input[type="range"]:focus-visible{
+ outline:2px solid #90f6c9;outline-offset:3px;border-radius:6px;
+}
+@media(max-width:680px){
+ #knowledgePlanner .lab-kp-range-sliders{grid-template-columns:minmax(0,1fr);}
+}
