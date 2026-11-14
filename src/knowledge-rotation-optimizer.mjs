@@ -13,6 +13,7 @@ import {getKnowledgeRows,getUpgradeRows} from "./lab-model.mjs?v=1.19.13";
 import {getSushiDashboardMetrics} from "./dashboard-metrics.mjs?v=1.0.2";
 import {normalizeKnowledgeCycleOptions} from "./knowledge-cycle-optimizer.mjs?v=1.0.3";
 import {inspectKnowledgePinkFireplaces} from "./knowledge-pink-fireplaces.mjs?v=1.0.0";
+import {calculateKnowledgeCreationExp} from "./knowledge-creation-exp.mjs?v=1.0.0";
 
 export {normalizeKnowledgeCycleOptions};
 const SIZE=120,COLS=15;
@@ -63,18 +64,16 @@ function startingTiers(economy,guaranteed,options,targetTier,availableSlots=100)
   options.mode==="focused"?10:7);
 }
 function expProfile(save,rows,options,fires,metrics){
- const upgrade=getUpgradeRows(save);
- const bonus=id=>upgrade.find(x=>x.id===id)?.rawBonus??0;
- const searing=bonus(37),third=bonus(38);
- const knowledge=rows.filter(x=>x.discovered&&x.category===1&&Number.isFinite(x.bonus))
-  .reduce((a,x)=>a+x.bonus,0);
- const base=options.expPerCreation??(1+Math.max(0,searing)/10);
- const global=(1+Math.max(0,third)/100)*(1+Math.max(0,knowledge)/100);
- const lithiumEnabled=num(save?.sushi?.[2]?.[26])>0;
- const lithium=lithiumEnabled?(options.lithiumMultiplier??2):1;
+ const created=calculateKnowledgeCreationExp({
+  upgradeRows:getUpgradeRows(save),knowledgeRows:rows,options,
+  lithiumUnlocked:num(save?.sushi?.[2]?.[26])>0,
+  searedUnlocked:num(save?.sushi?.[2]?.[13])>0
+ });
  return {
-  lithiumEnabled,lithium,globalMultiplier:global,
-  expAt:(tier,at)=>base*global*(fires[at%COLS]===3?lithium:1),
+  ...created,
+  lithiumEnabled:created.lithiumEnabled,
+  globalMultiplier:created.globalMultiplier,
+  expAt:(_tier,at)=>created.expAt(fires,at),
   guaranteed:metrics?.cookBonusComplete?
    clip(Math.floor(num(metrics.guaranteedCookTiers)),0,63):0,
   fractional:metrics?.cookBonusComplete?num(metrics.fractionalCookChance):null
@@ -337,6 +336,17 @@ export function optimizeKnowledgeRotation(save,rawOptions={}){
   boardDesigned:true,scenarioRequiresCleanup:design.requiresManualCleanup,
   proposedFires:best.fire.fires,fireChoice:best.fire.name,
   pinkFireplaces,
+  creationXp:{
+   regular:best.xp.regular,pink:best.xp.pink,
+   base:best.xp.base,secondDegree:best.xp.secondDegree,
+   thirdDegree:best.xp.thirdDegree,
+   knowledgeBonus:best.xp.knowledgeBonus,
+   thirdMultiplier:best.xp.thirdMultiplier,
+   knowledgeMultiplier:best.xp.knowledgeMultiplier,
+   pinkMultiplier:best.xp.lithium,
+   lithiumEnabled:best.xp.lithiumEnabled,
+   manuallyCalibrated:best.xp.manuallyCalibrated
+  },
   // The multiplier is a CONDITIONAL property of the proposed configuration,
   // not proof the user has switched those fireplaces in-game.
   pinkMultiplier:best.xp.lithiumEnabled?best.xp.lithium:null,
