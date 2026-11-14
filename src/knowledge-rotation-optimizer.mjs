@@ -3,7 +3,7 @@
 import {simulateContinuousKnowledgeRotation} from "./knowledge-continuous-rotation.mjs?v=1.0.5";
 import {
  projectPassiveKnowledge,recommendPassiveKnowledgeLayout,passiveProtectedIndices
-} from "./knowledge-passive-layout.mjs?v=1.0.0";
+} from "./knowledge-passive-layout.mjs?v=1.0.1";
 import {estimateSushiFuelEconomy,sushiDirectCookFuel} from "./perfecto-fuel.mjs?v=1.16.8";
 import {getKnowledgeRows,getUpgradeRows} from "./lab-model.mjs?v=1.19.13";
 import {getSushiDashboardMetrics} from "./dashboard-metrics.mjs?v=1.0.2";
