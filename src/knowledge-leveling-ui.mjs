@@ -163,9 +163,12 @@ export function initializeKnowledgeLevelingUI(getSave){
     "lab-kp-lithium");
   }
   if(p.mode==="focused"&&p.targetPreviewIncomplete)
-   addNote(summary,"No T"+p.targetTier+" was created within "+
-    p.roundsCompleted+" preview refill waves. The displayed sequence is "+
-    "preparation progress, NOT a completed T"+p.targetTier+" harvest.",
+   addNote(summary,"No NEW T"+p.targetTier+" was created within "+
+    p.roundsCompleted+" preview refill waves. "+
+    (p.harvestCount?
+     "Only copies already on the board could be consolidated; "+
+      "harvesting them awards higher-tier EXP, not T"+p.targetTier+" EXP.":
+     "This is precursor preparation only, not a target-tier harvest."),
     "lab-kp-warning");
   else if(p.mode==="focused"&&!p.harvestCount)
    addNote(summary,"T"+p.targetTier+" copies are banked; the board has "+
