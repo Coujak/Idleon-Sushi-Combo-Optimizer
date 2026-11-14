@@ -5,7 +5,7 @@
 // reserve half of it for later refills. If the imported current Fuel is known,
 // show it separately rather than silently substituting it for capacity.
 export function estimateKnowledgeRefillFuel(frames,{
- capacity,generationPerHour,secondsPerCook=2,reserveFraction=0.5
+ capacity,generationPerHour,startingFuel=null,secondsPerCook=2,reserveFraction=0.5
 }={}){
  const max=Number(capacity),rate=Number(generationPerHour),seconds=Number(secondsPerCook);
  if(!(max>0)||!(rate>0)||!(seconds>0))throw Error("Invalid Fuel economy");
@@ -25,11 +25,17 @@ export function estimateKnowledgeRefillFuel(frames,{
  // tank is reserved; the result is a planning safety budget, not a true
  // simulation of minute-by-minute in-game regeneration.
  const reserve=Math.max(0,Math.min(1,Number(reserveFraction)));
- const budget=max*reserve+rate*count*seconds/3600;
+ const hasBalance=startingFuel!==null&&startingFuel!==undefined&&
+  Number.isFinite(Number(startingFuel));
+ const balance=hasBalance?Math.max(0,Math.min(max,Number(startingFuel))):max;
+ // Never assume a full tank when the imported JSON supplies a lower balance.
+ const tankAllocation=Math.min(balance,max*reserve);
+ const budget=tankAllocation+rate*count*seconds/3600;
  const excess=Math.max(0,fuel-budget);
  return {cooks:count,fuel,capacity:max,generationPerHour:rate,
   highestRequestedTier:highest,budget,noWait:count>0&&excess<=Math.max(1,budget*1e-9),
   excessFuel:excess,estimatedWaitSeconds:excess*3600/rate,
   refillIndex:index,preparedIndex:last,reserveFraction:reserve,
+  startingFuel:balance,tankAllocation,
   reason:count===0?"No Sushi were cooked":"A refill would require extra Fuel regeneration"};
 }
