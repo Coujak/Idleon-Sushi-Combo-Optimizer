@@ -18,7 +18,7 @@ export function simulateContinuousKnowledgeRotation({
  guaranteedBonus=0,windCap=0,chain=0,expAt=()=>1,cookCost=()=>1,
  rounds=6,pattern="wind",recipeOffset=0,packingMode="simple",protectedIndices=[],
  protectFocusedMilktoast=true,startingContext="imported",
- coverageTiers=[],maximumActions=1800
+ coverageTiers=[],coverageMode="recover",maximumActions=1800
 }={}){
  if(!Array.isArray(startingBoard)||startingBoard.length!==SIZE||
    !Array.isArray(slots)||slots.length!==SIZE)throw Error("Knowledge rotation requires an 8×15 board");
@@ -263,7 +263,7 @@ export function simulateContinuousKnowledgeRotation({
   // A full starter board is the foundation of Balanced, just like
   // Focused. On subsequent refills, cover missing discovered tiers
   // that can be cooked without exceeding the chosen safe base.
-  const pending=mode==="balanced"&&round>1?
+  const pending=mode==="balanced"&&coverageMode==="recover"&&round>1?
    discoveredCoverage.filter(t=>gains[t]<=0&&t>guaranteedBonus&&
     t-guaranteedBonus<=requestedTier):[];
   record("refill","Refill "+round,
