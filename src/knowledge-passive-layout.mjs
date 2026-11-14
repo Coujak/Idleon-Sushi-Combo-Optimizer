@@ -52,7 +52,15 @@ export function recommendPassiveKnowledgeLayout(board,slots,fires,{targetTier=nu
  const occupiedPositions=board.flatMap((tier,i)=>enabled(slots,i)&&occupied(board,i)?[i]:[]);
  const pinkBonus=i=>fires[i%15]===3&&options.lithiumUnlocked===true?2:1;
  const tierOrder=(a,b)=>board[b]-board[a]||pinkBonus(b)-pinkBonus(a)||a-b;
- const ranked=occupiedPositions.slice().sort(tierOrder);
+ const ranked=occupiedPositions.slice().sort((a,b)=>{
+  if(targetTier!==64){
+   // A focused T58 should preferably occupy Milktoast, not one of the
+   // lowest-priority Cold slots, provided other candidates exist.
+   const aTarget=board[a]===targetTier,bTarget=board[b]===targetTier;
+   if(aTarget!==bTarget)return aTarget?1:-1;
+  }
+  return tierOrder(a,b);
+ });
  const chosenCold=ranked.slice(0,Math.min(coldCount,ranked.length));
  const used=new Set(chosenCold);
  const available=occupiedPositions.filter(i=>!used.has(i));
