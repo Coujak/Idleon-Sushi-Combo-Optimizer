@@ -70,7 +70,7 @@ export function initializeKnowledgeLevelingUI(getSave){
  const speed=$("knowledgePlanSpeed");
  let state={mode:"balanced",targetTier:null};
  let result=null,controller=null,worker=null;
- let jumpToNextRefill=false;
+ let jumpToNextRefill=false,jumpToNextHarvest=false;
  try{
   const old=JSON.parse(window.localStorage.getItem(preferenceKey)||"null");
   state={...normalizeKnowledgeCycleOptions(old),preservePassive:old?.preservePassive===true};
@@ -91,7 +91,8 @@ export function initializeKnowledgeLevelingUI(getSave){
  const release=()=>{
   stopSearch();
   controller?.dispose();controller=null;
-  result=null;jumpToNextRefill=false;announceContinuation("");
+  result=null;jumpToNextRefill=false;jumpToNextHarvest=false;
+  announceContinuation("");
   continueButton.classList.add("hidden");continueButton.disabled=false;
   continueButton.textContent="Continue rotation";
   summary.replaceChildren();board.replaceChildren();
@@ -492,7 +493,8 @@ export function initializeKnowledgeLevelingUI(getSave){
     "Continue from this board by "+knowledgeContinueWaveCount(result.roundsCompleted)+" refill waves (5%)":
     "No further legal refill; "+result.haltReason;
   $("knowledgePlanNextHarvest").disabled=!result.steps.some((f,i)=>
-   i>index&&f.kind==="stage"&&f.phase==="harvest"&&f.title.startsWith("Harvest prepared"));
+   i>index&&f.kind==="stage"&&f.phase==="harvest"&&f.title.startsWith("Harvest prepared"))&&
+   !(result.mode==="focused"&&canExtendBalancedRotation(result));
   $("knowledgePlanPrev").disabled=index===0;
   $("knowledgePlanNext").disabled=index===result.steps.length-1&&
    !canExtendBalancedRotation(result);
@@ -600,7 +602,8 @@ export function initializeKnowledgeLevelingUI(getSave){
  });
  cancelButton.addEventListener("click",()=>{
   if(worker){
-   stopSearch();jumpToNextRefill=false;continueButton.disabled=false;
+   stopSearch();jumpToNextRefill=false;jumpToNextHarvest=false;
+   continueButton.disabled=false;
    continueButton.textContent=result?knowledgeContinueButtonLabel(result.roundsCompleted):"Continue rotation";
    announceContinuation("Continuation canceled. Your previous walkthrough remains available.");
    status.textContent="Knowledge optimization canceled. The previous walkthrough is retained.";
@@ -626,13 +629,14 @@ export function initializeKnowledgeLevelingUI(getSave){
   const additionalWaves=knowledgeContinueWaveCount(previous.roundsCompleted);
   const nextRounds=previous.roundsCompleted+additionalWaves;
   const skipToRefill=jumpToNextRefill;
+  const skipToHarvest=jumpToNextHarvest;
   const failContinuation=reason=>{
    const message="Unable to continue: "+reason;
    announceContinuation(message);
    status.textContent=message;
    continueButton.textContent=knowledgeContinueButtonLabel(previous.roundsCompleted);
    continueButton.disabled=false;
-   jumpToNextRefill=false;
+   jumpToNextRefill=false;jumpToNextHarvest=false;
   };
   continueButton.disabled=true;
   continueButton.textContent="Simulating +"+additionalWaves+" refills…";
@@ -677,10 +681,16 @@ export function initializeKnowledgeLevelingUI(getSave){
      renderPassive(plan);
      showProgress(plan);
      // Continue always enters the first newly generated action.
-     const resume=knowledgeContinuationResumeStep(
+     let resume=knowledgeContinuationResumeStep(
       previous.steps,plan.steps,previous.steps.length-1,skipToRefill);
+     if(skipToHarvest){
+      const harvest=plan.steps.findIndex((frame,i)=>
+       i>=previous.steps.length-1&&frame.kind==="stage"&&
+       frame.phase==="harvest"&&frame.title.startsWith("Harvest prepared"));
+      if(harvest>=0)resume=harvest;
+     }
      createReplay(plan,resume);
-     jumpToNextRefill=false;
+     jumpToNextRefill=false;jumpToNextHarvest=false;
      continueButton.disabled=false;
      continueButton.textContent=knowledgeContinueButtonLabel(plan.roundsCompleted);
      const progressed=plan.roundsCompleted-previous.roundsCompleted;
@@ -752,6 +762,11 @@ export function initializeKnowledgeLevelingUI(getSave){
   const next=result.steps.findIndex((f,i)=>i>controller.step&&
    f.kind==="stage"&&f.phase==="harvest"&&f.title.startsWith("Harvest prepared"));
   if(next>=0)controller.goTo(next);
+  else if(result.mode==="focused"&&canExtendBalancedRotation(result)&&
+   !continueButton.disabled){
+   jumpToNextHarvest=true;
+   continueButton.click();
+  }
  });
  $("knowledgePlanPrev").addEventListener("click",()=>controller?.goTo(
   Math.max(0,(controller?.step??0)-1)));
