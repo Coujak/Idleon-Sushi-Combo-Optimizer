@@ -18,7 +18,7 @@ button{cursor:pointer;background:#24536d;border-color:#467e99}button:disabled{op
 .small{font-size:.88rem}.hidden{display:none!important}
 </style></head>
 <body>
-<p><a href="index.html">← Return to Sushi Station Lab</a></p>
+<p id="experiment14Back"><a href="index.html">← Return to Sushi Station Lab</a></p>
 <h1>Experiment 14.0</h1>
 <p>Private Combo Meter research · development preview. The prepared board and move sequence are encrypted; this page contains no hardcoded password or unencrypted research data.</p>
 <section id="lock">
@@ -45,6 +45,10 @@ button{cursor:pointer;background:#24536d;border-color:#467e99}button:disabled{op
 <script type="module">
 import {simulateMerge} from "./src/optimizer-core.mjs";
 const $=id=>document.getElementById(id);
+if(new URLSearchParams(location.search).has("embed")){
+ document.getElementById("experiment14Back")?.remove();
+ document.body.style.padding="12px";
+}
 let data=null,frames=[],step=0;
 const decoder=new TextDecoder();
 const hexToBytes=s=>Uint8Array.from(s.match(/.{2}/g).map(x=>parseInt(x,16)));
