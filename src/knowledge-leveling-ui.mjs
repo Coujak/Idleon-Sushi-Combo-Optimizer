@@ -58,6 +58,11 @@ export function initializeKnowledgeLevelingUI(getSave){
  const passiveBox=$("knowledgePlanPassive"),passiveToggle=$("knowledgePlanProtectPassive");
  const board=$("knowledgePlanBoard"),tips=$("knowledgePlanTips");
  const continueButton=$("knowledgePlanContinue");
+ const continueStatus=$("knowledgePlanContinueStatus");
+ const announceContinuation=message=>{
+  continueStatus.textContent=message;
+  continueStatus.classList.toggle("hidden",!message);
+ };
  const speed=$("knowledgePlanSpeed");
  let state={mode:"balanced",targetTier:null};
  let result=null,controller=null,worker=null;
@@ -82,8 +87,9 @@ export function initializeKnowledgeLevelingUI(getSave){
  const release=()=>{
   stopSearch();
   controller?.dispose();controller=null;
-  result=null;jumpToNextRefill=false;
+  result=null;jumpToNextRefill=false;announceContinuation("");
   continueButton.classList.add("hidden");continueButton.disabled=false;
+  continueButton.textContent="Continue rotation +6 refills";
   summary.replaceChildren();board.replaceChildren();
   recommendedBoard.replaceChildren();recommendedBoard.classList.add("hidden");
   passiveBox.replaceChildren();
@@ -592,59 +598,84 @@ export function initializeKnowledgeLevelingUI(getSave){
   }
  });
  continueButton.addEventListener("click",()=>{
-  if(worker||!canExtendBalancedRotation(result))return;
+  if(worker){
+   announceContinuation("A Knowledge calculation is already running.");
+   return;
+  }
+  if(!canExtendBalancedRotation(result)){
+   announceContinuation(result?.rotationTerminal?
+    "Full rotation complete: a new T64 has already been created.":
+    "No legal continuation is available from this board.");
+   return;
+  }
   const previous=result;
-  const previousStep=controller?.step??previous.steps.length-1;
   const save=getSave();
-  if(!save){status.textContent="Import your game save before continuing.";return;}
-  // Re-simulate with the SAME winning recipe. Check the full earlier replay
-  // prefix before showing extra waves; never substitute a different candidate.
+  if(!save){
+   announceContinuation("Import your game data to extend the walkthrough.");
+   return;
+  }
   const additionalWaves=6;
-  const nextRounds=previous.roundsRequested+additionalWaves;
-  continueButton.disabled=true;build.disabled=true;
+  const nextRounds=previous.roundsCompleted+additionalWaves;
+  const skipToRefill=jumpToNextRefill;
+  const failContinuation=reason=>{
+   const message="Unable to continue: "+reason;
+   announceContinuation(message);
+   status.textContent=message;
+   continueButton.textContent="Continue rotation +6 refills";
+   continueButton.disabled=false;
+   jumpToNextRefill=false;
+  };
+  continueButton.disabled=true;
+  continueButton.textContent="Simulating 6 refills…";
   cancelButton.classList.remove("hidden");
-  status.textContent="Continuing the same Balanced rotation through refill "+nextRounds+"…";
+  build.disabled=true;
+  announceContinuation("Simulating from your current final board, through refill "+nextRounds+"…");
+  status.textContent="Simulating the next six Balanced refill waves…";
   try{
    const search=createKnowledgeWorker();
    worker=search;
    search.onmessage=event=>{
     if(worker!==search)return;
     stopSearch();
-    const msg=event.data;
-    if(!msg?.ok||!msg.result?.available){
-     jumpToNextRefill=false;continueButton.disabled=false;
-     status.textContent="Unable to continue: "+(msg?.error??msg?.result?.reason??"Unknown error");
-     return;
-    }
-    let plan;
     try{
-     plan=combineKnowledgeContinuation(previous,msg.result.rotation,additionalWaves);
+     const msg=event.data;
+     if(!msg?.ok||!msg.result?.available)
+      throw Error(msg?.error??msg?.result?.reason??"No validated continuation returned");
+     const plan=combineKnowledgeContinuation(previous,msg.result.rotation,additionalWaves);
+     if(plan.steps.length<=previous.steps.length)
+      throw Error("No new replay steps were generated");
+     renderSummary(plan);
+     renderDesignedBoard(plan);
+     renderPassive(plan);
+     showProgress(plan);
+     // A direct Continue always takes us into the newly generated steps,
+     // even if the user was previously viewing Step 0 or an earlier step.
+     const resume=knowledgeContinuationResumeStep(
+      previous.steps,plan.steps,previous.steps.length-1,skipToRefill);
+     createReplay(plan,resume);
+     jumpToNextRefill=false;
+     continueButton.textContent="Continue rotation +6 refills";
+     const message=plan.rotationTerminal?
+      "Rotation complete! A new T64 was created at step "+resume+".":
+      "Extended to refill "+plan.roundsCompleted+
+      " · highest newly created T"+plan.highestNewTier+
+      " · now showing step "+resume+" / "+(plan.steps.length-1)+
+      ". Continue or use Next to replay.";
+     announceContinuation(message);
+     status.textContent=message;
     }catch(error){
-     jumpToNextRefill=false;continueButton.disabled=false;
-     status.textContent="Continuation failed validation: "+String(error.message??error)+
-      ". Your previous walkthrough was retained.";
-     return;
+     failContinuation(String(error?.message??error));
     }
-    renderSummary(plan);renderDesignedBoard(plan);renderPassive(plan);showProgress(plan);
-    // If Continue was pressed at the old endpoint, show the FIRST newly
-    // generated refill. Otherwise keep the user's chosen old step.
-    const resume=knowledgeContinuationResumeStep(previous.steps,plan.steps,
-     previousStep,jumpToNextRefill);
-    createReplay(plan,resume);
-    jumpToNextRefill=false;
-    status.textContent="Balanced rotation extended through refill "+
-     plan.roundsCompleted+". Highest newly created tier: T"+
-     plan.highestNewTier+". All earlier steps and surviving Sushi were preserved."+
-     (plan.rotationTerminal?
-      " Full rotation complete: a new T64 was created.":
-      plan.roundsCompleted<plan.roundsRequested?
-      " This chunk reached a safety limit; you can continue from its final board.":
-      " More refill waves are available.");
    };
-   search.onerror=()=>{
+   search.onerror=event=>{
     if(worker!==search)return;
-    stopSearch();jumpToNextRefill=false;continueButton.disabled=false;
-    status.textContent="Continuation worker failed; the previous walkthrough was retained.";
+    stopSearch();
+    failContinuation("the simulation worker failed. "+(event?.message??"Check the browser console."));
+   };
+   search.onmessageerror=()=>{
+    if(worker!==search)return;
+    stopSearch();
+    failContinuation("the browser could not receive the continued replay.");
    };
    search.postMessage({save,waves:additionalWaves,continuation:{
     mode:"balanced",completed:previous.completed,
@@ -657,8 +688,8 @@ export function initializeKnowledgeLevelingUI(getSave){
     roundsCompleted:previous.roundsCompleted,targetTier:previous.targetTier
    }});
   }catch(error){
-   stopSearch();jumpToNextRefill=false;continueButton.disabled=false;
-   status.textContent="Cannot extend rotation: "+String(error?.message??error);
+   stopSearch();
+   failContinuation(String(error?.message??error));
   }
  });
 
