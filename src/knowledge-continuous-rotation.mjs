@@ -14,7 +14,7 @@ const remaining=(board,slots)=>board.flatMap((tier,i)=>slots[i]>=0&&tier>0?[{at:
 const highest=board=>board.reduce((a,b)=>Math.max(a,b),0);
 
 export function simulateContinuousKnowledgeRotation({
- startingBoard,slots,mode="balanced",targetTier=64,requestedTier=1,
+ startingBoard,slots,mode="balanced",targetTier=64,balancedEndTier=64,requestedTier=1,
  guaranteedBonus=0,windCap=0,chain=0,expAt=()=>1,cookCost=()=>1,
  rounds=6,pattern="wind",recipeOffset=0,packingMode="simple",protectedIndices=[],
  protectFocusedMilktoast=true,startingContext="imported",
@@ -25,6 +25,8 @@ export function simulateContinuousKnowledgeRotation({
    !Array.isArray(slots)||slots.length!==SIZE)throw Error("Knowledge rotation requires an 8×15 board");
  if(!Number.isInteger(requestedTier)||requestedTier<1||requestedTier>MAX)throw Error("Invalid starting Sushi tier");
  if(!Number.isInteger(targetTier)||targetTier<1||targetTier>MAX)throw Error("Invalid focused Sushi tier");
+ if(!Number.isInteger(balancedEndTier)||balancedEndTier<1||balancedEndTier>MAX)
+  throw Error("Invalid Balanced end tier");
  const slotsFree=slots.flatMap((v,i)=>v>=0?[i]:[]);
  if(slotsFree.length<2)return {valid:false,reason:"At least two unlocked slots are required"};
  const playable=new Set(slotsFree);
@@ -99,10 +101,10 @@ export function simulateContinuousKnowledgeRotation({
    (action.events.length>1?" · "+(action.events.length-1)+" East Wind upgrades":""),
    action.events,values,{src,dst});
   if(mode==="balanced"&&!completed&&action.events.some(event=>
-   event.tier===64&&old[event.at]!==64)){
+   event.tier===balancedEndTier&&old[event.at]!==balancedEndTier)){
    completed=true;
    balancedCycles++;
-   haltReason="New T64 created — Balanced rotation complete";
+   haltReason="New T"+balancedEndTier+" created — Balanced rotation complete";
   }
   return true;
  };
@@ -130,14 +132,14 @@ export function simulateContinuousKnowledgeRotation({
   record("cook","Cook T"+tier+(result===tier?"":" → T"+result),
    "Fill "+location(at)+" with a fresh Sushi", [event],expDelta([event]),
    {at,requestedTier:tier,cookFuel:cost});
-  if(mode==="balanced"&&!completed&&result===64){
+  if(mode==="balanced"&&!completed&&result===balancedEndTier){
    completed=true;balancedCycles++;
-   haltReason="New T64 created — Balanced rotation complete";
+   haltReason="New T"+balancedEndTier+" created — Balanced rotation complete";
   }
   return true;
  };
- // A Balanced rotation is complete on the FIRST NEW T64 creation event.
- // An original protected T64 is not a creation and never ends the replay.
+ // A Balanced rotation ends on the FIRST NEW selected end-tier creation.
+ // A pre-existing protected target tier does not count as a new creation.
  const focusCount=()=>count(board,targetTier);
  // Protect focused targets from consumption until the stockpile is full.
  const stashLimit=Math.max(2,slotsFree.length-2);
@@ -191,7 +193,7 @@ export function simulateContinuousKnowledgeRotation({
        wind*23+creates64*18+events.length*5+close*.1;
       if(mode==="focused"&&compressFocus&&tier===targetTier)
        score+=200+focusCount();
-      if(mode==="balanced"&&tier===64)score+=500;
+      if(mode==="balanced"&&tier===balancedEndTier)score+=500;
       if(mode==="focused"&&tier>targetTier)score-=100;
       score-=Math.abs(src-dst)*.005;
       if(score>bestScore){bestScore=score;best={src,dst};}
@@ -452,7 +454,7 @@ export function simulateContinuousKnowledgeRotation({
  const totalExp=gains.reduce((a,b)=>a+b,0);
  return {
   valid:true,frames,initialBoard:initial,finalBoard:final,
-  mode,targetTier,requestedTier,rounds:roundsDone,completed,
+  mode,targetTier,balancedEndTier,requestedTier,rounds:roundsDone,completed,
   focusCopies:focusCount(),focusCompressed,
   targetCreated,targetMergedInHarvest,peakTargetCopies,
   harvestBatches,harvested:harvestBatches.length,
