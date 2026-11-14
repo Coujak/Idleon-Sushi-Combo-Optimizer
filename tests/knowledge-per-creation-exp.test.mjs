@@ -54,7 +54,7 @@ test("Every new Sushi event retains its own modeled EXP and fireplace column",()
  for(let i=0;i<25;i++)slots[i]=0;
  const startingBoard=Array(120).fill(0);
  startingBoard[0]=9;startingBoard[1]=9;startingBoard[24]=64;
- const fires=Array(15).fill(0);fires[1]=3;
+ const fires=Array(15).fill(0);fires[0]=3;
  const xp=calculateKnowledgeCreationExp({
   upgradeRows,knowledgeRows,lithiumUnlocked:true
  });
@@ -70,7 +70,7 @@ test("Every new Sushi event retains its own modeled EXP and fireplace column",()
   ["cook","merge","wind"].includes(event.kind)));
  assert.equal(created.length,1);
  assert.equal(created[0].tier,10);
- assert.equal(created[0].at,1);
+ assert.equal(created[0].at,0);
  assert.equal(created[0].knowledgeExp,22.5);
  assert.equal(rotation.gains[10],22.5);
  const h=buildKnowledgeActiveExpHistory(rotation.frames);
