@@ -78,6 +78,8 @@ test("Focused T58 estimates Cold plus Milktoast EXP without merging the protecte
  assert.ok(plan.steps.every(f=>f.board[0]===58&&f.board[1]===64),
   "The T58 on Milktoast and T64 on Cold must remain throughout the replay");
  assert.ok(plan.passive.current.expPerDay[58]>0);
+ assert.ok(plan.passive.imported.expPerDay[58]>0);
+ assert.equal(plan.passive.imported.covered,63);
  assert.ok(plan.passive.current.covered>=63);
  assert.ok(plan.targetHybridPreviewExpPerHour>=plan.targetPreviewExpPerHour);
  assert.equal(plan.passive.needAnotherT64,true);
