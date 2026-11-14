@@ -1,6 +1,7 @@
 // Search legal cook/merge/park rotations from freshly DESIGNED preparation
 // scenarios. The imported board provides account constraints, not ingredients.
-import {simulateContinuousKnowledgeRotation} from "./knowledge-continuous-rotation.mjs?v=1.0.7";
+import {simulateContinuousKnowledgeRotation} from "./knowledge-continuous-rotation.mjs?v=1.0.8";
+import {estimateKnowledgeRefillFuel} from "./knowledge-fuel-safety.mjs?v=1.0.0";
 import {
  designKnowledgeStartingBoard,captureKnowledgePreparedBoard
 } from "./knowledge-board-design.mjs?v=1.0.0";
@@ -43,10 +44,15 @@ function startingTiers(economy,guaranteed,options,targetTier){
  }
  if(!valid.length)return [];
  const max=valid.at(-1);
+ // Explore genuinely cheaper tiers, not just T46/T45 that may take hours
+ // to regenerate enough Fuel for a complete board preparation.
  const requests=options.mode==="focused"?
-  [targetTier-guaranteed,max,max-1,targetTier-guaranteed-2,Math.floor(max*.65),1]:
-  [max,max-1,Math.floor(max*.75),Math.floor(max*.5),1];
- return unique(requests.filter(x=>valid.includes(x))).slice(0,5);
+  [targetTier-guaranteed,max,max-1,max-2,max-4,max-6,max-8,max-10,
+   max-12,Math.floor(max*.65),Math.floor(max*.5),1]:
+  [max,max-1,max-3,max-6,max-9,Math.floor(max*.75),
+   Math.floor(max*.5),1];
+ return unique(requests.filter(x=>valid.includes(x))).slice(0,
+  options.mode==="focused"?9:7);
 }
 function expProfile(save,rows,options,fires,metrics){
  const upgrade=getUpgradeRows(save);
@@ -148,13 +154,18 @@ export function optimizeKnowledgeRotation(save,rawOptions={}){
      recipeOffset,packingMode,protectedIndices,
      protectFocusedMilktoast:options.preservePassive,
      startingContext:"designed",
-     maximumActions:options.mode==="focused"?3200:1800
+     maximumActions:options.mode==="focused"?8000:5000
     });
     if(!rotation.valid||rotation.cooks<1)continue;
     const rateA=adjustedRate(design.board,fire.fires);
     const rateB=adjustedRate(rotation.finalBoard,fire.fires);
     const fuelRate=(rateA+rateB)/2;
     if(!(fuelRate>0))continue;
+    const safeRate=Math.max(1e-12,Math.min(rateA,rateB));
+    const fuelSafety=estimateKnowledgeRefillFuel(rotation.frames,{
+     capacity:economy.capacity,generationPerHour:safeRate,
+     secondsPerCook:options.secondsPerCook,reserveFraction:0.5
+    });
     const activeSeconds=rotation.cooks*options.secondsPerCook+
      (rotation.merges+rotation.moves)*options.secondsPerMerge+
      rotation.windEvents*.25;
@@ -191,11 +202,25 @@ export function optimizeKnowledgeRotation(save,rawOptions={}){
      return false;
     };
     candidates++;
+    // A preparation that needs more than half the storage tank plus
+    // naturally generated Fuel during its first full fill is not "safe".
+    // Never let a slow full-T46 board outrank a no-wait candidate.
     const improved=!best||
-     (options.mode==="focused"?beatsRank(rank,best.rank):score>best.score);
+     (fuelSafety.noWait!==best.fuelSafety.noWait?
+      fuelSafety.noWait:
+      !fuelSafety.noWait&&
+       fuelSafety.estimatedWaitSeconds<
+        best.fuelSafety.estimatedWaitSeconds-0.001?
+       true:
+      !fuelSafety.noWait&&
+       fuelSafety.estimatedWaitSeconds>
+        best.fuelSafety.estimatedWaitSeconds+0.001?
+       false:
+      options.mode==="focused"?
+       beatsRank(rank,best.rank):score>best.score);
     if(improved){
      best={rotation,score,rank,cookTier,pattern,recipeOffset,packingMode,fire,xp,fuelRate,
-      passiveStart,passiveEnd,passivePerDay,
+      passiveStart,passiveEnd,passivePerDay,fuelSafety,
       activeSeconds,fuelWaitSeconds,durationSeconds};
     }
     }
@@ -281,6 +306,9 @@ export function optimizeKnowledgeRotation(save,rawOptions={}){
   activeSeconds:best.activeSeconds,fuelWaitSeconds:best.fuelWaitSeconds,
   estimatedFuelGeneration:best.fuelRate,estimatedFuelCapacity:economy.capacity,
   maximumCookTier:economy.maxCookTier,
+  refillFuelSafety:best.fuelSafety,
+  initialFuelEstimate:economy.currentFuel,
+  fuelSafePreparation:best.fuelSafety.noWait,
   roundsCompleted:rotation.rounds,roundsRequested:rounds,
   focusCopies:rotation.focusCopies,focusCompressed:rotation.focusCompressed,
   highestTier:rotation.highestTier,
@@ -288,6 +316,6 @@ export function optimizeKnowledgeRotation(save,rawOptions={}){
   initialBoardMatchesFinal:sustained,
   stranded:rotation.remaining.length,
   considered:candidates,haltReason:rotation.reason,
-  note:"The optimizer designs an ingredient board from account cooking limits and available slots; the imported Sushi inventory is NOT assumed to be the optimal preparation. It keeps the highest-tier anchor in its existing position. IMPORTANT: converting the current inventory into this clean design may require legal cleanup merges NOT included in the walkthrough. Once that starting state is achieved, each subsequent cook, move, Wind cascade and merge is replay-validated. Focused ranks actual target creations and prepared target copies; harvest earns EXP for the result tier. This bounded search is not a mathematical proof of optimality."
+  note:"First-fill recipes are screened against a conservative Fuel buffer (a precharged full tank, spending at most half the capacity plus Fuel regenerated during normal cooking); this does not claim uninterrupted sustained refills. The optimizer designs an ingredient board from account cooking limits and available slots; the imported Sushi inventory is NOT assumed to be the optimal preparation. It keeps the highest-tier anchor in its existing position. IMPORTANT: converting the current inventory into this clean design may require legal cleanup merges NOT included in the walkthrough. Once that starting state is achieved, each subsequent cook, move, Wind cascade and merge is replay-validated. Focused ranks actual target creations and prepared target copies; harvest earns EXP for the result tier. This bounded search is not a mathematical proof of optimality."
  };
 }
