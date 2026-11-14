@@ -108,7 +108,7 @@ test("Knowledge worker uses the continuous account-based optimizer and UI expose
  const html=readFileSync(new URL("../index.html",import.meta.url),"utf8");
  assert.match(worker,/optimizeKnowledgeRotation\(save,options\)/);
  assert.match(ui,/knowledgePlanNextRefill/);
- assert.match(ui,/previewExpPerHour/);
+ assert.match(ui,/hybridPreviewExpPerHour/);
  assert.match(html,/id="knowledgePlanRounds"/);
  assert.match(html,/id="knowledgePlanNextRefill"/);
  assert.match(ui,/new Worker\(new URL\(/);
