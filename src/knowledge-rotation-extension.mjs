@@ -24,8 +24,12 @@ export function combineKnowledgeContinuation(previous,chunk,requestedWaves=6){
  const deltaFuelSeconds=fuelRate>0?chunk.fuel*3600/fuelRate:deltaActions;
  const duration=safeNumber(previous.cycleSeconds)+Math.max(deltaActions,deltaFuelSeconds);
  const totalExp=total(expByTier);
- const coveredTiers=previous.perTier.filter(row=>expByTier[row.tier]>0).map(row=>row.tier);
- const uncoveredTiers=previous.perTier.filter(row=>expByTier[row.tier]<=0).map(row=>row.tier);
+ const eligibleRange=previous.mode==="balanced"?
+  previous.perTier.filter(row=>row.tier>=(previous.balancedStartTier??1)&&
+   row.tier<=(previous.balancedEndTier??64)):
+  previous.perTier;
+ const coveredTiers=eligibleRange.filter(row=>expByTier[row.tier]>0).map(row=>row.tier);
+ const uncoveredTiers=eligibleRange.filter(row=>expByTier[row.tier]<=0).map(row=>row.tier);
  const perTier=previous.perTier.map(row=>{
   const expPerCycle=expByTier[row.tier];
   const activeExpPerHour=duration>0?expPerCycle*3600/duration:0;
@@ -85,7 +89,7 @@ export function combineKnowledgeContinuation(previous,chunk,requestedWaves=6){
    safeNumber(previous.passive?.averageTotalPerDay)/24,
   expByTier,perTier,coveredTiers,uncoveredTiers,
   coverageTotal:coveredTiers.length,
-  coverageRequested:perTier.length,
+  coverageRequested:eligibleRange.length,
   // The first-fill fuel safety remains attached to the original preparation.
   // It does not claim that all later refills are fuel-wait-free.
  };
