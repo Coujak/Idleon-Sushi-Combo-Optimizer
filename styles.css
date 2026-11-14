@@ -3896,3 +3896,14 @@ details summary{cursor:pointer;font-size:12px;font-weight:700;color:#9eb7c9}
   grid-template-columns:minmax(0,1fr)
  }
 }
+
+/* Knowledge planner: make an active press-and-hold refill clearly visible. */
+#knowledgePlanner #knowledgePlanContinue.is-holding{
+ border-color:#89f0c4;
+ box-shadow:0 0 0 2px #58dbae77,0 0 16px #38ca9c36;
+}
+#knowledgePlanner .lab-kp-continue-status{
+ margin:8px 0 10px;
+ font-size:12px;
+ overflow-wrap:anywhere;
+}
