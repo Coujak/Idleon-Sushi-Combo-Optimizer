@@ -56,3 +56,36 @@ node --test tests/knowledge-t2-seed-experiment.test.mjs
 ```
 
 The test checks the full initial board, validates the one-fill merge replay, enforces the no-refill lower bound, and runs the 12-refill simulation while preserving the T64 and forbidding Sushi deletion.
+
+
+## Staircase-recycling improvement (2026-11-14)
+
+The earlier 12-refill test used simple survivor parking. We added a second
+search policy that **repositions the surviving Sushi in a sorted staircase**
+between refills using only `simulateRelocation` and vacant unlocked cells.
+Every displacement uses a temporary empty cell; the T64 anchor stays fixed
+and the resulting merge/cascade sequence is validated action by action.
+
+An identical 12-refill benchmark (`tests/knowledge-staircase-packing.test.mjs`)
+now compares all three strategies:
+
+| Survivor arrangement | Highest new tier | Manual merges | East Wind upgrades | Sushi relocations |
+|---|---:|---:|---:|---:|
+| Original parking | T32 | 1,150 | 7,717 | 96 |
+| Ascending staircase (low → high) | T37 | 1,090 | 8,446 | 207 |
+| Descending staircase (high → low) | **T38** | 1,097 | **8,751** | 174 |
+
+These are **deterministic simulated outcomes**, not global optima.
+An improved tier and more Wind events do not automatically mean a higher
+EXP/hr because rearrangements cost player time. The account-aware optimizer
+therefore evaluates all three policies against its estimated EXP/hr scoring,
+including the extra move time and the Lithium-versus-Fuel trade-off.
+Focused mode retains its target-tier parking strategy.
+
+The solver's displayed “Highest tier produced” intentionally **excludes any
+T64 already present in the imported starting board**. Otherwise the existing
+anchor would make all candidate strategies appear to reach T64 immediately.
+
+The remaining objective is to improve the planned descending staircase,
+shorten the number of manual moves, and extend multi-refill search beyond
+the current T38 benchmark toward T58 without assuming free Sushi deletion.
