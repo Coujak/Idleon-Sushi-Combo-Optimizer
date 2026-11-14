@@ -8,6 +8,7 @@ import {buildCandidates} from "./preparation-core.mjs?v=1.9.9";
 import {getModeCandidates} from "./optimizer-modes.mjs?v=1.18.6";
 import {comboSplitPercentages} from "./combo-split-strategies.mjs?v=1.18.0";
 import {FOUND_CONFIGURATIONS,buildFoundConfiguration} from "./found-configurations.mjs?v=1.18.0";
+import {unlockPrivateExperiment14,buildPrivateExperiment14Candidate} from "./private-experiment14.mjs?v=1.0.0";
 import {searchLookaheadCombos} from "./lookahead-search.mjs?v=1.9.9";
 import {throwIfCancelled,yieldToUI} from "./optimizer-run.mjs?v=1.8.1";
 import {scanSplitDirectionsInParallel} from "./split-search-parallel.mjs?v=1.18.4";
@@ -36,6 +37,12 @@ let customBoard=null;
 let replayCleanup=()=>{};
 let preparedOutlineCleanup=()=>{};
 let activeSearch=null;
+const PRIVATE_EXPERIMENT_14=Object.freeze({
+ id:"experimental14",number:14,name:"Experiment 14.0 · Private",private:true
+});
+const selectableExperiments=[...FOUND_CONFIGURATIONS,PRIVATE_EXPERIMENT_14];
+let unlockedExperiment14=null;
+let privateReplayVisible=false;
 // The same score bubble shows provisional best scores and the final
 // replay-validated estimate. It stays visible while detailed results are hidden.
 function setComboScoreBubble(running,score=null){
@@ -488,7 +495,9 @@ async function showSolver(signal,foundId=null,savedOnly=false){
   if(positions.length<2){$("solverNote").textContent="At least two unlocked slots are required.";$("solverSteps").replaceChildren();return;}
   $("solverNote").textContent="Searching prepared tier layouts…";
   const mode="descending domino";
-  const foundInfo=foundId?FOUND_CONFIGURATIONS.find(config=>config.id===foundId):null;
+  const foundInfo=foundId?selectableExperiments.find(config=>config.id===foundId):null;
+  const privateFound=foundInfo?.private===true;
+  if(privateFound&&!unlockedExperiment14)throw Error("Unlock Experiment 14.0 before replaying.");
   if(foundId&&!foundInfo)throw Error("Unknown found configuration");
   const optimizerMode=foundInfo?foundInfo.id:getModeInfo($("optimizerMode").value).id;
   const optimizerModeLabel=foundInfo?"Found configuration · "+foundInfo.name:
@@ -551,7 +560,9 @@ async function showSolver(signal,foundId=null,savedOnly=false){
        selectedBase,searchBudget,history)).map(candidate=>({...candidate,researchContext:context}));
     }else{
       prepared=foundInfo?
-       [buildFoundConfiguration(foundId,layoutPositions,maxTier,cap,chain,protectTier64)].filter(Boolean):
+       [privateFound?(maxTier===64&&cap===58&&chain===25&&protectTier64?
+        buildPrivateExperiment14Candidate(unlockedExperiment14,layoutPositions):null):
+        buildFoundConfiguration(foundId,layoutPositions,maxTier,cap,chain,protectTier64)].filter(Boolean):
        getModeCandidates(layoutPositions,maxTier,cap,selectedBase,chain,protectTier64,optimizerMode,customSettings);
     }
     return prepared.map(candidate=>({...candidate,slots:layout.slots,layoutName:layout.name}));
@@ -719,8 +730,8 @@ async function showSolver(signal,foundId=null,savedOnly=false){
       for(let i=0;i<candidates.length;i++){
         throwIfCancelled(signal);
         const candidate=candidates[i];
-        const greedy=searchCombos(candidate.board,cap,chain,4,positions.length-1,mode,maxTier);
-        const search=searchStaircaseCombos(candidate.board,cap,chain,candidate.slots,greedy,{maximumTier:maxTier});
+        const greedy=candidate.privateSearch??searchCombos(candidate.board,cap,chain,4,positions.length-1,mode,maxTier);
+        const search=candidate.privateSearch??searchStaircaseCombos(candidate.board,cap,chain,candidate.slots,greedy,{maximumTier:maxTier});
         if(!solution||search.score>solution.search.score||(search.score===solution.search.score&&search.remaining<solution.search.remaining)){
           solution={...candidate,search};
           overallWinner=solution;
@@ -767,7 +778,7 @@ async function showSolver(signal,foundId=null,savedOnly=false){
     // Never mutate the saved candidate's search object during refinement.
     solution={...selected,search:{...selected.search},
      testedCandidates:dualSplit?evaluatedCount:candidates.length};
-    if(!winningIsFromCache&&!activeSearch?.keepBestRequested){
+    if(!privateFound&&!winningIsFromCache&&!activeSearch?.keepBestRequested){
      try{
       $("optimizerProgressText").textContent="Refining the best preparation…";
       await yieldToUI(signal);
@@ -1332,13 +1343,14 @@ function initModePicker(){
  found.replaceChildren();
  const placeholder=document.createElement("option");
  placeholder.value="";placeholder.textContent="Choose an Experiment…";found.append(placeholder);
- for(const entry of FOUND_CONFIGURATIONS){
+ for(const entry of selectableExperiments){
   const option=document.createElement("option");
   option.value=entry.id;
-  option.textContent=entry.name+" · "+formatCompactNumber(entry.benchmark)+" simulated pts";
+  option.textContent=entry.private?entry.name+" · Locked":
+   entry.name+" · "+formatCompactNumber(entry.benchmark)+" simulated pts";
   found.append(option);
  }
- found.value=FOUND_CONFIGURATIONS.some(entry=>entry.id===oldFound)?oldFound:"";
+ found.value=selectableExperiments.some(entry=>entry.id===oldFound)?oldFound:"";
  for(const mode of shownModes){
   const option=document.createElement("option");option.value=mode.id;option.textContent=modeOptionLabel(mode);selector.append(option);
   const row=document.createElement("tr");row.dataset.mode=mode.id;
