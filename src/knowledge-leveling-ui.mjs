@@ -4,7 +4,7 @@ import {getKnowledgeRows,numberText} from "./lab-model.mjs?v=1.19.13";
 import {sushiTierIconPath} from "./sushi-reference.mjs?v=1.16.6";
 import {parseGameQuantity} from "./progression-calibration.mjs?v=1.17.1";
 import {normalizeKnowledgeCycleOptions}
- from "./knowledge-cycle-optimizer.mjs?v=1.0.1";
+ from "./knowledge-cycle-optimizer.mjs?v=1.0.3";
 import {createReplayController} from "./replay-controller.mjs";
 import {combineKnowledgeContinuation,knowledgeContinuationResumeStep} from "./knowledge-rotation-extension.mjs?v=1.0.4";
 import {canExtendBalancedRotation} from "./knowledge-rotation-continuation-eligibility.mjs?v=1.0.1";
