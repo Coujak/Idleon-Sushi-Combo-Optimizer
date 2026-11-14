@@ -123,7 +123,7 @@ export function initializeKnowledgeLevelingUI(getSave){
   summary.replaceChildren();summary.classList.remove("hidden");
   const heading=elem("div","lab-kp-headline");
   heading.append(elem("h3","",p.mode==="focused"?
-   "Focused target-building rotation · T"+p.targetTier:"Balanced · toward one T64"),
+   "Focused target-building rotation · T"+p.targetTier:"Balanced · create a new T64"),
    elem("p","",p.roundsCompleted+" refill waves · designed preparation · "+
     "starting T"+p.startCookTier+" · "+p.cooks+" cooks · "+p.merges+" merges · "+p.moves+" Sushi moves · "+
     p.windEvents+" Wind upgrades"));
@@ -565,8 +565,10 @@ export function initializeKnowledgeLevelingUI(getSave){
      "Balanced · "+plan.coverageTotal+"/"+plan.coverageRequested+
       " tiers with active EXP · "+compact(plan.totalExpPerCycle)+" EXP")+
      " · "+plan.roundsCompleted+"/"+plan.roundsRequested+" refills"+
-     (plan.roundsCompleted<plan.roundsRequested?
-      " · stopped early: "+plan.haltReason:" · preview complete");
+     (plan.rotationTerminal?
+      " · Full rotation complete: a new T64 was created":
+      plan.roundsCompleted<plan.roundsRequested?
+      " · stopped early: "+plan.haltReason:" · preview limit reached");
    };
    search.onerror=event=>{
     if(worker!==search)return;
@@ -636,7 +638,9 @@ export function initializeKnowledgeLevelingUI(getSave){
     status.textContent="Balanced rotation extended to "+
      plan.roundsCompleted+" / "+plan.roundsRequested+
      " refills. All earlier steps were preserved."+
-     (plan.roundsCompleted<plan.roundsRequested?
+     (plan.rotationTerminal?
+      " Full rotation complete: a new T64 was created.":
+      plan.roundsCompleted<plan.roundsRequested?
       " Stopped early: "+plan.haltReason:"");
    };
    search.onerror=()=>{
