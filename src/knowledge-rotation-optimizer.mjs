@@ -153,7 +153,8 @@ export function optimizeKnowledgeRotation(save,rawOptions={}){
    modeled/baselineRate*options.fuelGeneration:modeled;
  };
  const continuing=rawOptions?.resumeRecipe&&typeof rawOptions.resumeRecipe==="object"?rawOptions.resumeRecipe:null;
- const rounds=Math.max(1,Math.min(continuing?64:12,Math.floor(num(rawOptions?.rounds))||6));
+ const rounds=Math.max(1,continuing?Math.floor(num(rawOptions?.rounds))||6:
+  Math.min(12,Math.floor(num(rawOptions?.rounds))||6));
  // Compare legal survivor parking and descending East Wind staircases,
  // without consuming banked target copies during focused preparation.
  const packingModes=options.mode==="balanced"?
