@@ -38,7 +38,7 @@ test("Staircase-recycling comparison: 99 T2, last-slot T64, 12 refills",()=>{
   startingBoard:seed,slots,mode:"balanced",targetTier:58,
   requestedTier:2,guaranteedBonus:0,windCap:58,chain:25,
   expAt:()=>1,cookCost:()=>1,rounds:12,pattern:"uniform",
-  packingMode,maximumActions:3600
+  packingMode,coverageMode:"classic",maximumActions:3600
  });
  const simple=run("simple"),ascending=run("ascending"),descending=run("descending");
  const peak=result=>Math.max(...result.frames.map(x=>Math.max(...x.board.slice(0,99))));
