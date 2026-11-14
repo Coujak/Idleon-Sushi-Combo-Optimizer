@@ -84,7 +84,29 @@
 <p class="hint">Replay a previously researched, fixed Experiment board separately from the search optimizers. These are historical T64 / T58 / 100-slot preparations, not optimizer discoveries or guaranteed in-game scores.</p>
 <div class="actions"><label>Found board <select id="foundConfiguration"><option value="">Choose an Experiment…</option></select></label>
 <button id="runFoundConfiguration" class="button secondary" type="button">Replay found board</button></div>
-<p class="hint"><a href="experiment14.html" target="_blank" rel="noopener noreferrer">Experiment 14.0 · Private encrypted replay</a> — requires your locally chosen passphrase. Unencrypted research is not included in the website.</p>
+<div class="mode-overview-head"><strong>Private Experiments</strong></div>
+<p class="hint">Experiment 14.0 is encrypted. Unlock its board and walkthrough directly here with your own passphrase. No plaintext research data is included in this page.</p>
+<button id="toggleExperiment14" class="button secondary" type="button" aria-expanded="false" aria-controls="inlineExperiment14">Experiment 14.0 · Unlock</button>
+<div id="inlineExperiment14" class="hidden" style="margin-top:16px">
+ <iframe id="experiment14Frame" title="Experiment 14.0 — encrypted Combo Meter board and walkthrough"
+  loading="lazy" style="display:block;width:100%;min-height:1060px;border:1px solid var(--border,#45586c);border-radius:12px;background:#0e1722"></iframe>
+</div>
+<script>
+(()=>{
+ const button=document.getElementById("toggleExperiment14");
+ const panel=document.getElementById("inlineExperiment14");
+ const frame=document.getElementById("experiment14Frame");
+ button?.addEventListener("click",()=>{
+  const opening=panel.classList.contains("hidden");
+  panel.classList.toggle("hidden",!opening);
+  button.setAttribute("aria-expanded",String(opening));
+  button.textContent=opening?"Experiment 14.0 · Lock & hide":"Experiment 14.0 · Unlock";
+  // Destroy the decrypted frame when hidden; reopening requires the password.
+  if(opening)frame.src="experiment14.html";
+  else frame.removeAttribute("src");
+ });
+})();
+</script>
 </div>
 <div class="mode-overview" aria-live="polite">
 <div class="mode-overview-head"><strong id="optimizerModeName">Simple Cascade</strong><span id="optimizerDifficulty" class="mode-difficulty">Adaptive</span><span id="optimizerModeBenchmark" class="mode-benchmark">Flexible setups</span></div>
