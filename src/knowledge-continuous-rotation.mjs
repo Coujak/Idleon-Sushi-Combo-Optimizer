@@ -18,7 +18,7 @@ export function simulateContinuousKnowledgeRotation({
  guaranteedBonus=0,windCap=0,chain=0,expAt=()=>1,cookCost=()=>1,
  rounds=6,pattern="wind",recipeOffset=0,packingMode="simple",protectedIndices=[],
  protectFocusedMilktoast=true,startingContext="imported",
- coverageTiers=[],coverageMode="recover",maximumActions=1800
+ coverageTiers=[],coverageMode="recover",roundOffset=0,maximumActions=1800
 }={}){
  if(!Array.isArray(startingBoard)||startingBoard.length!==SIZE||
    !Array.isArray(slots)||slots.length!==SIZE)throw Error("Knowledge rotation requires an 8×15 board");
@@ -95,6 +95,12 @@ export function simulateContinuousKnowledgeRotation({
    location(src)+" → "+location(dst)+
    (action.events.length>1?" · "+(action.events.length-1)+" East Wind upgrades":""),
    action.events,values,{src,dst});
+  if(mode==="balanced"&&!completed&&action.events.some(event=>
+   event.tier===64&&old[event.at]!==64)){
+   completed=true;
+   balancedCycles++;
+   haltReason="New T64 created — Balanced rotation complete";
+  }
   return true;
  };
  const applyMove=(src,dst)=>{
@@ -123,15 +129,8 @@ export function simulateContinuousKnowledgeRotation({
    {at,requestedTier:tier,cookFuel:cost});
   return true;
  };
- // A balanced rotation ends only when the entire board is one T64.
- // It may then be refilled again rather than ending the entire preview.
- const balancedComplete=()=>occupied(board)===1&&count(board,64)===1;
- const markBalancedCompletion=()=>{
-  if(mode!=="balanced"||!balancedComplete())return;
-  completed=true;balancedCycles++;
-  record("stage","Completed a balanced T64 rotation",
-   "One T64 remains. Begin the next refill if more waves are requested.");
- };
+ // A Balanced rotation is complete on the FIRST NEW T64 creation event.
+ // An original protected T64 is not a creation and never ends the replay.
  const focusCount=()=>count(board,targetTier);
  // Protect focused targets from consumption until the stockpile is full.
  const stashLimit=Math.max(2,slotsFree.length-2);
@@ -195,7 +194,7 @@ export function simulateContinuousKnowledgeRotation({
    if(!best)break;
    if(!applyMerge(best.src,best.dst))break;
    performed++;
-   if(mode==="balanced"&&roundsDone>0&&balancedComplete())break;
+   if(mode==="balanced"&&completed)break;
    if(compressFocus&&slotsFree.length-occupied(board)>=
     Math.min(10,Math.ceil(slotsFree.length*.15)))break;
   }
@@ -393,11 +392,12 @@ export function simulateContinuousKnowledgeRotation({
  // Balanced starts from a full, chosen starter-tier preparation; it
  // expands tier coverage through later refills, without reusing the
  // arbitrary imported Sushi inventory.
- for(let wave=1;wave<=Math.max(1,Math.min(64,Math.floor(rounds)||6));wave++){
+ for(let wave=1;wave<=Math.max(1,Math.floor(rounds)||6);wave++){
   if(frames.length>=maxActions){haltReason="Replay step limit reached";break;}
-  record("wave","Merge and refill wave "+wave,
+  record("wave","Merge and refill wave "+(wave+roundOffset),
    "Merge matching tiers and East Wind cascades, park survivors, and refill only empty slots.");
   mergePass({compressFocus:false});
+  if(completed)break;
   if(mode==="focused"&&canConsolidateFocus()&&focusCount()>=2){
    const was=focusCount();
    mergePass({compressFocus:true});
@@ -418,10 +418,10 @@ export function simulateContinuousKnowledgeRotation({
   if(slotsFree.length===occupied(board)){
    haltReason="Board cannot be refilled without illegal deletion";break;
   }
-  fillRound(wave);
+  fillRound(wave+roundOffset);
   mergePass({compressFocus:false});
   roundsDone++;
-  if(balancedComplete())markBalancedCompletion();
+  if(completed)break;
   if(mode==="focused"&&canConsolidateFocus()&&focusCount()>=2){
    const before=focusCount();
    mergePass({compressFocus:true});
@@ -435,8 +435,8 @@ export function simulateContinuousKnowledgeRotation({
   completed?"Balanced rotation completed":"No further legal progress";
  const final=board.slice();
  record(completed?"repeat":"partial",
-  completed?"Balanced terminal reached":"Current rotation progress",
-  completed?"The entire board has consolidated to one T64; future refills can start here.":
+  completed?"New T64 created · full Balanced rotation":"Current rotation progress",
+  completed?"A new T64 was created by the final legal merge or Wind cascade. Rotation complete.":
   haltReason+". All surviving Sushi remain on the board for the next refill.");
  const totalExp=gains.reduce((a,b)=>a+b,0);
  return {
@@ -454,6 +454,6 @@ export function simulateContinuousKnowledgeRotation({
   coveredTiers:discoveredCoverage.filter(t=>gains[t]>0),
   uncoveredTiers:discoveredCoverage.filter(t=>gains[t]===0),
   protectedIndices:[...protectedSet],
-  repeatable:completed&&mode==="balanced"&&balancedComplete()
+  repeatable:completed&&mode==="balanced"
  };
 }
