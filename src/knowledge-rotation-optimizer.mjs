@@ -5,7 +5,7 @@ import {
  designKnowledgeStartingBoard,captureKnowledgePreparedBoard
 } from "./knowledge-board-design.mjs?v=1.0.0";
 import {
- projectPassiveKnowledge,recommendPassiveKnowledgeLayout,passiveProtectedIndices
+ projectPassiveKnowledge,recommendPassiveKnowledgeLayout
 } from "./knowledge-passive-layout.mjs?v=1.0.1";
 import {estimateSushiFuelEconomy,sushiDirectCookFuel} from "./perfecto-fuel.mjs?v=1.16.8";
 import {getKnowledgeRows,getUpgradeRows} from "./lab-model.mjs?v=1.19.13";
@@ -280,6 +280,7 @@ export function optimizeKnowledgeRotation(save,rawOptions={}){
   fuelPerCycle:rotation.fuel,cycleSeconds:best.durationSeconds,
   activeSeconds:best.activeSeconds,fuelWaitSeconds:best.fuelWaitSeconds,
   estimatedFuelGeneration:best.fuelRate,estimatedFuelCapacity:economy.capacity,
+  maximumCookTier:economy.maxCookTier,
   roundsCompleted:rotation.rounds,roundsRequested:rounds,
   focusCopies:rotation.focusCopies,focusCompressed:rotation.focusCompressed,
   highestTier:rotation.highestTier,
