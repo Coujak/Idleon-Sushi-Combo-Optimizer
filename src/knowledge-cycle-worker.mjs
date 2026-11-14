@@ -2,12 +2,12 @@
 // leaves the user's device; no network requests are made by this worker.
 import {optimizeKnowledgeRotation,continueKnowledgeRotation} from "./knowledge-rotation-optimizer.mjs?v=1.0.16";
 
-function extendBalancedInBatches(save,snapshot,requestedWaves){
+function extendKnowledgeInBatches(save,snapshot,requestedWaves){
  const total=Math.max(1,Math.floor(Number(requestedWaves))||1);
  const rotations=[];
  let current={...snapshot};
  let remaining=total,completedWaves=0,haltReason="";
- // At most 6 refill waves per simulation keeps the 5% control responsive
+ // At most 6 refill waves per simulation keeps either 5% control responsive
  // without hitting the 5000-action preview ceiling for normal board sizes.
  while(remaining>0&&!current.completed){
   const batch=Math.min(6,remaining);
@@ -23,6 +23,7 @@ function extendBalancedInBatches(save,snapshot,requestedWaves){
   remaining-=rotation.rounds;
   current={...current,finalBoard:rotation.finalBoard,
    protectedIndices:rotation.protectedIndices,
+   targetCreated:rotation.targetCreated,
    roundsCompleted:current.roundsCompleted+rotation.rounds,
    completed:rotation.completed};
   self.postMessage({progress:true,completedWaves,requestedWaves:total,
@@ -42,7 +43,7 @@ self.onmessage=event=>{
  try{
   const {save,options,continuation,waves}=event.data??{};
   const result=continuation?
-   extendBalancedInBatches(save,continuation,waves):
+   extendKnowledgeInBatches(save,continuation,waves):
    optimizeKnowledgeRotation(save,options);
   self.postMessage({ok:true,result});
  }catch(error){
