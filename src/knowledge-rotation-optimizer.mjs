@@ -396,6 +396,9 @@ export function continueKnowledgeRotation(save,snapshot,waves=6){
  if(!save?.sushi||!Array.isArray(save?.slots))
   return fail("A valid account save is required to continue.");
  const layout=layoutFromSave(save);
+ if(Array.isArray(snapshot.pinkFireplaces?.imported)&&
+    !layout.fires.every((type,i)=>type===snapshot.pinkFireplaces.imported[i]))
+  return fail("The imported fireplace settings have changed. Rebuild the Knowledge plan to update pink-fireplace EXP and Fuel projections.");
  const board=snapshot.finalBoard;
  const protectedIndices=snapshot.protectedIndices;
  if(!Array.isArray(board)||board.length!==SIZE||
