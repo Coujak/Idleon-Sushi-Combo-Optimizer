@@ -102,7 +102,7 @@
   button.setAttribute("aria-expanded",String(opening));
   button.textContent=opening?"Experiment 14.0 · Lock & hide":"Experiment 14.0 · Unlock";
   // Destroy the decrypted frame when hidden; reopening requires the password.
-  if(opening)frame.src="experiment14.html";
+  if(opening)frame.src="experiment14.html?embed=1";
   else frame.removeAttribute("src");
  });
 })();
