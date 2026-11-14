@@ -644,32 +644,53 @@ export function initializeKnowledgeLevelingUI(getSave){
    worker=search;
    search.onmessage=event=>{
     if(worker!==search)return;
+    const msg=event.data;
+    // Progress messages do not end the worker. A single +5% click can
+    // contain many short, validated refill batches.
+    if(msg?.progress){
+     const message="Simulating "+msg.completedWaves+" / "+
+      msg.requestedWaves+" refills · current total "+
+      msg.totalRefills+(msg.completed?" · T64 created!":"");
+     continueButton.textContent="Simulating "+msg.completedWaves+
+      "/"+msg.requestedWaves+"…";
+     announceContinuation(message);
+     status.textContent=message;
+     return;
+    }
     stopSearch();
     try{
-     const msg=event.data;
      if(!msg?.ok||!msg.result?.available)
       throw Error(msg?.error??msg?.result?.reason??"No validated continuation returned");
-     const plan=combineKnowledgeContinuation(previous,msg.result.rotation,additionalWaves);
+     const rotations=Array.isArray(msg.result.rotations)?
+      msg.result.rotations:msg.result.rotation?[msg.result.rotation]:[];
+     if(!rotations.length)throw Error("No valid refill batches were generated");
+     let plan=previous;
+     for(const chunk of rotations)
+      plan=combineKnowledgeContinuation(plan,chunk,chunk.rounds);
      if(plan.steps.length<=previous.steps.length)
       throw Error("No new replay steps were generated");
      renderSummary(plan);
      renderDesignedBoard(plan);
      renderPassive(plan);
      showProgress(plan);
-     // A direct Continue always takes us into the newly generated steps,
-     // even if the user was previously viewing Step 0 or an earlier step.
+     // Continue always enters the first newly generated action.
      const resume=knowledgeContinuationResumeStep(
       previous.steps,plan.steps,previous.steps.length-1,skipToRefill);
      createReplay(plan,resume);
      jumpToNextRefill=false;
      continueButton.disabled=false;
-     continueButton.textContent="Continue rotation +6 refills";
+     continueButton.textContent=knowledgeContinueButtonLabel(plan.roundsCompleted);
+     const progressed=plan.roundsCompleted-previous.roundsCompleted;
      const message=plan.rotationTerminal?
-      "Rotation complete! A new T64 was created at step "+resume+".":
-      "Extended to refill "+plan.roundsCompleted+
+      "Full rotation complete! A NEW T64 was created after "+
+      progressed+" additional refills.":
+      "Advanced "+progressed+" / "+additionalWaves+
+      " requested refills (5%) · total "+plan.roundsCompleted+
       " · highest newly created T"+plan.highestNewTier+
-      " · now showing step "+resume+" / "+(plan.steps.length-1)+
-      ". Continue or use Next to replay.";
+      " · showing step "+resume+" / "+(plan.steps.length-1)+
+      (msg.result.haltReason?
+       " · Stopped early: "+msg.result.haltReason:
+       " · next increment "+knowledgeContinueWaveCount(plan.roundsCompleted));
      announceContinuation(message);
      status.textContent=message;
     }catch(error){
