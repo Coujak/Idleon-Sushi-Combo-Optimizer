@@ -127,6 +127,10 @@ export function simulateContinuousKnowledgeRotation({
   record("cook","Cook T"+tier+(result===tier?"":" → T"+result),
    "Fill "+location(at)+" with a fresh Sushi", [event],expDelta([event]),
    {at,requestedTier:tier,cookFuel:cost});
+  if(mode==="balanced"&&!completed&&result===64){
+   completed=true;balancedCycles++;
+   haltReason="New T64 created — Balanced rotation complete";
+  }
   return true;
  };
  // A Balanced rotation is complete on the FIRST NEW T64 creation event.
@@ -138,7 +142,7 @@ export function simulateContinuousKnowledgeRotation({
   focusCount()>=stashLimit;
  function mergePass({compressFocus=false}={}){
   let performed=0;
-  while(frames.length<maxActions){
+  while(frames.length<maxActions&&!completed){
    const groups=new Map();
    board.forEach((tier,i)=>{
     if(tier>0&&!groups.has(tier))groups.set(tier,[]);
@@ -306,6 +310,7 @@ export function simulateContinuousKnowledgeRotation({
    }
    if(!performCook(i,tier))break;
    segment++;last=i;
+   if(completed)break;
   }
   return countBefore;
  }
@@ -419,6 +424,7 @@ export function simulateContinuousKnowledgeRotation({
    haltReason="Board cannot be refilled without illegal deletion";break;
   }
   fillRound(wave+roundOffset);
+  if(completed){roundsDone++;break;}
   mergePass({compressFocus:false});
   roundsDone++;
   if(completed)break;
