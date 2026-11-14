@@ -17,7 +17,7 @@ export function simulateContinuousKnowledgeRotation({
  startingBoard,slots,mode="balanced",targetTier=64,requestedTier=1,
  guaranteedBonus=0,windCap=0,chain=0,expAt=()=>1,cookCost=()=>1,
  rounds=6,pattern="wind",packingMode="simple",protectedIndices=[],
- protectFocusedMilktoast=true,maximumActions=1800
+ protectFocusedMilktoast=true,startingContext="imported",maximumActions=1800
 }={}){
  if(!Array.isArray(startingBoard)||startingBoard.length!==SIZE||
    !Array.isArray(slots)||slots.length!==SIZE)throw Error("Knowledge rotation requires an 8×15 board");
@@ -65,7 +65,12 @@ export function simulateContinuousKnowledgeRotation({
    targetCreated:mode==="focused"?targetCreated:null,
    exp:values.reduce((a,b)=>a+b,0),...extras});
  };
- record("start","Current Sushi board","This is the imported board; no Sushi were removed to make space.");
+ record("start",startingContext==="designed"?"Preparation design start":"Current Sushi board",
+  startingContext==="designed"?
+   "Designed preparation scenario, not the imported Sushi inventory. "+
+   "Any needed cleanup of the current board must be done legally before this plan. "+
+   "The original highest-tier anchor stays in its original position.":
+   "This is the imported board; no Sushi were removed to make space.");
  const applyMerge=(src,dst,kind="merge")=>{
   const old=board;
   const action=simulateMerge(old,src,dst,windCap,chain,64);
@@ -241,10 +246,17 @@ export function simulateContinuousKnowledgeRotation({
    if(pattern==="wind"){
     const offsets=[0,0,1,2,3,4,5,6];
     tier=Math.max(1,requestedTier-offsets[segment%offsets.length]);
+   }else if(pattern==="longWind"){
+    // Two starting copies and a descending 25-tier staircase make a
+    // legitimate full-length East Wind trigger when the tier is high enough.
+    const step=segment%27;
+    tier=Math.max(1,requestedTier-(step<2?0:step-1));
    }else if(pattern==="paired"){
     tier=Math.max(1,requestedTier-(Math.floor(segment/2)%5));
    }else if(pattern==="spread"){
     tier=Math.max(1,requestedTier-(Math.floor(segment/3)%9));
+   }else if(pattern==="widePairs"){
+    tier=Math.max(1,requestedTier-(Math.floor(segment/2)%10));
    }
    if(!performCook(i,tier))break;
    segment++;last=i;
