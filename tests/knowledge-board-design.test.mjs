@@ -98,7 +98,7 @@ test("User-facing Knowledge planner has a standalone designed-board preview",()=
  const html=readFileSync(new URL("../index.html",import.meta.url),"utf8");
  const ui=readFileSync(new URL("../src/knowledge-leveling-ui.mjs",import.meta.url),"utf8");
  assert.match(html,/id="knowledgePlanDesign"/);
- assert.match(html,/Recommended prepared Sushi board|Prepared board/);
+ assert.match(ui,/Recommended preparation/);
  assert.match(ui,/renderDesignedBoard\(plan\)/);
  assert.match(ui,/scenarioRequiresCleanup/);
  assert.match(ui,/p\.preparedBoard\[i\]/);

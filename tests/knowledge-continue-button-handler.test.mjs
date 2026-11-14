@@ -8,8 +8,8 @@ import {knowledgeContinueWaveCount,knowledgeContinueButtonLabel}
  from "../src/knowledge-refill-scale.mjs";
 
 const ui=readFileSync(new URL("../src/knowledge-leveling-ui.mjs",import.meta.url),"utf8");
-const start=ui.indexOf(' continueButton.addEventListener("click",()=>{');
-const stop=ui.indexOf('\n\n $("knowledgePlanReset")',start);
+const start=ui.indexOf(' continueButton.addEventListener("click",event=>{');
+const stop=ui.indexOf('\n\n  continueHold=installKnowledgeContinueHold',start);
 assert.ok(start>=0&&stop>start,"Continue handler must exist");
 const handlerSource=ui.slice(start,stop);
 function makeHarness(refills=100){

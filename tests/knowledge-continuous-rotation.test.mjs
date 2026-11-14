@@ -63,7 +63,7 @@ test("Balanced retains imported Sushi and moves stragglers to the top before ref
  verifyFrames(plan,slots);
 });
 
-test("Balanced can consolidate T63 Sushi into one T64 and then restart",()=>{
+test("Balanced stops on a new T64 creation and permits another rotation",()=>{
  const board=blank(),slots=setup(15);
  board[0]=64;
  const plan=simulate(board,slots,{
@@ -71,13 +71,12 @@ test("Balanced can consolidate T63 Sushi into one T64 and then restart",()=>{
  });
  assert.equal(plan.completed,true);
  assert.ok(plan.balancedCycles>=1);
- assert.equal(plan.rounds,3,"A completed T64 consolidation should not stop later refills");
+ assert.equal(plan.rounds,1,"The selected rotation must stop at its first new T64");
  assert.ok(plan.frames.some(x=>x.kind==="merge"&&
   x.events.some(ev=>ev.tier===64)));
- assert.ok(plan.frames.some(x=>x.kind==="stage"&&
-  /Completed a balanced T64 rotation/.test(x.title)));
- assert.equal(plan.repeatable,plan.finalBoard.filter(t=>t>0).length===1&&
-  plan.finalBoard.filter(t=>t===64).length===1);
+ assert.equal(plan.frames.at(-1).kind,"merge",
+  "A completed rotation ends with the actual creation, not a fabricated stage");
+ assert.equal(plan.repeatable,true,"A completed Balanced plan can begin a new rotation");
  verifyFrames(plan,slots);
 });
 

@@ -123,7 +123,7 @@ test("Knowledge walkthrough offers continuation beyond 64 refills",()=>{
  const html=readFileSync(new URL("../index.html",import.meta.url),"utf8");
  const ui=readFileSync(new URL("../src/knowledge-leveling-ui.mjs",import.meta.url),"utf8");
  assert.match(html,/id="knowledgePlanContinue"/);
- assert.match(ui,/combineKnowledgeContinuation\(previous,msg\.result\.rotation,additionalWaves\)/);
+ assert.match(ui,/combineKnowledgeContinuation\(plan,chunk,chunk\.rounds\)/);
  assert.ok(!ui.includes("roundsRequested>=64"));
  assert.match(ui,/jumpToNextRefill=true;continueButton\.click\(\)/);
 });
