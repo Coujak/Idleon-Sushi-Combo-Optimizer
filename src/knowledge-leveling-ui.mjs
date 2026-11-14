@@ -496,13 +496,13 @@ export function initializeKnowledgeLevelingUI(getSave){
    },
    getDelay:()=>Number(speed.value)
   });
-  const initial=Math.min(resumeIndex??p.preparedStep??0,p.steps.length-1);
-  if(initial>0)controller.goTo(initial);
-  else renderFrame(0);
   continueButton.classList.toggle("hidden",!(p.mode==="balanced"&&
    p.roundsCompleted===p.roundsRequested&&p.roundsRequested<64&&
    !p.rotationTerminal&&!/step limit|action limit/i.test(p.haltReason)));
   continueButton.disabled=false;
+  const initial=Math.min(resumeIndex??p.preparedStep??0,p.steps.length-1);
+  if(initial>0)controller.goTo(initial);
+  else renderFrame(0);
  }
  function renderNotes(){
   tips.replaceChildren();
@@ -634,7 +634,7 @@ export function initializeKnowledgeLevelingUI(getSave){
     jumpToNextRefill=false;
     status.textContent="Balanced rotation extended to "+
      plan.roundsCompleted+" / "+plan.roundsRequested+
-     " refills. The previous steps were preserved; press Next to continue."+
+     " refills. All earlier steps were preserved."+
      (plan.roundsCompleted<plan.roundsRequested?
       " Stopped early: "+plan.haltReason:"");
    };
