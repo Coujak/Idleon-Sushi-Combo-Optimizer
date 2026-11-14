@@ -53,6 +53,8 @@ const quantityInput=id=>{
 export function initializeKnowledgeLevelingUI(getSave){
  const mode=$("knowledgePlanMode"),target=$("knowledgePlanTarget");
  const targetLabel=$("knowledgePlanTargetLabel");
+ const rangeBox=$("knowledgePlanBalancedRange");
+ const rangeStart=$("knowledgePlanRangeStart"),rangeEnd=$("knowledgePlanRangeEnd");
  const build=$("knowledgePlanRun"),cancelButton=$("knowledgePlanCancel");
  const status=$("knowledgePlanStatus");
  const summary=$("knowledgePlanFeatured"),replay=$("knowledgePlanRotation");
@@ -82,6 +84,8 @@ export function initializeKnowledgeLevelingUI(getSave){
  const persist=()=>{
   try{window.localStorage.setItem(preferenceKey,JSON.stringify({
    mode:mode.value,targetTier:state.targetTier,
+   balancedStartTier:state.balancedStartTier,
+   balancedEndTier:state.balancedEndTier,
    preservePassive:passiveToggle.checked
   }));}catch{/* Browser-local settings are optional. */}
  };
@@ -105,6 +109,18 @@ export function initializeKnowledgeLevelingUI(getSave){
   summary.classList.add("hidden");passiveBox.classList.add("hidden");
   replay.classList.add("hidden");
  };
+ function renderRangeValues(){
+  $("knowledgePlanRangeStartValue").textContent="T"+state.balancedStartTier;
+  $("knowledgePlanRangeEndValue").textContent="T"+state.balancedEndTier;
+  $("knowledgePlanRangeValue").textContent="T"+state.balancedStartTier+
+   " → T"+state.balancedEndTier;
+  const detail=$("knowledgePlanStrategyDetail");
+  if(detail&&mode.value==="balanced")
+   detail.textContent="Balanced · prioritize active EXP from T"+
+    state.balancedStartTier+" through T"+state.balancedEndTier+
+    ". A full rotation ends when a NEW T"+state.balancedEndTier+
+    " is created. The original protected Sushi never counts.";
+ }
  function updateTargets(){
   const candidates=getKnowledgeRows(getSave()).filter(x=>x.discovered);
   const old=Number(state.targetTier);
@@ -114,16 +130,27 @@ export function initializeKnowledgeLevelingUI(getSave){
   state.targetTier=candidates.some(x=>x.tier===old)?old:candidates[0]?.tier??null;
   if(state.targetTier!==null)target.value=String(state.targetTier);
   targetLabel.classList.toggle("hidden",mode.value!=="focused");
+  rangeBox.classList.toggle("hidden",mode.value!=="balanced");
   $("knowledgePlanNextHarvest").classList.toggle("hidden",mode.value!=="focused");
+  const maxTier=candidates.length?Math.max(...candidates.map(x=>x.tier)):64;
+  rangeStart.max=rangeEnd.max=String(maxTier);
+  state.balancedStartTier=Math.max(1,Math.min(maxTier,
+   Math.floor(Number(state.balancedStartTier))||1));
+  state.balancedEndTier=Math.max(state.balancedStartTier,
+   Math.min(maxTier,Math.floor(Number(state.balancedEndTier))||64));
+  rangeStart.value=String(state.balancedStartTier);
+  rangeEnd.value=String(state.balancedEndTier);
+  renderRangeValues();
   const strategyDetail=$("knowledgePlanStrategyDetail");
-  if(strategyDetail)strategyDetail.textContent=mode.value==="focused"?
-   "Focused · build and bank copies of the selected Sushi tier, then harvest when space runs out. Continue as long as legal preparation is possible.":
-   "Balanced · distribute active Knowledge EXP across tiers with a descending staircase while working toward a newly created T64.";
+  if(strategyDetail&&mode.value==="focused")
+   strategyDetail.textContent="Focused · build and bank copies of the selected Sushi tier, then harvest when space runs out. Continue as long as legal preparation is possible.";
  }
  function calibration(){
   const options={
    mode:mode.value,
    targetTier:state.targetTier,
+   balancedStartTier:state.balancedStartTier,
+   balancedEndTier:state.balancedEndTier,
    preservePassive:passiveToggle.checked,
    fuelGeneration:quantityInput("knowledgePlanFuelRate"),
    fuelCapacity:quantityInput("knowledgePlanFuelCap"),
@@ -145,7 +172,8 @@ export function initializeKnowledgeLevelingUI(getSave){
   summary.replaceChildren();summary.classList.remove("hidden");
   const heading=elem("div","lab-kp-headline");
   heading.append(elem("h3","",p.mode==="focused"?
-   "Focused target-building rotation · T"+p.targetTier:"Balanced · create a new T64"),
+   "Focused target-building rotation · T"+p.targetTier:
+   "Balanced · T"+(p.balancedStartTier??1)+" → T"+(p.balancedEndTier??64)),
    elem("p","",p.roundsCompleted+" refill waves · designed preparation · "+
     "starting T"+p.startCookTier+" · "+p.cooks+" cooks · "+p.merges+" merges · "+p.moves+" Sushi moves · "+
     p.windEvents+" Wind upgrades"));
@@ -639,6 +667,23 @@ export function initializeKnowledgeLevelingUI(getSave){
  mode.addEventListener("change",()=>{
   state.mode=mode.value;persist();clearAndPrompt();
  });
+ for(const [slider,key,other] of [
+  [rangeStart,"balancedStartTier",rangeEnd],
+  [rangeEnd,"balancedEndTier",rangeStart]
+ ]){
+  slider.addEventListener("input",()=>{
+   state[key]=Number(slider.value);
+   if(key==="balancedStartTier"&&state.balancedStartTier>state.balancedEndTier){
+    state.balancedEndTier=state.balancedStartTier;
+    other.value=String(state.balancedEndTier);
+   }else if(key==="balancedEndTier"&&state.balancedEndTier<state.balancedStartTier){
+    state.balancedStartTier=state.balancedEndTier;
+    other.value=String(state.balancedStartTier);
+   }
+   renderRangeValues();
+  });
+  slider.addEventListener("change",()=>{persist();release();});
+ }
  passiveToggle.addEventListener("change",()=>{
   state.preservePassive=passiveToggle.checked;persist();clearAndPrompt();
  });
