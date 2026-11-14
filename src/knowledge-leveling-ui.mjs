@@ -141,7 +141,9 @@ export function initializeKnowledgeLevelingUI(getSave){
    ]),
    ["Highest newly created tier","T"+p.highestNewTier],
    ["Refills",p.roundsCompleted+" / "+p.roundsRequested],
-   ["Starting cook tier","T"+p.startCookTier],
+   ["Starting cook tier","T"+p.startCookTier+
+    (p.firstCookResultTier!==undefined&&p.firstCookResultTier!==p.startCookTier?
+     " → T"+p.firstCookResultTier:"")],
    ["Full refill Fuel",compact(p.refillFuelSafety.fuel)+" / "+
     compact(p.refillFuelSafety.budget)],
    ["Projected active EXP / hr",rate(p.previewExpPerHour)],
@@ -149,6 +151,16 @@ export function initializeKnowledgeLevelingUI(getSave){
    ["Fireplace scenario",p.fireChoice]
   ])grid.append(metric(label,value));
   summary.append(grid);
+  if(p.mode==="balanced"){
+   if(p.startingPattern==="t2Climb"){
+    const actual=p.firstCookResultTier??p.startCookTier;
+    addNote(summary,actual===2?
+     "Balanced requests T2 on every refill, then merges upward. Its objective favors a descending Knowledge EXP staircase across discovered tiers.":
+     "Balanced requests T2 on every refill, but your modeled cooking bonuses change each T2 into T"+actual+". The board displays the resulting sushi: directly cooking T2 therefore cannot earn T2 EXP until the cooking bonus can be avoided.",
+     actual===2?"lab-kp-note":"lab-kp-warning");
+   }else if(p.balancedT2Feasible===false)
+    addNote(summary,"T2 is not directly cookable within the modeled Fuel capacity; Balanced used a fallback strategy.","lab-kp-warning");
+  }
   if(!p.fuelSafePreparation)
    addNote(summary,"Fuel warning: preparing this full board is estimated "+
     "to require "+formatHours(p.refillFuelSafety.estimatedWaitSeconds/3600)+
