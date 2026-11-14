@@ -165,6 +165,7 @@ export function optimizeKnowledgeRotation(save,rawOptions={}){
     const safeRate=Math.max(1e-12,Math.min(rateA,rateB));
     const fuelSafety=estimateKnowledgeRefillFuel(rotation.frames,{
      capacity:economy.capacity,generationPerHour:safeRate,
+     startingFuel:economy.currentFuel,
      secondsPerCook:options.secondsPerCook,reserveFraction:0.5
     });
     const activeSeconds=rotation.cooks*options.secondsPerCook+
