@@ -29,7 +29,7 @@ import {formatCompactNumber} from "./number-format.mjs?v=1.0.1";
 import {parseSushiCurrencyExternal} from "./sushi-currency-external.mjs?v=1.0.0";
 import {sushiTierIconPath} from "./sushi-reference.mjs?v=1.16.6";
 import {countOverviewPlates,overviewTileInfo} from "./overview-helpers.mjs?v=1.19.9";
-import {getPreparedBoardSections,hasSlotLayoutChanges,preparedSectionOutlinePath,preparedOutlineCoordinates} from "./prepared-sections.mjs?v=1.17.1";
+import {getPreparedBoardSections,hasSlotLayoutChanges,preparedSectionOutlinePath,preparedOutlineCoordinates} from "./prepared-sections.mjs?v=1.17.2";
 const COLUMNS=BOARD_COLUMNS;
 let imported=null;
 const sushiLab=initializeSushiLab(()=>imported);
