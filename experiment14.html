@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Experiment 14.0 · Private Combo Research</title>
+<style>
+:root{color-scheme:dark;font:16px system-ui,sans-serif;background:#0e1722;color:#e9f0f7}
+*{box-sizing:border-box}body{max-width:1120px;margin:0 auto;padding:24px}
+a{color:#a5d6f6}h1{margin:.4rem 0}p{color:#b5c5d5;line-height:1.5}
+section{background:#182537;border:1px solid #34455a;border-radius:14px;padding:20px;margin:16px 0}
+label{display:block;margin:10px 0}input,button{font:inherit;border-radius:8px;padding:10px;border:1px solid #526579;background:#111d2d;color:inherit}
+button{cursor:pointer;background:#24536d;border-color:#467e99}button:disabled{opacity:.4;cursor:not-allowed}
+.controls{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+#board{display:grid;grid-template-columns:repeat(15,minmax(0,1fr));gap:3px;margin:18px 0}
+.tile{aspect-ratio:1;min-width:0;background:#244938;border:1px solid #456a59;border-radius:5px;display:grid;place-items:center;font-size:clamp(9px,1.4vw,15px);font-weight:700}
+.tile.empty{background:#12202b;color:#668092;border-style:dashed}.tile.source{border:2px solid #ffac72}.tile.destination{border:2px solid #7ad4ff}.tile.anchor{background:#4b366d}
+#status{min-height:1.5rem}#secret{max-width:340px;width:100%}#details{font-variant-numeric:tabular-nums}
+.small{font-size:.88rem}.hidden{display:none!important}
+</style></head>
+<body>
+<p><a href="index.html">← Return to Sushi Station Lab</a></p>
+<h1>Experiment 14.0</h1>
+<p>Private Combo Meter research · development preview. The prepared board and move sequence are encrypted; this page contains no hardcoded password or unencrypted research data.</p>
+<section id="lock">
+<h2>Unlock experiment</h2>
+<p class="small">Enter the passphrase you chose when encrypting the research checkpoint. It stays in this browser session and is not sent to a server. Use a long, unique passphrase.</p>
+<form id="unlockForm">
+<label for="secret">Passphrase</label>
+<input id="secret" type="password" required autocomplete="off" spellcheck="false">
+<button type="submit" id="unlock">Unlock locally</button>
+</form>
+<p id="status" role="status" aria-live="polite"></p>
+</section>
+<section id="experiment" class="hidden">
+<div class="controls"><strong id="details"></strong><button type="button" id="relock">Lock</button></div>
+<p>Replay-checked sequence at T64 maximum, Wind cap T58 and 25 Wind upgrades per merge. Orange marks the move source; blue marks the destination.</p>
+<div class="controls">
+<button id="previous" type="button">Previous</button><button id="next" type="button">Next</button>
+<button id="reset" type="button">Start</button><button id="finish" type="button">Final</button>
+<span id="progress" aria-live="polite"></span>
+</div>
+<div id="board" aria-label="8 by 15 Sushi preparation board"></div>
+<p id="step" class="small"></p>
+</section>
+<script type="module">
+import {simulateMerge} from "./src/optimizer-core.mjs";
+const $=id=>document.getElementById(id);
+let data=null,frames=[],step=0;
+const decoder=new TextDecoder();
+const hexToBytes=s=>Uint8Array.from(s.match(/.{2}/g).map(x=>parseInt(x,16)));
+async function decrypt(envelope,password){
+ if(envelope?.version!==1||envelope?.algorithm!=="AES-256-GCM"||
+    envelope?.kdf!=="PBKDF2-SHA256"||
+    !Number.isInteger(envelope.iterations)||envelope.iterations<400000)
+  throw Error("Invalid encrypted research format.");
+ const material=await crypto.subtle.importKey("raw",new TextEncoder().encode(password),
+  "PBKDF2",false,["deriveKey"]);
+ const key=await crypto.subtle.deriveKey({name:"PBKDF2",hash:"SHA-256",
+  iterations:envelope.iterations,salt:hexToBytes(envelope.salt)},material,
+  {name:"AES-GCM",length:256},false,["decrypt"]);
+ const plaintext=await crypto.subtle.decrypt({name:"AES-GCM",
+  iv:hexToBytes(envelope.iv)},key,hexToBytes(envelope.ciphertext));
+ return JSON.parse(decoder.decode(plaintext));
+}
+function validateAndReplay(payload){
+ if(payload?.version!==1||!Array.isArray(payload.board)||
+  payload.board.length!==100||!Array.isArray(payload.actions)||
+  payload.actions.length>2000||!Number.isFinite(payload.score))
+  throw Error("Invalid decrypted experiment.");
+ const initial=[...payload.board,...Array(20).fill(0)];
+ if(initial.some(x=>!Number.isInteger(x)||x<0||x>64))
+  throw Error("Invalid sushi board.");
+ let board=initial,score=0;
+ const states=[{board,src:null,dst:null,gain:0,score:0}];
+ for(const action of payload.actions){
+  if(action.kind!=="merge"||!Number.isInteger(action.src)||
+   !Number.isInteger(action.dst)||action.src<0||action.src>=100||
+   action.dst<0||action.dst>=100)
+   throw Error("Unexpected research action type.");
+  const result=simulateMerge(board,action.src,action.dst,58,25,64);
+  if(!result||result.events.some(e=>e.at>=100))
+   throw Error("Replay validation failed. The game rules may have changed.");
+  const gain=result.events.reduce((n,e)=>n+e.tier,0);
+  score+=gain;board=result.board;
+  states.push({board,src:action.src,dst:action.dst,gain,score});
+ }
+ if(score!==payload.score)
+  throw Error("Score verification failed. Check the simulator version.");
+ return states;
+}
+function render(){
+ const frame=frames[step];if(!frame)return;
+ const root=$("board");root.replaceChildren();
+ frame.board.forEach((tier,i)=>{
+  const cell=document.createElement("div");
+  cell.className="tile"+(tier?"":" empty")+(tier===64?" anchor":"")+
+   (frame.src===i?" source":"")+(frame.dst===i?" destination":"");
+  cell.textContent=tier?"T"+tier:"";
+  cell.title="Row "+(Math.floor(i/15)+1)+", col "+(i%15+1)+
+   (tier?" · T"+tier:" · empty");
+  root.append(cell);
+ });
+ $("progress").textContent="Step "+step+" / "+(frames.length-1);
+ $("step").textContent=step===0?"Initial prepared board":
+  "Merge from slot "+(frame.src+1)+" to "+(frame.dst+1)+
+  " · "+frame.gain+" points this move · cumulative "+frame.score.toLocaleString();
+ $("details").textContent="Best score: "+data.score.toLocaleString()+
+  " · Split: "+data.split+" · "+(frames.length-1)+" merges";
+ $("previous").disabled=step===0;$("next").disabled=step>=frames.length-1;
+}
+function lock(){
+ data=null;frames=[];step=0;$("secret").value="";
+ $("experiment").classList.add("hidden");$("lock").classList.remove("hidden");
+ $("board").replaceChildren();$("status").textContent="Locked.";
+}
+$("unlockForm").addEventListener("submit",async e=>{
+ e.preventDefault();const password=$("secret").value;$("unlock").disabled=true;
+ $("status").textContent="Decrypting locally…";
+ try{
+  const response=await fetch("./private/experiment14.enc.json",{cache:"no-store"});
+  if(!response.ok)throw Error("Encrypted experiment not published yet. Run the local encrypt script and commit only its encrypted output.");
+  const envelope=await response.json();
+  const payload=await decrypt(envelope,password);
+  const candidate=validateAndReplay(payload);
+  data=payload;frames=candidate;step=0;$("secret").value="";
+  $("lock").classList.add("hidden");$("experiment").classList.remove("hidden");
+  render();
+ }catch(err){$("status").textContent="Cannot unlock: "+err.message;}
+ finally{$("unlock").disabled=false;}
+});
+$("previous").addEventListener("click",()=>{step=Math.max(0,step-1);render();});
+$("next").addEventListener("click",()=>{step=Math.min(frames.length-1,step+1);render();});
+$("reset").addEventListener("click",()=>{step=0;render();});
+$("finish").addEventListener("click",()=>{step=frames.length-1;render();});
+$("relock").addEventListener("click",lock);
+</script></body></html>
