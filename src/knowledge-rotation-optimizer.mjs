@@ -1,6 +1,6 @@
 // Search over continuous refill/merge/park rotations rather than independent
 // one-shot boards. Every candidate starts with the actual imported Sushi board.
-import {simulateContinuousKnowledgeRotation} from "./knowledge-continuous-rotation.mjs?v=1.0.1";
+import {simulateContinuousKnowledgeRotation} from "./knowledge-continuous-rotation.mjs?v=1.0.2";
 import {estimateSushiFuelEconomy,sushiDirectCookFuel} from "./perfecto-fuel.mjs?v=1.16.8";
 import {getKnowledgeRows,getUpgradeRows} from "./lab-model.mjs?v=1.19.13";
 import {getSushiDashboardMetrics} from "./dashboard-metrics.mjs?v=1.0.2";
@@ -112,16 +112,21 @@ export function optimizeKnowledgeRotation(save,rawOptions={}){
    modeled/baselineRate*options.fuelGeneration:modeled;
  };
  const rounds=Math.max(1,Math.min(12,Math.floor(num(rawOptions?.rounds))||6));
+ // Continuous Balanced refills benefit from keeping the leftover tiers in a
+ // stable staircase rather than scattering them through the refill area.
+ // Keep the original strategy as a comparison; Focused retains target parking.
+ const packingModes=options.mode==="balanced"?["simple","ascending","descending"]:["simple"];
  let best=null,candidates=0;
  for(const cookTier of bases){
   for(const pattern of ["wind","paired"]){
    for(const fire of fires){
     const xp=expProfile(save,eligible,options,fire.fires,metrics);
+    for(const packingMode of packingModes){
     const rotation=simulateContinuousKnowledgeRotation({
      startingBoard:layout.tiles,slots:layout.slots,mode:options.mode,targetTier,
      requestedTier:cookTier,guaranteedBonus:xp.guaranteed,
      windCap,chain,expAt:xp.expAt,cookCost:sushiDirectCookFuel,rounds,pattern,
-     maximumActions:1800
+     packingMode,maximumActions:1800
     });
     if(!rotation.valid||rotation.cooks<1)continue;
     const rateA=adjustedRate(layout.tiles,fire.fires);
@@ -144,8 +149,9 @@ export function optimizeKnowledgeRotation(save,rawOptions={}){
       (rotation.completed?100:0)+rotation.highestTier*.01;
     candidates++;
     if(!best||score>best.score){
-     best={rotation,score,cookTier,pattern,fire,xp,fuelRate,
+     best={rotation,score,cookTier,pattern,packingMode,fire,xp,fuelRate,
       activeSeconds,fuelWaitSeconds,durationSeconds};
+    }
     }
    }
   }
@@ -176,7 +182,7 @@ export function optimizeKnowledgeRotation(save,rawOptions={}){
   proposedFires:best.fire.fires,fireChoice:best.fire.name,
   pinkMultiplier:best.xp.lithiumEnabled?best.xp.lithium:null,
   windCap,steps:rotation.frames,preparedStep,
-  startCookTier:best.cookTier,startingPattern:best.pattern,
+  startCookTier:best.cookTier,startingPattern:best.pattern,packingMode:best.packingMode,
   totalExpPerCycle:rotation.totalExp,totalExpPerHour:sustained?windowExpPerHour:null,
   previewExpPerHour:windowExpPerHour,targetExpPerHour:sustained?focusExpPerHour:null,
   targetPreviewExpPerHour:focusExpPerHour,
