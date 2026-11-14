@@ -1,5 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import {readFileSync} from "node:fs";
 import {estimateKnowledgeRefillFuel} from "../src/knowledge-fuel-safety.mjs";
 import {optimizeKnowledgeRotation} from "../src/knowledge-rotation-optimizer.mjs";
 import {simulateContinuousKnowledgeRotation} from "../src/knowledge-continuous-rotation.mjs";
@@ -132,7 +133,6 @@ test("Account-based Focused T58 does not select a full board of prohibitively co
  assert.equal(plan.steps[plan.preparedStep].board.filter(t=>t>0).length,100);
 });
 test("Knowledge UI exposes exact end-state navigation, missed-tier counts and default unchecked passive protection",()=>{
- const {readFileSync}=await import("node:fs");
  const html=readFileSync(new URL("../index.html",import.meta.url),"utf8");
  const ui=readFileSync(new URL("../src/knowledge-leveling-ui.mjs",import.meta.url),"utf8");
  assert.match(html,/id="knowledgePlanEnd"/);
