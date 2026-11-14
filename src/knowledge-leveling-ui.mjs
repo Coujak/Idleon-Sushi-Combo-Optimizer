@@ -57,6 +57,7 @@ export function initializeKnowledgeLevelingUI(getSave){
  const speed=$("knowledgePlanSpeed");
  let state={mode:"balanced",targetTier:null};
  let result=null,controller=null,worker=null;
+ let jumpToNextRefill=false;
  try{
   const old=JSON.parse(window.localStorage.getItem(preferenceKey)||"null");
   state={...normalizeKnowledgeCycleOptions(old),preservePassive:old?.preservePassive===true};
@@ -77,7 +78,8 @@ export function initializeKnowledgeLevelingUI(getSave){
  const release=()=>{
   stopSearch();
   controller?.dispose();controller=null;
-  result=null;continueButton.classList.add("hidden");continueButton.disabled=false;
+  result=null;jumpToNextRefill=false;
+  continueButton.classList.add("hidden");continueButton.disabled=false;
   summary.replaceChildren();board.replaceChildren();
   recommendedBoard.replaceChildren();recommendedBoard.classList.add("hidden");
   passiveBox.replaceChildren();
@@ -471,8 +473,10 @@ export function initializeKnowledgeLevelingUI(getSave){
    " · "+frame.targetCreated+" created · "+frame.targetCopies+" banked";
   $("knowledgePlanNextRefill").title=result.steps.some((f,i)=>
    i>index&&f.kind==="refill")?
-   "Jump to the next simulated refill":"No further refill in this preview; "+
-    result.haltReason;
+   "Jump to the next simulated refill":
+   !continueButton.classList.contains("hidden")?
+    "Extend this same Balanced rotation by six more refills":
+    "No further refill in this preview; "+result.haltReason;
   $("knowledgePlanNextHarvest").disabled=!result.steps.some((f,i)=>
    i>index&&f.kind==="stage"&&f.phase==="harvest"&&f.title.startsWith("Harvest prepared"));
   $("knowledgePlanPrev").disabled=index===0;
@@ -601,7 +605,7 @@ export function initializeKnowledgeLevelingUI(getSave){
     stopSearch();
     const msg=event.data;
     if(!msg?.ok||!msg.result?.available){
-     continueButton.disabled=false;
+     jumpToNextRefill=false;continueButton.disabled=false;
      status.textContent="Unable to continue: "+(msg?.error??msg?.result?.reason??"Unknown error");
      return;
     }
@@ -614,7 +618,7 @@ export function initializeKnowledgeLevelingUI(getSave){
        frame.board.every((tier,j)=>next.board[j]===tier);
      });
     if(!consistent){
-     continueButton.disabled=false;
+     jumpToNextRefill=false;continueButton.disabled=false;
      status.textContent="Continuation could not reproduce the previous walkthrough exactly. Your existing steps were kept. Rebuild if account settings have changed.";
      return;
     }
@@ -622,6 +626,12 @@ export function initializeKnowledgeLevelingUI(getSave){
     // The prior final frame was a summary, not an action. Resume from
     // the last REAL step, from which the next refill is now available.
     createReplay(plan,Math.min(previousStep,previous.steps.length-2));
+    if(jumpToNextRefill){
+     const nextRefill=plan.steps.findIndex((frame,i)=>
+      i>previous.steps.length-2&&frame.kind==="refill");
+     if(nextRefill>=0)controller.goTo(nextRefill);
+    }
+    jumpToNextRefill=false;
     status.textContent="Balanced rotation extended to "+
      plan.roundsCompleted+" / "+plan.roundsRequested+
      " refills. The previous steps were preserved; press Next to continue."+
@@ -630,7 +640,7 @@ export function initializeKnowledgeLevelingUI(getSave){
    };
    search.onerror=()=>{
     if(worker!==search)return;
-    stopSearch();continueButton.disabled=false;
+    stopSearch();jumpToNextRefill=false;continueButton.disabled=false;
     status.textContent="Continuation worker failed; the previous walkthrough was retained.";
    };
    search.postMessage({save,options:{
@@ -639,7 +649,7 @@ export function initializeKnowledgeLevelingUI(getSave){
     rounds:nextRounds,resumeRecipe:previous.resumeRecipe
    }});
   }catch(error){
-   stopSearch();continueButton.disabled=false;
+   stopSearch();jumpToNextRefill=false;continueButton.disabled=false;
    status.textContent="Cannot extend rotation: "+String(error?.message??error);
   }
  });
@@ -652,7 +662,9 @@ export function initializeKnowledgeLevelingUI(getSave){
   if(!result||!controller)return;
   const next=result.steps.findIndex((frame,i)=>i>controller.step&&frame.kind==="refill");
   if(next>=0)controller.goTo(next);
-  else{
+  else if(!continueButton.classList.contains("hidden")&&!continueButton.disabled){
+   jumpToNextRefill=true;continueButton.click();
+  }else{
    controller.goTo(result.steps.length-1);
    status.textContent="No further simulated refill: "+result.haltReason+
     " ("+result.roundsCompleted+"/"+result.roundsRequested+
