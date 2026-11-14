@@ -393,7 +393,7 @@ export function simulateContinuousKnowledgeRotation({
  // Balanced starts from a full, chosen starter-tier preparation; it
  // expands tier coverage through later refills, without reusing the
  // arbitrary imported Sushi inventory.
- for(let wave=1;wave<=Math.max(1,Math.min(16,Math.floor(rounds)||6));wave++){
+ for(let wave=1;wave<=Math.max(1,Math.min(64,Math.floor(rounds)||6));wave++){
   if(frames.length>=maxActions){haltReason="Replay step limit reached";break;}
   record("wave","Merge and refill wave "+wave,
    "Merge matching tiers and East Wind cascades, park survivors, and refill only empty slots.");
