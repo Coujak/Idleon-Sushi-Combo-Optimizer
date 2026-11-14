@@ -4340,3 +4340,23 @@ details summary{cursor:pointer;font-size:12px;font-weight:700;color:#9eb7c9}
 @media(max-width:680px){
  #knowledgePlanner .lab-kp-range-sliders{grid-template-columns:minmax(0,1fr);}
 }
+
+/* Highlight which rows the Balanced tier slider actually optimizes. */
+#knowledgePlanner .lab-kp-progress-table tr.is-balanced-range td:first-child{
+ box-shadow:inset 3px 0 0 #66d1a5;
+}
+#knowledgePlanner .lab-kp-progress-table tr.is-balanced-range td{
+ background:#183e3d;
+}
+#knowledgePlanner .lab-kp-progress-table tr.is-balanced-range:nth-child(even) td{
+ background:#1c4241;
+}
+#knowledgePlanner .lab-kp-progress-table tr.is-balanced-range:hover td{
+ background:#22514a;
+}
+#knowledgePlanner .lab-kp-progress-table tr.is-outside-range td{
+ color:#95b2bc;
+}
+#knowledgePlanner .lab-kp-progress-table tr.is-outside-range td:nth-child(2){
+ color:#9db6ac;
+}
