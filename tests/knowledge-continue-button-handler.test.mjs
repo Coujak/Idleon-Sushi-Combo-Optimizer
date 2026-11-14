@@ -28,7 +28,7 @@ function makeHarness(refills=100){
   addEventListener(event,callback){this.handler=callback;}};
  let inline="",resumeIndex=null,combined=0;
  const context={
-  continueButton:button,worker:null,jumpToNextRefill:false,
+  continueButton:button,continueHold:null,worker:null,jumpToNextRefill:false,
   result:previous,canExtendBalancedRotation:()=>true,
   knowledgeContinueWaveCount,knowledgeContinueButtonLabel,
   getSave:()=>({sushi:[[],[],[]]}),
