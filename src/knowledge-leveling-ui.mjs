@@ -6,7 +6,7 @@ import {parseGameQuantity} from "./progression-calibration.mjs?v=1.17.1";
 import {normalizeKnowledgeCycleOptions}
  from "./knowledge-cycle-optimizer.mjs?v=1.0.1";
 import {createReplayController} from "./replay-controller.mjs";
-import {combineKnowledgeContinuation} from "./knowledge-rotation-extension.mjs?v=1.0.0";
+import {combineKnowledgeContinuation} from "./knowledge-rotation-extension.mjs?v=1.0.1";
 
 const $=id=>document.getElementById(id);
 const elem=(tag,cls="",value)=>{
