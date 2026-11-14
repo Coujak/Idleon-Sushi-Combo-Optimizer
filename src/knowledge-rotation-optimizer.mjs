@@ -121,9 +121,19 @@ export function optimizeKnowledgeRotation(save,rawOptions={}){
  if(unlocked<2)return fail("At least two unlocked Sushi slots are required.");
  const rows=getKnowledgeRows(save),eligible=rows.filter(x=>x.discovered);
  if(!eligible.length)return fail("No discovered Sushi tiers are available.");
+ const highestDiscovered=eligible.reduce((n,row)=>Math.max(n,row.tier),0);
+ const balancedStartTier=Math.max(1,Math.min(highestDiscovered,
+  options.balancedStartTier));
+ const balancedEndTier=Math.max(balancedStartTier,
+  Math.min(highestDiscovered,options.balancedEndTier));
+ const balancedTiers=eligible.map(row=>row.tier).filter(t=>
+  t>=balancedStartTier&&t<=balancedEndTier);
+ if(options.mode==="balanced"&&!balancedTiers.length)
+  return fail("No discovered Sushi Knowledge tiers are within this Balanced range.");
  if(num(save?.sushi?.[2]?.[13])<1)
   return fail("Unlock Seared Knowledge before estimating active Knowledge EXP.");
- const targetTier=eligible.some(x=>x.tier===options.targetTier)?
+ const targetTier=options.mode==="balanced"?balancedEndTier:
+  eligible.some(x=>x.tier===options.targetTier)?
   options.targetTier:eligible[0].tier;
  const economy=estimateSushiFuelEconomy(save,{
   capacityOverride:options.fuelCapacity,generationOverride:options.fuelGeneration
@@ -137,10 +147,16 @@ export function optimizeKnowledgeRotation(save,rawOptions={}){
  const design=designKnowledgeStartingBoard(layout,options);
  const protectedIndices=design.protectedIndices;
  const originalProfile=expProfile(save,eligible,options,layout.fires,metrics);
+ if(options.mode==="balanced"&&
+    balancedEndTier<1+originalProfile.guaranteed)
+  return fail("Your guaranteed cooking tier bonus produces at least T"+
+   (1+originalProfile.guaranteed)+
+   ". The selected Balanced end tier T"+balancedEndTier+
+   " cannot be created from the designed starting board. Choose an end tier at or above T"+
+   (1+originalProfile.guaranteed)+".");
  const bases=startingTiers(economy,originalProfile.guaranteed,options,
   targetTier,design.availableWorkingSlots);
  if(!bases.length)return fail("No directly cookable Sushi tier fits your estimated fuel capacity.");
- const highestDiscovered=eligible.reduce((n,row)=>Math.max(n,row.tier),0);
  const windCap=num(save?.sushi?.[2]?.[29])>0?Math.max(0,Math.min(58,highestDiscovered-6)):0;
  const chain=windCap>0?25:0;
  const fires=fireAlternatives(save,layout.fires);
@@ -183,9 +199,10 @@ export function optimizeKnowledgeRotation(save,rawOptions={}){
     const rotation=simulateContinuousKnowledgeRotation({
      startingBoard:design.board,slots:layout.slots,mode:options.mode,targetTier,
      requestedTier:cookTier,guaranteedBonus:xp.guaranteed,
-     windCap,chain,expAt:xp.expAt,cookCost:sushiDirectCookFuel,rounds,pattern,
+     balancedEndTier,windCap,chain,expAt:xp.expAt,
+     cookCost:sushiDirectCookFuel,rounds,pattern,
      recipeOffset,packingMode,protectedIndices,
-     coverageTiers:eligible.map(row=>row.tier),
+     coverageTiers:options.mode==="balanced"?balancedTiers:eligible.map(row=>row.tier),
      protectFocusedMilktoast:options.preservePassive,
      startingContext:"designed",
      maximumActions:options.mode==="focused"?8000:
@@ -218,7 +235,7 @@ export function optimizeKnowledgeRotation(save,rawOptions={}){
      (v+passiveEnd.expPerDay[t])/2);
     const focus=rotation.gains[targetTier]||0;
     const staircase=options.mode==="balanced"?
-     balancedStaircase(rotation.gains,durationSeconds,eligible.map(x=>x.tier)):null;
+     balancedStaircase(rotation.gains,durationSeconds,balancedTiers):null;
     const score=staircase?.weightedRate??0;
     // Focused aims to create as many T58 events as possible, then banks
     // those copies until the board saturates and legally consolidates them.
@@ -308,7 +325,10 @@ export function optimizeKnowledgeRotation(save,rawOptions={}){
  const sustained=rotation.repeatable&&rotation.initialBoard.every(
   (t,i)=>t===rotation.finalBoard[i]);
  return {
-  available:true,mode:options.mode,targetTier,options,layout,
+  available:true,mode:options.mode,targetTier,
+  balancedStartTier,balancedEndTier,
+  balancedTiers:options.mode==="balanced"?balancedTiers:[],
+  options,layout,
   importedBoard:layout.tiles.slice(),design,
   startingBoard:rotation.initialBoard,finalBoard:rotation.finalBoard,
   preparedBoard:preparation.board,preparedStep:preparation.step,
@@ -331,7 +351,7 @@ export function optimizeKnowledgeRotation(save,rawOptions={}){
   coveredTiers:rotation.coveredTiers,
   uncoveredTiers:rotation.uncoveredTiers,
   coverageTotal:rotation.coveredTiers.length,
-  coverageRequested:eligible.length,
+  coverageRequested:options.mode==="balanced"?balancedTiers.length:eligible.length,
   balancedCycles:rotation.balancedCycles,
   targetCreated:rotation.targetCreated,
   targetExp:rotation.targetExp,
@@ -420,8 +440,9 @@ export function continueKnowledgeRotation(save,snapshot,waves=6){
   return fail("The previous recipe is incomplete. Rebuild the rotation.");
  const rotation=simulateContinuousKnowledgeRotation({
   startingBoard:board,slots:layout.slots,mode:snapshot.mode,
-  targetTier:snapshot.targetTier??64,requestedTier:requested,
-  guaranteedBonus:profile.guaranteed,
+  targetTier:snapshot.targetTier??64,
+  balancedEndTier:snapshot.balancedEndTier??64,
+  requestedTier:requested,guaranteedBonus:profile.guaranteed,
   windCap:snapshot.windCap,chain:snapshot.windCap>0?25:0,
   expAt:profile.expAt,cookCost:sushiDirectCookFuel,rounds:count,
   pattern:snapshot.startingPattern,
@@ -429,7 +450,10 @@ export function continueKnowledgeRotation(save,snapshot,waves=6){
   packingMode:snapshot.packingMode??"simple",
   protectedIndices,protectFocusedMilktoast:opts.preservePassive,
   startingContext:"continuation",
-  coverageTiers:rows.map(row=>row.tier),
+  coverageTiers:snapshot.mode==="balanced"?
+   rows.map(row=>row.tier).filter(t=>t>=
+    (snapshot.balancedStartTier??1)&&t<=(snapshot.balancedEndTier??64)):
+   rows.map(row=>row.tier),
   roundOffset:snapshot.roundsCompleted,
   startingTargetCreated:snapshot.targetCreated??0,
   maximumActions:5000
