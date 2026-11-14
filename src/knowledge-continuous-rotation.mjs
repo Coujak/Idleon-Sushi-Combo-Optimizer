@@ -42,6 +42,9 @@ export function simulateContinuousKnowledgeRotation({
  const gains=blank(),frames=[];
  let cooks=0,merges=0,windEvents=0,moves=0,fuel=0,roundsDone=0,
   focusCompressed=0,haltReason="",completed=false;
+ let activePhase=mode==="focused"?"prepare":"balanced";
+ let targetCreated=0,targetMergedInHarvest=0,peakTargetCopies=count(board,targetTier);
+ const harvestBatches=[];
  const expDelta=events=>{
   const out=blank();
   for(const event of events){
@@ -50,12 +53,16 @@ export function simulateContinuousKnowledgeRotation({
    const value=Number(expAt(event.tier,event.at));
    if(!(value>=0)||!Number.isFinite(value))throw Error("Knowledge EXP cannot be calculated");
    out[event.tier]+=value;gains[event.tier]+=value;
+   if(mode==="focused"&&event.tier===targetTier)targetCreated++;
   }
   return out;
  };
  const record=(kind,title,detail,events=[],values=blank(),extras={})=>{
+  if(mode==="focused")peakTargetCopies=Math.max(peakTargetCopies,count(board,targetTier));
   frames.push({kind,title,detail,board:board.slice(),events,gains:values,
-   protectedIndices:[...protectedSet],
+   protectedIndices:[...protectedSet],phase:activePhase,
+   targetCopies:mode==="focused"?count(board,targetTier):null,
+   targetCreated:mode==="focused"?targetCreated:null,
    exp:values.reduce((a,b)=>a+b,0),...extras});
  };
  record("start","Current Sushi board","This is the imported board; no Sushi were removed to make space.");
@@ -67,12 +74,14 @@ export function simulateContinuousKnowledgeRotation({
    action.events.some(e=>!playable.has(e.at))||
    [...protectedSet].some(i=>action.board[i]!==old[i]))return false;
   board=action.board;
+  if(mode==="focused"&&activePhase==="harvest"&&
+   old[src]===targetTier&&old[dst]===targetTier)targetMergedInHarvest+=2;
   if(mode==="focused"&&protectFocusedMilktoast)
    for(const ev of action.events)
     if(ev.tier===targetTier&&slots[ev.at]===3)protectedSet.add(ev.at);
   const values=expDelta(action.events);
   merges++;windEvents+=action.events.length-1;
-  record(kind,"Merge T"+old[src]+" → T"+board[dst],
+  record(kind,(activePhase==="harvest"?"Harvest · ":"")+"Merge T"+old[src]+" → T"+board[dst],
    location(src)+" → "+location(dst)+
    (action.events.length>1?" · "+(action.events.length-1)+" East Wind upgrades":""),
    action.events,values,{src,dst});
@@ -139,6 +148,10 @@ export function simulateContinuousKnowledgeRotation({
       const action=simulateMerge(board,src,dst,windCap,chain,64);
       if(!action||action.events.some(e=>!playable.has(e.at))||
        [...protectedSet].some(i=>action.board[i]!==board[i]))continue;
+      // Treat every stored target copy as banked during preparation.
+      // Wind must not silently turn a banked T58 into a T59.
+      if(mode==="focused"&&activePhase==="prepare"&&
+       board.some((v,i)=>v===targetTier&&action.board[i]!==v))continue;
       const events=action.events;
       const createsTarget=events.reduce((sum,e)=>sum+(e.tier===targetTier?1:0),0);
       const reach=events.reduce((sum,e)=>sum+
@@ -150,7 +163,7 @@ export function simulateContinuousKnowledgeRotation({
       for(const t of action.board)if(t>0&&t<64)pairs.set(t,(pairs.get(t)??0)+1);
       const close=[...pairs.values()].reduce((sum,n)=>sum+Math.floor(n/2),0);
       let score=mode==="focused"?
-       createsTarget*180+reach*8+wind*6+close*.1:
+       createsTarget*10000+reach*32+wind*5+close*.3:
        wind*23+creates64*18+events.length*5+close*.1;
       if(mode==="focused"&&compressFocus&&tier===targetTier)
        score+=200+focusCount();
@@ -238,6 +251,86 @@ export function simulateContinuousKnowledgeRotation({
   }
   return countBefore;
  }
+ // Harvest is a distinct phase, not a greedily selected incidental merge.
+ // Build the maximum available target stockpile before ever consuming T58
+ // copies into T59. Merge only unprotected equal-tier pairs during harvest;
+ // the source tier being consumed does NOT earn the target's EXP.
+ function harvestFocus(reason){
+  if(mode!=="focused"||count(board,targetTier)<2)return false;
+  const before=count(board,targetTier);
+  const filledBefore=occupied(board);
+  activePhase="harvest";
+  record("stage","Harvest prepared T"+targetTier+" Sushi",
+   before+" T"+targetTier+" copies prepared · "+reason+
+   ". Consolidate pairs into higher tiers to recover space. "+
+   "Merging T"+targetTier+" into T"+(Math.min(MAX,targetTier+1))+
+   (targetTier===64?" (capped)":"")+" awards EXP to the RESULT tier.");
+  let merged=0;
+  for(let tier=targetTier;tier<=MAX&&frames.length<maxActions;tier++){
+   // Higher-tier products from lower-tier harvest merges can themselves pair.
+   while(frames.length<maxActions){
+    const indices=slotsFree.filter(i=>board[i]===tier);
+    const sources=indices.filter(i=>i!==permanentT64Index&&!protectedSet.has(i));
+    let picked=null;
+    for(const src of [...sources].reverse()){
+     for(const dst of indices){
+      if(src===dst||protectedSet.has(dst)&&tier!==64)continue;
+      const candidate=simulateMerge(board,src,dst,windCap,chain,MAX);
+      if(!candidate||candidate.events.some(e=>!playable.has(e.at))||
+       [...protectedSet].some(i=>candidate.board[i]!==board[i]))continue;
+      // Prefer non-cascading harvest merges: a T58+T58 creates T59
+      // without upgrading unconsumed T58 copies through Wind.
+      if(!picked||src>dst&&picked.src<picked.dst)
+       picked={src,dst};
+     }
+    }
+    if(!picked)break;
+    if(!applyMerge(picked.src,picked.dst))throw Error("Harvest replay diverged");
+    merged++;
+   }
+  }
+  const after=count(board,targetTier);
+  const reclaimed=filledBefore-occupied(board);
+  focusCompressed+=Math.max(0,before-after);
+  harvestBatches.push({before,after,merged,reclaimed,reason});
+  record("stage","Harvest finished · "+reclaimed+" slots recovered",
+   merged+" legal merges · "+after+" T"+targetTier+
+   " copies remain (protected copies can remain banked). "+
+   "Refill freed slots to begin another preparation.");
+  activePhase="prepare";
+  return merged>0;
+ }
+ if(mode==="focused"){
+  record("stage","Prepare T"+targetTier+" copies",
+   "Fill and merge lower tiers to create as many T"+targetTier+
+   " Sushi as possible. Every created T"+targetTier+
+   " earns its own Knowledge EXP; saved copies are not merged yet.");
+  for(let wave=1;wave<=Math.max(1,Math.min(16,Math.floor(rounds)||6));wave++){
+   if(frames.length>=maxActions){haltReason="Replay action limit reached";break;}
+   // Work on all non-target pairs first. A full target stockpile is harvested
+   // only when no further cooking is possible in the current preparation.
+   mergePass({compressFocus:false});
+   parkLeftovers();
+   if(slotsFree.length===occupied(board)){
+    if(count(board,targetTier)>=2)harvestFocus("Board full: no empty cooking slots");
+    else {haltReason="Board full without a legal target harvest pair";break;}
+   }
+   if(slotsFree.length===occupied(board)){
+    haltReason="No unlocked empty positions remain after legal harvest";break;
+   }
+   fillRound(wave);
+   mergePass({compressFocus:false});
+   parkLeftovers();
+   roundsDone++;
+   // If the preparation has saturated, harvest only after all available
+   // non-target merges and Wind cascades have finished.
+   if(slotsFree.length===occupied(board)&&count(board,targetTier)>=2)
+    harvestFocus("Prepared board saturated after refill "+wave);
+  }
+  if(!haltReason)haltReason=roundsDone>=rounds?
+   "Preparation preview limit reached; banked Sushi carry forward":
+   "Focused preparation stopped without an actionable refill";
+ }else{
  // The imported board may already be full; first create room only by merging.
  for(let wave=1;wave<=Math.max(1,Math.min(16,Math.floor(rounds)||6));wave++){
   if(frames.length>=maxActions){haltReason="Replay step limit reached";break;}
@@ -279,6 +372,7 @@ export function simulateContinuousKnowledgeRotation({
   }
   parkLeftovers();
  }
+ }
  if(!haltReason)haltReason=completed?"Rotation completed":
   roundsDone>=rounds?"Reached the preview refill limit":"No further legal progress";
  const final=board.slice();
@@ -291,6 +385,9 @@ export function simulateContinuousKnowledgeRotation({
   valid:true,frames,initialBoard:initial,finalBoard:final,
   rounds:roundsDone,completed,
   focusCopies:focusCount(),focusCompressed,
+  targetCreated,targetMergedInHarvest,peakTargetCopies,
+  harvestBatches,harvested:harvestBatches.length,
+  targetExp:gains[targetTier],
   highestTier:highest(final),remaining:remaining(final,slots),
   active:occupied(final),cooks,merges,moves,windEvents,fuel,
   gains,totalExp,reason:haltReason,
