@@ -47,7 +47,8 @@ export function combineKnowledgeContinuation(previous,chunk,requestedWaves=6){
  return {...previous,
   steps,finalBoard:chunk.finalBoard,
   roundsCompleted:previous.roundsCompleted+chunk.rounds,
-  roundsRequested:previous.roundsRequested+additional,
+  roundsRequested:chunk.completed?
+   previous.roundsCompleted+chunk.rounds:previous.roundsRequested+additional,
   haltReason:chunk.reason,
   completed:Boolean(chunk.completed),
   rotationTerminal:Boolean(chunk.completed),
