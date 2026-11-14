@@ -16,7 +16,7 @@ const highest=board=>board.reduce((a,b)=>Math.max(a,b),0);
 export function simulateContinuousKnowledgeRotation({
  startingBoard,slots,mode="balanced",targetTier=64,requestedTier=1,
  guaranteedBonus=0,windCap=0,chain=0,expAt=()=>1,cookCost=()=>1,
- rounds=6,pattern="wind",packingMode="simple",maximumActions=1800
+ rounds=6,pattern="wind",packingMode="simple",protectedIndices=[],maximumActions=1800
 }={}){
  if(!Array.isArray(startingBoard)||startingBoard.length!==SIZE||
    !Array.isArray(slots)||slots.length!==SIZE)throw Error("Knowledge rotation requires an 8×15 board");
@@ -30,6 +30,11 @@ export function simulateContinuousKnowledgeRotation({
  if(board.some((tier,i)=>tier<0||tier>MAX||!Number.isInteger(tier)||tier>0&&!playable.has(i)))
   throw Error("Imported board contains an invalid Sushi tier or locked position");
  const initial=board.slice();
+ const protectedSet=new Set(protectedIndices);
+ for(const index of protectedSet){
+  if(!Number.isInteger(index)||!playable.has(index)||board[index]<1)
+   throw Error("Protected passive Sushi must occupy an unlocked, filled plate");
+ }
  // Always retain the last original T64 as the permanent board anchor.
  // An extra T64 can legally merge INTO it, never consume this one as source.
  const permanentT64Index=initial.lastIndexOf(64);
@@ -55,7 +60,10 @@ export function simulateContinuousKnowledgeRotation({
  const applyMerge=(src,dst,kind="merge")=>{
   const old=board;
   const action=simulateMerge(old,src,dst,windCap,chain,64);
-  if(!action||action.events.some(e=>!playable.has(e.at)))return false;
+  if(!action||protectedSet.has(src)||
+   (protectedSet.has(dst)&&old[dst]!==64)||
+   action.events.some(e=>!playable.has(e.at))||
+   [...protectedSet].some(i=>action.board[i]!==old[i]))return false;
   board=action.board;
   const values=expDelta(action.events);
   merges++;windEvents+=action.events.length-1;
@@ -66,6 +74,7 @@ export function simulateContinuousKnowledgeRotation({
   return true;
  };
  const applyMove=(src,dst)=>{
+  if(protectedSet.has(src)||protectedSet.has(dst))return false;
   const result=simulateRelocation(board,src,dst,slots,MAX);
   if(!result)return false;
   board=result.board;moves++;
@@ -116,9 +125,11 @@ export function simulateContinuousKnowledgeRotation({
       ...srcs.filter(x=>x>dst).slice(0,1)
      ]);
      for(const src of srcList){
-      if(src===permanentT64Index)continue;
+      if(src===permanentT64Index||protectedSet.has(src)||
+       (protectedSet.has(dst)&&board[dst]!==64))continue;
       const action=simulateMerge(board,src,dst,windCap,chain,64);
-      if(!action||action.events.some(e=>!playable.has(e.at)))continue;
+      if(!action||action.events.some(e=>!playable.has(e.at))||
+       [...protectedSet].some(i=>action.board[i]!==board[i]))continue;
       const events=action.events;
       const createsTarget=events.reduce((sum,e)=>sum+(e.tier===targetTier?1:0),0);
       const reach=events.reduce((sum,e)=>sum+
@@ -152,7 +163,7 @@ export function simulateContinuousKnowledgeRotation({
  }
  function parkLeftovers(){
   if(packingMode==="ascending"||packingMode==="descending"){
-   const packing=packSushiStaircase(board,slots,packingMode,MAX);
+   const packing=packSushiStaircase(board,slots,packingMode,MAX,protectedIndices);
    let repositioned=0;
    for(const action of packing.actions){
     if(frames.length>=maxActions)break;
@@ -164,7 +175,7 @@ export function simulateContinuousKnowledgeRotation({
   }
   const usable=slotsFree.slice().sort((a,b)=>a-b);
   const top=usable.slice(0,Math.min(22,Math.max(4,Math.floor(usable.length*.25))));
-  const sources=usable.filter(i=>board[i]>0&&!top.includes(i))
+  const sources=usable.filter(i=>board[i]>0&&!top.includes(i)&&!protectedSet.has(i))
    .sort((a,b)=>{
     if(mode==="focused"){
      const left=board[a]===targetTier,right=board[b]===targetTier;
@@ -263,7 +274,7 @@ export function simulateContinuousKnowledgeRotation({
   active:occupied(final),cooks,merges,moves,windEvents,fuel,
   gains,totalExp,reason:haltReason,
   // This preview is a finite window; not all windows are steady-state.
-  packingMode,
+  packingMode,protectedIndices:[...protectedSet],
   repeatable:completed&&mode==="balanced"
  };
 }
