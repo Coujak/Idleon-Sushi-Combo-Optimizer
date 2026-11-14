@@ -377,14 +377,14 @@ export function optimizeKnowledgeRotation(save,rawOptions={}){
 
 
 /**
- * Continue an already-selected Balanced recipe from its REAL last board.
+ * Continue an already-selected Knowledge recipe from its REAL last board.
  * Each worker invocation simulates only a small chunk, so long-running
  * rotations do not redo tens of thousands of earlier steps.
  */
 export function continueKnowledgeRotation(save,snapshot,waves=6){
  const fail=reason=>({available:false,reason});
- if(!snapshot||snapshot.mode!=="balanced"||snapshot.completed)
-  return fail("Only an unfinished Balanced rotation can be extended.");
+ if(!snapshot||!["balanced","focused"].includes(snapshot.mode)||snapshot.completed)
+  return fail("Only unfinished Balanced or Focused rotations can be extended.");
  if(!save?.sushi||!Array.isArray(save?.slots))
   return fail("A valid account save is required to continue.");
  const layout=layoutFromSave(save);
@@ -404,11 +404,11 @@ export function continueKnowledgeRotation(save,snapshot,waves=6){
  const count=Math.max(1,Math.min(12,Math.floor(Number(waves))||6));
  const requested=Number(snapshot.startCookTier);
  if(!Number.isInteger(requested)||requested<1||requested>64||
-    !["t1Climb","t2Climb","wind","paired","longWind","spread","widePairs"].includes(snapshot.startingPattern)||
+    !["uniform","t1Climb","t2Climb","wind","paired","longWind","spread","widePairs"].includes(snapshot.startingPattern)||
     !Number.isInteger(snapshot.roundsCompleted)||snapshot.roundsCompleted<0)
   return fail("The previous recipe is incomplete. Rebuild the rotation.");
  const rotation=simulateContinuousKnowledgeRotation({
-  startingBoard:board,slots:layout.slots,mode:"balanced",
+  startingBoard:board,slots:layout.slots,mode:snapshot.mode,
   targetTier:snapshot.targetTier??64,requestedTier:requested,
   guaranteedBonus:profile.guaranteed,
   windCap:snapshot.windCap,chain:snapshot.windCap>0?25:0,
@@ -420,6 +420,7 @@ export function continueKnowledgeRotation(save,snapshot,waves=6){
   startingContext:"continuation",
   coverageTiers:rows.map(row=>row.tier),
   roundOffset:snapshot.roundsCompleted,
+  startingTargetCreated:snapshot.targetCreated??0,
   maximumActions:5000
  });
  if(!rotation.valid||!rotation.frames.length||
