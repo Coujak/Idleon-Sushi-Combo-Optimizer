@@ -53,6 +53,7 @@ export function initializeKnowledgeLevelingUI(getSave){
  const recommendedBoard=$("knowledgePlanDesign");
  const passiveBox=$("knowledgePlanPassive"),passiveToggle=$("knowledgePlanProtectPassive");
  const board=$("knowledgePlanBoard"),tips=$("knowledgePlanTips");
+ const continueButton=$("knowledgePlanContinue");
  const speed=$("knowledgePlanSpeed");
  let state={mode:"balanced",targetTier:null};
  let result=null,controller=null,worker=null;
@@ -76,7 +77,8 @@ export function initializeKnowledgeLevelingUI(getSave){
  const release=()=>{
   stopSearch();
   controller?.dispose();controller=null;
-  result=null;summary.replaceChildren();board.replaceChildren();
+  result=null;continueButton.classList.add("hidden");continueButton.disabled=false;
+  summary.replaceChildren();board.replaceChildren();
   recommendedBoard.replaceChildren();recommendedBoard.classList.add("hidden");
   passiveBox.replaceChildren();
   $("knowledgePlanLevelRows").replaceChildren();
@@ -476,7 +478,7 @@ export function initializeKnowledgeLevelingUI(getSave){
   $("knowledgePlanPrev").disabled=index===0;
   $("knowledgePlanNext").disabled=index===result.steps.length-1;
  }
- function createReplay(p){
+ function createReplay(p,resumeIndex=null){
   controller?.dispose();
   result=p;replay.classList.remove("hidden");
   p.cumulativeExp=[];
@@ -490,9 +492,13 @@ export function initializeKnowledgeLevelingUI(getSave){
    },
    getDelay:()=>Number(speed.value)
   });
-  const initial=Math.min(p.preparedStep??0,p.steps.length-1);
+  const initial=Math.min(resumeIndex??p.preparedStep??0,p.steps.length-1);
   if(initial>0)controller.goTo(initial);
   else renderFrame(0);
+  continueButton.classList.toggle("hidden",!(p.mode==="balanced"&&
+   p.roundsCompleted===p.roundsRequested&&p.roundsRequested<64&&
+   !p.rotationTerminal&&!/step limit|action limit/i.test(p.haltReason)));
+  continueButton.disabled=false;
  }
  function renderNotes(){
   tips.replaceChildren();
@@ -572,6 +578,72 @@ export function initializeKnowledgeLevelingUI(getSave){
  cancelButton.addEventListener("click",()=>{
   if(worker){stopSearch();status.textContent="Knowledge optimization canceled.";}
  });
+ continueButton.addEventListener("click",()=>{
+  if(worker||!result||result.mode!=="balanced"||
+    result.roundsCompleted!==result.roundsRequested||
+    result.roundsRequested>=64||result.rotationTerminal)return;
+  const previous=result;
+  const previousStep=controller?.step??previous.steps.length-1;
+  const save=getSave();
+  if(!save){status.textContent="Import your game save before continuing.";return;}
+  // Re-simulate with the SAME winning recipe. Check the full earlier replay
+  // prefix before showing extra waves; never substitute a different candidate.
+  const nextRounds=Math.min(64,previous.roundsRequested+6);
+  continueButton.disabled=true;build.disabled=true;
+  cancelButton.classList.remove("hidden");
+  status.textContent="Continuing the same Balanced rotation through refill "+nextRounds+"…";
+  try{
+   const search=new Worker(new URL("./knowledge-cycle-worker.mjs?v=1.0.14",
+    import.meta.url),{type:"module"});
+   worker=search;
+   search.onmessage=event=>{
+    if(worker!==search)return;
+    stopSearch();
+    const msg=event.data;
+    if(!msg?.ok||!msg.result?.available){
+     continueButton.disabled=false;
+     status.textContent="Unable to continue: "+(msg?.error??msg?.result?.reason??"Unknown error");
+     return;
+    }
+    const plan=msg.result;
+    const prefix=previous.steps.slice(0,-1);
+    const consistent=plan.steps.length>previous.steps.length&&
+     prefix.every((frame,i)=>{
+      const next=plan.steps[i];
+      return next?.kind===frame.kind&&next?.src===frame.src&&next?.dst===frame.dst&&
+       frame.board.every((tier,j)=>next.board[j]===tier);
+     });
+    if(!consistent){
+     continueButton.disabled=false;
+     status.textContent="Continuation could not reproduce the previous walkthrough exactly. Your existing steps were kept. Rebuild if account settings have changed.";
+     return;
+    }
+    renderSummary(plan);renderDesignedBoard(plan);renderPassive(plan);showProgress(plan);
+    // The prior final frame was a summary, not an action. Resume from
+    // the last REAL step, from which the next refill is now available.
+    createReplay(plan,Math.min(previousStep,previous.steps.length-2));
+    status.textContent="Balanced rotation extended to "+
+     plan.roundsCompleted+" / "+plan.roundsRequested+
+     " refills. The previous steps were preserved; press Next to continue."+
+     (plan.roundsCompleted<plan.roundsRequested?
+      " Stopped early: "+plan.haltReason:"");
+   };
+   search.onerror=()=>{
+    if(worker!==search)return;
+    stopSearch();continueButton.disabled=false;
+    status.textContent="Continuation worker failed; the previous walkthrough was retained.";
+   };
+   search.postMessage({save,options:{
+    ...previous.options,mode:"balanced",
+    preservePassive:previous.options.preservePassive===true,
+    rounds:nextRounds,resumeRecipe:previous.resumeRecipe
+   }});
+  }catch(error){
+   stopSearch();continueButton.disabled=false;
+   status.textContent="Cannot extend rotation: "+String(error?.message??error);
+  }
+ });
+
  $("knowledgePlanReset").addEventListener("click",()=>controller?.goTo(0));
  $("knowledgePlanPrepared").addEventListener("click",()=>{
   if(result)controller?.goTo(Math.min(result.preparedStep??0,result.steps.length-1));
