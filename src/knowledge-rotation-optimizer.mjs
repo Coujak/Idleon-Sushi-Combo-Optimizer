@@ -1,6 +1,6 @@
 // Search legal cook/merge/park rotations from freshly DESIGNED preparation
 // scenarios. The imported board provides account constraints, not ingredients.
-import {simulateContinuousKnowledgeRotation} from "./knowledge-continuous-rotation.mjs?v=1.0.10";
+import {simulateContinuousKnowledgeRotation} from "./knowledge-continuous-rotation.mjs?v=1.0.11";
 import {estimateKnowledgeRefillFuel} from "./knowledge-fuel-safety.mjs?v=1.0.1";
 import {
  designKnowledgeStartingBoard,captureKnowledgePreparedBoard
@@ -57,7 +57,7 @@ function startingTiers(economy,guaranteed,options,targetTier,availableSlots=100)
  const requests=options.mode==="focused"?
   [safe,sustainable,max,max-1,max-3,max-5,max-8,max-12,1,
    targetTier-guaranteed]:
-  [2,safe,sustainable,max,max-2,max-5,max-9,1];
+  [1,safe,sustainable,max,max-2,max-5,max-9,2];
  return unique(requests.filter(x=>valid.includes(x))).slice(0,
   options.mode==="focused"?10:7);
 }
@@ -152,27 +152,32 @@ export function optimizeKnowledgeRotation(save,rawOptions={}){
   return options.fuelGeneration!==null&&baselineRate>0?
    modeled/baselineRate*options.fuelGeneration:modeled;
  };
- const rounds=Math.max(1,Math.min(12,Math.floor(num(rawOptions?.rounds))||6));
+ const continuing=rawOptions?.resumeRecipe&&typeof rawOptions.resumeRecipe==="object"?rawOptions.resumeRecipe:null;
+ const rounds=Math.max(1,Math.min(continuing?64:12,Math.floor(num(rawOptions?.rounds))||6));
  // Compare legal survivor parking and descending East Wind staircases,
  // without consuming banked target copies during focused preparation.
  const packingModes=options.mode==="balanced"?
   ["simple","ascending","descending"]:["simple","descending"];
  let best=null,candidates=0;
- const t2Feasible=bases.includes(2);
+ const t1Feasible=bases.includes(1);
  const recipePatterns=options.mode==="focused"?
   ["uniform","wind","paired","longWind","widePairs"]:
-  // Balanced always begins its refills at T2 when cooking T2 is feasible.
-  t2Feasible?["t2Climb"]:["wind","paired","longWind"];
+  // The lowest possible requested cook tier is T1; guaranteed bonuses
+  // can make the result T2 or higher, but do not make T2 the minimum input.
+  t1Feasible?["t1Climb"]:["wind","paired","longWind"];
  const recipeVariants=recipePatterns.flatMap(pattern=>
   (pattern==="uniform"?[0]:options.mode==="focused"?[0,3]:[0,2])
    .map(recipeOffset=>({pattern,recipeOffset})));
  for(const cookTier of bases){
   for(const {pattern,recipeOffset} of recipeVariants){
-   // Compare T2-first against adaptive recipes; never fake a T2 starter.
-   if(pattern==="t2Climb"&&cookTier!==2)continue;
+   if(pattern==="t1Climb"&&cookTier!==1)continue;
+   if(continuing&&(cookTier!==continuing.cookTier||
+    pattern!==continuing.pattern||recipeOffset!==continuing.recipeOffset))continue;
    for(const fire of fires){
     const xp=expProfile(save,eligible,options,fire.fires,metrics);
     for(const packingMode of packingModes){
+    if(continuing&&(packingMode!==continuing.packingMode||
+     fire.name!==continuing.fireChoice))continue;
     const rotation=simulateContinuousKnowledgeRotation({
      startingBoard:design.board,slots:layout.slots,mode:options.mode,targetTier,
      requestedTier:cookTier,guaranteedBonus:xp.guaranteed,
@@ -181,7 +186,8 @@ export function optimizeKnowledgeRotation(save,rawOptions={}){
      coverageTiers:eligible.map(row=>row.tier),
      protectFocusedMilktoast:options.preservePassive,
      startingContext:"designed",
-     maximumActions:options.mode==="focused"?8000:5000
+     maximumActions:options.mode==="focused"?8000:
+      continuing?Math.min(20000,Math.max(5000,rounds*320)):5000
     });
     if(!rotation.valid||rotation.cooks<1)continue;
     const rateA=adjustedRate(design.board,fire.fires);
@@ -261,7 +267,9 @@ export function optimizeKnowledgeRotation(save,rawOptions={}){
    }
   }
  }
- if(!best)return fail("No feasible legal refill/merge rotation was found with this board and fuel budget.");
+ if(!best)return fail(continuing?
+  "The selected rotation can no longer be extended with these account settings. Rebuild the planner.":
+  "No feasible legal refill/merge rotation was found with this board and fuel budget.");
  const rotation=best.rotation;
  const preparation=captureKnowledgePreparedBoard(rotation.frames,design.board);
  const passiveRecommendation=recommendPassiveKnowledgeLayout(
@@ -307,7 +315,7 @@ export function optimizeKnowledgeRotation(save,rawOptions={}){
   startCookTier:best.cookTier,startingPattern:best.pattern,
   guaranteedCookBonus:best.xp.guaranteed,
   firstCookResultTier:Math.min(64,best.cookTier+best.xp.guaranteed),
-  balancedT2Feasible:options.mode==="balanced"?t2Feasible:null,
+  balancedT1Feasible:options.mode==="balanced"?t1Feasible:null,
   balancedStaircaseFit:options.mode==="balanced"?best.rank[0]:null,
   recipeOffset:best.recipeOffset,packingMode:best.packingMode,
   highestNewTier,highestWorkingTier,
@@ -353,12 +361,15 @@ export function optimizeKnowledgeRotation(save,rawOptions={}){
   initialFuelEstimate:economy.currentFuel,
   fuelSafePreparation:best.fuelSafety.noWait,
   roundsCompleted:rotation.rounds,roundsRequested:rounds,
+  resumeRecipe:{cookTier:best.cookTier,pattern:best.pattern,
+   recipeOffset:best.recipeOffset,packingMode:best.packingMode,
+   fireChoice:best.fire.name},
   focusCopies:rotation.focusCopies,focusCompressed:rotation.focusCompressed,
   highestTier:rotation.highestTier,
   completed:rotation.completed,repeatable:sustained,rotationTerminal:rotation.repeatable,
   initialBoardMatchesFinal:sustained,
   stranded:rotation.remaining.length,
   considered:candidates,haltReason:rotation.reason,
-  note:"Balanced uses T2 as the requested cook on each refill whenever feasible; the actual resulting tier may be higher because of guaranteed cooking bonuses. Balanced ranks actual EXP by its fit to a descending low-to-high-tier staircase, plus tier coverage and active EXP rate, without passive EXP/day. Balanced begins with a full board of the selected starter tier and prioritizes creating missing discovered tiers during later refills. The tier-coverage score counts actual Knowledge EXP events, not just passive EXP/day. Any tiers that remain uncovered are reported explicitly; the planner never invents high-tier creation events. First-fill recipes are screened against a conservative Fuel buffer (a precharged full tank, spending at most half the capacity plus Fuel regenerated during normal cooking); this does not claim uninterrupted sustained refills. The optimizer designs an ingredient board from account cooking limits and available slots; the imported Sushi inventory is NOT assumed to be the optimal preparation. It keeps the highest-tier anchor in its existing position. IMPORTANT: converting the current inventory into this clean design may require legal cleanup merges NOT included in the walkthrough. Once that starting state is achieved, each subsequent cook, move, Wind cascade and merge is replay-validated. Focused ranks actual target creations and prepared target copies; harvest earns EXP for the result tier. This bounded search is not a mathematical proof of optimality."
+  note:"Balanced requests T1 on each refill when feasible; guaranteed cooking bonuses may produce T2 or higher. Balanced ranks actual EXP by its fit to a descending low-to-high-tier staircase, plus tier coverage and active EXP rate, without passive EXP/day. Balanced begins with a full board of the selected starter tier and prioritizes creating missing discovered tiers during later refills. The tier-coverage score counts actual Knowledge EXP events, not just passive EXP/day. Any tiers that remain uncovered are reported explicitly; the planner never invents high-tier creation events. First-fill recipes are screened against a conservative Fuel buffer (a precharged full tank, spending at most half the capacity plus Fuel regenerated during normal cooking); this does not claim uninterrupted sustained refills. The optimizer designs an ingredient board from account cooking limits and available slots; the imported Sushi inventory is NOT assumed to be the optimal preparation. It keeps the highest-tier anchor in its existing position. IMPORTANT: converting the current inventory into this clean design may require legal cleanup merges NOT included in the walkthrough. Once that starting state is achieved, each subsequent cook, move, Wind cascade and merge is replay-validated. Focused ranks actual target creations and prepared target copies; harvest earns EXP for the result tier. This bounded search is not a mathematical proof of optimality."
  };
 }
