@@ -10,6 +10,7 @@ import {combineKnowledgeContinuation,knowledgeContinuationResumeStep} from "./kn
 import {canExtendBalancedRotation} from "./knowledge-rotation-continuation-eligibility.mjs?v=1.0.1";
 import {knowledgeContinueWaveCount,knowledgeContinueButtonLabel} from "./knowledge-refill-scale.mjs?v=1.0.0";
 import {installKnowledgeContinueHold} from "./knowledge-continue-hold.mjs?v=1.0.0";
+import {buildKnowledgeActiveExpHistory} from "./knowledge-active-exp-history.mjs?v=1.0.0";
 
 const $=id=>document.getElementById(id);
 const createKnowledgeWorker=()=>new Worker(new URL("./knowledge-cycle-worker.mjs?v=1.0.22",
@@ -73,6 +74,7 @@ export function initializeKnowledgeLevelingUI(getSave){
  const speed=$("knowledgePlanSpeed");
  let state={mode:"balanced",targetTier:null};
  let result=null,controller=null,worker=null;
+ let activeExpHistory=null,activeExpDisplays=new Map();
  let jumpToNextRefill=false,jumpToNextHarvest=false;
  let continueHold=null;
  try{
@@ -98,7 +100,8 @@ export function initializeKnowledgeLevelingUI(getSave){
   continueHold?.stop();
   stopSearch();
   controller?.dispose();controller=null;
-  result=null;jumpToNextRefill=false;jumpToNextHarvest=false;
+  result=null;activeExpHistory=null;activeExpDisplays.clear();
+  jumpToNextRefill=false;jumpToNextHarvest=false;
   announceContinuation("");
   continueButton.classList.add("hidden");continueButton.disabled=false;
   continueButton.textContent="Continue rotation";
@@ -182,7 +185,7 @@ export function initializeKnowledgeLevelingUI(getSave){
   // supporting diagnostics still available but out of the main visual flow.
   const primary=p.mode==="focused"?[
    ["T"+p.targetTier+" created",compact(p.targetCreated)],
-   ["T"+p.targetTier+" Knowledge EXP",compact(p.targetExp)],
+   ["T"+p.targetTier+" EXP · full preview",compact(p.targetExp)],
    ["Peak copies on board",compact(p.peakTargetCopies)],
    ["Batch harvests",compact(p.harvestCount)]
   ]:[
@@ -511,6 +514,7 @@ export function initializeKnowledgeLevelingUI(getSave){
  function showProgress(p){
   const rows=$("knowledgePlanLevelRows");
   rows.replaceChildren();
+  activeExpDisplays.clear();
   const inRange=t=>t>=(p.balancedStartTier??1)&&
    t<=(p.balancedEndTier??64);
   let ordered=p.perTier.slice().sort((a,b)=>
@@ -530,14 +534,28 @@ export function initializeKnowledgeLevelingUI(getSave){
    img.src=sushiTierIconPath(entry.tier);img.alt="";img.loading="lazy";
    img.onerror=()=>img.remove();
    name.append(img,elem("span","","T"+entry.tier+" · "+entry.name));
-   const active=elem("td");
-   active.append(elem("span","lab-kp-exp-value"+
-    (entry.expPerCycle>0?"":" is-empty"),compact(entry.expPerCycle)));
+   const active=elem("td","lab-kp-active-gain-cell");
+   const gained=elem("span","lab-kp-exp-value is-empty","0");
+   const created=elem("small","lab-kp-creation-count","0 creations");
+   active.append(gained,created);
+   active.title="Simulated gain to the selected walkthrough step. "+
+    "Full-preview T"+entry.tier+" EXP: "+compact(entry.expPerCycle)+
+    ". Actual in-game EXP must be measured separately.";
+   activeExpDisplays.set(entry.tier,{gained,created});
    tr.append(name,active,
     elem("td","",compact(entry.passiveExpPerDay)),
     elem("td","",rate(entry.expPerHour)),
     elem("td","",formatHours(entry.etaHours)));
    rows.append(tr);
+  }
+ }
+ function renderVisibleActiveExp(step){
+  if(!activeExpHistory)return;
+  for(const [tier,display] of activeExpDisplays){
+   const {exp,creations}=activeExpHistory.atStep(tier,step);
+   display.gained.textContent=compact(exp);
+   display.gained.classList.toggle("is-empty",exp===0);
+   display.created.textContent=creations+" creation"+(creations===1?"":"s");
   }
  }
  function renderFrame(index){
@@ -605,6 +623,7 @@ export function initializeKnowledgeLevelingUI(getSave){
    replayProgress.value=index;
   }
   $("knowledgePlanStepDetail").textContent=frame.detail;
+  renderVisibleActiveExp(index);
   $("knowledgePlanStepCount").textContent=index+" / "+(result.steps.length-1);
   $("knowledgePlanStepXp").textContent="EXP in step: "+compact(frame.exp);
   const earned=result.cumulativeExp?.[index]??result.steps.slice(0,index+1).
@@ -631,6 +650,7 @@ export function initializeKnowledgeLevelingUI(getSave){
  function createReplay(p,resumeIndex=null){
   controller?.dispose();
   result=p;replay.classList.remove("hidden");
+  activeExpHistory=buildKnowledgeActiveExpHistory(p.steps);
   p.cumulativeExp=[];
   let running=0;
   for(const frame of p.steps)p.cumulativeExp.push(running+=frame.exp);
