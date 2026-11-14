@@ -130,10 +130,14 @@ export function optimizeKnowledgeRotation(save,rawOptions={}){
  const packingModes=options.mode==="balanced"?
   ["simple","ascending","descending"]:["simple","descending"];
  let best=null,candidates=0;
+ const recipePatterns=options.mode==="focused"?
+  ["uniform","wind","paired","longWind","widePairs"]:
+  ["wind","paired","longWind"];
+ const recipeVariants=recipePatterns.flatMap(pattern=>
+  (pattern==="uniform"?[0]:options.mode==="focused"?[0,3]:[0,2])
+   .map(recipeOffset=>({pattern,recipeOffset})));
  for(const cookTier of bases){
-  for(const pattern of options.mode==="focused"?
-   ["uniform","wind","paired","longWind","widePairs"]:
-   ["wind","paired","longWind"]){
+  for(const {pattern,recipeOffset} of recipeVariants){
    for(const fire of fires){
     const xp=expProfile(save,eligible,options,fire.fires,metrics);
     for(const packingMode of packingModes){
@@ -141,7 +145,8 @@ export function optimizeKnowledgeRotation(save,rawOptions={}){
      startingBoard:design.board,slots:layout.slots,mode:options.mode,targetTier,
      requestedTier:cookTier,guaranteedBonus:xp.guaranteed,
      windCap,chain,expAt:xp.expAt,cookCost:sushiDirectCookFuel,rounds,pattern,
-     packingMode,protectedIndices,protectFocusedMilktoast:options.preservePassive,
+     recipeOffset,packingMode,protectedIndices,
+     protectFocusedMilktoast:options.preservePassive,
      startingContext:"designed",
      maximumActions:options.mode==="focused"?3200:1800
     });
@@ -189,7 +194,7 @@ export function optimizeKnowledgeRotation(save,rawOptions={}){
     const improved=!best||
      (options.mode==="focused"?beatsRank(rank,best.rank):score>best.score);
     if(improved){
-     best={rotation,score,rank,cookTier,pattern,packingMode,fire,xp,fuelRate,
+     best={rotation,score,rank,cookTier,pattern,recipeOffset,packingMode,fire,xp,fuelRate,
       passiveStart,passiveEnd,passivePerDay,
       activeSeconds,fuelWaitSeconds,durationSeconds};
     }
@@ -240,7 +245,8 @@ export function optimizeKnowledgeRotation(save,rawOptions={}){
   proposedFires:best.fire.fires,fireChoice:best.fire.name,
   pinkMultiplier:best.xp.lithiumEnabled?best.xp.lithium:null,
   windCap,steps:rotation.frames,
-  startCookTier:best.cookTier,startingPattern:best.pattern,packingMode:best.packingMode,
+  startCookTier:best.cookTier,startingPattern:best.pattern,
+  recipeOffset:best.recipeOffset,packingMode:best.packingMode,
   highestNewTier,highestWorkingTier,
   targetCreated:rotation.targetCreated,
   targetExp:rotation.targetExp,
