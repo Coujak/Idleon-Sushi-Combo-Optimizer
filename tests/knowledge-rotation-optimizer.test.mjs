@@ -53,6 +53,12 @@ test("Focused Knowledge search picks a target and projects its EXP over legal re
  assert.equal(p.targetPreviewExpPerHour>=0,true);
  assert.equal(p.roundsRequested,2);
  assert.equal(p.perTier.find(x=>x.tier===2).expPerCycle,p.expByTier[2]);
+ assert.ok(p.targetCreated>0);
+ assert.equal(p.targetExp,p.expByTier[2]);
+ assert.ok(p.peakTargetCopies>=1);
+ assert.ok(p.harvestCount>=1);
+ assert.ok(p.steps.some(f=>f.kind==="stage"&&f.phase==="harvest"));
+ assert.ok(p.steps.every(f=>f.kind!=="clear"));
 });
 test("Integrated optimizer refuses empty imported accounts",()=>{
  assert.equal(optimizeKnowledgeRotation(null).available,false);
@@ -85,4 +91,29 @@ test("Focused T58 estimates Cold plus Milktoast EXP without merging the protecte
  assert.equal(plan.passive.needAnotherT64,true);
  assert.equal(plan.passive.usesSecondT64,false);
  assert.ok(plan.perTier.find(x=>x.tier===58).passiveExpPerDay>0);
+});
+
+test("Focused T58 with limited cooking reports precursor-only preparation, not a fake harvest",()=>{
+ const save=account();
+ save.sushi[5][57]=0; // T58 discovered but unavailable as a direct cook.
+ const p=optimizeKnowledgeRotation(save,{...options,mode:"focused",
+  targetTier:58,rounds:3,preservePassive:false});
+ assert.equal(p.available,true,p.reason);
+ assert.equal(p.targetTier,58);
+ assert.equal(p.targetCreated,0);
+ assert.equal(p.targetExp,0);
+ assert.equal(p.harvestCount,0);
+ assert.equal(p.targetPreviewIncomplete,true);
+ assert.equal(p.targetPreviewExpPerHour,0);
+ assert.ok(p.highestNewTier<58);
+ assert.equal(p.protectedIndices.length,0);
+ assert.ok(p.steps.every(f=>f.phase!=="harvest"));
+});
+test("Focused target score ignores passive advantage when another candidate creates more targets",()=>{
+ const save=account();
+ const p=optimizeKnowledgeRotation(save,{...options,mode:"focused",targetTier:2,
+  rounds:2,preservePassive:false});
+ assert.equal(p.available,true);
+ assert.equal(p.options.preservePassive,false);
+ assert.ok(p.targetCreated>=p.peakTargetCopies-p.startingBoard.filter(t=>t===2).length);
 });
