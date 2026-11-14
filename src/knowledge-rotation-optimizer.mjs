@@ -152,6 +152,7 @@ export function optimizeKnowledgeRotation(save,rawOptions={}){
      requestedTier:cookTier,guaranteedBonus:xp.guaranteed,
      windCap,chain,expAt:xp.expAt,cookCost:sushiDirectCookFuel,rounds,pattern,
      recipeOffset,packingMode,protectedIndices,
+     coverageTiers:eligible.map(row=>row.tier),
      protectFocusedMilktoast:options.preservePassive,
      startingContext:"designed",
      maximumActions:options.mode==="focused"?8000:5000
@@ -196,7 +197,13 @@ export function optimizeKnowledgeRotation(save,rawOptions={}){
      rotation.targetCreated, rotation.peakTargetCopies,
      focus, precursor, rotation.harvested,
      -durationSeconds
-    ]:null;
+    ]:[
+     rotation.coveredTiers.length,
+     -rotation.uncoveredTiers.length,
+     rotation.balancedCycles,
+     score,
+     -durationSeconds
+    ];
     const beatsRank=(a,b)=>{
      for(let i=0;i<a.length;i++)if(a[i]!==b[i])return a[i]>b[i];
      return false;
@@ -216,8 +223,7 @@ export function optimizeKnowledgeRotation(save,rawOptions={}){
        fuelSafety.estimatedWaitSeconds>
         best.fuelSafety.estimatedWaitSeconds+0.001?
        false:
-      options.mode==="focused"?
-       beatsRank(rank,best.rank):score>best.score);
+      beatsRank(rank,best.rank));
     if(improved){
      best={rotation,score,rank,cookTier,pattern,recipeOffset,packingMode,fire,xp,fuelRate,
       passiveStart,passiveEnd,passivePerDay,fuelSafety,
@@ -273,6 +279,11 @@ export function optimizeKnowledgeRotation(save,rawOptions={}){
   startCookTier:best.cookTier,startingPattern:best.pattern,
   recipeOffset:best.recipeOffset,packingMode:best.packingMode,
   highestNewTier,highestWorkingTier,
+  coveredTiers:rotation.coveredTiers,
+  uncoveredTiers:rotation.uncoveredTiers,
+  coverageTotal:rotation.coveredTiers.length,
+  coverageRequested:eligible.length,
+  balancedCycles:rotation.balancedCycles,
   targetCreated:rotation.targetCreated,
   targetExp:rotation.targetExp,
   peakTargetCopies:rotation.peakTargetCopies,
@@ -316,6 +327,6 @@ export function optimizeKnowledgeRotation(save,rawOptions={}){
   initialBoardMatchesFinal:sustained,
   stranded:rotation.remaining.length,
   considered:candidates,haltReason:rotation.reason,
-  note:"First-fill recipes are screened against a conservative Fuel buffer (a precharged full tank, spending at most half the capacity plus Fuel regenerated during normal cooking); this does not claim uninterrupted sustained refills. The optimizer designs an ingredient board from account cooking limits and available slots; the imported Sushi inventory is NOT assumed to be the optimal preparation. It keeps the highest-tier anchor in its existing position. IMPORTANT: converting the current inventory into this clean design may require legal cleanup merges NOT included in the walkthrough. Once that starting state is achieved, each subsequent cook, move, Wind cascade and merge is replay-validated. Focused ranks actual target creations and prepared target copies; harvest earns EXP for the result tier. This bounded search is not a mathematical proof of optimality."
+  note:"Balanced begins with a full board of the selected starter tier and prioritizes creating missing discovered tiers during later refills. The tier-coverage score counts actual Knowledge EXP events, not just passive EXP/day. Any tiers that remain uncovered are reported explicitly; the planner never invents high-tier creation events. First-fill recipes are screened against a conservative Fuel buffer (a precharged full tank, spending at most half the capacity plus Fuel regenerated during normal cooking); this does not claim uninterrupted sustained refills. The optimizer designs an ingredient board from account cooking limits and available slots; the imported Sushi inventory is NOT assumed to be the optimal preparation. It keeps the highest-tier anchor in its existing position. IMPORTANT: converting the current inventory into this clean design may require legal cleanup merges NOT included in the walkthrough. Once that starting state is achieved, each subsequent cook, move, Wind cascade and merge is replay-validated. Focused ranks actual target creations and prepared target copies; harvest earns EXP for the result tier. This bounded search is not a mathematical proof of optimality."
  };
 }
