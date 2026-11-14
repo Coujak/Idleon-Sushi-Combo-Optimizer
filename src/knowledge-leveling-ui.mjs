@@ -128,6 +128,7 @@ export function initializeKnowledgeLevelingUI(getSave){
    ["Fuel / preview",compact(p.fuelPerCycle)],
    ["Modeled Fuel / hr",compact(p.estimatedFuelGeneration)],
    ["Passive EXP / day",compact(p.passive.averageTotalPerDay)],
+    ["Fireplace scenario",p.fireChoice],
    ["Highest tier produced","T"+p.highestNewTier],
    ["Survivor parking",p.packingMode==="ascending"?"Staircase low → high":
      p.packingMode==="descending"?"Staircase high → low":"Simple parking"],
@@ -171,19 +172,19 @@ export function initializeKnowledgeLevelingUI(getSave){
   passiveBox.classList.remove("hidden");
   const block=elem("div","lab-kp-passive-panel");
   block.append(elem("h3","","Passive Knowledge setup"),
-   elem("p","hint","Current EXP/day comes from the imported Sushi on Cold and Milktoast Plates. "+
-    "The suggested plate layout below reuses ONLY Sushi and plates already on your board. "+
-    "It is a manual setup guide, not a replay step."));
+   elem("p","hint","Imported EXP/day uses your actual Sushi, Plates and fireplaces. "+
+    "The suggested EXP/day assumes "+p.fireChoice+" fireplaces and the proposed Plate placement. "+
+    "Only Sushi and Plates already on the board are used; the layout is a manual guide, never an automatic replay step."));
   const cards=elem("div","lab-kp-passive-stats");
   for(const [label,value] of [
-   ["Current passive coverage",model.current.covered+" / 64 tiers"],
+   ["Imported passive coverage",model.imported.covered+" / 64 tiers"],
    ["Suggested passive coverage",model.recommended.covered+" / 64 tiers"],
-   ["Current passive EXP/day",compact(model.current.totalDaily)],
+   ["Imported passive EXP/day",compact(model.imported.totalDaily)],
    ["Suggested passive EXP/day",compact(model.recommended.totalDaily)]
   ])cards.append(metric(label,value));
   if(p.mode==="focused"){
-   cards.append(metric("T"+p.targetTier+" · current passive/day",
-    compact(model.current.expPerDay[p.targetTier])),
+   cards.append(metric("T"+p.targetTier+" · imported passive/day",
+    compact(model.imported.expPerDay[p.targetTier])),
    metric("T"+p.targetTier+" · suggested passive/day",
     compact(model.recommended.expPerDay[p.targetTier])));
   }
