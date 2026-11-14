@@ -184,7 +184,7 @@ export function initializeKnowledgeLevelingUI(getSave){
   // Match Perfecto's result hierarchy: four primary KPIs, with the
   // supporting diagnostics still available but out of the main visual flow.
   const primary=p.mode==="focused"?[
-   ["T"+p.targetTier+" created",compact(p.targetCreated)],
+   ["T"+p.targetTier+" created · full preview",compact(p.targetCreated)],
    ["T"+p.targetTier+" EXP · full preview",compact(p.targetExp)],
    ["Peak copies on board",compact(p.peakTargetCopies)],
    ["Batch harvests",compact(p.harvestCount)]
