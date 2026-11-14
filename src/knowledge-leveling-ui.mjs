@@ -236,7 +236,7 @@ export function initializeKnowledgeLevelingUI(getSave){
    (p.mode==="focused"?" · T"+p.targetTier+" copies: "+p.focusCopies:"")+
    ". "+p.haltReason,"lab-kp-note");
   if(p.rotationTerminal)addNote(summary,
-   "Balanced objective reached: one T64 remains and the board is ready to refill.",
+   "Full Balanced rotation complete: a NEW T64 was created by a legal merge or East Wind cascade. The original protected T64 was not counted.",
    "lab-kp-lithium");
   else addNote(summary,
    "This is a continuing rotation preview. Leftover Sushi stay on the board for the next refill. EXP/hr is a projection over this finite window, not a verified long-term rate.",
@@ -511,7 +511,7 @@ export function initializeKnowledgeLevelingUI(getSave){
    "The optimizer uses the Combo Meter legal merge engine, including up to 25 East Wind upgrades when unlocked. Each verified creation event awards EXP to the created Sushi tier.",
    "Lithium Firelighter is 2× Knowledge EXP for Sushi above pink fireplaces; the solver also models reduced Fuel regeneration when orange fireplaces are changed to pink.",
    "The optimizer chooses a NEW prepared Sushi board rather than copying the imported inventory. It retains your highest-tier Sushi at its original location. Clearing other current Sushi to reach this preparation is a separate, unsolved task.",
-   "Balanced requests the lowest cookable tier (normally T1), but guaranteed +tier bonuses raise the actual Sushi tier produced. Fill empty slots and merge upward without deleting survivors. Extend the same rotation with Continue when the preview refill limit is reached.",
+   "Balanced requests the lowest cookable tier (normally T1), but guaranteed +tier bonuses raise the actual Sushi tier produced. Merge and refill without deleting survivors. A full rotation ends ONLY when a new T64 is created. The existing protected T64 does not count. Continue in six-refill chunks whenever the preview limit is reached.",
    "Focused: first produce and bank as many selected-tier Sushi as possible. Only after the board runs out of space does an explicit Harvest phase merge the saved copies into higher tiers. EXP belongs to the newly created tier, not the ingredient being consumed.",
    "Moving Sushi into a vacant slot is a separate action. Movement Mittens toggles dragging to plates; disable it for Sushi repositioning.",
    "The first full-board fill is screened using the imported Fuel balance, Fuel capacity, estimated generation and actual tier costs. A separate warning appears if no tested recipe avoids regeneration waits. Milktoast/Cold provide passive EXP/day and can be optionally protected.",
