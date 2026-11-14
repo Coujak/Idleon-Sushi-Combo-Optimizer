@@ -4374,3 +4374,69 @@ details summary{cursor:pointer;font-size:12px;font-weight:700;color:#9eb7c9}
 #knowledgePlanner .lab-kp-progress-table tr.is-target .lab-kp-creation-count{
  color:#a8e4c5;
 }
+
+/* Knowledge: account-derived EXP awarded for each new sushi. */
+#knowledgePlanner .lab-kp-creation-xp{
+ margin:13px 0 16px;padding:13px 15px;
+ border:1px solid #487f71;border-radius:12px;
+ background:linear-gradient(110deg,#153932,#122e3b);
+}
+#knowledgePlanner .lab-kp-creation-xp-header{
+ display:flex;align-items:center;justify-content:space-between;
+ flex-wrap:wrap;gap:8px;margin-bottom:12px;
+}
+#knowledgePlanner .lab-kp-creation-xp-header h4{
+ color:#dcf9e6;font-size:14px;margin:0;line-height:1.4;
+}
+#knowledgePlanner .lab-kp-formula-tag{
+ border:1px solid #4c8069;background:#214839;color:#c2efd8;
+ padding:4px 9px;border-radius:8px;font-size:10px;font-weight:700;
+}
+#knowledgePlanner .lab-kp-creation-xp-values{
+ display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;
+}
+#knowledgePlanner .lab-kp-creation-xp-values .lab-kp-stat{
+ display:flex;justify-content:space-between;align-items:center;
+ flex-wrap:wrap;gap:8px;min-width:0;
+ border:1px solid #416c65;border-radius:9px;background:#173c40;
+ padding:11px 13px;
+}
+#knowledgePlanner .lab-kp-creation-xp-values .lab-kp-stat small{
+ font-size:11.5px;color:#bbd9d3;
+}
+#knowledgePlanner .lab-kp-creation-xp-values .lab-kp-stat strong{
+ font-size:16px;line-height:1.3;color:#b9fbd1;
+ overflow-wrap:anywhere;
+}
+#knowledgePlanner .lab-kp-creation-xp-explanation{
+ margin:9px 0 0;line-height:1.65;font-size:11px;color:#afccc7;
+}
+#knowledgePlanner .lab-kp-created-exp{
+ display:flex;flex-wrap:wrap;align-items:center;gap:7px;
+ max-height:125px;overflow:auto;
+ margin:8px 0 12px;padding:9px 10px;border:1px solid #355b59;
+ border-radius:9px;background:#102a31;
+}
+#knowledgePlanner .lab-kp-created-exp.hidden{display:none}
+#knowledgePlanner .lab-kp-created-exp-label{
+ flex:1 0 100%;font-size:10.5px;font-weight:800;
+ color:#a4cfbd;letter-spacing:.015em;
+}
+#knowledgePlanner .lab-kp-created-exp-chip{
+ display:inline-flex;flex-direction:column;gap:3px;
+ padding:6px 9px;border:1px solid #416f65;border-radius:8px;
+ background:#1d453e;min-width:95px;
+}
+#knowledgePlanner .lab-kp-created-exp-chip.is-pink{
+ border-color:#976f9e;background:#4a354f;
+}
+#knowledgePlanner .lab-kp-created-exp-chip strong{
+ font-size:12px;color:#c9f8db;font-variant-numeric:tabular-nums;
+}
+#knowledgePlanner .lab-kp-created-exp-chip.is-pink strong{color:#f7d5f8}
+#knowledgePlanner .lab-kp-created-exp-chip small{
+ text-transform:capitalize;font-size:10px;color:#a5c8c1;
+}
+@media(max-width:620px){
+ #knowledgePlanner .lab-kp-creation-xp-values{grid-template-columns:minmax(0,1fr)}
+}
