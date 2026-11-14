@@ -79,3 +79,21 @@ test("Staircase-recycling comparison: 99 T2, last-slot T64, 12 refills",()=>{
  assert.ok(peak(descending)>=38,
   "Keep the reproducible T38 experimental benchmark for the 12-refill case");
 });
+
+test("The last original T64 remains in place when additional T64 are consolidated",()=>{
+ const slots=Array.from({length:120},(_,i)=>i<100?0:-1);
+ const board=Array(120).fill(0);
+ board[0]=64;board[99]=64;
+ for(let i=1;i<99;i++)board[i]=2;
+ const result=simulateContinuousKnowledgeRotation({
+  startingBoard:board,slots,mode:"balanced",targetTier:58,
+  requestedTier:2,windCap:58,chain:25,
+  expAt:()=>1,cookCost:()=>1,rounds:1,pattern:"uniform",
+  packingMode:"descending",maximumActions:360
+ });
+ assert.ok(result.frames.every(frame=>frame.board[99]===64));
+ assert.ok(result.frames.some(frame=>frame.kind==="merge"&&
+  frame.src===0&&frame.dst===99),
+  "The expendable copy should merge into the last-slot T64, not vice versa");
+ assert.ok(!result.frames.some(frame=>frame.kind==="merge"&&frame.src===99));
+});
