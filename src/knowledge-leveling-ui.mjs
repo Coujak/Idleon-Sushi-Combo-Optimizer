@@ -201,6 +201,28 @@ export function initializeKnowledgeLevelingUI(getSave){
    primaryGrid.append(card);
   });
   summary.append(primaryGrid);
+  if(p.creationXp){
+   const xp=p.creationXp,section=elem("section","lab-kp-creation-xp");
+   const header=elem("div","lab-kp-creation-xp-header");
+   header.append(elem("h4","","Calculated Knowledge EXP per sushi created"),
+    elem("span","lab-kp-formula-tag",
+     xp.manuallyCalibrated?"Manual base override":"Imported account bonuses"));
+   section.append(header);
+   const values=elem("div","lab-kp-creation-xp-values");
+   values.append(metric("Normal fireplace",compact(xp.regular)),
+    metric("Pink Lithium fireplace",
+     xp.lithiumEnabled?compact(xp.pink):"Not unlocked"));
+   section.append(values);
+   addNote(section,"Base "+compact(xp.base)+
+    " × 3rd Degree Searing "+compact(xp.thirdMultiplier)+
+    " × Knowledge bonuses "+compact(xp.knowledgeMultiplier)+
+    (xp.lithiumEnabled?" × pink "+compact(xp.pinkMultiplier):"")+
+    ". The result depends on the column where each sushi is CREATED, "+
+    "not where it is moved later. The pink amount assumes a pink fireplace "+
+    "is selected in that column. Calculated from imported stats; verify "+
+    "against the in-game EXP value.","lab-kp-creation-xp-explanation");
+   summary.append(section);
+  }
   const secondary=[
    ...(p.mode==="focused"?[
     ["T"+p.targetTier+" consumed in harvest",compact(p.targetMergedInHarvest)],
@@ -623,6 +645,30 @@ export function initializeKnowledgeLevelingUI(getSave){
    replayProgress.value=index;
   }
   $("knowledgePlanStepDetail").textContent=frame.detail;
+  const createdXp=$("knowledgePlanCreatedXp");
+  if(createdXp){
+   createdXp.replaceChildren();
+   const created=(frame.events??[]).filter(e=>
+    ["cook","merge","wind"].includes(e.kind)&&
+    Number.isFinite(e.knowledgeExp));
+   createdXp.classList.toggle("hidden",created.length===0);
+   if(created.length){
+    createdXp.append(elem("span","lab-kp-created-exp-label",
+     "Created this step · calculated Knowledge EXP"));
+    for(const event of created){
+     const pink=result.proposedFires[event.at%15]===3;
+     const chip=elem("span","lab-kp-created-exp-chip"+
+      (pink?" is-pink":""));
+     chip.append(elem("strong","","T"+event.tier+" +"+
+      compact(event.knowledgeExp)),
+      elem("small","",(event.kind==="wind"?"Wind":event.kind)+
+       " · column "+(event.at%15+1)+(pink?" · pink":"")));
+     chip.title="Calculated EXP for this individual T"+event.tier+
+      " creation: "+event.knowledgeExp;
+     createdXp.append(chip);
+    }
+   }
+  }
   renderVisibleActiveExp(index);
   $("knowledgePlanStepCount").textContent=index+" / "+(result.steps.length-1);
   $("knowledgePlanStepXp").textContent="EXP in step: "+compact(frame.exp);
