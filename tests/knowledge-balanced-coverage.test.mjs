@@ -8,11 +8,11 @@ const setup=()=>{
  board[99]=64;
  return {board,slots};
 };
-const run=(coverageMode="recover")=>{
+const run=(coverageMode="recover",pattern="longWind")=>{
  const {board,slots}=setup();
  return simulateContinuousKnowledgeRotation({
   startingBoard:board,slots,mode:"balanced",targetTier:64,
-  requestedTier:20,windCap:58,chain:25,rounds:4,pattern:"longWind",
+  requestedTier:20,windCap:58,chain:25,rounds:4,pattern,
   coverageTiers:Array.from({length:40},(_,i)=>i+1),coverageMode,
   expAt:()=>1,cookCost:()=>1,maximumActions:5000
  });
@@ -47,7 +47,7 @@ test("Balanced recovery refills genuinely create missing low Sushi tiers",()=>{
  assert.equal(p.rounds,4);
 });
 test("Balanced recovery improves tier coverage versus classic high-tier refills",()=>{
- const coverage=run("recover"),classic=run("classic");
+ const coverage=run("recover","uniform"),classic=run("classic","uniform");
  assert.ok(coverage.coveredTiers.length>classic.coveredTiers.length,
   "A targeted coverage sweep should reach tiers missed by the old refill heuristic");
  assert.ok(classic.uncoveredTiers.includes(1));
