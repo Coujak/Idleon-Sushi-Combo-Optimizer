@@ -15,11 +15,22 @@ function account(){
 }
 const options={mode:"balanced",targetTier:2,rounds:2,
  fuelGeneration:1e9,fuelCapacity:10000,secondsPerCook:2,secondsPerMerge:1.5};
-test("Integrated Knowledge optimizer uses imported Sushi and never resets the board",()=>{
+test("Integrated Knowledge optimizer designs its own preparation without copying the imported board",()=>{
  const save=account(),p=optimizeKnowledgeRotation(save,options);
  assert.equal(p.available,true,p.reason);
- assert.deepEqual(p.startingBoard.slice(0,12),
+ assert.equal(p.boardDesigned,true);
+ assert.deepEqual(p.importedBoard.slice(0,12),
   save.tiles.slice(0,12).map(n=>n<0?0:n+1));
+ assert.equal(p.startingBoard[11],12,"Real highest-tier anchor remains in place");
+ assert.equal(p.startingBoard[10],0,"Unrelated imported Sushi is NOT the seed");
+ assert.deepEqual(p.startingBoard,p.steps[0].board);
+ assert.ok(p.preparedBoardCooks>0);
+ assert.deepEqual(p.preparedBoard,p.steps[p.preparedStep].board);
+ assert.ok(p.preparedBoard.filter(x=>x>0).length>
+  p.startingBoard.filter(x=>x>0).length);
+ assert.equal(p.scenarioRequiresCleanup,true);
+ assert.equal(p.design.omittedCount,1);
+ assert.equal(p.design.anchor,11);
  assert.equal(p.layout.slots.length,120);
  assert.equal(p.proposedFires.length,15);
  assert.ok(p.roundsCompleted>=1&&p.roundsCompleted<=2);
@@ -106,7 +117,8 @@ test("Focused T58 with limited cooking reports precursor-only preparation, not a
  assert.equal(p.targetPreviewIncomplete,true);
  assert.equal(p.targetPreviewExpPerHour,0);
  assert.ok(p.highestNewTier<58);
- assert.equal(p.protectedIndices.length,0);
+ assert.deepEqual(p.initialProtectedIndices,[11],
+  "Unrelated imported Sushi should not be protected, only the highest anchor");
  assert.ok(p.steps.every(f=>f.phase!=="harvest"));
 });
 test("Focused target score ignores passive advantage when another candidate creates more targets",()=>{
