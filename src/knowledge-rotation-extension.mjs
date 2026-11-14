@@ -1,9 +1,9 @@
-// Join a newly simulated Balanced chunk to its previous validated replay.
+// Join a newly simulated Knowledge chunk to its previous validated replay.
 // Existing steps/board are retained, rather than restarting from the account.
 const total=(values)=>values.reduce((a,b)=>a+b,0);
 const safeNumber=n=>Number.isFinite(n)?n:0;
 export function combineKnowledgeContinuation(previous,chunk,requestedWaves=6){
- if(previous?.mode!=="balanced"||!previous.available||previous.completed||
+ if(!["balanced","focused"].includes(previous?.mode)||!previous.available||previous.completed||
   !chunk?.valid||!Array.isArray(chunk.frames)||chunk.frames.length<2||
   !Array.isArray(previous.steps)||!Array.isArray(previous.finalBoard)||
   !chunk.initialBoard?.every((tier,i)=>tier===previous.finalBoard[i])||
@@ -47,6 +47,7 @@ export function combineKnowledgeContinuation(previous,chunk,requestedWaves=6){
  const additional=Math.max(1,Math.floor(Number(requestedWaves))||6);
  return {...previous,
   steps,finalBoard:chunk.finalBoard,
+  protectedIndices:chunk.protectedIndices,
   roundsCompleted:previous.roundsCompleted+chunk.rounds,
   roundsRequested:chunk.completed?
    previous.roundsCompleted+chunk.rounds:previous.roundsCompleted+additional,
@@ -55,6 +56,16 @@ export function combineKnowledgeContinuation(previous,chunk,requestedWaves=6){
   rotationTerminal:Boolean(chunk.completed),
   repeatable:false,initialBoardMatchesFinal:false,
   balancedCycles:safeNumber(previous.balancedCycles)+chunk.balancedCycles,
+  targetCreated:previous.mode==="focused"?chunk.targetCreated:previous.targetCreated,
+  targetMergedInHarvest:safeNumber(previous.targetMergedInHarvest)+
+   safeNumber(chunk.targetMergedInHarvest),
+  peakTargetCopies:Math.max(safeNumber(previous.peakTargetCopies),
+   safeNumber(chunk.peakTargetCopies)),
+  focusCopies:chunk.focusCopies,
+  focusCompressed:safeNumber(previous.focusCompressed)+safeNumber(chunk.focusCompressed),
+  harvestBatches:[...(previous.harvestBatches??[]),...(chunk.harvestBatches??[])],
+  harvestCount:safeNumber(previous.harvestCount)+safeNumber(chunk.harvested),
+  targetPreviewIncomplete:previous.mode==="focused"&&chunk.targetCreated===0,
   stranded:chunk.remaining.length,highestTier:chunk.highestTier,
   highestWorkingTier:highestWorking,highestNewTier:highestNew,
   cooks:previous.cooks+chunk.cooks,
