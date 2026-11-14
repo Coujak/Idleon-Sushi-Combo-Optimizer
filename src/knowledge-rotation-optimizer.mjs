@@ -12,6 +12,7 @@ import {estimateSushiFuelEconomy,sushiDirectCookFuel} from "./perfecto-fuel.mjs?
 import {getKnowledgeRows,getUpgradeRows} from "./lab-model.mjs?v=1.19.13";
 import {getSushiDashboardMetrics} from "./dashboard-metrics.mjs?v=1.0.2";
 import {normalizeKnowledgeCycleOptions} from "./knowledge-cycle-optimizer.mjs?v=1.0.2";
+import {inspectKnowledgePinkFireplaces} from "./knowledge-pink-fireplaces.mjs?v=1.0.0";
 
 export {normalizeKnowledgeCycleOptions};
 const SIZE=120,COLS=15;
@@ -272,6 +273,10 @@ export function optimizeKnowledgeRotation(save,rawOptions={}){
   "The selected rotation can no longer be extended with these account settings. Rebuild the planner.":
   "No feasible legal refill/merge rotation was found with this board and fuel budget.");
  const rotation=best.rotation;
+ const pinkFireplaces=inspectKnowledgePinkFireplaces({
+  importedFires:layout.fires,proposedFires:best.fire.fires,
+  lithiumUnlocked:best.xp.lithiumEnabled
+ });
  const preparation=captureKnowledgePreparedBoard(rotation.frames,design.board);
  const passiveRecommendation=recommendPassiveKnowledgeLayout(
   layout.tiles,layout.slots,best.fire.fires,{
@@ -311,6 +316,9 @@ export function optimizeKnowledgeRotation(save,rawOptions={}){
   preparedTierCounts:preparation.tiers,
   boardDesigned:true,scenarioRequiresCleanup:design.requiresManualCleanup,
   proposedFires:best.fire.fires,fireChoice:best.fire.name,
+  pinkFireplaces,
+  // The multiplier is a CONDITIONAL property of the proposed configuration,
+  // not proof the user has switched those fireplaces in-game.
   pinkMultiplier:best.xp.lithiumEnabled?best.xp.lithium:null,
   windCap,steps:rotation.frames,
   startCookTier:best.cookTier,startingPattern:best.pattern,
