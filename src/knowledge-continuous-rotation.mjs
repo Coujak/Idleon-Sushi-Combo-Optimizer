@@ -16,7 +16,8 @@ const highest=board=>board.reduce((a,b)=>Math.max(a,b),0);
 export function simulateContinuousKnowledgeRotation({
  startingBoard,slots,mode="balanced",targetTier=64,requestedTier=1,
  guaranteedBonus=0,windCap=0,chain=0,expAt=()=>1,cookCost=()=>1,
- rounds=6,pattern="wind",packingMode="simple",protectedIndices=[],maximumActions=1800
+ rounds=6,pattern="wind",packingMode="simple",protectedIndices=[],
+ protectFocusedMilktoast=true,maximumActions=1800
 }={}){
  if(!Array.isArray(startingBoard)||startingBoard.length!==SIZE||
    !Array.isArray(slots)||slots.length!==SIZE)throw Error("Knowledge rotation requires an 8×15 board");
@@ -54,6 +55,7 @@ export function simulateContinuousKnowledgeRotation({
  };
  const record=(kind,title,detail,events=[],values=blank(),extras={})=>{
   frames.push({kind,title,detail,board:board.slice(),events,gains:values,
+   protectedIndices:[...protectedSet],
    exp:values.reduce((a,b)=>a+b,0),...extras});
  };
  record("start","Current Sushi board","This is the imported board; no Sushi were removed to make space.");
@@ -65,6 +67,9 @@ export function simulateContinuousKnowledgeRotation({
    action.events.some(e=>!playable.has(e.at))||
    [...protectedSet].some(i=>action.board[i]!==old[i]))return false;
   board=action.board;
+  if(mode==="focused"&&protectFocusedMilktoast)
+   for(const ev of action.events)
+    if(ev.tier===targetTier&&slots[ev.at]===3)protectedSet.add(ev.at);
   const values=expDelta(action.events);
   merges++;windEvents+=action.events.length-1;
   record(kind,"Merge T"+old[src]+" → T"+board[dst],
@@ -78,6 +83,8 @@ export function simulateContinuousKnowledgeRotation({
   const result=simulateRelocation(board,src,dst,slots,MAX);
   if(!result)return false;
   board=result.board;moves++;
+  if(mode==="focused"&&protectFocusedMilktoast&&
+    result.tier===targetTier&&slots[dst]===3)protectedSet.add(dst);
   record("move","Park T"+result.tier+" at the top",
    location(src)+" → "+location(dst)+" · move Sushi into an empty slot",
    [{kind:"move",at:dst,tier:result.tier}],blank(),{src,dst});
@@ -89,6 +96,8 @@ export function simulateContinuousKnowledgeRotation({
   const cost=Number(cookCost(tier));
   if(!Number.isFinite(cost)||cost<0)return false;
   board[at]=result;fuel+=cost;cooks++;
+  if(mode==="focused"&&protectFocusedMilktoast&&
+    result===targetTier&&slots[at]===3)protectedSet.add(at);
   const event={kind:"cook",at,tier:result};
   record("cook","Cook T"+tier+(result===tier?"":" → T"+result),
    "Fill "+location(at)+" with a fresh Sushi", [event],expDelta([event]),{at,requestedTier:tier});
@@ -162,9 +171,21 @@ export function simulateContinuousKnowledgeRotation({
   return performed;
  }
  function parkLeftovers(){
+  let repositioned=0;
+  // When possible, move a newly made T58 onto a vacant Milktoast Plate.
+  // Once parked, that particular copy is protected for passive EXP.
+  if(mode==="focused"&&protectFocusedMilktoast){
+   const milkSlots=slotsFree.filter(i=>slots[i]===3&&board[i]===0);
+   for(const dst of milkSlots){
+    if(frames.length>=maxActions)break;
+    const src=slotsFree.find(i=>board[i]===targetTier&&i!==dst&&
+     !protectedSet.has(i)&&slots[i]!==3);
+    if(src===undefined)break;
+    if(applyMove(src,dst))repositioned++;
+   }
+  }
   if(packingMode==="ascending"||packingMode==="descending"){
-   const packing=packSushiStaircase(board,slots,packingMode,MAX,protectedIndices);
-   let repositioned=0;
+   const packing=packSushiStaircase(board,slots,packingMode,MAX,[...protectedSet]);
    for(const action of packing.actions){
     if(frames.length>=maxActions)break;
     if(!applyMove(action.src,action.dst))
@@ -183,7 +204,7 @@ export function simulateContinuousKnowledgeRotation({
     }
     return board[b]-board[a]||a-b;
    });
-  let parked=0;
+  let parked=repositioned;
   for(const src of sources){
    if(frames.length>=maxActions)break;
    const target=top.find(i=>board[i]===0);
