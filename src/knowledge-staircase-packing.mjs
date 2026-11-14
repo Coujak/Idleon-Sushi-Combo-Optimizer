@@ -3,11 +3,12 @@
 // overwritten, or moved through a locked plate. T64 never moves.
 import {simulateRelocation} from "./optimizer-core.mjs";
 
-export function packSushiStaircase(startingBoard,slots,direction="ascending",maximumTier=64){
+export function packSushiStaircase(startingBoard,slots,direction="ascending",maximumTier=64,protectedIndices=[]){
  if(!Array.isArray(startingBoard)||!Array.isArray(slots)||
     startingBoard.length!==slots.length)throw Error("Invalid Sushi staircase board");
  const board=startingBoard.slice(),actions=[],locked=new Set();
- const playable=board.flatMap((tier,i)=>slots[i]>=0&&tier!==maximumTier?[i]:[]);
+ const protectedSet=new Set(protectedIndices);
+ const playable=board.flatMap((tier,i)=>slots[i]>=0&&tier!==maximumTier&&!protectedSet.has(i)?[i]:[]);
  const survivors=playable.map(i=>board[i]).filter(tier=>tier>0)
   .sort((a,b)=>direction==="descending"?b-a:a-b);
  if(!survivors.length||survivors.length===playable.length)
