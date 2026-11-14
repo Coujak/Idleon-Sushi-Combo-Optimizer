@@ -131,3 +131,39 @@ test("Focused creation EXP may originate in Wind, while stored target is not aut
  }
  verifyAll(result,slots);
 });
+
+test("Wind cascades can make multiple T58 while target copies are banked",()=>{
+ const {board,slots}=filled(10,0);
+ board[0]=57;board[1]=57;board[2]=57;board[3]=56;
+ board[9]=64;
+ const r=simulate(board,slots,{targetTier:58,requestedTier:57,rounds:1});
+ const cascade=r.frames.find(f=>f.kind==="merge"&&f.phase==="prepare"&&
+  f.events.some(e=>e.kind==="wind"&&e.tier===58));
+ assert.ok(cascade,"A T57 merge should trigger a T58 East Wind creation");
+ assert.ok(cascade.events.filter(e=>e.tier===58).length>=2);
+ assert.ok(r.targetCreated>=2);
+ verifyAll(r,slots);
+});
+test("Merging imported T58 copies without creating new T58 awards zero T58 EXP",()=>{
+ const {board,slots}=filled(12,58);
+ board[11]=64;
+ const r=simulate(board,slots,{requestedTier:2,targetTier:58,rounds:1});
+ assert.ok(r.harvested>=1);
+ assert.equal(r.targetCreated,0);
+ assert.equal(r.targetExp,0);
+ assert.ok(r.frames.some(f=>f.kind==="merge"&&f.phase==="harvest"&&
+  f.events[0]?.tier===59));
+ verifyAll(r,slots);
+});
+test("T64 is the capped exception: merging T64+T64 creates new T64 EXP",()=>{
+ const {board,slots}=filled(8,64);
+ const r=simulate(board,slots,{targetTier:64,requestedTier:2,rounds:1});
+ assert.ok(r.harvested>=1);
+ assert.ok(r.targetCreated>0);
+ assert.equal(r.targetExp,r.targetCreated);
+ assert.ok(r.frames.some(f=>f.kind==="merge"&&f.phase==="harvest"&&
+  f.events[0]?.tier===64));
+ assert.equal(r.frames.every(f=>f.board[7]===64),true,
+  "The originally imported final T64 must remain in its cell");
+ verifyAll(r,slots);
+});
