@@ -7,7 +7,8 @@ export function combineKnowledgeContinuation(previous,chunk,requestedWaves=6){
   !chunk?.valid||!Array.isArray(chunk.frames)||chunk.frames.length<2||
   !Array.isArray(previous.steps)||!Array.isArray(previous.finalBoard)||
   !chunk.initialBoard?.every((tier,i)=>tier===previous.finalBoard[i])||
-  chunk.rounds<1&&!chunk.completed)
+  (chunk.rounds<1&&!chunk.completed&&
+   !chunk.frames.some(frame=>["cook","merge","move"].includes(frame.kind))))
   throw Error("The continued rotation does not match its prior board.");
  const first=previous.steps.at(-1);
  if(!first?.board?.every((tier,i)=>tier===chunk.initialBoard[i]))
@@ -48,7 +49,7 @@ export function combineKnowledgeContinuation(previous,chunk,requestedWaves=6){
   steps,finalBoard:chunk.finalBoard,
   roundsCompleted:previous.roundsCompleted+chunk.rounds,
   roundsRequested:chunk.completed?
-   previous.roundsCompleted+chunk.rounds:previous.roundsRequested+additional,
+   previous.roundsCompleted+chunk.rounds:previous.roundsCompleted+additional,
   haltReason:chunk.reason,
   completed:Boolean(chunk.completed),
   rotationTerminal:Boolean(chunk.completed),
