@@ -81,7 +81,7 @@ function expFairness(gains,seconds,tiers,passivePerDay=[]){
 }
 export function optimizeKnowledgeRotation(save,rawOptions={}){
  const options={...normalizeKnowledgeCycleOptions(rawOptions),
-  preservePassive:rawOptions?.preservePassive!==false};
+  preservePassive:rawOptions?.preservePassive===true};
  const fail=reason=>({available:false,reason,mode:options.mode,options});
  if(!save?.sushi||!Array.isArray(save?.tiles)||!Array.isArray(save?.slots))
   return fail("Import a Sushi Station board with slot and Sushi data.");
@@ -125,7 +125,7 @@ export function optimizeKnowledgeRotation(save,rawOptions={}){
  const packingModes=options.mode==="balanced"?["simple","ascending","descending"]:["simple"];
  let best=null,candidates=0;
  for(const cookTier of bases){
-  for(const pattern of ["wind","paired"]){
+  for(const pattern of options.mode==="focused"?["uniform","wind","paired"]:["wind","paired"]){
    for(const fire of fires){
     const xp=expProfile(save,eligible,options,fire.fires,metrics);
     for(const packingMode of packingModes){
@@ -164,15 +164,31 @@ export function optimizeKnowledgeRotation(save,rawOptions={}){
     const progressRate=rotation.gains.reduce((n,x,i)=>n+
      (i<targetTier?x*Math.pow(i/targetTier,4):0),0)*
       3600/durationSeconds;
-    const score=options.mode==="focused"?
-     (focus*3600/durationSeconds+passivePerDay[targetTier]/24)*100+
-      progressRate*.02+Math.min(targetTier,peakCreated)*.3+
-      rotation.focusCopies*.01:
-     expFairness(rotation.gains,durationSeconds,eligible.map(x=>x.tier),passivePerDay)+
+    const score=expFairness(rotation.gains,durationSeconds,
+     eligible.map(x=>x.tier),passivePerDay)+
       (rotation.completed?100:0)+rotation.highestTier*.01;
+    // Focused aims to create as many T58 events as possible, then banks
+    // those copies until the board saturates and legally consolidates them.
+    // Passive income remains separate and must not outweigh active target
+    // creations. If T58 is not reached, prefer the highest precursor tier
+    // genuinely created in the preview instead of a cheap T2 EXP loop.
+    const precursor=rotation.frames.reduce((high,frame)=>
+     Math.max(high,...frame.events.filter(e=>e.tier<=targetTier&&
+      ["cook","merge","wind"].includes(e.kind)).map(e=>e.tier),0),0);
+    const rank=options.mode==="focused"?[
+     rotation.targetCreated, precursor,
+     focus, rotation.peakTargetCopies, rotation.harvested,
+     -durationSeconds
+    ]:null;
+    const beatsRank=(a,b)=>{
+     for(let i=0;i<a.length;i++)if(a[i]!==b[i])return a[i]>b[i];
+     return false;
+    };
     candidates++;
-    if(!best||score>best.score){
-     best={rotation,score,cookTier,pattern,packingMode,fire,xp,fuelRate,
+    const improved=!best||
+     (options.mode==="focused"?beatsRank(rank,best.rank):score>best.score);
+    if(improved){
+     best={rotation,score,rank,cookTier,pattern,packingMode,fire,xp,fuelRate,
       passiveStart,passiveEnd,passivePerDay,
       activeSeconds,fuelWaitSeconds,durationSeconds};
     }
@@ -225,6 +241,13 @@ export function optimizeKnowledgeRotation(save,rawOptions={}){
   windCap,steps:rotation.frames,preparedStep,
   startCookTier:best.cookTier,startingPattern:best.pattern,packingMode:best.packingMode,
   highestNewTier,highestWorkingTier,
+  targetCreated:rotation.targetCreated,
+  targetExp:rotation.targetExp,
+  peakTargetCopies:rotation.peakTargetCopies,
+  targetMergedInHarvest:rotation.targetMergedInHarvest,
+  harvestBatches:rotation.harvestBatches,
+  harvestCount:rotation.harvested,
+  targetPreviewIncomplete:options.mode==="focused"&&rotation.targetCreated===0,
   protectedIndices:rotation.protectedIndices,
   initialProtectedIndices:protectedIndices,
   passive: {
@@ -257,6 +280,6 @@ export function optimizeKnowledgeRotation(save,rawOptions={}){
   initialBoardMatchesFinal:sustained,
   stranded:rotation.remaining.length,
   considered:candidates,haltReason:rotation.reason,
-  note:"Hybrid EXP/hr combines a simulated active-creation window with an approximate average of passive EXP/day at its start and end. Cold/Milktoast source occupants from the imported board are protected while farming when selected. Suggested plate rearrangements are advisory only; they are NOT silently applied. Random tier procs, unknown slot effects and exact interaction timing are excluded."
+  note:"Focused ranks candidate plans by the number of selected-tier Sushi CREATED, then the highest precursor reached and their creation EXP. The Harvest step merges stored copies into higher tiers solely to recover space; it does not award extra selected-tier EXP (except capped T64 merges). Passive EXP is displayed separately and is not used to choose the Focused rotation. This finite preview is not proof of a maximum or a sustained EXP/hr rate."
  };
 }
