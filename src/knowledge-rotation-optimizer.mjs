@@ -421,7 +421,9 @@ export function continueKnowledgeRotation(save,snapshot,waves=6){
   roundOffset:snapshot.roundsCompleted,
   maximumActions:5000
  });
- if(!rotation.valid||!rotation.frames.length||rotation.rounds<1&&!rotation.completed)
+ if(!rotation.valid||!rotation.frames.length||
+     (!rotation.completed&&!
+      rotation.frames.some(frame=>["cook","merge","move"].includes(frame.kind))))
   return fail(rotation.reason??"No additional legal rotation progress was possible.");
  if(!rotation.initialBoard.every((t,i)=>t===board[i]))
   return fail("The continuation changed the existing starting board.");
