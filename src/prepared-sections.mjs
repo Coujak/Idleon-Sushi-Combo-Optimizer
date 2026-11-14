@@ -15,7 +15,7 @@ export function hasSlotLayoutChanges(currentSlots,recommendedSlots){
 }
 
 export function getPreparedBoardSections(candidate,slots){
-  if(candidate?.adaptive&&candidate.strategySections&&
+  if((candidate?.adaptive||candidate?.privateExperiment)&&candidate.strategySections&&
      Array.isArray(candidate.board)&&candidate.board.length===120&&
      Array.isArray(slots)&&slots.length===120){
    const positions=slots.flatMap((slot,index)=>slot>=0?[index]:[]);
@@ -27,7 +27,8 @@ export function getPreparedBoardSections(candidate,slots){
     return null;
    const roles=Array(120).fill(null);
    positions.forEach((pos,index)=>{roles[pos]=index<boundary?"supply":"chain";});
-   return {experiment:null,adaptive:true,workingTier:candidate.workingTier,
+   return {experiment:candidate.privateExperiment?candidate.foundExperiment:null,
+     adaptive:Boolean(candidate.adaptive),workingTier:candidate.workingTier??null,
      protectedPosition:candidate.strategySections.protectedPosition,
      firstEnginePosition:engineStart,
      roles,supplyCount:boundary,chainCount:positions.length-boundary};
