@@ -306,7 +306,7 @@
 </section>
 <section id="knowledgePlanner" class="panel lab-knowledge-planner hidden" role="tabpanel" aria-label="Knowledge Leveling Planner" aria-hidden="true">
  <div class="heading"><div><div class="eyebrow">03 · KNOWLEDGE LEVELING</div><h2>Knowledge EXP Optimizer</h2></div><span class="status">Beta · cycle simulator</span></div>
- <p class="hint">Focused: create as many Sushi of your selected tier as possible, save them, then merge the batch into higher tiers only when the board is full. Knowledge EXP for the target comes from making it, not from consuming it. Balanced continues to combine tiers through East Wind. Both start from your imported board.</p>
+ <p class="hint">Design an optimal candidate preparation board for your account's unlocked slots, maximum cookable tier and East Wind limit. Focused produces and banks as many copies of your selected tier as possible, then harvests them into higher tiers when the board fills. The solver does not use your current Sushi arrangement as its blueprint.</p>
  <div class="lab-kp-controls">
   <label>EXP strategy<select id="knowledgePlanMode" aria-label="Knowledge EXP strategy"><option value="balanced">Balanced · spread EXP across tiers</option><option value="focused">Focused · prepare and harvest one tier</option></select></label>
   <label id="knowledgePlanTargetLabel" class="hidden">Target Sushi<select id="knowledgePlanTarget" aria-label="Focused Sushi target"></select></label>
@@ -330,12 +330,13 @@
   <p id="knowledgePlanStatus" role="status" aria-live="polite">Import a Sushi Station save in Overview to generate an EXP cycle.</p>
  </div>
  <div id="knowledgePlanFeatured" class="hidden"></div>
+ <div id="knowledgePlanDesign" class="hidden"></div>
  <div id="knowledgePlanRotation" class="hidden">
   <div class="lab-kp-replay-heading">
-   <h3>Continuous Sushi rotation · refill, merge, park, repeat</h3>
+   <h3>Legal preparation and harvest walkthrough</h3>
    <div class="lab-kp-replay-actions">
     <button id="knowledgePlanReset" type="button" class="button secondary">Step 0</button>
-    <button id="knowledgePlanPrepared" type="button" class="button secondary">First refill</button>
+    <button id="knowledgePlanPrepared" type="button" class="button secondary">Prepared board</button>
     <button id="knowledgePlanNextRefill" type="button" class="button secondary">Next refill</button>
     <button id="knowledgePlanNextHarvest" type="button" class="button secondary hidden">Next harvest</button>
     <button id="knowledgePlanPrev" type="button" class="button secondary" aria-label="Previous step">Previous</button>
@@ -361,7 +362,7 @@
  </div>
  <div id="knowledgePlanPassive" class="hidden"></div>
  <details class="lab-kp-guide"><summary>Included mechanics and limitations</summary><ul id="knowledgePlanTips"></ul></details>
- <p class="hint lab-kp-disclaimer">Active simulations use the imported board and only legal moves, cooking into empty slots, matching-tier merges, and East Wind upgrades. The proposed passive setup is an advisory plate arrangement, not applied to the replay or account. Active EXP/hr is projected from a finite refill window; passive EXP/day is modeled from known Cold, Milktoast and Lithium bonuses. Random procs, unmodeled slot modifiers and exact timing are excluded.</p>
+ <p class="hint lab-kp-disclaimer">The recommended preparation is a new candidate board based on your account's unlocked slots and cooking limits, not a copy of your imported Sushi inventory. It may require clearing the current board through real merges before you can build it; that transition is not simulated or guaranteed. Once prepared, all displayed cooking, movement and merge actions are checked against the game model. Search is bounded and not a mathematical proof of optimality.</p>
 </section>
 
 </div>
