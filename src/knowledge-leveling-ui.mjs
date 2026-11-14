@@ -828,6 +828,7 @@ export function initializeKnowledgeLevelingUI(getSave){
     options:previous.options,finalBoard:previous.finalBoard,
     slots:previous.layout.slots,protectedIndices:previous.protectedIndices,
     proposedFires:previous.proposedFires,
+    pinkFireplaces:previous.pinkFireplaces,
     guaranteedCookBonus:previous.guaranteedCookBonus,windCap:previous.windCap,
     startCookTier:previous.startCookTier,startingPattern:previous.startingPattern,
     recipeOffset:previous.recipeOffset,packingMode:previous.packingMode,
