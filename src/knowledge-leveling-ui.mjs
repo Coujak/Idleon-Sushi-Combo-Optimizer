@@ -165,6 +165,82 @@ export function initializeKnowledgeLevelingUI(getSave){
    "This is a continuing rotation preview. Leftover Sushi stay on the board for the next refill. EXP/hr is a projection over this finite window, not a verified long-term rate.",
    "lab-kp-warning");
  }
+ function renderPassive(p){
+  const model=p.passive;
+  passiveBox.replaceChildren();
+  passiveBox.classList.remove("hidden");
+  const block=elem("div","lab-kp-passive-panel");
+  block.append(elem("h3","","Passive Knowledge setup"),
+   elem("p","hint","Current EXP/day comes from the imported Sushi on Cold and Milktoast Plates. "+
+    "The suggested plate layout below reuses ONLY Sushi and plates already on your board. "+
+    "It is a manual setup guide, not a replay step."));
+  const cards=elem("div","lab-kp-passive-stats");
+  for(const [label,value] of [
+   ["Current passive coverage",model.current.covered+" / 64 tiers"],
+   ["Suggested passive coverage",model.recommended.covered+" / 64 tiers"],
+   ["Current passive EXP/day",compact(model.current.totalDaily)],
+   ["Suggested passive EXP/day",compact(model.recommended.totalDaily)]
+  ])cards.append(metric(label,value));
+  if(p.mode==="focused"){
+   cards.append(metric("T"+p.targetTier+" · current passive/day",
+    compact(model.current.expPerDay[p.targetTier])),
+   metric("T"+p.targetTier+" · suggested passive/day",
+    compact(model.recommended.expPerDay[p.targetTier])));
+  }
+  block.append(cards);
+  const occupancy=elem("div","lab-kp-passive-assignments");
+  const formatAssignments=(indices)=>indices.length?
+   indices.map(i=>"T"+p.startingBoard[i]+
+    " (R"+(Math.floor(i/15)+1)+"C"+(i%15+1)+")").join(" · "):
+   "No occupied sources available";
+  occupancy.append(
+   elem("p","","Cold Plates: "+formatAssignments(model.coldPositions)),
+   elem("p","","Milktoast Plates: "+formatAssignments(model.milktoastPositions)));
+  block.append(occupancy);
+  if(model.needAnotherT64)addNote(block,
+   "A single T64 on Cold covers T1–T63, but T64 itself still needs Milktoast. "+
+   "A second T64 is required to cover all 64 tiers this way. No extra T64 has been assumed.",
+   "lab-kp-warning");
+  if(!model.allTargetsCorrect)addNote(block,
+   "Some suggested plate positions could not be assigned by pairwise swaps. "+
+   "Treat the preview as a partial setup, not a confirmed arrangement.",
+   "lab-kp-warning");
+  if(p.mode==="focused"&&!p.startingBoard.includes(p.targetTier))addNote(block,
+   "T"+p.targetTier+" is discovered but not currently on the board. "+
+   "The Focused rotation must create a copy before it can be parked on a Milktoast Plate.",
+   "lab-kp-note");
+  const boardTitle=elem("div","lab-kp-passive-board-heading");
+  boardTitle.append(elem("strong","","Suggested plate positions · after manual setup"),
+   elem("span","",model.plateSwaps.length+" plate swaps suggested"));
+  block.append(boardTitle);
+  const grid=elem("div","lab-kp-passive-board");
+  const slots=model.recommendedSlots;
+  for(let i=0;i<120;i++){
+   const type=slots[i]??-1,tier=p.startingBoard[i]??0;
+   const tile=elem("div","lab-kp-passive-tile slot-"+type);
+   if(type<0)tile.classList.add("locked");
+   if(type!==p.layout.slots[i])tile.classList.add("changed");
+   tile.title="R"+(Math.floor(i/15)+1)+"C"+(i%15+1)+
+    " · "+(tier?"T"+tier:"Empty")+" · "+
+    (type===2?"Cold":type===3?"Milktoast":type===1?"Hot":
+     type===0?"Regular":"Locked")+
+    (type!==p.layout.slots[i]?" · plate position suggested":"");
+   if(tier){
+    const icon=elem("img");
+    icon.src=sushiTierIconPath(tier);icon.alt="";icon.loading="lazy";
+    icon.onerror=()=>icon.remove();
+    tile.append(icon,elem("strong","",String(tier)));
+   }
+   grid.append(tile);
+  }
+  const wrap=elem("div","lab-kp-passive-board-wrap");
+  wrap.append(grid);block.append(wrap);
+  addNote(block,"Use Movement Mittens to rearrange plates before following this "+
+   "suggested setup. The active walkthrough below still starts from your "+
+   "IMPORTED plate/Sushi layout and does not assume these plate changes "+
+   "have happened. Estimated EXP/day excludes unknown modifiers.");
+  passiveBox.append(block);
+ }
  function showProgress(p){
   const rows=$("knowledgePlanLevelRows");
   rows.replaceChildren();
