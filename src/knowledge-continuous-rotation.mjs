@@ -383,7 +383,7 @@ export function simulateContinuousKnowledgeRotation({
  const totalExp=gains.reduce((a,b)=>a+b,0);
  return {
   valid:true,frames,initialBoard:initial,finalBoard:final,
-  rounds:roundsDone,completed,
+  mode,targetTier,requestedTier,rounds:roundsDone,completed,
   focusCopies:focusCount(),focusCompressed,
   targetCreated,targetMergedInHarvest,peakTargetCopies,
   harvestBatches,harvested:harvestBatches.length,
