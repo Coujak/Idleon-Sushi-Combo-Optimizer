@@ -1407,6 +1407,8 @@ function clearPrivateExperiment14(){
   $("solverSteps").replaceChildren();
   $("solverResults").classList.add("hidden");
   $("solverScoreBubble").classList.add("hidden");
+  $("solverScore").textContent="—";
+  $("solverNote").textContent="Private replay locked.";
   privateReplayVisible=false;
  }
 }
@@ -1559,6 +1561,11 @@ async function executeConfiguredSearch(foundId=null,savedOnly=false){
   if(!imported){$("solverNote").textContent="Import a valid game save JSON first.";return;}
   if(activeSearch)return;
   disposeReplay();
+  if(privateReplayVisible){
+   preparedOutlineCleanup();preparedOutlineCleanup=()=>{};
+   $("solverSteps").replaceChildren();
+   $("solverScore").textContent="—";
+  }
   privateReplayVisible=false;
   const controller=new AbortController();
   activeSearch=controller;
