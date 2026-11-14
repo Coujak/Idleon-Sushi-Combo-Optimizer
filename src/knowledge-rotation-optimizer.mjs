@@ -1,6 +1,9 @@
 // Search over continuous refill/merge/park rotations rather than independent
 // one-shot boards. Every candidate starts with the actual imported Sushi board.
-import {simulateContinuousKnowledgeRotation} from "./knowledge-continuous-rotation.mjs?v=1.0.3";
+import {simulateContinuousKnowledgeRotation} from "./knowledge-continuous-rotation.mjs?v=1.0.4";
+import {
+ projectPassiveKnowledge,recommendPassiveKnowledgeLayout,passiveProtectedIndices
+} from "./knowledge-passive-layout.mjs?v=1.0.0";
 import {estimateSushiFuelEconomy,sushiDirectCookFuel} from "./perfecto-fuel.mjs?v=1.16.8";
 import {getKnowledgeRows,getUpgradeRows} from "./lab-model.mjs?v=1.19.13";
 import {getSushiDashboardMetrics} from "./dashboard-metrics.mjs?v=1.0.2";
@@ -53,7 +56,7 @@ function expProfile(save,rows,options,fires,metrics){
  const lithiumEnabled=num(save?.sushi?.[2]?.[26])>0;
  const lithium=lithiumEnabled?(options.lithiumMultiplier??2):1;
  return {
-  lithiumEnabled,lithium,
+  lithiumEnabled,lithium,globalMultiplier:global,
   expAt:(tier,at)=>base*global*(fires[at%COLS]===3?lithium:1),
   guaranteed:metrics?.cookBonusComplete?
    clip(Math.floor(num(metrics.guaranteedCookTiers)),0,63):0,
@@ -71,12 +74,14 @@ function fireAlternatives(save,fires){
  return options.filter((choice,i,arr)=>arr.findIndex(x=>
   x.fires.every((v,j)=>v===choice.fires[j]))===i);
 }
-function expFairness(gains,seconds,tiers){
+function expFairness(gains,seconds,tiers,passivePerDay=[]){
  const rate=3600/seconds;
- return tiers.reduce((total,t)=>total+Math.log1p(gains[t]*rate),0);
+ return tiers.reduce((total,t)=>total+
+  Math.log1p(gains[t]*rate+(passivePerDay[t]??0)/24),0);
 }
 export function optimizeKnowledgeRotation(save,rawOptions={}){
- const options=normalizeKnowledgeCycleOptions(rawOptions);
+ const options={...normalizeKnowledgeCycleOptions(rawOptions),
+  preservePassive:rawOptions?.preservePassive!==false};
  const fail=reason=>({available:false,reason,mode:options.mode,options});
  if(!save?.sushi||!Array.isArray(save?.tiles)||!Array.isArray(save?.slots))
   return fail("Import a Sushi Station board with slot and Sushi data.");
@@ -95,6 +100,8 @@ export function optimizeKnowledgeRotation(save,rawOptions={}){
  if(!economy?.capacity||!economy?.generationPerHour)
   return fail("Fuel capacity or generation is unavailable. Calibrate those readings in the options.");
  const metrics=getSushiDashboardMetrics(save);
+ const protectedIndices=options.preservePassive?
+  passiveProtectedIndices(layout.tiles,layout.slots,{focused:options.mode==="focused",targetTier}):[];
  const originalProfile=expProfile(save,eligible,options,layout.fires,metrics);
  const bases=startingTiers(economy,originalProfile.guaranteed,options,targetTier);
  if(!bases.length)return fail("No directly cookable Sushi tier fits your estimated fuel capacity.");
@@ -126,7 +133,7 @@ export function optimizeKnowledgeRotation(save,rawOptions={}){
      startingBoard:layout.tiles,slots:layout.slots,mode:options.mode,targetTier,
      requestedTier:cookTier,guaranteedBonus:xp.guaranteed,
      windCap,chain,expAt:xp.expAt,cookCost:sushiDirectCookFuel,rounds,pattern,
-     packingMode,maximumActions:1800
+     packingMode,protectedIndices,maximumActions:1800
     });
     if(!rotation.valid||rotation.cooks<1)continue;
     const rateA=adjustedRate(layout.tiles,fire.fires);
@@ -139,17 +146,26 @@ export function optimizeKnowledgeRotation(save,rawOptions={}){
     const fuelWaitSeconds=rotation.fuel*3600/fuelRate;
     const durationSeconds=Math.max(activeSeconds,fuelWaitSeconds);
     if(!(durationSeconds>0))continue;
+    const passiveOpts={lithiumUnlocked:xp.lithiumEnabled,
+     lithiumMultiplier:xp.lithium,globalMultiplier:xp.globalMultiplier};
+    const passiveStart=projectPassiveKnowledge(layout.tiles,layout.slots,
+     fire.fires,passiveOpts);
+    const passiveEnd=projectPassiveKnowledge(rotation.finalBoard,layout.slots,
+     fire.fires,passiveOpts);
+    const passivePerDay=passiveStart.expPerDay.map((v,t)=>
+     (v+passiveEnd.expPerDay[t])/2);
     const focus=rotation.gains[targetTier]||0;
     const score=options.mode==="focused"?
-     focus*3600/durationSeconds*100+
+     (focus*3600/durationSeconds+passivePerDay[targetTier]/24)*100+
       rotation.gains.reduce((n,x,i)=>n+
        (i<targetTier?x*i/targetTier:x)*.0001,0)*3600/durationSeconds+
        rotation.focusCopies*.01:
-     expFairness(rotation.gains,durationSeconds,eligible.map(x=>x.tier))+
+     expFairness(rotation.gains,durationSeconds,eligible.map(x=>x.tier),passivePerDay)+
       (rotation.completed?100:0)+rotation.highestTier*.01;
     candidates++;
     if(!best||score>best.score){
      best={rotation,score,cookTier,pattern,packingMode,fire,xp,fuelRate,
+      passiveStart,passiveEnd,passivePerDay,
       activeSeconds,fuelWaitSeconds,durationSeconds};
     }
     }
@@ -158,6 +174,11 @@ export function optimizeKnowledgeRotation(save,rawOptions={}){
  }
  if(!best)return fail("No feasible legal refill/merge rotation was found with this board and fuel budget.");
  const rotation=best.rotation;
+ const passiveRecommendation=recommendPassiveKnowledgeLayout(
+  layout.tiles,layout.slots,best.fire.fires,{
+   targetTier,lithiumUnlocked:best.xp.lithiumEnabled,
+   lithiumMultiplier:best.xp.lithium,globalMultiplier:best.xp.globalMultiplier
+  });
  // A pre-existing T64 anchor must not count as progress made by the solver.
  const initialAnchors=new Set(rotation.initialBoard.flatMap(
   (tier,i)=>tier===64?[i]:[]));
@@ -170,10 +191,13 @@ export function optimizeKnowledgeRotation(save,rawOptions={}){
  const focusExpPerHour=rotation.gains[targetTier]*3600/best.durationSeconds;
  const perTier=eligible.map(row=>{
   const expPerCycle=rotation.gains[row.tier];
-  const expPerHour=expPerCycle*3600/best.durationSeconds;
+  const activeExpPerHour=expPerCycle*3600/best.durationSeconds;
+  const passiveExpPerDay=best.passivePerDay[row.tier];
+  const expPerHour=activeExpPerHour+passiveExpPerDay/24;
   const remaining=Number.isFinite(row.xpRemaining)?row.xpRemaining:null;
   return {tier:row.tier,name:row.name,level:row.level,remaining,expPerCycle,
-   expPerHour,etaHours:remaining===0?0:expPerHour>0&&remaining!==null?
+   activeExpPerHour,passiveExpPerDay,expPerHour,
+   etaHours:remaining===0?0:expPerHour>0&&remaining!==null?
     remaining/expPerHour:null};
  });
  const firstFill=rotation.frames.findIndex(x=>x.kind==="refill");
@@ -192,6 +216,17 @@ export function optimizeKnowledgeRotation(save,rawOptions={}){
   windCap,steps:rotation.frames,preparedStep,
   startCookTier:best.cookTier,startingPattern:best.pattern,packingMode:best.packingMode,
   highestNewTier,highestWorkingTier,
+  protectedIndices,
+  passive: {
+   ...passiveRecommendation,
+   averageExpPerDay:best.passivePerDay,
+   averageTotalPerDay:best.passivePerDay.slice(1).reduce((a,v)=>a+v,0),
+   averageCovered:best.passivePerDay.slice(1).filter(x=>x>0).length
+  },
+  targetPassiveExpPerDay:best.passivePerDay[targetTier],
+  targetHybridPreviewExpPerHour:focusExpPerHour+best.passivePerDay[targetTier]/24,
+  hybridPreviewExpPerHour:windowExpPerHour+
+   best.passivePerDay.slice(1).reduce((a,n)=>a+n,0)/24,
   totalExpPerCycle:rotation.totalExp,totalExpPerHour:sustained?windowExpPerHour:null,
   previewExpPerHour:windowExpPerHour,targetExpPerHour:sustained?focusExpPerHour:null,
   targetPreviewExpPerHour:focusExpPerHour,
@@ -207,6 +242,6 @@ export function optimizeKnowledgeRotation(save,rawOptions={}){
   initialBoardMatchesFinal:sustained,
   stranded:rotation.remaining.length,
   considered:candidates,haltReason:rotation.reason,
-  note:"EXP/hr and leveling ETA are projections from this finite refill/merge preview, not verified sustained rates. All moves, cooks, Wind effects and same-tier merges are simulated. Passive Milktoast/Cold EXP, random tier procs, and exact interaction timing remain excluded."
+  note:"Hybrid EXP/hr combines a simulated active-creation window with an approximate average of passive EXP/day at its start and end. Cold/Milktoast source occupants from the imported board are protected while farming when selected. Suggested plate rearrangements are advisory only; they are NOT silently applied. Random tier procs, unknown slot effects and exact interaction timing are excluded."
  };
 }
