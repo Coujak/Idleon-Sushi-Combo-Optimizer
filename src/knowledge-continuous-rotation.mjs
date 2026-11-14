@@ -2,7 +2,7 @@
 // movement validator. The full imported board is the initial state.
 // No Sushi is ever deleted or silently replaced between refills.
 import {simulateMerge,simulateRelocation} from "./optimizer-core.mjs";
-import {packSushiStaircase} from "./knowledge-staircase-packing.mjs?v=1.0.0";
+import {packSushiStaircase} from "./knowledge-staircase-packing.mjs?v=1.0.1";
 
 const SIZE=120,COLS=15,MAX=64;
 const blank=()=>Array(MAX+1).fill(0);
