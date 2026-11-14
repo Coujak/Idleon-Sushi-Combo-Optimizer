@@ -581,7 +581,10 @@ export function initializeKnowledgeLevelingUI(getSave){
   }
  });
  cancelButton.addEventListener("click",()=>{
-  if(worker){stopSearch();status.textContent="Knowledge optimization canceled.";}
+  if(worker){
+   stopSearch();jumpToNextRefill=false;continueButton.disabled=false;
+   status.textContent="Knowledge optimization canceled. The previous walkthrough is retained.";
+  }
  });
  continueButton.addEventListener("click",()=>{
   if(worker||!result||result.mode!=="balanced"||
