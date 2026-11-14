@@ -586,6 +586,13 @@ export function initializeKnowledgeLevelingUI(getSave){
  $("knowledgePlanPlay").addEventListener("click",()=>controller?.toggle());
  $("knowledgePlanNext").addEventListener("click",()=>controller?.goTo(
   Math.min((result?.steps.length??1)-1,(controller?.step??0)+1)));
+ $("knowledgePlanEnd").addEventListener("click",()=>{
+  if(result&&controller){
+   controller.goTo(result.steps.length-1);
+   status.textContent="End of the simulated walkthrough: "+result.haltReason+
+    " ("+result.roundsCompleted+"/"+result.roundsRequested+" refills).";
+  }
+ });
  speed.addEventListener("change",()=>controller?.reschedule());
  clearAndPrompt();
  return {refresh:clearAndPrompt};
