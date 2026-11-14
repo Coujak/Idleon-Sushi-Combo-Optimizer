@@ -3765,3 +3765,78 @@ details summary{cursor:pointer;font-size:12px;font-weight:700;color:#9eb7c9}
  filter:drop-shadow(0 1px 2px #0009);
 }
 #knowledgePlanner .lab-kp-fire{min-height:29px;padding:1px}
+
+
+/* Hybrid Knowledge: current Cold/Milktoast income and an advisory plate setup. */
+#knowledgePlanner .lab-kp-passive-toggle{
+ display:flex;align-items:center;gap:8px;font-size:12px;color:#c6e4d6;
+ white-space:normal;max-width:360px
+}
+#knowledgePlanner .lab-kp-passive-toggle input{accent-color:#5ad4aa}
+#knowledgePlanner .lab-kp-passive-panel{
+ border:1px solid #3b5d62;background:#132934;border-radius:12px;
+ padding:16px;margin:10px 0 20px
+}
+#knowledgePlanner .lab-kp-passive-panel h3{margin:0 0 6px;font-size:17px;color:#e3f8ee}
+#knowledgePlanner .lab-kp-passive-panel .hint{font-size:12px;line-height:1.65}
+#knowledgePlanner .lab-kp-passive-stats{
+ display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px;margin:13px 0
+}
+#knowledgePlanner .lab-kp-passive-stats .lab-kp-stat{background:#1a3440}
+#knowledgePlanner .lab-kp-passive-assignments{
+ display:grid;gap:6px;margin:13px 0;padding:11px 12px;
+ border:1px solid #36545d;border-radius:8px;
+ font-size:11px;line-height:1.7;color:#c7e1d9
+}
+#knowledgePlanner .lab-kp-passive-assignments p{margin:0;overflow-wrap:anywhere}
+#knowledgePlanner .lab-kp-passive-board-heading{
+ display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;
+ gap:8px;margin:15px 0 9px;font-size:12px;color:#c8ded5
+}
+#knowledgePlanner .lab-kp-passive-board-heading strong{color:#e2faf0}
+#knowledgePlanner .lab-kp-passive-board-wrap{
+ overflow-x:auto;padding:8px;background:#0d202b;
+ border:1px solid #344c51;border-radius:10px
+}
+#knowledgePlanner .lab-kp-passive-board{
+ display:grid;grid-template-columns:repeat(15,minmax(35px,1fr));
+ min-width:575px;gap:3px
+}
+#knowledgePlanner .lab-kp-passive-tile{
+ min-width:0;min-height:43px;display:flex;flex-direction:column;
+ justify-content:center;align-items:center;border:1px solid #476b58;
+ border-radius:5px;background:#204335;color:#ecf9f3
+}
+#knowledgePlanner .lab-kp-passive-tile.slot-1{
+ background:#573136;border-color:#a1666b
+}
+#knowledgePlanner .lab-kp-passive-tile.slot-2{
+ background:#234862;border-color:#648faf
+}
+#knowledgePlanner .lab-kp-passive-tile.slot-3{
+ background:#61522e;border-color:#a99c60
+}
+#knowledgePlanner .lab-kp-passive-tile.locked{
+ background:#0f1d26;border:1px dashed #34424c;opacity:.5
+}
+#knowledgePlanner .lab-kp-passive-tile.changed{
+ outline:2px solid #91e3bd;outline-offset:-2px
+}
+#knowledgePlanner .lab-kp-passive-tile img{
+ max-width:88%;height:25px;object-fit:contain;display:block
+}
+#knowledgePlanner .lab-kp-passive-tile strong{font-size:10px;line-height:1}
+#knowledgePlanner .lab-kp-tile.is-passive-protected{
+ border-color:#82d9fa;box-shadow:inset 0 0 0 2px #70c8ec99
+}
+#knowledgePlanner .lab-kp-progress-table{min-width:880px}
+@media(max-width:860px){
+ #knowledgePlanner .lab-kp-passive-stats{
+  grid-template-columns:repeat(2,minmax(0,1fr))
+ }
+}
+@media(max-width:480px){
+ #knowledgePlanner .lab-kp-passive-stats{
+  grid-template-columns:minmax(0,1fr)
+ }
+}
