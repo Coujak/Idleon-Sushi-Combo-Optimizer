@@ -70,7 +70,8 @@ test("Continue from final step opens the FIRST new refill instead of the old fin
   {kind:"wave"},{kind:"merge"},{kind:"refill"},
   {kind:"cook"},{kind:"merge"},{kind:"partial"}
  ];
- assert.equal(knowledgeContinuationResumeStep(previous,extended,3),5);
+ assert.equal(knowledgeContinuationResumeStep(previous,extended,3),4,
+  "Continue at the old endpoint starts at the first new merge");
  assert.equal(knowledgeContinuationResumeStep(previous,extended,1),1,
   "Continuing while browsing an earlier step should retain it");
  assert.equal(knowledgeContinuationResumeStep(previous,extended,1,true),5,
