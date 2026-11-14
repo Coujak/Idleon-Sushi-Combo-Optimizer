@@ -26,7 +26,7 @@ export function simulateContinuousKnowledgeRotation({
  const slotsFree=slots.flatMap((v,i)=>v>=0?[i]:[]);
  if(slotsFree.length<2)return {valid:false,reason:"At least two unlocked slots are required"};
  const playable=new Set(slotsFree);
- const maxActions=Math.max(100,Math.min(4000,Math.floor(maximumActions)||1800));
+ const maxActions=Math.max(100,Math.min(10000,Math.floor(maximumActions)||1800));
  let board=startingBoard.slice();
  if(board.some((tier,i)=>tier<0||tier>MAX||!Number.isInteger(tier)||tier>0&&!playable.has(i)))
   throw Error("Imported board contains an invalid Sushi tier or locked position");
@@ -114,7 +114,8 @@ export function simulateContinuousKnowledgeRotation({
     result===targetTier&&slots[at]===3)protectedSet.add(at);
   const event={kind:"cook",at,tier:result};
   record("cook","Cook T"+tier+(result===tier?"":" → T"+result),
-   "Fill "+location(at)+" with a fresh Sushi", [event],expDelta([event]),{at,requestedTier:tier});
+   "Fill "+location(at)+" with a fresh Sushi", [event],expDelta([event]),
+   {at,requestedTier:tier,cookFuel:cost});
   return true;
  };
  // A balanced rotation ends only when the entire board is one T64.
