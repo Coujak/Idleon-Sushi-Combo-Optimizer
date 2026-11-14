@@ -227,8 +227,13 @@ export function simulateContinuousKnowledgeRotation({
     if(applyMove(src,dst))repositioned++;
    }
   }
+  // Bank the Focused target on Milktoast during preparation even if the
+  // passive-source checkbox is off; harvesting may still consume it later.
+  const milkstash=mode==="focused"?slotsFree.filter(i=>
+   slots[i]===3&&board[i]===targetTier):[];
   if(packingMode==="ascending"||packingMode==="descending"){
-   const packing=packSushiStaircase(board,slots,packingMode,MAX,[...protectedSet]);
+   const packing=packSushiStaircase(board,slots,packingMode,MAX,
+    [...protectedSet,...milkstash]);
    for(const action of packing.actions){
     if(frames.length>=maxActions)break;
     if(!applyMove(action.src,action.dst))
@@ -239,7 +244,8 @@ export function simulateContinuousKnowledgeRotation({
   }
   const usable=slotsFree.slice().sort((a,b)=>a-b);
   const top=usable.slice(0,Math.min(22,Math.max(4,Math.floor(usable.length*.25))));
-  const sources=usable.filter(i=>board[i]>0&&!top.includes(i)&&!protectedSet.has(i))
+  const sources=usable.filter(i=>board[i]>0&&!top.includes(i)&&
+   !protectedSet.has(i)&&!milkstash.includes(i))
    .sort((a,b)=>{
     if(mode==="focused"){
      const left=board[a]===targetTier,right=board[b]===targetTier;
