@@ -75,3 +75,33 @@ test("Preserve existing passive-source Sushi is off unless explicitly requested"
  assert.equal(run.startingBoard[2],0);
  assert.equal(run.initialProtectedIndices.length,1);
 });
+
+test("Per-cook Fuel validation rejects a first cook that needs more Fuel than is currently available",()=>{
+ const frames=[{kind:"refill"},{
+  kind:"cook",requestedTier:40,cookFuel:6000
+ },{kind:"cook",requestedTier:2,cookFuel:1}];
+ const fuel=estimateKnowledgeRefillFuel(frames,{
+  capacity:10000,startingFuel:6000,
+  generationPerHour:1000000,secondsPerCook:2,reserveFraction:0.5
+ });
+ assert.ok(fuel.fuel<=fuel.budget,
+  "Aggregate Fuel can look affordable despite the timing of the first cook");
+ assert.equal(fuel.noWait,false);
+ assert.ok(fuel.waitingCooks>=1);
+ assert.ok(fuel.estimatedWaitSeconds>0);
+});
+test("Fuel safety never spends more imported Fuel than the JSON currently reports",()=>{
+ const frames=cook(3,1000,20);
+ const low=estimateKnowledgeRefillFuel(frames,{
+  capacity:100000,startingFuel:0,
+  generationPerHour:1,secondsPerCook:2
+ });
+ const full=estimateKnowledgeRefillFuel(frames,{
+  capacity:100000,startingFuel:100000,
+  generationPerHour:1,secondsPerCook:2
+ });
+ assert.equal(low.tankAllocation,0);
+ assert.equal(low.noWait,false);
+ assert.equal(full.tankAllocation,50000);
+ assert.equal(full.noWait,true);
+});
