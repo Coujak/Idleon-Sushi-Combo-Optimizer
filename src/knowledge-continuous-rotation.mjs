@@ -17,7 +17,8 @@ export function simulateContinuousKnowledgeRotation({
  startingBoard,slots,mode="balanced",targetTier=64,requestedTier=1,
  guaranteedBonus=0,windCap=0,chain=0,expAt=()=>1,cookCost=()=>1,
  rounds=6,pattern="wind",recipeOffset=0,packingMode="simple",protectedIndices=[],
- protectFocusedMilktoast=true,startingContext="imported",maximumActions=1800
+ protectFocusedMilktoast=true,startingContext="imported",
+ coverageTiers=[],maximumActions=1800
 }={}){
  if(!Array.isArray(startingBoard)||startingBoard.length!==SIZE||
    !Array.isArray(slots)||slots.length!==SIZE)throw Error("Knowledge rotation requires an 8×15 board");
@@ -45,6 +46,10 @@ export function simulateContinuousKnowledgeRotation({
  let activePhase=mode==="focused"?"prepare":"balanced";
  let targetCreated=0,targetMergedInHarvest=0,peakTargetCopies=count(board,targetTier);
  const harvestBatches=[];
+ const discoveredCoverage=Array.isArray(coverageTiers)&&coverageTiers.length?
+  [...new Set(coverageTiers.filter(t=>Number.isInteger(t)&&t>=1&&t<=MAX))]:
+  Array.from({length:MAX},(_,i)=>i+1);
+ let balancedCycles=0;
  const expDelta=events=>{
   const out=blank();
   for(const event of events){
@@ -119,7 +124,14 @@ export function simulateContinuousKnowledgeRotation({
   return true;
  };
  // A balanced rotation ends only when the entire board is one T64.
+ // It may then be refilled again rather than ending the entire preview.
  const balancedComplete=()=>occupied(board)===1&&count(board,64)===1;
+ const markBalancedCompletion=()=>{
+  if(mode!=="balanced"||!balancedComplete())return;
+  completed=true;balancedCycles++;
+  record("stage","Completed a balanced T64 rotation",
+   "One T64 remains. Begin the next refill if more waves are requested.");
+ };
  const focusCount=()=>count(board,targetTier);
  // Protect focused targets from consumption until the stockpile is full.
  const stashLimit=Math.max(2,slotsFree.length-2);
@@ -186,7 +198,7 @@ export function simulateContinuousKnowledgeRotation({
    if(!best)break;
    if(!applyMerge(best.src,best.dst))break;
    performed++;
-   if(mode==="balanced"&&roundsDone>0&&balancedComplete()){completed=true;break;}
+   if(mode==="balanced"&&roundsDone>0&&balancedComplete())break;
    if(compressFocus&&slotsFree.length-occupied(board)>=
     Math.min(10,Math.ceil(slotsFree.length*.15)))break;
   }
@@ -248,16 +260,30 @@ export function simulateContinuousKnowledgeRotation({
   const available=slotsFree.filter(i=>board[i]===0).sort((a,b)=>a-b);
   if(available.length<1)return 0;
   const countBefore=available.length;
+  // A full starter board is the foundation of Balanced, just like
+  // Focused. On subsequent refills, cover missing discovered tiers
+  // that can be cooked without exceeding the chosen safe base.
+  const pending=mode==="balanced"&&round>1?
+   discoveredCoverage.filter(t=>gains[t]<=0&&t>guaranteedBonus&&
+    t-guaranteedBonus<=requestedTier):[];
   record("refill","Refill "+round,
    "Carry forward "+occupied(board)+" existing Sushi; fill "+available.length+
-   " empty slots without overwriting any.");
-  let last=-2,segment=0;
+   " empty slots without overwriting any."+
+   (mode==="balanced"&&round===1?
+    " Starter preparation: fill every available cell with the base Sushi.":
+    pending.length?" Coverage recovery: "+pending.length+
+     " previously missed cookable Knowledge tiers are prioritized.":""));
+  let last=-2,segment=0,coverageUsed=0;
   for(const i of available){
    if(frames.length>=maxActions)break;
    if(i!==last+1)segment=0;
    const phase=segment+Math.max(0,Math.floor(Number(recipeOffset)||0));
    let tier=requestedTier;
-   if(pattern==="wind"){
+   if(mode==="balanced"&&coverageUsed<pending.length){
+    tier=pending[coverageUsed++]-guaranteedBonus;
+   }else if(mode==="balanced"&&round===1){
+    tier=requestedTier;
+   }else if(pattern==="wind"){
     const offsets=[0,0,1,2,3,4,5,6];
     tier=Math.max(1,requestedTier-offsets[phase%offsets.length]);
    }else if(pattern==="longWind"){
@@ -357,14 +383,14 @@ export function simulateContinuousKnowledgeRotation({
    "Preparation preview limit reached; banked Sushi carry forward":
    "Focused preparation stopped without an actionable refill";
  }else{
- // The imported board may already be full; first create room only by merging.
+ // Balanced starts from a full, chosen starter-tier preparation; it
+ // expands tier coverage through later refills, without reusing the
+ // arbitrary imported Sushi inventory.
  for(let wave=1;wave<=Math.max(1,Math.min(16,Math.floor(rounds)||6));wave++){
   if(frames.length>=maxActions){haltReason="Replay step limit reached";break;}
-  if(wave>1&&mode==="balanced"&&balancedComplete()){completed=true;haltReason="One T64 remains";break;}
   record("wave","Merge and refill wave "+wave,
    "Merge matching tiers and East Wind cascades, park survivors, and refill only empty slots.");
   mergePass({compressFocus:false});
-  if(mode==="balanced"&&roundsDone>0&&balancedComplete()){completed=true;haltReason="One T64 remains";break;}
   if(mode==="focused"&&canConsolidateFocus()&&focusCount()>=2){
    const was=focusCount();
    mergePass({compressFocus:true});
@@ -388,9 +414,7 @@ export function simulateContinuousKnowledgeRotation({
   fillRound(wave);
   mergePass({compressFocus:false});
   roundsDone++;
-  if(mode==="balanced"&&balancedComplete()){
-   completed=true;haltReason="One T64 remains";break;
-  }
+  if(balancedComplete())markBalancedCompletion();
   if(mode==="focused"&&canConsolidateFocus()&&focusCount()>=2){
    const before=focusCount();
    mergePass({compressFocus:true});
@@ -399,8 +423,9 @@ export function simulateContinuousKnowledgeRotation({
   parkLeftovers();
  }
  }
- if(!haltReason)haltReason=completed?"Rotation completed":
-  roundsDone>=rounds?"Reached the preview refill limit":"No further legal progress";
+ if(!haltReason)haltReason=roundsDone>=rounds?
+  "Reached the requested preview refill limit":
+  completed?"Balanced rotation completed":"No further legal progress";
  const final=board.slice();
  record(completed?"repeat":"partial",
   completed?"Balanced terminal reached":"Current rotation progress",
@@ -418,7 +443,10 @@ export function simulateContinuousKnowledgeRotation({
   active:occupied(final),cooks,merges,moves,windEvents,fuel,
   gains,totalExp,reason:haltReason,
   // This preview is a finite window; not all windows are steady-state.
-  packingMode,recipeOffset,protectedIndices:[...protectedSet],
-  repeatable:completed&&mode==="balanced"
+  packingMode,recipeOffset,balancedCycles,
+  coveredTiers:discoveredCoverage.filter(t=>gains[t]>0),
+  uncoveredTiers:discoveredCoverage.filter(t=>gains[t]===0),
+  protectedIndices:[...protectedSet],
+  repeatable:completed&&mode==="balanced"&&balancedComplete()
  };
 }
