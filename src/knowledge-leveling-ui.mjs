@@ -6,6 +6,7 @@ import {parseGameQuantity} from "./progression-calibration.mjs?v=1.17.1";
 import {normalizeKnowledgeCycleOptions}
  from "./knowledge-cycle-optimizer.mjs?v=1.0.1";
 import {createReplayController} from "./replay-controller.mjs";
+import {combineKnowledgeContinuation} from "./knowledge-rotation-extension.mjs?v=1.0.0";
 
 const $=id=>document.getElementById(id);
 const elem=(tag,cls="",value)=>{
@@ -498,7 +499,7 @@ export function initializeKnowledgeLevelingUI(getSave){
   });
   continueButton.classList.toggle("hidden",!(p.mode==="balanced"&&
    p.roundsCompleted===p.roundsRequested&&p.roundsRequested<64&&
-   !p.rotationTerminal&&!/step limit|action limit/i.test(p.haltReason)));
+   !p.rotationTerminal&&/requested preview refill limit/i.test(p.haltReason)));
   continueButton.disabled=false;
   const initial=Math.min(resumeIndex??p.preparedStep??0,p.steps.length-1);
   if(initial>0)controller.goTo(initial);
@@ -542,7 +543,7 @@ export function initializeKnowledgeLevelingUI(getSave){
   build.disabled=true;cancelButton.classList.remove("hidden");
   status.textContent="Simulating multi-refill Sushi rotations, East Wind merges and Lithium/Fuel trade-offs…";
   try{
-   const search=new Worker(new URL("./knowledge-cycle-worker.mjs?v=1.0.14",
+   const search=new Worker(new URL("./knowledge-cycle-worker.mjs?v=1.0.15",
     import.meta.url),{type:"module"});
    worker=search;
    search.onmessage=event=>{
@@ -585,19 +586,20 @@ export function initializeKnowledgeLevelingUI(getSave){
  continueButton.addEventListener("click",()=>{
   if(worker||!result||result.mode!=="balanced"||
     result.roundsCompleted!==result.roundsRequested||
-    result.roundsRequested>=64||result.rotationTerminal)return;
+    result.rotationTerminal)return;
   const previous=result;
   const previousStep=controller?.step??previous.steps.length-1;
   const save=getSave();
   if(!save){status.textContent="Import your game save before continuing.";return;}
   // Re-simulate with the SAME winning recipe. Check the full earlier replay
   // prefix before showing extra waves; never substitute a different candidate.
-  const nextRounds=Math.min(64,previous.roundsRequested+6);
+  const additionalWaves=6;
+  const nextRounds=previous.roundsRequested+additionalWaves;
   continueButton.disabled=true;build.disabled=true;
   cancelButton.classList.remove("hidden");
   status.textContent="Continuing the same Balanced rotation through refill "+nextRounds+"…";
   try{
-   const search=new Worker(new URL("./knowledge-cycle-worker.mjs?v=1.0.14",
+   const search=new Worker(new URL("./knowledge-cycle-worker.mjs?v=1.0.15",
     import.meta.url),{type:"module"});
    worker=search;
    search.onmessage=event=>{
@@ -609,17 +611,13 @@ export function initializeKnowledgeLevelingUI(getSave){
      status.textContent="Unable to continue: "+(msg?.error??msg?.result?.reason??"Unknown error");
      return;
     }
-    const plan=msg.result;
-    const prefix=previous.steps.slice(0,-1);
-    const consistent=plan.steps.length>previous.steps.length&&
-     prefix.every((frame,i)=>{
-      const next=plan.steps[i];
-      return next?.kind===frame.kind&&next?.src===frame.src&&next?.dst===frame.dst&&
-       frame.board.every((tier,j)=>next.board[j]===tier);
-     });
-    if(!consistent){
+    let plan;
+    try{
+     plan=combineKnowledgeContinuation(previous,msg.result.rotation,additionalWaves);
+    }catch(error){
      jumpToNextRefill=false;continueButton.disabled=false;
-     status.textContent="Continuation could not reproduce the previous walkthrough exactly. Your existing steps were kept. Rebuild if account settings have changed.";
+     status.textContent="Continuation failed validation: "+String(error.message??error)+
+      ". Your previous walkthrough was retained.";
      return;
     }
     renderSummary(plan);renderDesignedBoard(plan);renderPassive(plan);showProgress(plan);
@@ -643,10 +641,15 @@ export function initializeKnowledgeLevelingUI(getSave){
     stopSearch();jumpToNextRefill=false;continueButton.disabled=false;
     status.textContent="Continuation worker failed; the previous walkthrough was retained.";
    };
-   search.postMessage({save,options:{
-    ...previous.options,mode:"balanced",
-    preservePassive:previous.options.preservePassive===true,
-    rounds:nextRounds,resumeRecipe:previous.resumeRecipe
+   search.postMessage({save,waves:additionalWaves,continuation:{
+    mode:"balanced",completed:previous.completed,
+    options:previous.options,finalBoard:previous.finalBoard,
+    slots:previous.layout.slots,protectedIndices:previous.protectedIndices,
+    proposedFires:previous.proposedFires,
+    guaranteedCookBonus:previous.guaranteedCookBonus,windCap:previous.windCap,
+    startCookTier:previous.startCookTier,startingPattern:previous.startingPattern,
+    recipeOffset:previous.recipeOffset,packingMode:previous.packingMode,
+    roundsCompleted:previous.roundsCompleted,targetTier:previous.targetTier
    }});
   }catch(error){
    stopSearch();jumpToNextRefill=false;continueButton.disabled=false;
