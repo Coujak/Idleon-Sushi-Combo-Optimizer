@@ -116,6 +116,7 @@ test("Refills after a T2-only start preserve the T64 and every legal change",()=
   rounds:3,pattern:"uniform",maximumActions:1000
  });
  assert.equal(result.valid,true);
+ console.log("T2-only start, 3-refill preview:",JSON.stringify({maxTier:result.highestTier,refills:result.rounds,cooks:result.cooks,merges:result.merges,windUpgrades:result.windEvents,remaining:result.active}));
  assert.deepEqual(result.initialBoard,initial);
  assert.ok(result.frames.some(frame=>frame.kind==="refill"));
  assert.ok(result.frames.some(frame=>frame.kind==="cook"));
