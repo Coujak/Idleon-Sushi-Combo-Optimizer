@@ -1,9 +1,9 @@
-// Whether a Balanced walkthrough can make another legal move or refill.
+// Whether a Knowledge walkthrough can make another legal move or refill.
 // Refills and action budgets are preview boundaries, not game completion.
 import {simulateMerge} from "./optimizer-core.mjs";
 
-export function canExtendBalancedRotation(plan){
- if(plan?.mode!=="balanced"||plan?.completed||plan?.rotationTerminal||
+export function canExtendKnowledgeRotation(plan){
+ if(!["balanced","focused"].includes(plan?.mode)||plan?.completed||plan?.rotationTerminal||
    !Array.isArray(plan.finalBoard)||!Array.isArray(plan.layout?.slots)||
    plan.finalBoard.length!==120||plan.layout.slots.length!==120)return false;
  const slots=plan.layout.slots;
@@ -37,3 +37,6 @@ export function canExtendBalancedRotation(plan){
  }
  return false;
 }
+
+// Preserve compatibility with the existing Balanced usage and tests.
+export const canExtendBalancedRotation=canExtendKnowledgeRotation;
