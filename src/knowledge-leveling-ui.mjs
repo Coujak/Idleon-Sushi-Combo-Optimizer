@@ -520,7 +520,7 @@ export function initializeKnowledgeLevelingUI(getSave){
   build.disabled=true;cancelButton.classList.remove("hidden");
   status.textContent="Simulating multi-refill Sushi rotations, East Wind merges and Lithium/Fuel trade-offs…";
   try{
-   const search=new Worker(new URL("./knowledge-cycle-worker.mjs?v=1.0.10",
+   const search=new Worker(new URL("./knowledge-cycle-worker.mjs?v=1.0.11",
     import.meta.url),{type:"module"});
    worker=search;
    search.onmessage=event=>{
