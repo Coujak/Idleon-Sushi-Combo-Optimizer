@@ -440,9 +440,9 @@ export function simulateContinuousKnowledgeRotation({
   "Reached the requested preview refill limit":
   completed?"Balanced rotation completed":"No further legal progress";
  const final=board.slice();
- record(completed?"repeat":"partial",
-  completed?"New T64 created · full Balanced rotation":"Current rotation progress",
-  completed?"A new T64 was created by the final legal merge or Wind cascade. Rotation complete.":
+ // The new T64 creation is itself the LAST replay action: never add
+ // an extra progress frame after a completed Balanced rotation.
+ if(!completed)record("partial","Current rotation progress",
   haltReason+". All surviving Sushi remain on the board for the next refill.");
  const totalExp=gains.reduce((a,b)=>a+b,0);
  return {
