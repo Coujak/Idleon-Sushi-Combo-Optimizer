@@ -1,0 +1,8 @@
+# Local search checkpoints contain unencrypted private board and replay data.
+research/results/
+sweep-30-to-10.json
+# Never publish local passphrase files or private research plaintext exports.
+*.secret
+*.secret.txt
+private/*.plaintext.json
+private/*.unencrypted.json
