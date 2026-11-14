@@ -115,6 +115,10 @@ export function initializeKnowledgeLevelingUI(getSave){
   if(state.targetTier!==null)target.value=String(state.targetTier);
   targetLabel.classList.toggle("hidden",mode.value!=="focused");
   $("knowledgePlanNextHarvest").classList.toggle("hidden",mode.value!=="focused");
+  const strategyDetail=$("knowledgePlanStrategyDetail");
+  if(strategyDetail)strategyDetail.textContent=mode.value==="focused"?
+   "Focused · build and bank copies of the selected Sushi tier, then harvest when space runs out. Continue as long as legal preparation is possible.":
+   "Balanced · distribute active Knowledge EXP across tiers with a descending staircase while working toward a newly created T64.";
  }
  function calibration(){
   const options={
@@ -145,24 +149,38 @@ export function initializeKnowledgeLevelingUI(getSave){
     "starting T"+p.startCookTier+" · "+p.cooks+" cooks · "+p.merges+" merges · "+p.moves+" Sushi moves · "+
     p.windEvents+" Wind upgrades"));
   summary.append(heading);
-  const grid=elem("div","lab-kp-stats");
-  for(const [label,value] of [
+  // Match Perfecto's result hierarchy: four primary KPIs, with the
+  // supporting diagnostics still available but out of the main visual flow.
+  const primary=p.mode==="focused"?[
+   ["T"+p.targetTier+" created",compact(p.targetCreated)],
+   ["T"+p.targetTier+" Knowledge EXP",compact(p.targetExp)],
+   ["Peak copies on board",compact(p.peakTargetCopies)],
+   ["Batch harvests",compact(p.harvestCount)]
+  ]:[
+   ["Knowledge coverage",p.coverageTotal+" / "+p.coverageRequested],
+   ["Active EXP / preview",compact(p.totalExpPerCycle)],
+   ["Highest newly created","T"+p.highestNewTier],
+   ["Refills simulated",compact(p.roundsCompleted)]
+  ];
+  const primaryGrid=elem("div","lab-kp-stats lab-kp-primary-stats");
+  primary.forEach(([label,value],i)=>{
+   const card=metric(label,value);
+   if(i===0)card.classList.add("is-primary");
+   primaryGrid.append(card);
+  });
+  summary.append(primaryGrid);
+  const secondary=[
    ...(p.mode==="focused"?[
-    ["T"+p.targetTier+" created",compact(p.targetCreated)],
-    ["Peak T"+p.targetTier+" on board",compact(p.peakTargetCopies)+" copies"],
-    ["T"+p.targetTier+" Knowledge EXP",compact(p.targetExp)],
-    ["Batch harvests",compact(p.harvestCount)],
-    ["T"+p.targetTier+" consumed in harvest",compact(p.targetMergedInHarvest)]
+    ["T"+p.targetTier+" consumed in harvest",compact(p.targetMergedInHarvest)],
+    ["T"+p.targetTier+" still on board",compact(p.focusCopies)],
+    ["Highest newly created tier","T"+p.highestNewTier]
    ]:[
-    ["Knowledge coverage",p.coverageTotal+" / "+p.coverageRequested+" tiers"],
     ["Tiers missing active EXP",String(p.uncoveredTiers.length)],
     ["Completed T64 rotations",String(p.balancedCycles)],
-    ["EXP / preview",compact(p.totalExpPerCycle)],
     ["Survivor parking",p.packingMode==="ascending"?"Staircase low → high":
-      p.packingMode==="descending"?"Staircase high → low":"Simple parking"]
+     p.packingMode==="descending"?"Staircase high → low":"Simple parking"]
    ]),
-   ["Highest newly created tier","T"+p.highestNewTier],
-   ["Refills",p.roundsCompleted+" / "+p.roundsRequested],
+   ...(p.mode==="focused"?[["Refills simulated",p.roundsCompleted+" / "+p.roundsRequested]]:[]),
    ["Starting cook tier","T"+p.startCookTier+
     (p.firstCookResultTier!==undefined&&p.firstCookResultTier!==p.startCookTier?
      " → T"+p.firstCookResultTier:"")],
@@ -170,9 +188,20 @@ export function initializeKnowledgeLevelingUI(getSave){
     compact(p.refillFuelSafety.budget)],
    ["Projected active EXP / hr",rate(p.previewExpPerHour)],
    ["Estimated fuel / preview",compact(p.fuelPerCycle)],
-   ["Fireplace scenario",p.fireChoice]
-  ])grid.append(metric(label,value));
-  summary.append(grid);
+   ["Fireplace scenario",p.fireChoice],
+   ["Sushi cooked",compact(p.cooks)],
+   ["Legal merges",compact(p.merges)],
+   ["Sushi moves",compact(p.moves)],
+   ["East Wind upgrades",compact(p.windEvents)]
+  ];
+  const metricsOpen=summary.querySelector(".lab-kp-more-metrics")?.open??false;
+  const more=elem("details","lab-kp-more-metrics");
+  more.open=metricsOpen;
+  more.append(elem("summary","","All plan metrics · cooking, Fuel, and EXP estimates"));
+  const grid=elem("div","lab-kp-stats lab-kp-secondary-stats");
+  secondary.forEach(([label,value])=>grid.append(metric(label,value)));
+  more.append(grid);
+  summary.append(more);
   if(p.mode==="balanced"){
    if(p.startingPattern==="t1Climb"){
     const actual=p.firstCookResultTier??p.startCookTier;
@@ -262,8 +291,12 @@ export function initializeKnowledgeLevelingUI(getSave){
  function renderDesignedBoard(p){
   recommendedBoard.replaceChildren();
   recommendedBoard.classList.remove("hidden");
+  const sectionHead=elem("div","lab-kp-section-head");
+  sectionHead.append(elem("h3","","2 · Prepared Sushi board"),
+   elem("span","lab-kp-section-tag","Account-specific candidate"));
+  recommendedBoard.append(sectionHead);
   const area=elem("section","lab-kp-design-panel");
-  area.append(elem("h3","","Recommended prepared Sushi board"),
+  area.append(elem("h3","","Recommended preparation"),
    elem("p","hint","This is the strongest candidate recipe found by the bounded "+
     "search, NOT your current inventory. Sushi ingredients are cooked into "+
     "empty cells in the walkthrough; the highest-tier existing Sushi stays "+
@@ -478,6 +511,21 @@ export function initializeKnowledgeLevelingUI(getSave){
   }
   board.append(fireRow);
   $("knowledgePlanStepTitle").textContent="Step "+index+" · "+frame.title;
+  const kind=$("knowledgePlanStepKind");
+  if(kind){
+   const event=frame.kind==="merge"&&frame.events?.some(e=>e.kind==="wind")?
+    "wind":frame.kind;
+   const captions={start:"START",wave:"WAVE",refill:"REFILL",cook:"COOK",
+    merge:"MERGE",move:"MOVE",stage:frame.phase==="harvest"?"HARVEST":"PREPARE",
+    wind:"WIND CASCADE",partial:"PREVIEW LIMIT",repeat:"COMPLETE"};
+   kind.textContent=captions[event]??String(event??"STEP").toUpperCase();
+   kind.className="lab-kp-step-kind kind-"+event;
+  }
+  const replayProgress=$("knowledgePlanReplayProgress");
+  if(replayProgress){
+   replayProgress.max=Math.max(1,result.steps.length-1);
+   replayProgress.value=index;
+  }
   $("knowledgePlanStepDetail").textContent=frame.detail;
   $("knowledgePlanStepCount").textContent=index+" / "+(result.steps.length-1);
   $("knowledgePlanStepXp").textContent="EXP in step: "+compact(frame.exp);
