@@ -55,6 +55,13 @@ test("A +5-refill click is one worker batch",()=>{
  assert.equal(h.posted.filter(item=>item.progress).length,1);
  assert.equal(h.posted.at(-1).result.completedWaves,5);
 });
+test("The recording's 510-refill case advances by 26 waves in one click",()=>{
+ const h=request(510,knowledgeContinueWaveCount(510));
+ assert.deepEqual(h.calls.map(call=>call.waves),[6,6,6,6,2]);
+ assert.equal(h.posted.at(-1).result.completedWaves,26);
+ assert.equal(h.posted.at(-2).totalRefills,536);
+});
+
 test("A +50-refill click runs nine safe batches without overshooting",()=>{
  const h=request(1000,knowledgeContinueWaveCount(1000));
  assert.deepEqual(h.calls.map(call=>call.waves),
