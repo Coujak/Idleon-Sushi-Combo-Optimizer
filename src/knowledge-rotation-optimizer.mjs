@@ -119,10 +119,10 @@ export function optimizeKnowledgeRotation(save,rawOptions={}){
    modeled/baselineRate*options.fuelGeneration:modeled;
  };
  const rounds=Math.max(1,Math.min(12,Math.floor(num(rawOptions?.rounds))||6));
- // Continuous Balanced refills benefit from keeping the leftover tiers in a
- // stable staircase rather than scattering them through the refill area.
- // Keep the original strategy as a comparison; Focused retains target parking.
- const packingModes=options.mode==="balanced"?["simple","ascending","descending"]:["simple"];
+ // Compare legal survivor parking and descending East Wind staircases,
+ // without consuming banked target copies during focused preparation.
+ const packingModes=options.mode==="balanced"?
+  ["simple","ascending","descending"]:["simple","descending"];
  let best=null,candidates=0;
  for(const cookTier of bases){
   for(const pattern of options.mode==="focused"?["uniform","wind","paired"]:["wind","paired"]){
@@ -156,14 +156,6 @@ export function optimizeKnowledgeRotation(save,rawOptions={}){
     const passivePerDay=passiveStart.expPerDay.map((v,t)=>
      (v+passiveEnd.expPerDay[t])/2);
     const focus=rotation.gains[targetTier]||0;
-    const peakCreated=rotation.frames.reduce((best,frame)=>
-     Math.max(best,...frame.events.filter(e=>
-      e.kind==="cook"||e.kind==="merge"||e.kind==="wind").map(e=>e.tier),0),0);
-    // When no T58 is yet attainable within the bounded preview,
-    // prioritize real progress toward T58 rather than a cheap T2 loop.
-    const progressRate=rotation.gains.reduce((n,x,i)=>n+
-     (i<targetTier?x*Math.pow(i/targetTier,4):0),0)*
-      3600/durationSeconds;
     const score=expFairness(rotation.gains,durationSeconds,
      eligible.map(x=>x.tier),passivePerDay)+
       (rotation.completed?100:0)+rotation.highestTier*.01;
@@ -176,8 +168,8 @@ export function optimizeKnowledgeRotation(save,rawOptions={}){
      Math.max(high,...frame.events.filter(e=>e.tier<=targetTier&&
       ["cook","merge","wind"].includes(e.kind)).map(e=>e.tier),0),0);
     const rank=options.mode==="focused"?[
-     rotation.targetCreated, precursor,
-     focus, rotation.peakTargetCopies, rotation.harvested,
+     rotation.targetCreated, rotation.peakTargetCopies,
+     focus, precursor, rotation.harvested,
      -durationSeconds
     ]:null;
     const beatsRank=(a,b)=>{
