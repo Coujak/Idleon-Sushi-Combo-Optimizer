@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import {optimizeKnowledgeRotation} from "../src/knowledge-rotation-optimizer.mjs";
+import {optimizeKnowledgeRotation,continueKnowledgeRotation} from "../src/knowledge-rotation-optimizer.mjs";
 import {simulateMerge,simulateRelocation} from "../src/optimizer-core.mjs";
 function account(){
  const slots=Array(120).fill(-1),tiles=Array(120).fill(-1),
@@ -153,4 +153,25 @@ test("Integrated Balanced strategy cooks the lowest T1 and extends the exact sam
   assert.deepEqual(b.board,a.board);
   assert.deepEqual(b.events,a.events);
  }
+});
+
+test("Continue optimizer extends from the current board rather than rebuilding an earlier sweep",()=>{
+ const save=account();
+ const plan=optimizeKnowledgeRotation(save,{...options,rounds:2});
+ assert.equal(plan.available,true,plan.reason);
+ const snapshot={
+  mode:plan.mode,completed:plan.completed,options:plan.options,
+  finalBoard:plan.finalBoard,slots:plan.layout.slots,
+  protectedIndices:plan.protectedIndices,proposedFires:plan.proposedFires,
+  guaranteedCookBonus:plan.guaranteedCookBonus,windCap:plan.windCap,
+  startCookTier:plan.startCookTier,startingPattern:plan.startingPattern,
+  recipeOffset:plan.recipeOffset,packingMode:plan.packingMode,
+  roundsCompleted:plan.roundsCompleted,targetTier:plan.targetTier
+ };
+ const next=continueKnowledgeRotation(save,snapshot,6);
+ assert.equal(next.available,true,next.reason);
+ assert.equal(next.rotation.initialBoard.length,120);
+ assert.deepEqual(next.rotation.initialBoard,plan.finalBoard);
+ assert.ok(next.rotation.frames.every(f=>f.board[11]===12));
+ assert.ok(next.rotation.rounds>0||next.rotation.completed);
 });
