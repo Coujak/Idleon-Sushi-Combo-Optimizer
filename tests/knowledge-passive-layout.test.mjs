@@ -28,7 +28,7 @@ test("Pink Cold T64 and Pink Milktoast T64 give passive EXP to all 64 Sushi tier
  assert.equal(projection.expPerDay[64],2);
  assert.equal(projection.coldSources,1);
  assert.equal(projection.milktoastSources,2);
- assert.equal(projection.totalDaily,63*0.4+2+2);
+ assert.ok(Math.abs(projection.totalDaily-(63*0.4+2+2))<1e-9);
 });
 
 test("Cold T52 plus Milktoast T53-T64 leaves T52 uncovered",()=>{
