@@ -32,6 +32,40 @@ test("Uses effective upgrade bonuses including Doubler, Knowledge bonuses, and L
  assert.equal(xp.expAt(fires,18),22.5);
  assert.equal(xp.expAt(fires,4),11.25);
 });
+test("Lithium includes Sushi Knowledge Fireplace Strength and Sparks rather than fixed 2x",()=>{
+ const boostedKnowledge=[
+  ...knowledgeRows,
+  {tier:44,category:9,bonus:40,discovered:true},
+  {tier:52,category:9,bonus:10,discovered:true},
+  {tier:59,category:9,bonus:999,discovered:false}
+ ];
+ const sparks=1024;
+ const exp=calculateKnowledgeCreationExp({
+  upgradeRows,knowledgeRows:boostedKnowledge,
+  lithiumUnlocked:true,sparks
+ });
+ const sparkBonus=0.2*Math.log2(sparks)+Math.log10(sparks);
+ const strength=1.5*(1+sparkBonus/100);
+ const multiplier=1+strength;
+ assert.equal(exp.fireplaceKnowledgeBonus,50);
+ assert.ok(Math.abs(exp.fireplaceSparkBonus-sparkBonus)<1e-12);
+ assert.ok(Math.abs(exp.fireplaceStrength-strength)<1e-12);
+ assert.ok(Math.abs(exp.pinkMultiplier-multiplier)<1e-12);
+ assert.ok(Math.abs(exp.pink-11.25*multiplier)<1e-10);
+ assert.equal(exp.regular,11.25);
+ assert.equal(exp.sparksKnown,true);
+ const noSparks=calculateKnowledgeCreationExp({
+  upgradeRows,knowledgeRows:boostedKnowledge,lithiumUnlocked:true
+ });
+ assert.equal(noSparks.sparksKnown,false);
+ assert.equal(noSparks.pinkMultiplier,2.5);
+ const manual=calculateKnowledgeCreationExp({
+  upgradeRows,knowledgeRows:boostedKnowledge,lithiumUnlocked:true,sparks,
+  options:{lithiumMultiplier:2.25}
+ });
+ assert.equal(manual.pinkMultiplier,2.25);
+ assert.equal(manual.manualLithium,true);
+});
 test("Manual EXP base calibration overrides only the base, not the multipliers",()=>{
  const profile=calculateKnowledgeCreationExp({
   upgradeRows,knowledgeRows,lithiumUnlocked:true,
