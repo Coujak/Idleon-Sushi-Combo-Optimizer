@@ -104,3 +104,40 @@ test("User-facing Knowledge planner has a standalone designed-board preview",()=
  assert.match(ui,/p\.preparedBoard\[i\]/);
  assert.match(ui,/p\.preparedStep/);
 });
+
+test("Different candidate ingredient offsets give distinct, legally cookable prepared boards",()=>{
+ const source=layout();
+ const d=designKnowledgeStartingBoard(source);
+ const plans=[0,3].map(recipeOffset=>simulateContinuousKnowledgeRotation({
+  startingBoard:d.board,slots:source.slots,mode:"focused",
+  targetTier:58,requestedTier:22,recipeOffset,
+  guaranteedBonus:0,windCap:58,chain:25,
+  expAt:()=>1,cookCost:()=>1,rounds:1,
+  pattern:"wind",protectedIndices:d.protectedIndices,
+  startingContext:"designed",maximumActions:1200
+ }));
+ const boards=plans.map(p=>captureKnowledgePreparedBoard(p.frames,d.board));
+ assert.equal(boards.every(x=>x.ready),true);
+ assert.notDeepEqual(boards[0].board,boards[1].board);
+ assert.equal(boards[0].board.filter(x=>x>0).length,100);
+ assert.equal(boards[1].board.filter(x=>x>0).length,100);
+ assert.equal(boards.every(x=>x.board[99]===64),true);
+ assert.equal(boards.every(x=>x.cooks===99),true);
+ for(const p of plans){
+  let previous=p.frames[0].board;
+  for(const frame of p.frames.slice(1)){
+   if(frame.kind==="cook"){
+    assert.equal(previous[frame.at],0);
+    assert.equal(frame.events.length,1);
+    assert.ok(frame.events[0].tier>0&&frame.events[0].tier<=22);
+   }else if(frame.kind==="merge")
+    assert.deepEqual(frame.board,simulateMerge(
+     previous,frame.src,frame.dst,58,25,64)?.board);
+   else if(frame.kind==="move")
+    assert.deepEqual(frame.board,simulateRelocation(
+     previous,frame.src,frame.dst,source.slots,64)?.board);
+   else assert.deepEqual(frame.board,previous);
+   previous=frame.board;
+  }
+ }
+});
