@@ -266,7 +266,7 @@ export function initializeKnowledgeLevelingUI(getSave){
   if(!result)return;
   const frame=result.steps[index];if(!frame)return;
   const slots=result.layout.slots;
-  const passiveProtected=new Set(result.protectedIndices??[]);
+  const passiveProtected=new Set(frame.protectedIndices??result.protectedIndices??[]);
   const changed=new Set((frame.events??[]).map(e=>e.at));
   if(frame.src!==undefined)changed.add(frame.src);
   if(frame.dst!==undefined)changed.add(frame.dst);
