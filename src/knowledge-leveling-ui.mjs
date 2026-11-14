@@ -10,6 +10,8 @@ import {combineKnowledgeContinuation} from "./knowledge-rotation-extension.mjs?v
 import {canExtendBalancedRotation} from "./knowledge-rotation-continuation-eligibility.mjs?v=1.0.0";
 
 const $=id=>document.getElementById(id);
+const createKnowledgeWorker=()=>new Worker(new URL("./knowledge-cycle-worker.mjs?v=1.0.18",
+ import.meta.url),{type:"module"});
 const elem=(tag,cls="",value)=>{
  const node=document.createElement(tag);
  if(cls)node.className=cls;
@@ -545,8 +547,7 @@ export function initializeKnowledgeLevelingUI(getSave){
   build.disabled=true;cancelButton.classList.remove("hidden");
   status.textContent="Simulating multi-refill Sushi rotations, East Wind merges and Lithium/Fuel trade-offs…";
   try{
-   const search=new Worker(new URL("./knowledge-cycle-worker.mjs?v=1.0.17",
-    import.meta.url),{type:"module"});
+   const search=createKnowledgeWorker();
    worker=search;
    search.onmessage=event=>{
     if(worker!==search)return; // A new search replaced this one.
@@ -604,8 +605,7 @@ export function initializeKnowledgeLevelingUI(getSave){
   cancelButton.classList.remove("hidden");
   status.textContent="Continuing the same Balanced rotation through refill "+nextRounds+"…";
   try{
-   const search=new Worker(new URL("./knowledge-cycle-worker.mjs?v=1.0.16",
-    import.meta.url),{type:"module"});
+   const search=createKnowledgeWorker();
    worker=search;
    search.onmessage=event=>{
     if(worker!==search)return;
@@ -638,13 +638,14 @@ export function initializeKnowledgeLevelingUI(getSave){
       Math.max(0,previous.steps.length-1)));
     }
     jumpToNextRefill=false;
-    status.textContent="Balanced rotation extended to "+
-     plan.roundsCompleted+" / "+plan.roundsRequested+
-     " refills. All earlier steps were preserved."+
+    status.textContent="Balanced rotation extended through refill "+
+     plan.roundsCompleted+". Highest newly created tier: T"+
+     plan.highestNewTier+". All earlier steps and surviving Sushi were preserved."+
      (plan.rotationTerminal?
       " Full rotation complete: a new T64 was created.":
       plan.roundsCompleted<plan.roundsRequested?
-      " Stopped early: "+plan.haltReason:"");
+      " This chunk reached a safety limit; you can continue from its final board.":
+      " More refill waves are available.");
    };
    search.onerror=()=>{
     if(worker!==search)return;
