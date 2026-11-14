@@ -57,8 +57,8 @@ export function initializeKnowledgeLevelingUI(getSave){
  let result=null,controller=null,worker=null;
  try{
   const old=JSON.parse(window.localStorage.getItem(preferenceKey)||"null");
-  state={...normalizeKnowledgeCycleOptions(old),preservePassive:old?.preservePassive!==false};
- }catch{state={...normalizeKnowledgeCycleOptions(),preservePassive:true};}
+  state={...normalizeKnowledgeCycleOptions(old),preservePassive:old?.preservePassive===true};
+ }catch{state={...normalizeKnowledgeCycleOptions(),preservePassive:false};}
  mode.value=state.mode;
  passiveToggle.checked=state.preservePassive;
  const persist=()=>{
@@ -90,6 +90,7 @@ export function initializeKnowledgeLevelingUI(getSave){
   state.targetTier=candidates.some(x=>x.tier===old)?old:candidates[0]?.tier??null;
   if(state.targetTier!==null)target.value=String(state.targetTier);
   targetLabel.classList.toggle("hidden",mode.value!=="focused");
+  $("knowledgePlanNextHarvest").classList.toggle("hidden",mode.value!=="focused");
  }
  function calibration(){
   const options={
@@ -122,17 +123,23 @@ export function initializeKnowledgeLevelingUI(getSave){
   summary.append(heading);
   const grid=elem("div","lab-kp-stats");
   for(const [label,value] of [
-   ["EXP / preview",compact(p.totalExpPerCycle)],
-   ["Hybrid EXP / hr",rate(p.hybridPreviewExpPerHour)],
-   ["Preview duration",formatHours(p.cycleSeconds/3600)],
-   ["Fuel / preview",compact(p.fuelPerCycle)],
-   ["Modeled Fuel / hr",compact(p.estimatedFuelGeneration)],
-   ["Passive EXP / day",compact(p.passive.averageTotalPerDay)],
-    ["Fireplace scenario",p.fireChoice],
-   ["Highest tier produced","T"+p.highestNewTier],
-   ["Survivor parking",p.packingMode==="ascending"?"Staircase low → high":
-     p.packingMode==="descending"?"Staircase high → low":"Simple parking"],
-   ["Refill waves",p.roundsCompleted+" / "+p.roundsRequested]
+   ...(p.mode==="focused"?[
+    ["T"+p.targetTier+" created",compact(p.targetCreated)],
+    ["Largest prepared batch",compact(p.peakTargetCopies)+" copies"],
+    ["T"+p.targetTier+" Knowledge EXP",compact(p.targetExp)],
+    ["Batch harvests",compact(p.harvestCount)],
+    ["T"+p.targetTier+" consumed in harvest",compact(p.targetMergedInHarvest)]
+   ]:[
+    ["EXP / preview",compact(p.totalExpPerCycle)],
+    ["Survivor parking",p.packingMode==="ascending"?"Staircase low → high":
+      p.packingMode==="descending"?"Staircase high → low":"Simple parking"]
+   ]),
+   ["Highest newly created tier","T"+p.highestNewTier],
+   ["Refills",p.roundsCompleted+" / "+p.roundsRequested],
+   ["Starting cook tier","T"+p.startCookTier],
+   ["Projected active EXP / hr",rate(p.previewExpPerHour)],
+   ["Estimated fuel / preview",compact(p.fuelPerCycle)],
+   ["Fireplace scenario",p.fireChoice]
   ])grid.append(metric(label,value));
   summary.append(grid);
   if(p.mode==="focused"){
@@ -144,7 +151,7 @@ export function initializeKnowledgeLevelingUI(getSave){
       "Passive "+compact(focus.passiveExpPerDay)+" EXP/day = "+
       rate(focus.expPerHour)+" hybrid EXP/hr · "+
       "Next level: "+formatHours(focus.etaHours)+
-      " · "+p.focusCopies+" copies on board"));
+      " · "+p.focusCopies+" copies remain on board"));
     summary.append(box);
    }
   }
@@ -155,6 +162,20 @@ export function initializeKnowledgeLevelingUI(getSave){
     p.proposedFires.filter(x=>x>=0).length+" available fireplaces set to pink.",
     "lab-kp-lithium");
   }
+  if(p.mode==="focused"&&p.targetPreviewIncomplete)
+   addNote(summary,"No T"+p.targetTier+" was created within "+
+    p.roundsCompleted+" preview refill waves. The displayed sequence is "+
+    "preparation progress, NOT a completed T"+p.targetTier+" harvest.",
+    "lab-kp-warning");
+  else if(p.mode==="focused"&&!p.harvestCount)
+   addNote(summary,"T"+p.targetTier+" copies are banked; the board has "+
+    "not yet reached a harvest point. Continue preparation rather than "+
+    "merging them prematurely.","lab-kp-note");
+  else if(p.mode==="focused")
+   addNote(summary,p.harvestCount+" batch harvest(s) recover space "+
+    "only after preparing T"+p.targetTier+" copies. Harvest merges "+
+    "create higher tiers and do not award additional T"+p.targetTier+
+    " EXP (except capped T64).","lab-kp-note");
   addNote(summary,p.note);
   addNote(summary,"Final board: "+p.stranded+" Sushi · highest working tier T"+p.highestWorkingTier+
    (p.mode==="focused"?" · T"+p.targetTier+" copies: "+p.focusCopies:"")+
@@ -170,8 +191,8 @@ export function initializeKnowledgeLevelingUI(getSave){
   const model=p.passive;
   passiveBox.replaceChildren();
   passiveBox.classList.remove("hidden");
-  const block=elem("div","lab-kp-passive-panel");
-  block.append(elem("h3","","Passive Knowledge setup"),
+  const block=elem("details","lab-kp-passive-panel");
+  block.append(elem("summary","","Optional · Passive Knowledge and suggested Plate setup"),
    elem("p","hint","Imported EXP/day uses your actual Sushi, Plates and fireplaces. "+
     "The suggested EXP/day assumes "+p.fireChoice+" fireplaces and the proposed Plate placement. "+
     "Only Sushi and Plates already on the board are used; the layout is a manual guide, never an automatic replay step."));
@@ -282,6 +303,8 @@ export function initializeKnowledgeLevelingUI(getSave){
    if(slot<0)box.classList.add("locked");
    if(tier===64)box.classList.add("is-protected");
    if(tier&&passiveProtected.has(i))box.classList.add("is-passive-protected");
+   if(result.mode==="focused"&&tier===result.targetTier)
+    box.classList.add("is-focus-target");
    if(changed.has(i))box.classList.add("is-affected");
    if(tier>0){
     const img=elem("img","lab-kp-tile-icon");
@@ -315,6 +338,13 @@ export function initializeKnowledgeLevelingUI(getSave){
   $("knowledgePlanStepXp").textContent="EXP in step: "+compact(frame.exp);
   const earned=result.steps.slice(0,index+1).reduce((s,x)=>s+x.exp,0);
   $("knowledgePlanFrameXp").textContent="Preview EXP so far: "+compact(earned);
+  const progress=$("knowledgePlanFocusProgress");
+  progress.classList.toggle("hidden",result.mode!=="focused");
+  if(result.mode==="focused")progress.textContent=
+   (frame.phase==="harvest"?"HARVEST":"PREPARE")+" T"+result.targetTier+
+   " · "+frame.targetCreated+" created · "+frame.targetCopies+" banked";
+  $("knowledgePlanNextHarvest").disabled=!result.steps.some((f,i)=>
+   i>index&&f.kind==="stage"&&f.phase==="harvest");
   $("knowledgePlanPrev").disabled=index===0;
   $("knowledgePlanNext").disabled=index===result.steps.length-1;
  }
@@ -329,7 +359,8 @@ export function initializeKnowledgeLevelingUI(getSave){
    },
    getDelay:()=>Number(speed.value)
   });
-  const initial=Math.min(p.preparedStep??0,p.steps.length-1);
+  const initial=p.mode==="focused"?0:
+   Math.min(p.preparedStep??0,p.steps.length-1);
   if(initial>0)controller.goTo(initial);
   else renderFrame(0);
  }
@@ -340,9 +371,9 @@ export function initializeKnowledgeLevelingUI(getSave){
    "Lithium Firelighter is 2× Knowledge EXP for Sushi above pink fireplaces; the solver also models reduced Fuel regeneration when orange fireplaces are changed to pink.",
    "The first frame is the imported Sushi board. Survivors are carried forward between refills.",
    "Balanced merges and parks survivors near the top, refills empty cells, and builds toward one T64. T64 + T64 yields one T64.",
-   "Focused accumulates target-tier copies while creating more. When the board fills, matching targets may merge to free space.",
+   "Focused: first produce and bank as many selected-tier Sushi as possible. Only after the board runs out of space does an explicit Harvest phase merge the saved copies into higher tiers. EXP belongs to the newly created tier, not the ingredient being consumed.",
    "Moving Sushi into a vacant slot is a separate action. Movement Mittens toggles dragging to plates; disable it for Sushi repositioning.",
-   "Projected EXP/hr divides simulated creation EXP by estimated time and fuel regeneration. Milktoast and Cold passive EXP are not included.",
+   "Focused search ranks actual target creation events ahead of passive income and cheap lower-tier EXP. Milktoast/Cold passive EXP appears separately as a reference and can be optionally protected, reducing active working space.",
    "The optimizer compares bounded candidate patterns; it does not prove a global optimum or a sustained EXP/hr rate."
   ];
   for(const note of bullets)tips.append(elem("li","",note));
@@ -385,9 +416,14 @@ export function initializeKnowledgeLevelingUI(getSave){
     const plan=msg.result;
     if(!plan.available){status.textContent=plan.reason;return;}
     renderSummary(plan);renderPassive(plan);showProgress(plan);createReplay(plan);
-    status.textContent="Compared "+compact(plan.considered)+
-     " candidates · "+plan.roundsCompleted+" refill waves · "+
-     compact(plan.totalExpPerCycle)+" active EXP · starting T"+plan.startCookTier;
+    status.textContent=plan.mode==="focused"?
+     "Focused T"+plan.targetTier+" · "+compact(plan.targetCreated)+
+      " target creations · peak batch "+compact(plan.peakTargetCopies)+
+      " copies · "+plan.harvestCount+" harvests · "+
+      plan.roundsCompleted+" refills · "+compact(plan.considered)+" candidates":
+     "Compared "+compact(plan.considered)+" candidates · "+
+     plan.roundsCompleted+" refills · "+compact(plan.totalExpPerCycle)+
+     " active EXP";
    };
    search.onerror=event=>{
     if(worker!==search)return;
@@ -411,6 +447,12 @@ export function initializeKnowledgeLevelingUI(getSave){
  $("knowledgePlanNextRefill").addEventListener("click",()=>{
   if(!result||!controller)return;
   const next=result.steps.findIndex((frame,i)=>i>controller.step&&frame.kind==="refill");
+  if(next>=0)controller.goTo(next);
+ });
+ $("knowledgePlanNextHarvest").addEventListener("click",()=>{
+  if(!result||!controller)return;
+  const next=result.steps.findIndex((f,i)=>i>controller.step&&
+   f.kind==="stage"&&f.phase==="harvest");
   if(next>=0)controller.goTo(next);
  });
  $("knowledgePlanPrev").addEventListener("click",()=>controller?.goTo(
