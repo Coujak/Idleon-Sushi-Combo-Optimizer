@@ -229,6 +229,11 @@ export function optimizeKnowledgeRotation(save,rawOptions={}){
   initialProtectedIndices:protectedIndices,
   passive: {
    ...passiveRecommendation,
+   imported:projectPassiveKnowledge(layout.tiles,layout.slots,layout.fires,{
+    lithiumUnlocked:best.xp.lithiumEnabled,
+    lithiumMultiplier:best.xp.lithium,
+    globalMultiplier:best.xp.globalMultiplier
+   }),
    averageExpPerDay:best.passivePerDay,
    averageTotalPerDay:best.passivePerDay.slice(1).reduce((a,v)=>a+v,0),
    averageCovered:best.passivePerDay.slice(1).filter(x=>x>0).length
