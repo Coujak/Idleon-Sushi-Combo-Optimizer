@@ -57,7 +57,7 @@ function startingTiers(economy,guaranteed,options,targetTier,availableSlots=100)
  const requests=options.mode==="focused"?
   [safe,sustainable,max,max-1,max-3,max-5,max-8,max-12,1,
    targetTier-guaranteed]:
-  [safe,sustainable,max,max-2,max-5,max-9,1];
+  [safe,sustainable,max,max-2,max-5,max-9,2,1];
  return unique(requests.filter(x=>valid.includes(x))).slice(0,
   options.mode==="focused"?10:7);
 }
@@ -90,10 +90,10 @@ function fireAlternatives(save,fires){
  return options.filter((choice,i,arr)=>arr.findIndex(x=>
   x.fires.every((v,j)=>v===choice.fires[j]))===i);
 }
-function expFairness(gains,seconds,tiers,passivePerDay=[]){
+function expFairness(gains,seconds,tiers){
  const rate=3600/seconds;
  return tiers.reduce((total,t)=>total+
-  Math.log1p(gains[t]*rate+(passivePerDay[t]??0)/24),0);
+  Math.log1p(gains[t]*rate),0);
 }
 export function optimizeKnowledgeRotation(save,rawOptions={}){
  const options={...normalizeKnowledgeCycleOptions(rawOptions),
@@ -146,12 +146,14 @@ export function optimizeKnowledgeRotation(save,rawOptions={}){
  let best=null,candidates=0;
  const recipePatterns=options.mode==="focused"?
   ["uniform","wind","paired","longWind","widePairs"]:
-  ["wind","paired","longWind"];
+  ["t2Climb","wind","paired","longWind"];
  const recipeVariants=recipePatterns.flatMap(pattern=>
   (pattern==="uniform"?[0]:options.mode==="focused"?[0,3]:[0,2])
    .map(recipeOffset=>({pattern,recipeOffset})));
  for(const cookTier of bases){
   for(const {pattern,recipeOffset} of recipeVariants){
+   // Compare T2-first against adaptive recipes; never fake a T2 starter.
+   if(pattern==="t2Climb"&&cookTier!==2)continue;
    for(const fire of fires){
     const xp=expProfile(save,eligible,options,fire.fires,metrics);
     for(const packingMode of packingModes){
@@ -192,7 +194,7 @@ export function optimizeKnowledgeRotation(save,rawOptions={}){
      (v+passiveEnd.expPerDay[t])/2);
     const focus=rotation.gains[targetTier]||0;
     const score=expFairness(rotation.gains,durationSeconds,
-     eligible.map(x=>x.tier),passivePerDay)+
+     eligible.map(x=>x.tier))+
       (rotation.completed?100:0)+rotation.highestTier*.01;
     // Focused aims to create as many T58 events as possible, then banks
     // those copies until the board saturates and legally consolidates them.
@@ -336,6 +338,6 @@ export function optimizeKnowledgeRotation(save,rawOptions={}){
   initialBoardMatchesFinal:sustained,
   stranded:rotation.remaining.length,
   considered:candidates,haltReason:rotation.reason,
-  note:"Balanced begins with a full board of the selected starter tier and prioritizes creating missing discovered tiers during later refills. The tier-coverage score counts actual Knowledge EXP events, not just passive EXP/day. Any tiers that remain uncovered are reported explicitly; the planner never invents high-tier creation events. First-fill recipes are screened against a conservative Fuel buffer (a precharged full tank, spending at most half the capacity plus Fuel regenerated during normal cooking); this does not claim uninterrupted sustained refills. The optimizer designs an ingredient board from account cooking limits and available slots; the imported Sushi inventory is NOT assumed to be the optimal preparation. It keeps the highest-tier anchor in its existing position. IMPORTANT: converting the current inventory into this clean design may require legal cleanup merges NOT included in the walkthrough. Once that starting state is achieved, each subsequent cook, move, Wind cascade and merge is replay-validated. Focused ranks actual target creations and prepared target copies; harvest earns EXP for the result tier. This bounded search is not a mathematical proof of optimality."
+  note:"Balanced compares T2-first refills against adaptive recipes and ranks active tier coverage without passive EXP. Balanced begins with a full board of the selected starter tier and prioritizes creating missing discovered tiers during later refills. The tier-coverage score counts actual Knowledge EXP events, not just passive EXP/day. Any tiers that remain uncovered are reported explicitly; the planner never invents high-tier creation events. First-fill recipes are screened against a conservative Fuel buffer (a precharged full tank, spending at most half the capacity plus Fuel regenerated during normal cooking); this does not claim uninterrupted sustained refills. The optimizer designs an ingredient board from account cooking limits and available slots; the imported Sushi inventory is NOT assumed to be the optimal preparation. It keeps the highest-tier anchor in its existing position. IMPORTANT: converting the current inventory into this clean design may require legal cleanup merges NOT included in the walkthrough. Once that starting state is achieved, each subsequent cook, move, Wind cascade and merge is replay-validated. Focused ranks actual target creations and prepared target copies; harvest earns EXP for the result tier. This bounded search is not a mathematical proof of optimality."
  };
 }
