@@ -7,6 +7,7 @@ import {normalizeKnowledgeCycleOptions}
  from "./knowledge-cycle-optimizer.mjs?v=1.0.1";
 import {createReplayController} from "./replay-controller.mjs";
 import {combineKnowledgeContinuation} from "./knowledge-rotation-extension.mjs?v=1.0.1";
+import {canExtendBalancedRotation} from "./knowledge-rotation-continuation-eligibility.mjs?v=1.0.0";
 
 const $=id=>document.getElementById(id);
 const elem=(tag,cls="",value)=>{
@@ -475,13 +476,14 @@ export function initializeKnowledgeLevelingUI(getSave){
   $("knowledgePlanNextRefill").title=result.steps.some((f,i)=>
    i>index&&f.kind==="refill")?
    "Jump to the next simulated refill":
-   !continueButton.classList.contains("hidden")?
-    "Extend this same Balanced rotation by six more refills":
-    "No further refill in this preview; "+result.haltReason;
+   canExtendBalancedRotation(result)?
+    "Continue from this board with six additional refill waves":
+    "No further legal refill; "+result.haltReason;
   $("knowledgePlanNextHarvest").disabled=!result.steps.some((f,i)=>
    i>index&&f.kind==="stage"&&f.phase==="harvest"&&f.title.startsWith("Harvest prepared"));
   $("knowledgePlanPrev").disabled=index===0;
-  $("knowledgePlanNext").disabled=index===result.steps.length-1;
+  $("knowledgePlanNext").disabled=index===result.steps.length-1&&
+   !canExtendBalancedRotation(result);
  }
  function createReplay(p,resumeIndex=null){
   controller?.dispose();
@@ -497,9 +499,9 @@ export function initializeKnowledgeLevelingUI(getSave){
    },
    getDelay:()=>Number(speed.value)
   });
-  continueButton.classList.toggle("hidden",!(p.mode==="balanced"&&
-   p.roundsCompleted===p.roundsRequested&&p.roundsRequested<64&&
-   !p.rotationTerminal&&/requested preview refill limit/i.test(p.haltReason)));
+  // The only completion condition is creating a NEW T64. A 64-wave
+  // preview or an action budget is not game completion if moves remain.
+  continueButton.classList.toggle("hidden",!canExtendBalancedRotation(p));
   continueButton.disabled=false;
   const initial=Math.min(resumeIndex??p.preparedStep??0,p.steps.length-1);
   if(initial>0)controller.goTo(initial);
@@ -589,9 +591,7 @@ export function initializeKnowledgeLevelingUI(getSave){
   }
  });
  continueButton.addEventListener("click",()=>{
-  if(worker||!result||result.mode!=="balanced"||
-    result.roundsCompleted!==result.roundsRequested||
-    result.rotationTerminal)return;
+  if(worker||!canExtendBalancedRotation(result))return;
   const previous=result;
   const previousStep=controller?.step??previous.steps.length-1;
   const save=getSave();
@@ -633,6 +633,9 @@ export function initializeKnowledgeLevelingUI(getSave){
      const nextRefill=plan.steps.findIndex((frame,i)=>
       i>previous.steps.length-2&&frame.kind==="refill");
      if(nextRefill>=0)controller.goTo(nextRefill);
+     else if(plan.rotationTerminal)controller.goTo(plan.steps.length-1);
+     else controller.goTo(Math.min(plan.steps.length-1,
+      Math.max(0,previous.steps.length-1)));
     }
     jumpToNextRefill=false;
     status.textContent="Balanced rotation extended to "+
@@ -672,7 +675,7 @@ export function initializeKnowledgeLevelingUI(getSave){
   if(!result||!controller)return;
   const next=result.steps.findIndex((frame,i)=>i>controller.step&&frame.kind==="refill");
   if(next>=0)controller.goTo(next);
-  else if(!continueButton.classList.contains("hidden")&&!continueButton.disabled){
+  else if(canExtendBalancedRotation(result)&&!continueButton.disabled){
    jumpToNextRefill=true;continueButton.click();
   }else{
    controller.goTo(result.steps.length-1);
@@ -690,8 +693,13 @@ export function initializeKnowledgeLevelingUI(getSave){
  $("knowledgePlanPrev").addEventListener("click",()=>controller?.goTo(
   Math.max(0,(controller?.step??0)-1)));
  $("knowledgePlanPlay").addEventListener("click",()=>controller?.toggle());
- $("knowledgePlanNext").addEventListener("click",()=>controller?.goTo(
-  Math.min((result?.steps.length??1)-1,(controller?.step??0)+1)));
+ $("knowledgePlanNext").addEventListener("click",()=>{
+  if(!controller||!result)return;
+  if(controller.step>=result.steps.length-1&&canExtendBalancedRotation(result)){
+   jumpToNextRefill=true;
+   continueButton.click();
+  }else controller.goTo(Math.min(result.steps.length-1,controller.step+1));
+ });
  $("knowledgePlanEnd").addEventListener("click",()=>{
   if(result&&controller){
    controller.goTo(result.steps.length-1);
