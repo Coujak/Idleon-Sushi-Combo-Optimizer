@@ -132,6 +132,9 @@ export function initializeKnowledgeLevelingUI(getSave){
     ["Batch harvests",compact(p.harvestCount)],
     ["T"+p.targetTier+" consumed in harvest",compact(p.targetMergedInHarvest)]
    ]:[
+    ["Knowledge coverage",p.coverageTotal+" / "+p.coverageRequested+" tiers"],
+    ["Tiers missing active EXP",String(p.uncoveredTiers.length)],
+    ["Completed T64 rotations",String(p.balancedCycles)],
     ["EXP / preview",compact(p.totalExpPerCycle)],
     ["Survivor parking",p.packingMode==="ascending"?"Staircase low → high":
       p.packingMode==="descending"?"Staircase high → low":"Simple parking"]
@@ -139,11 +142,35 @@ export function initializeKnowledgeLevelingUI(getSave){
    ["Highest newly created tier","T"+p.highestNewTier],
    ["Refills",p.roundsCompleted+" / "+p.roundsRequested],
    ["Starting cook tier","T"+p.startCookTier],
+   ["Full refill Fuel",compact(p.refillFuelSafety.fuel)+" / "+
+    compact(p.refillFuelSafety.budget)],
    ["Projected active EXP / hr",rate(p.previewExpPerHour)],
    ["Estimated fuel / preview",compact(p.fuelPerCycle)],
    ["Fireplace scenario",p.fireChoice]
   ])grid.append(metric(label,value));
   summary.append(grid);
+  if(!p.fuelSafePreparation)
+   addNote(summary,"Fuel warning: preparing this full board is estimated "+
+    "to require "+formatHours(p.refillFuelSafety.estimatedWaitSeconds/3600)+
+    " of extra regeneration beyond the initial Fuel buffer. "+
+    "The selected cooking tier was the least-waiting tested candidate, "+
+    "not an instant full-board recipe.","lab-kp-warning");
+  else addNote(summary,"Fuel-safe first fill: the chosen recipe fits within "+
+   "the imported Fuel balance (up to half of max capacity reserved for the "+
+   "first fill) plus regeneration during cooking. Later refills may "+
+   "require additional waiting.","lab-kp-note");
+  if(p.mode==="balanced"){
+   if(p.uncoveredTiers.length)
+    addNote(summary,p.uncoveredTiers.length+" discovered tiers still "+
+     "lack ACTIVE Knowledge EXP in the modeled preview: "+
+     p.uncoveredTiers.map(t=>"T"+t).join(", ")+
+     ". Tiers above the safe cooking range need additional merges/Wind "+
+     "or further refills; no EXP is claimed until a legal creation occurs.",
+     "lab-kp-warning");
+   else addNote(summary,"All "+p.coverageRequested+
+    " discovered Sushi tiers gained active EXP within this preview.",
+    "lab-kp-lithium");
+  }
   if(p.mode==="focused"){
    const focus=p.perTier.find(x=>x.tier===p.targetTier);
    if(focus){
@@ -420,13 +447,18 @@ export function initializeKnowledgeLevelingUI(getSave){
   $("knowledgePlanStepDetail").textContent=frame.detail;
   $("knowledgePlanStepCount").textContent=index+" / "+(result.steps.length-1);
   $("knowledgePlanStepXp").textContent="EXP in step: "+compact(frame.exp);
-  const earned=result.steps.slice(0,index+1).reduce((s,x)=>s+x.exp,0);
+  const earned=result.cumulativeExp?.[index]??result.steps.slice(0,index+1).
+   reduce((s,x)=>s+x.exp,0);
   $("knowledgePlanFrameXp").textContent="Preview EXP so far: "+compact(earned);
   const progress=$("knowledgePlanFocusProgress");
   progress.classList.toggle("hidden",result.mode!=="focused");
   if(result.mode==="focused")progress.textContent=
    (frame.phase==="harvest"?"HARVEST":"PREPARE")+" T"+result.targetTier+
    " · "+frame.targetCreated+" created · "+frame.targetCopies+" banked";
+  $("knowledgePlanNextRefill").title=result.steps.some((f,i)=>
+   i>index&&f.kind==="refill")?
+   "Jump to the next simulated refill":"No further refill in this preview; "+
+    result.haltReason;
   $("knowledgePlanNextHarvest").disabled=!result.steps.some((f,i)=>
    i>index&&f.kind==="stage"&&f.phase==="harvest"&&f.title.startsWith("Harvest prepared"));
   $("knowledgePlanPrev").disabled=index===0;
@@ -435,6 +467,9 @@ export function initializeKnowledgeLevelingUI(getSave){
  function createReplay(p){
   controller?.dispose();
   result=p;replay.classList.remove("hidden");
+  p.cumulativeExp=[];
+  let running=0;
+  for(const frame of p.steps)p.cumulativeExp.push(running+=frame.exp);
   controller=createReplayController({
    totalSteps:p.steps.length-1,
    onStep:renderFrame,
@@ -453,11 +488,11 @@ export function initializeKnowledgeLevelingUI(getSave){
    "The optimizer uses the Combo Meter legal merge engine, including up to 25 East Wind upgrades when unlocked. Each verified creation event awards EXP to the created Sushi tier.",
    "Lithium Firelighter is 2× Knowledge EXP for Sushi above pink fireplaces; the solver also models reduced Fuel regeneration when orange fireplaces are changed to pink.",
    "The optimizer chooses a NEW prepared Sushi board rather than copying the imported inventory. It retains your highest-tier Sushi at its original location. Clearing other current Sushi to reach this preparation is a separate, unsolved task.",
-   "Balanced merges and parks survivors near the top, refills empty cells, and builds toward one T64. T64 + T64 yields one T64.",
+   "Balanced begins with a FULL board cooked at a Fuel-safe starter tier. Later refills prioritize preparing pairs of discovered Sushi tiers missing active Knowledge EXP, while East Wind carries higher tiers upward. When one T64 remains, another refill can begin.",
    "Focused: first produce and bank as many selected-tier Sushi as possible. Only after the board runs out of space does an explicit Harvest phase merge the saved copies into higher tiers. EXP belongs to the newly created tier, not the ingredient being consumed.",
    "Moving Sushi into a vacant slot is a separate action. Movement Mittens toggles dragging to plates; disable it for Sushi repositioning.",
-   "Focused search ranks actual target creation events ahead of passive income and cheap lower-tier EXP. Milktoast/Cold passive EXP appears separately as a reference and can be optionally protected, reducing active working space.",
-   "The optimizer compares bounded candidate patterns; it does not prove a global optimum or a sustained EXP/hr rate."
+   "The first full-board fill is screened using the imported Fuel balance, Fuel capacity, estimated generation and actual tier costs. A separate warning appears if no tested recipe avoids regeneration waits. Milktoast/Cold provide passive EXP/day and can be optionally protected.",
+   "The optimizer compares bounded candidate patterns and counts only verified active creation EXP. The replay's final state and stop reason are always shown; the walkthrough never claims to continue beyond its simulated actions."
   ];
   for(const note of bullets)tips.append(elem("li","",note));
  }
@@ -500,14 +535,15 @@ export function initializeKnowledgeLevelingUI(getSave){
     if(!plan.available){status.textContent=plan.reason;return;}
     renderSummary(plan);renderDesignedBoard(plan);
     renderPassive(plan);showProgress(plan);createReplay(plan);
-    status.textContent=plan.mode==="focused"?
+    status.textContent=(plan.mode==="focused"?
      "Focused T"+plan.targetTier+" · "+compact(plan.targetCreated)+
       " target creations · peak batch "+compact(plan.peakTargetCopies)+
-      " copies · "+plan.harvestCount+" harvests · "+
-      plan.roundsCompleted+" refills · "+compact(plan.considered)+" candidates":
-     "Compared "+compact(plan.considered)+" candidates · "+
-     plan.roundsCompleted+" refills · "+compact(plan.totalExpPerCycle)+
-     " active EXP";
+      " copies · "+plan.harvestCount+" harvests":
+     "Balanced · "+plan.coverageTotal+"/"+plan.coverageRequested+
+      " tiers with active EXP · "+compact(plan.totalExpPerCycle)+" EXP")+
+     " · "+plan.roundsCompleted+"/"+plan.roundsRequested+" refills"+
+     (plan.roundsCompleted<plan.roundsRequested?
+      " · stopped early: "+plan.haltReason:" · preview complete");
    };
    search.onerror=event=>{
     if(worker!==search)return;
@@ -532,6 +568,12 @@ export function initializeKnowledgeLevelingUI(getSave){
   if(!result||!controller)return;
   const next=result.steps.findIndex((frame,i)=>i>controller.step&&frame.kind==="refill");
   if(next>=0)controller.goTo(next);
+  else{
+   controller.goTo(result.steps.length-1);
+   status.textContent="No further simulated refill: "+result.haltReason+
+    " ("+result.roundsCompleted+"/"+result.roundsRequested+
+    " requested refill waves).";
+  }
  });
  $("knowledgePlanNextHarvest").addEventListener("click",()=>{
   if(!result||!controller)return;
