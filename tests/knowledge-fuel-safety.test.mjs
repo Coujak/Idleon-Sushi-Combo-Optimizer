@@ -105,3 +105,41 @@ test("Fuel safety never spends more imported Fuel than the JSON currently report
  assert.equal(full.tankAllocation,50000);
  assert.equal(full.noWait,true);
 });
+
+test("Account-based Focused T58 does not select a full board of prohibitively costly T46",()=>{
+ const slots=Array.from({length:120},(_,i)=>i<100?0:-1);
+ const tiles=Array(120).fill(-1);
+ tiles[99]=63;
+ const upgrades=Array(46).fill(0);
+ upgrades[6]=45;upgrades[13]=1;upgrades[29]=1;upgrades[37]=2;
+ const flags=Array(64).fill(0),levels=Array(64).fill(1);
+ const account={slots,tiles,fires:Array(15).fill(0),
+  sushi:[[],[],upgrades,[],[1e13,0,0,0],flags,
+   Array(64).fill(0),levels]};
+ const plan=optimizeKnowledgeRotation(account,{
+  mode:"focused",targetTier:58,rounds:1,
+  preservePassive:false,secondsPerCook:2,secondsPerMerge:1.5,
+  fuelCapacity:1e13,fuelGeneration:1e13
+ });
+ assert.equal(plan.available,true,plan.reason);
+ assert.equal(plan.refillFuelSafety.cooks,99);
+ assert.equal(plan.fuelSafePreparation,true,
+  "A safe lower-tier recipe exists and should outrank slow T46 preparation");
+ assert.ok(plan.startCookTier<46,
+  "Full T46 should lose to a lower wait-free starting Sushi tier");
+ assert.ok(plan.refillFuelSafety.estimatedWaitSeconds<.001);
+ assert.ok(plan.refillFuelSafety.fuel<=plan.refillFuelSafety.budget);
+ assert.equal(plan.steps[plan.preparedStep].board.filter(t=>t>0).length,100);
+});
+test("Knowledge UI exposes exact end-state navigation, missed-tier counts and default unchecked passive protection",()=>{
+ const {readFileSync}=await import("node:fs");
+ const html=readFileSync(new URL("../index.html",import.meta.url),"utf8");
+ const ui=readFileSync(new URL("../src/knowledge-leveling-ui.mjs",import.meta.url),"utf8");
+ assert.match(html,/id="knowledgePlanEnd"/);
+ assert.match(ui,/No further simulated refill/);
+ assert.match(ui,/knowledgePlanEnd/);
+ assert.match(ui,/uncoveredTiers/);
+ assert.match(ui,/fuelSafePreparation/);
+ assert.match(html,/id="knowledgePlanProtectPassive" type="checkbox"/);
+ assert.doesNotMatch(html,/id="knowledgePlanProtectPassive"[^>]*checked/);
+});
