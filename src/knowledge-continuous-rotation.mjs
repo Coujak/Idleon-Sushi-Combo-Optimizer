@@ -180,11 +180,8 @@ export function simulateContinuousKnowledgeRotation({
       const pairs=new Map();
       for(const t of action.board)if(t>0&&t<64)pairs.set(t,(pairs.get(t)??0)+1);
       const close=[...pairs.values()].reduce((sum,n)=>sum+Math.floor(n/2),0);
-      const targetOnMilktoast=events.filter(e=>
-       e.tier===targetTier&&slots[e.at]===3).length;
       let score=mode==="focused"?
-       createsTarget*10000+reach*32+wind*5+close*.3+
-       targetOnMilktoast*8:
+       createsTarget*10000+reach*32+wind*5+close*.3:
        wind*23+creates64*18+events.length*5+close*.1;
       if(mode==="focused"&&compressFocus&&tier===targetTier)
        score+=200+focusCount();
@@ -206,10 +203,9 @@ export function simulateContinuousKnowledgeRotation({
  }
  function parkLeftovers(){
   let repositioned=0;
-  // Milktoast (yellow) gives PASSIVE EXP/day to its occupant; it does
-  // not multiply EXP from a merge. Park new target copies there where
-  // legal. When preservation is unchecked, they remain harvestable.
-  if(mode==="focused"){
+  // Only reserve Milktoast in an explicitly selected passive layout.
+  // Active rotations do not chase passive EXP/day.
+  if(mode==="focused"&&protectFocusedMilktoast){
    const milkSlots=slotsFree.filter(i=>slots[i]===3&&
     !protectedSet.has(i)&&board[i]!==targetTier);
    for(const dst of milkSlots){
@@ -227,9 +223,8 @@ export function simulateContinuousKnowledgeRotation({
     if(applyMove(src,dst))repositioned++;
    }
   }
-  // Bank the Focused target on Milktoast during preparation even if the
-  // passive-source checkbox is off; harvesting may still consume it later.
-  const milkstash=mode==="focused"?slotsFree.filter(i=>
+  // Optional passive target stash; off by default.
+  const milkstash=mode==="focused"&&protectFocusedMilktoast?slotsFree.filter(i=>
    slots[i]===3&&board[i]===targetTier):[];
   if(packingMode==="ascending"||packingMode==="descending"){
    const packing=packSushiStaircase(board,slots,packingMode,MAX,
@@ -269,13 +264,15 @@ export function simulateContinuousKnowledgeRotation({
   // A full starter board is the foundation of Balanced, just like
   // Focused. On subsequent refills, cover missing discovered tiers
   // that can be cooked without exceeding the chosen safe base.
-  const pending=mode==="balanced"&&coverageMode==="recover"&&round>1?
+  const pending=mode==="balanced"&&pattern!=="t2Climb"&&coverageMode==="recover"&&round>1?
    discoveredCoverage.filter(t=>gains[t]<=0&&t>guaranteedBonus&&
     t-guaranteedBonus<=requestedTier).slice(0,Math.floor(available.length/2)):[];
   record("refill","Refill "+round,
    "Carry forward "+occupied(board)+" existing Sushi; fill "+available.length+
    " empty slots without overwriting any."+
-   (mode==="balanced"&&round===1?
+   (mode==="balanced"&&pattern==="t2Climb"?
+    " T2-first climb: cook T2 in every free slot and merge upward.":
+    mode==="balanced"&&round===1?
     " Starter preparation: fill every available cell with the base Sushi.":
     pending.length?" Coverage recovery: "+pending.length+
      " previously missed cookable Knowledge tiers are prioritized.":""));
@@ -285,7 +282,9 @@ export function simulateContinuousKnowledgeRotation({
    if(i!==last+1)segment=0;
    const phase=segment+Math.max(0,Math.floor(Number(recipeOffset)||0));
    let tier=requestedTier;
-   if(mode==="balanced"&&coverageUsed<pending.length*2){
+   if(mode==="balanced"&&pattern==="t2Climb"){
+    tier=2;
+   }else if(mode==="balanced"&&coverageUsed<pending.length*2){
     // Prepare pairs, not unique singletons; otherwise a packed board can
     // become permanently unmergeable even though it has plenty of EXP.
     tier=pending[Math.floor(coverageUsed++/2)]-guaranteedBonus;
