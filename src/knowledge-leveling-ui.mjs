@@ -9,6 +9,7 @@ import {createReplayController} from "./replay-controller.mjs";
 import {combineKnowledgeContinuation,knowledgeContinuationResumeStep} from "./knowledge-rotation-extension.mjs?v=1.0.3";
 import {canExtendBalancedRotation} from "./knowledge-rotation-continuation-eligibility.mjs?v=1.0.0";
 import {knowledgeContinueWaveCount,knowledgeContinueButtonLabel} from "./knowledge-refill-scale.mjs?v=1.0.0";
+import {installKnowledgeContinueHold} from "./knowledge-continue-hold.mjs?v=1.0.0";
 
 const $=id=>document.getElementById(id);
 const createKnowledgeWorker=()=>new Worker(new URL("./knowledge-cycle-worker.mjs?v=1.0.20",
@@ -71,6 +72,7 @@ export function initializeKnowledgeLevelingUI(getSave){
  let state={mode:"balanced",targetTier:null};
  let result=null,controller=null,worker=null;
  let jumpToNextRefill=false,jumpToNextHarvest=false;
+ let continueHold=null;
  try{
   const old=JSON.parse(window.localStorage.getItem(preferenceKey)||"null");
   state={...normalizeKnowledgeCycleOptions(old),preservePassive:old?.preservePassive===true};
@@ -89,6 +91,7 @@ export function initializeKnowledgeLevelingUI(getSave){
   build.disabled=!getSave();
  };
  const release=()=>{
+  continueHold?.stop();
   stopSearch();
   controller?.dispose();controller=null;
   result=null;jumpToNextRefill=false;jumpToNextHarvest=false;
@@ -517,8 +520,7 @@ export function initializeKnowledgeLevelingUI(getSave){
   // harvesting its selected target while legal progress is possible.
   continueButton.classList.toggle("hidden",!canExtendBalancedRotation(p));
   continueButton.textContent=knowledgeContinueButtonLabel(p.roundsCompleted);
-  continueButton.title="Advance the "+(p.mode==="focused"?"Focused":"Balanced")+
-   " rotation by 5% of its current completed refill count";
+  continueButton.title="Click for +5% of current refills. Hold to repeat; release to stop after the current validated increment.";
   continueButton.disabled=false;
   const initial=Math.min(resumeIndex??p.preparedStep??0,p.steps.length-1);
   if(initial>0)controller.goTo(initial);
@@ -530,8 +532,8 @@ export function initializeKnowledgeLevelingUI(getSave){
    "The optimizer uses the Combo Meter legal merge engine, including up to 25 East Wind upgrades when unlocked. Each verified creation event awards EXP to the created Sushi tier.",
    "Lithium Firelighter is 2× Knowledge EXP for Sushi above pink fireplaces; the solver also models reduced Fuel regeneration when orange fireplaces are changed to pink.",
    "The optimizer chooses a NEW prepared Sushi board rather than copying the imported inventory. It retains your highest-tier Sushi at its original location. Clearing other current Sushi to reach this preparation is a separate, unsolved task.",
-   "Balanced requests the lowest cookable tier (normally T1), but guaranteed +tier bonuses raise the actual Sushi tier produced. Merge and refill without deleting survivors. A full rotation ends ONLY when a new T64 is created. The existing protected T64 does not count. Continue advances by 5% of the current refill count, calculated in small validated batches.",
-   "Focused: produce and bank the selected tier, then harvest pairs only when necessary to recover space. Use Continue to extend its legal preparation and harvest in 5% refill increments. Focused does not stop when a T64 is created; its goal is continued target EXP.",
+   "Balanced requests the lowest cookable tier (normally T1), but guaranteed +tier bonuses raise the actual Sushi tier produced. A full rotation ends ONLY when a new T64 is created; the original T64 does not count. Click Continue to advance by 5%, or press and hold to repeat until release (the in-flight increment finishes).",
+   "Focused: produce and bank the selected tier, then harvest pairs only when necessary to recover space. Click Continue to extend by 5%, or hold it down to repeat until release (an in-flight increment finishes). Focused does not stop when a T64 is created; its goal is continued target EXP.",
    "Moving Sushi into a vacant slot is a separate action. Movement Mittens toggles dragging to plates; disable it for Sushi repositioning.",
    "The first full-board fill is screened using the imported Fuel balance, Fuel capacity, estimated generation and actual tier costs. A separate warning appears if no tested recipe avoids regeneration waits. Milktoast/Cold provide passive EXP/day and can be optionally protected.",
    "The optimizer compares bounded candidate patterns and counts only verified active creation EXP. The replay's final state and stop reason are always shown; the walkthrough never claims to continue beyond its simulated actions."
@@ -601,6 +603,7 @@ export function initializeKnowledgeLevelingUI(getSave){
   }
  });
  cancelButton.addEventListener("click",()=>{
+  continueHold?.stop();
   if(worker){
    stopSearch();jumpToNextRefill=false;jumpToNextHarvest=false;
    continueButton.disabled=false;
@@ -609,7 +612,8 @@ export function initializeKnowledgeLevelingUI(getSave){
    status.textContent="Knowledge optimization canceled. The previous walkthrough is retained.";
   }
  });
- continueButton.addEventListener("click",()=>{
+ continueButton.addEventListener("click",event=>{
+  if(continueHold?.shouldIgnoreClick(event))return;
   if(worker){
    announceContinuation("A Knowledge calculation is already running.");
    return;
@@ -631,6 +635,7 @@ export function initializeKnowledgeLevelingUI(getSave){
   const skipToRefill=jumpToNextRefill;
   const skipToHarvest=jumpToNextHarvest;
   const failContinuation=reason=>{
+   continueHold?.stop();
    const message="Unable to continue: "+reason;
    announceContinuation(message);
    status.textContent=message;
@@ -709,6 +714,10 @@ export function initializeKnowledgeLevelingUI(getSave){
        " · next increment "+knowledgeContinueWaveCount(plan.roundsCompleted));
      announceContinuation(message);
      status.textContent=message;
+     // While still physically held, schedule another +5% only AFTER
+     // this validated worker result and replay state were committed.
+     if(progressed>0&&!msg.result.haltReason)continueHold?.afterCompletion();
+     else continueHold?.stop();
     }catch(error){
      failContinuation(String(error?.message??error));
     }
@@ -737,6 +746,18 @@ export function initializeKnowledgeLevelingUI(getSave){
   }catch(error){
    stopSearch();
    failContinuation(String(error?.message??error));
+  }
+ });
+
+ continueHold=installKnowledgeContinueHold({
+  button:continueButton,
+  canStart:()=>!worker&&!continueButton.disabled&&
+   canExtendBalancedRotation(result),
+  trigger:()=>continueButton.click(),
+  onHoldingChange:holding=>{
+   continueButton.classList.toggle("is-holding",holding);
+   if(holding)announceContinuation(
+    "Holding Continue: simulating repeated +5% increments. Release to stop after the active increment.");
   }
  });
 
