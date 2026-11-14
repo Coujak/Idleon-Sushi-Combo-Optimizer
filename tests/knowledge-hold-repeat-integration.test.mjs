@@ -66,7 +66,7 @@ function harness(mode="focused"){
   announceContinuation:message=>{context.message=message;},
   status:{textContent:""},cancelButton:{classList:{remove(){}}},
   build:{disabled:false},
-  installKnowledgeContinueHold(opts)=>installKnowledgeContinueHold({
+  installKnowledgeContinueHold:(opts)=>installKnowledgeContinueHold({
    ...opts,releaseTarget:doc,blurTarget:win,schedule,cancel
   }),
   createKnowledgeWorker(){
