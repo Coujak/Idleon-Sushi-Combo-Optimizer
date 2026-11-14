@@ -129,3 +129,28 @@ test("Focused target score ignores passive advantage when another candidate crea
  assert.equal(p.options.preservePassive,false);
  assert.ok(p.targetCreated>=p.peakTargetCopies-p.startingBoard.filter(t=>t===2).length);
 });
+
+
+test("Integrated Balanced strategy cooks the lowest T1 and extends the exact same recipe",()=>{
+ const save=account();
+ const original=optimizeKnowledgeRotation(save,{...options,rounds:2});
+ assert.equal(original.available,true,original.reason);
+ assert.equal(original.startCookTier,1);
+ assert.equal(original.startingPattern,"t1Climb");
+ assert.equal(original.steps.filter(frame=>frame.kind==="cook")
+  .every(frame=>frame.requestedTier===1),true);
+ assert.equal(original.roundsCompleted,2);
+ const extended=optimizeKnowledgeRotation(save,{
+  ...options,rounds:4,resumeRecipe:original.resumeRecipe
+ });
+ assert.equal(extended.available,true,extended.reason);
+ assert.equal(extended.roundsCompleted,4);
+ assert.deepEqual(extended.resumeRecipe,original.resumeRecipe);
+ assert.ok(extended.steps.length>original.steps.length);
+ for(let i=0;i<original.steps.length-1;i++){
+  const a=original.steps[i],b=extended.steps[i];
+  assert.equal(b.kind,a.kind);
+  assert.deepEqual(b.board,a.board);
+  assert.deepEqual(b.events,a.events);
+ }
+});
