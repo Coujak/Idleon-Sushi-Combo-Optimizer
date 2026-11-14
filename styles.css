@@ -3862,3 +3862,37 @@ details summary{cursor:pointer;font-size:12px;font-weight:700;color:#9eb7c9}
 }
 #knowledgePlanner .lab-kp-passive-panel summary:hover{color:#e5fbf2}
 #knowledgePlanner .lab-kp-passive-panel:not([open]){padding:11px 16px}
+
+
+/* Knowledge preparation is a designed goal, distinct from imported inventory. */
+#knowledgePlanner .lab-kp-design-panel{
+ margin:12px 0 24px;
+ border:1px solid #496a65;border-radius:11px;
+ background:#142b34;padding:16px;
+}
+#knowledgePlanner .lab-kp-design-panel h3{
+ margin:0 0 7px;font-size:17px;color:#eafbf2
+}
+#knowledgePlanner .lab-kp-design-panel>.hint{
+ margin:5px 0 12px;font-size:12px;line-height:1.65
+}
+#knowledgePlanner .lab-kp-design-details{
+ display:grid;grid-template-columns:repeat(4,minmax(0,1fr));
+ gap:9px;margin:12px 0
+}
+#knowledgePlanner .lab-kp-design-details .lab-kp-stat{
+ min-width:0
+}
+#knowledgePlanner .lab-kp-design-panel>.lab-kp-board-wrap{
+ margin:14px 0 10px
+}
+@media(max-width:860px){
+ #knowledgePlanner .lab-kp-design-details{
+  grid-template-columns:repeat(2,minmax(0,1fr))
+ }
+}
+@media(max-width:470px){
+ #knowledgePlanner .lab-kp-design-details{
+  grid-template-columns:minmax(0,1fr)
+ }
+}
