@@ -96,7 +96,7 @@ function balancedStaircase(gains,seconds,tiers){
  const ordered=[...tiers].sort((a,b)=>a-b);
  const rate=3600/seconds;
  const total=ordered.reduce((n,t)=>n+(gains[t]??0),0);
- if(total<=0)return -Infinity;
+ if(total<=0)return {fit:-Infinity,coverage:0,weightedRate:0};
  const idealWeights=ordered.map((_,i)=>ordered.length-i);
  const idealTotal=idealWeights.reduce((a,b)=>a+b,0);
  const fit=ordered.reduce((penalty,t,i)=>
