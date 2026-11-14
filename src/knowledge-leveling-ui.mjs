@@ -6,7 +6,7 @@ import {parseGameQuantity} from "./progression-calibration.mjs?v=1.17.1";
 import {normalizeKnowledgeCycleOptions}
  from "./knowledge-cycle-optimizer.mjs?v=1.0.1";
 import {createReplayController} from "./replay-controller.mjs";
-import {combineKnowledgeContinuation} from "./knowledge-rotation-extension.mjs?v=1.0.1";
+import {combineKnowledgeContinuation,knowledgeContinuationResumeStep} from "./knowledge-rotation-extension.mjs?v=1.0.2";
 import {canExtendBalancedRotation} from "./knowledge-rotation-continuation-eligibility.mjs?v=1.0.0";
 
 const $=id=>document.getElementById(id);
@@ -626,17 +626,11 @@ export function initializeKnowledgeLevelingUI(getSave){
      return;
     }
     renderSummary(plan);renderDesignedBoard(plan);renderPassive(plan);showProgress(plan);
-    // The prior final frame was a summary, not an action. Resume from
-    // the last REAL step, from which the next refill is now available.
-    createReplay(plan,Math.min(previousStep,previous.steps.length-2));
-    if(jumpToNextRefill){
-     const nextRefill=plan.steps.findIndex((frame,i)=>
-      i>previous.steps.length-2&&frame.kind==="refill");
-     if(nextRefill>=0)controller.goTo(nextRefill);
-     else if(plan.rotationTerminal)controller.goTo(plan.steps.length-1);
-     else controller.goTo(Math.min(plan.steps.length-1,
-      Math.max(0,previous.steps.length-1)));
-    }
+    // If Continue was pressed at the old endpoint, show the FIRST newly
+    // generated refill. Otherwise keep the user's chosen old step.
+    const resume=knowledgeContinuationResumeStep(previous.steps,plan.steps,
+     previousStep,jumpToNextRefill);
+    createReplay(plan,resume);
     jumpToNextRefill=false;
     status.textContent="Balanced rotation extended through refill "+
      plan.roundsCompleted+". Highest newly created tier: T"+
