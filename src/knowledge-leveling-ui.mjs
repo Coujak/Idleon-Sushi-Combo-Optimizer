@@ -247,12 +247,24 @@ export function initializeKnowledgeLevelingUI(getSave){
     summary.append(box);
    }
   }
-  if(p.pinkMultiplier!==null){
-   addNote(summary,"Lithium Firelighter: "+compact(p.pinkMultiplier)+
-    "× Knowledge EXP generated in pink columns, including Cold and Milktoast passive sources. "+
-    p.proposedFires.filter(x=>x===3).length+" of "+
-    p.proposedFires.filter(x=>x>=0).length+" available fireplaces set to pink.",
-    "lab-kp-lithium");
+  const pink=p.pinkFireplaces;
+  if(pink){
+   if(!pink.lithiumUnlocked)
+    addNote(summary,"Pink Lithium fireplaces are not unlocked in the imported save. The planner cannot apply their EXP multiplier.","lab-kp-warning");
+   else if(pink.requiresPinkActivation)
+    addNote(summary,"FIREPLACE SETUP REQUIRED: your imported save has "+
+     pink.importedPinkCount+" active pink fireplaces, but this plan ASSUMES "+
+     pink.proposedPinkCount+" pink fireplaces. Manually switch columns "+
+     pink.switchToPink.map(col=>col+1).join(", ")+" to pink before following the plan. "+
+     "The displayed EXP projections are conditional on those changes.","lab-kp-warning");
+   else if(pink.requiresFireplaceChanges)
+    addNote(summary,"This proposal changes the imported fireplace layout. "+
+     "Check the prepared-board fireplace row and apply the proposed setup "+
+     "manually; the displayed EXP and Fuel estimates assume that setup.","lab-kp-warning");
+   else
+    addNote(summary,pink.importedPinkCount+" pink Lithium fireplaces are "+
+     "already selected in the imported save. No fireplace changes are "+
+     "required for this proposed layout.","lab-kp-lithium");
   }
   if(p.mode==="focused"&&p.targetPreviewIncomplete)
    addNote(summary,"No NEW T"+p.targetTier+" was created within "+
@@ -295,6 +307,29 @@ export function initializeKnowledgeLevelingUI(getSave){
   sectionHead.append(elem("h3","","2 · Prepared Sushi board"),
    elem("span","lab-kp-section-tag","Account-specific candidate"));
   recommendedBoard.append(sectionHead);
+  if(p.pinkFireplaces){
+   const fireStatus=elem("div","lab-kp-fireplace-status");
+   const pink=p.pinkFireplaces;
+   const current=elem("div","lab-kp-fireplace-status-item");
+   current.append(elem("span","","Currently selected · imported JSON"),
+    elem("strong","",pink.importedPinkCount+" / "+pink.availableCount+" pink"));
+   const planned=elem("div","lab-kp-fireplace-status-item"+
+    (pink.requiresPinkActivation?" requires-switch":""));
+   planned.append(elem("span","","Recommended · proposed plan"),
+    elem("strong","",pink.proposedPinkCount+" / "+
+     pink.proposedAvailableCount+" pink"));
+   fireStatus.append(current,planned);
+   const text=pink.requiresPinkActivation?
+    "Switch fireplaces in columns "+pink.switchToPink.map(col=>col+1).join(", ")+
+    " to PINK before following this plan. Proposed EXP values are NOT your current in-game rates.":
+    pink.requiresFireplaceChanges?
+    "The proposed fireplace layout differs from your imported setup; apply the displayed changes manually.":
+    "The proposed fireplace arrangement matches your imported setup.";
+   const note=elem("p",pink.requiresFireplaceChanges?
+    "lab-kp-fireplace-alert":"lab-kp-fireplace-confirm",text);
+   fireStatus.append(note);
+   recommendedBoard.append(fireStatus);
+  }
   const area=elem("section","lab-kp-design-panel");
   area.append(elem("h3","","Recommended preparation"),
    elem("p","hint","This is the strongest candidate recipe found by the bounded "+
