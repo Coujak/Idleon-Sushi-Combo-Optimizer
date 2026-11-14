@@ -1,6 +1,6 @@
 // Search over continuous refill/merge/park rotations rather than independent
 // one-shot boards. Every candidate starts with the actual imported Sushi board.
-import {simulateContinuousKnowledgeRotation} from "./knowledge-continuous-rotation.mjs?v=1.0.5";
+import {simulateContinuousKnowledgeRotation} from "./knowledge-continuous-rotation.mjs?v=1.0.6";
 import {
  projectPassiveKnowledge,recommendPassiveKnowledgeLayout,passiveProtectedIndices
 } from "./knowledge-passive-layout.mjs?v=1.0.1";
