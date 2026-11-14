@@ -1,6 +1,9 @@
-// Search over continuous refill/merge/park rotations rather than independent
-// one-shot boards. Every candidate starts with the actual imported Sushi board.
-import {simulateContinuousKnowledgeRotation} from "./knowledge-continuous-rotation.mjs?v=1.0.6";
+// Search legal cook/merge/park rotations from freshly DESIGNED preparation
+// scenarios. The imported board provides account constraints, not ingredients.
+import {simulateContinuousKnowledgeRotation} from "./knowledge-continuous-rotation.mjs?v=1.0.7";
+import {
+ designKnowledgeStartingBoard,captureKnowledgePreparedBoard
+} from "./knowledge-board-design.mjs?v=1.0.0";
 import {
  projectPassiveKnowledge,recommendPassiveKnowledgeLayout,passiveProtectedIndices
 } from "./knowledge-passive-layout.mjs?v=1.0.1";
@@ -100,8 +103,11 @@ export function optimizeKnowledgeRotation(save,rawOptions={}){
  if(!economy?.capacity||!economy?.generationPerHour)
   return fail("Fuel capacity or generation is unavailable. Calibrate those readings in the options.");
  const metrics=getSushiDashboardMetrics(save);
- const protectedIndices=options.preservePassive?
-  passiveProtectedIndices(layout.tiles,layout.slots,{focused:options.mode==="focused",targetTier}):[];
+ // The imported inventory is NOT the seed used by the optimizer.
+ // We retain the highest tier at its actual index (it cannot be discarded),
+ // and optionally existing passive-income plate occupants when requested.
+ const design=designKnowledgeStartingBoard(layout,options);
+ const protectedIndices=design.protectedIndices;
  const originalProfile=expProfile(save,eligible,options,layout.fires,metrics);
  const bases=startingTiers(economy,originalProfile.guaranteed,options,targetTier);
  if(!bases.length)return fail("No directly cookable Sushi tier fits your estimated fuel capacity.");
@@ -125,19 +131,22 @@ export function optimizeKnowledgeRotation(save,rawOptions={}){
   ["simple","ascending","descending"]:["simple","descending"];
  let best=null,candidates=0;
  for(const cookTier of bases){
-  for(const pattern of options.mode==="focused"?["uniform","wind","paired"]:["wind","paired"]){
+  for(const pattern of options.mode==="focused"?
+   ["uniform","wind","paired","longWind","widePairs"]:
+   ["wind","paired","longWind"]){
    for(const fire of fires){
     const xp=expProfile(save,eligible,options,fire.fires,metrics);
     for(const packingMode of packingModes){
     const rotation=simulateContinuousKnowledgeRotation({
-     startingBoard:layout.tiles,slots:layout.slots,mode:options.mode,targetTier,
+     startingBoard:design.board,slots:layout.slots,mode:options.mode,targetTier,
      requestedTier:cookTier,guaranteedBonus:xp.guaranteed,
      windCap,chain,expAt:xp.expAt,cookCost:sushiDirectCookFuel,rounds,pattern,
      packingMode,protectedIndices,protectFocusedMilktoast:options.preservePassive,
+     startingContext:"designed",
      maximumActions:options.mode==="focused"?3200:1800
     });
     if(!rotation.valid||rotation.cooks<1)continue;
-    const rateA=adjustedRate(layout.tiles,fire.fires);
+    const rateA=adjustedRate(design.board,fire.fires);
     const rateB=adjustedRate(rotation.finalBoard,fire.fires);
     const fuelRate=(rateA+rateB)/2;
     if(!(fuelRate>0))continue;
@@ -149,7 +158,7 @@ export function optimizeKnowledgeRotation(save,rawOptions={}){
     if(!(durationSeconds>0))continue;
     const passiveOpts={lithiumUnlocked:xp.lithiumEnabled,
      lithiumMultiplier:xp.lithium,globalMultiplier:xp.globalMultiplier};
-    const passiveStart=projectPassiveKnowledge(layout.tiles,layout.slots,
+    const passiveStart=projectPassiveKnowledge(design.board,layout.slots,
      fire.fires,passiveOpts);
     const passiveEnd=projectPassiveKnowledge(rotation.finalBoard,layout.slots,
      fire.fires,passiveOpts);
@@ -190,6 +199,7 @@ export function optimizeKnowledgeRotation(save,rawOptions={}){
  }
  if(!best)return fail("No feasible legal refill/merge rotation was found with this board and fuel budget.");
  const rotation=best.rotation;
+ const preparation=captureKnowledgePreparedBoard(rotation.frames,design.board);
  const passiveRecommendation=recommendPassiveKnowledgeLayout(
   layout.tiles,layout.slots,best.fire.fires,{
    targetTier,lithiumUnlocked:best.xp.lithiumEnabled,
@@ -217,20 +227,19 @@ export function optimizeKnowledgeRotation(save,rawOptions={}){
    etaHours:remaining===0?0:expPerHour>0&&remaining!==null?
     remaining/expPerHour:null};
  });
- const firstFill=rotation.frames.findIndex(x=>x.kind==="refill");
- let preparedStep=firstFill>=0?firstFill:0;
- for(let i=firstFill+1;i<rotation.frames.length;i++){
-  if(rotation.frames[i].kind!=="cook")break;
-  preparedStep=i;
- }
  const sustained=rotation.repeatable&&rotation.initialBoard.every(
   (t,i)=>t===rotation.finalBoard[i]);
  return {
   available:true,mode:options.mode,targetTier,options,layout,
+  importedBoard:layout.tiles.slice(),design,
   startingBoard:rotation.initialBoard,finalBoard:rotation.finalBoard,
+  preparedBoard:preparation.board,preparedStep:preparation.step,
+  preparedBoardCooks:preparation.cooks,
+  preparedTierCounts:preparation.tiers,
+  boardDesigned:true,scenarioRequiresCleanup:design.requiresManualCleanup,
   proposedFires:best.fire.fires,fireChoice:best.fire.name,
   pinkMultiplier:best.xp.lithiumEnabled?best.xp.lithium:null,
-  windCap,steps:rotation.frames,preparedStep,
+  windCap,steps:rotation.frames,
   startCookTier:best.cookTier,startingPattern:best.pattern,packingMode:best.packingMode,
   highestNewTier,highestWorkingTier,
   targetCreated:rotation.targetCreated,
@@ -272,6 +281,6 @@ export function optimizeKnowledgeRotation(save,rawOptions={}){
   initialBoardMatchesFinal:sustained,
   stranded:rotation.remaining.length,
   considered:candidates,haltReason:rotation.reason,
-  note:"Focused ranks candidate plans by the number of selected-tier Sushi CREATED, then the highest precursor reached and their creation EXP. The Harvest step merges stored copies into higher tiers solely to recover space; it does not award extra selected-tier EXP (except capped T64 merges). Passive EXP is displayed separately and is not used to choose the Focused rotation. This finite preview is not proof of a maximum or a sustained EXP/hr rate."
+  note:"The optimizer designs an ingredient board from account cooking limits and available slots; the imported Sushi inventory is NOT assumed to be the optimal preparation. It keeps the highest-tier anchor in its existing position. IMPORTANT: converting the current inventory into this clean design may require legal cleanup merges NOT included in the walkthrough. Once that starting state is achieved, each subsequent cook, move, Wind cascade and merge is replay-validated. Focused ranks actual target creations and prepared target copies; harvest earns EXP for the result tier. This bounded search is not a mathematical proof of optimality."
  };
 }
