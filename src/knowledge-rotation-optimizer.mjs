@@ -133,7 +133,8 @@ export function optimizeKnowledgeRotation(save,rawOptions={}){
      startingBoard:layout.tiles,slots:layout.slots,mode:options.mode,targetTier,
      requestedTier:cookTier,guaranteedBonus:xp.guaranteed,
      windCap,chain,expAt:xp.expAt,cookCost:sushiDirectCookFuel,rounds,pattern,
-     packingMode,protectedIndices,maximumActions:1800
+     packingMode,protectedIndices,protectFocusedMilktoast:options.preservePassive,
+     maximumActions:1800
     });
     if(!rotation.valid||rotation.cooks<1)continue;
     const rateA=adjustedRate(layout.tiles,fire.fires);
