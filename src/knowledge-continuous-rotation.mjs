@@ -2,6 +2,7 @@
 // movement validator. The full imported board is the initial state.
 // No Sushi is ever deleted or silently replaced between refills.
 import {simulateMerge,simulateRelocation} from "./optimizer-core.mjs";
+import {packSushiStaircase} from "./knowledge-staircase-packing.mjs?v=1.0.0";
 
 const SIZE=120,COLS=15,MAX=64;
 const blank=()=>Array(MAX+1).fill(0);
@@ -15,7 +16,7 @@ const highest=board=>board.reduce((a,b)=>Math.max(a,b),0);
 export function simulateContinuousKnowledgeRotation({
  startingBoard,slots,mode="balanced",targetTier=64,requestedTier=1,
  guaranteedBonus=0,windCap=0,chain=0,expAt=()=>1,cookCost=()=>1,
- rounds=6,pattern="wind",maximumActions=1800
+ rounds=6,pattern="wind",packingMode="simple",maximumActions=1800
 }={}){
  if(!Array.isArray(startingBoard)||startingBoard.length!==SIZE||
    !Array.isArray(slots)||slots.length!==SIZE)throw Error("Knowledge rotation requires an 8×15 board");
@@ -146,6 +147,17 @@ export function simulateContinuousKnowledgeRotation({
   return performed;
  }
  function parkLeftovers(){
+  if(packingMode==="ascending"||packingMode==="descending"){
+   const packing=packSushiStaircase(board,slots,packingMode,MAX);
+   let repositioned=0;
+   for(const action of packing.actions){
+    if(frames.length>=maxActions)break;
+    if(!applyMove(action.src,action.dst))
+     throw Error("Knowledge staircase move could not be replayed");
+    repositioned++;
+   }
+   return repositioned;
+  }
   const usable=slotsFree.slice().sort((a,b)=>a-b);
   const top=usable.slice(0,Math.min(22,Math.max(4,Math.floor(usable.length*.25))));
   const sources=usable.filter(i=>board[i]>0&&!top.includes(i))
@@ -247,6 +259,7 @@ export function simulateContinuousKnowledgeRotation({
   active:occupied(final),cooks,merges,moves,windEvents,fuel,
   gains,totalExp,reason:haltReason,
   // This preview is a finite window; not all windows are steady-state.
+  packingMode,
   repeatable:completed&&mode==="balanced"
  };
 }
