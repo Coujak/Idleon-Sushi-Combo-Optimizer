@@ -90,7 +90,7 @@ function fireAlternatives(save,fires){
  return options.filter((choice,i,arr)=>arr.findIndex(x=>
   x.fires.every((v,j)=>v===choice.fires[j]))===i);
 }
-function balancedStaircase(gains,seconds,tiers){
+export function balancedStaircase(gains,seconds,tiers){
  // Compare actual EXP per tier, not just the number of different tiers hit.
  // The ideal profile decreases from the lowest discovered tier upward.
  const ordered=[...tiers].sort((a,b)=>a-b);
