@@ -158,6 +158,14 @@ export function optimizeKnowledgeRotation(save,rawOptions={}){
  }
  if(!best)return fail("No feasible legal refill/merge rotation was found with this board and fuel budget.");
  const rotation=best.rotation;
+ // A pre-existing T64 anchor must not count as progress made by the solver.
+ const initialAnchors=new Set(rotation.initialBoard.flatMap(
+  (tier,i)=>tier===64?[i]:[]));
+ const highestNewTier=rotation.frames.reduce((max,frame)=>
+  Math.max(max,...frame.board.flatMap((tier,i)=>
+   !initialAnchors.has(i)&&tier>0?[tier]:[])),0);
+ const highestWorkingTier=Math.max(0,...rotation.finalBoard.flatMap(
+  (tier,i)=>!initialAnchors.has(i)&&tier>0?[tier]:[]));
  const windowExpPerHour=rotation.totalExp*3600/best.durationSeconds;
  const focusExpPerHour=rotation.gains[targetTier]*3600/best.durationSeconds;
  const perTier=eligible.map(row=>{
@@ -183,6 +191,7 @@ export function optimizeKnowledgeRotation(save,rawOptions={}){
   pinkMultiplier:best.xp.lithiumEnabled?best.xp.lithium:null,
   windCap,steps:rotation.frames,preparedStep,
   startCookTier:best.cookTier,startingPattern:best.pattern,packingMode:best.packingMode,
+  highestNewTier,highestWorkingTier,
   totalExpPerCycle:rotation.totalExp,totalExpPerHour:sustained?windowExpPerHour:null,
   previewExpPerHour:windowExpPerHour,targetExpPerHour:sustained?focusExpPerHour:null,
   targetPreviewExpPerHour:focusExpPerHour,
