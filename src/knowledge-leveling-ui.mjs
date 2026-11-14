@@ -50,6 +50,7 @@ export function initializeKnowledgeLevelingUI(getSave){
  const build=$("knowledgePlanRun"),cancelButton=$("knowledgePlanCancel");
  const status=$("knowledgePlanStatus");
  const summary=$("knowledgePlanFeatured"),replay=$("knowledgePlanRotation");
+ const recommendedBoard=$("knowledgePlanDesign");
  const passiveBox=$("knowledgePlanPassive"),passiveToggle=$("knowledgePlanProtectPassive");
  const board=$("knowledgePlanBoard"),tips=$("knowledgePlanTips");
  const speed=$("knowledgePlanSpeed");
@@ -76,6 +77,7 @@ export function initializeKnowledgeLevelingUI(getSave){
   stopSearch();
   controller?.dispose();controller=null;
   result=null;summary.replaceChildren();board.replaceChildren();
+  recommendedBoard.replaceChildren();recommendedBoard.classList.add("hidden");
   passiveBox.replaceChildren();
   $("knowledgePlanLevelRows").replaceChildren();
   summary.classList.add("hidden");passiveBox.classList.add("hidden");
@@ -117,7 +119,7 @@ export function initializeKnowledgeLevelingUI(getSave){
   const heading=elem("div","lab-kp-headline");
   heading.append(elem("h3","",p.mode==="focused"?
    "Focused target-building rotation · T"+p.targetTier:"Balanced · toward one T64"),
-   elem("p","",p.roundsCompleted+" refill waves · started from imported board · "+
+   elem("p","",p.roundsCompleted+" refill waves · designed preparation · "+
     "starting T"+p.startCookTier+" · "+p.cooks+" cooks · "+p.merges+" merges · "+p.moves+" Sushi moves · "+
     p.windEvents+" Wind upgrades"));
   summary.append(heading);
@@ -179,6 +181,12 @@ export function initializeKnowledgeLevelingUI(getSave){
     "only after preparing T"+p.targetTier+" copies. Harvest merges "+
     "create higher tiers and do not award additional T"+p.targetTier+
     " EXP (except capped T64).","lab-kp-note");
+  if(p.scenarioRequiresCleanup)
+   addNote(summary,"PREPARATION REQUIRED: "+p.design.omittedCount+
+    " Sushi from your current board are not part of this designed "+
+    "starting scenario. They must be dealt with using legal gameplay. "+
+    "The optimizer has NOT verified a route from your current inventory "+
+    "to this setup, and cannot delete Sushi.","lab-kp-warning");
   addNote(summary,p.note);
   addNote(summary,"Final board: "+p.stranded+" Sushi · highest working tier T"+p.highestWorkingTier+
    (p.mode==="focused"?" · T"+p.targetTier+" copies: "+p.focusCopies:"")+
@@ -190,7 +198,78 @@ export function initializeKnowledgeLevelingUI(getSave){
    "This is a continuing rotation preview. Leftover Sushi stay on the board for the next refill. EXP/hr is a projection over this finite window, not a verified long-term rate.",
    "lab-kp-warning");
  }
- function renderPassive(p){
+ function renderDesignedBoard(p){
+  recommendedBoard.replaceChildren();
+  recommendedBoard.classList.remove("hidden");
+  const area=elem("section","lab-kp-design-panel");
+  area.append(elem("h3","","Recommended prepared Sushi board"),
+   elem("p","hint","This is the strongest candidate recipe found by the bounded "+
+    "search, NOT your current inventory. Sushi ingredients are cooked into "+
+    "empty cells in the walkthrough; the highest-tier existing Sushi stays "+
+    "at its original position. The solver tested "+compact(p.considered)+
+    " candidate rotations using your account's unlocked slots, cooking "+
+    "limits and East Wind. This is a best-found candidate, not a proof "+
+    "of global optimality."));
+  const stats=elem("div","lab-kp-design-details");
+  stats.append(
+   metric("Starting cook tier","T"+p.startCookTier),
+   metric("Ingredient pattern",p.startingPattern),
+   metric("Prepared ingredients",compact(p.preparedBoardCooks)),
+   metric("Available unlocked slots",compact(p.design.unlockedCount)));
+  area.append(stats);
+  if(p.scenarioRequiresCleanup)
+   addNote(area,"This candidate assumes a clean working board after legal "+
+    "cleanup of "+p.design.omittedCount+" existing Sushi. "+
+    "The cleanup transition from your current board is NOT included or "+
+    "claimed possible automatically. No Sushi can be deleted to obtain "+
+    "the design.","lab-kp-warning");
+  if(p.design.anchor!==null)
+   addNote(area,"Required highest-tier anchor: T"+p.design.anchorTier+
+    " at R"+(Math.floor(p.design.anchor/15)+1)+"C"+
+    (p.design.anchor%15+1)+" (unchanged from your import).");
+  const outer=elem("div","lab-kp-board-wrap");
+  const grid=elem("div","lab-kp-board");
+  grid.setAttribute("role","img");
+  grid.setAttribute("aria-label","Designed Sushi ingredient preparation board");
+  for(let i=0;i<120;i++){
+   const slot=p.layout.slots[i],tier=p.preparedBoard[i];
+   const tile=elem("div","lab-kp-tile slot-"+slot);
+   if(slot<0)tile.classList.add("locked");
+   if(i===p.design.anchor)tile.classList.add("is-protected");
+   if(tier===p.targetTier&&p.mode==="focused")
+    tile.classList.add("is-focus-target");
+   tile.title="Row "+(Math.floor(i/15)+1)+" column "+(i%15+1)+
+    " · "+(tier?"T"+tier:"Empty");
+   if(tier>0){
+    const img=elem("img","lab-kp-tile-icon");
+    img.src=sushiTierIconPath(tier);img.alt="";img.loading="lazy";
+    img.onerror=()=>img.remove();
+    tile.append(img,elem("strong","",String(tier)));
+   }
+   grid.append(tile);
+  }
+  const fireRow=elem("div","lab-kp-fire-row");
+  for(let col=0;col<15;col++){
+   const type=p.proposedFires[col]??-1;
+   const fire=elem("span","lab-kp-fire fire-"+type);
+   fire.title="Column "+(col+1)+" · "+
+    (FIREPLACE_NAMES[type]??"Locked")+" fireplace";
+   if(type>=0&&FIREPLACE_IMAGES[type]){
+    const img=elem("img","lab-kp-fire-art");
+    img.src="assets/campfires/"+encodeURIComponent(FIREPLACE_IMAGES[type]);
+    img.alt=FIREPLACE_NAMES[type]+" fireplace";img.loading="lazy";
+    img.onerror=()=>img.remove();fire.append(img);
+   }
+   fireRow.append(fire);
+  }
+  grid.append(fireRow);
+  outer.append(grid);area.append(outer);
+  addNote(area,"See Prepared board in the replay for the exact legal "+
+   "cooks that produce this recipe from the designed anchor-only start. "+
+   "Those steps do not clear your original account inventory.");
+  recommendedBoard.append(area);
+ }
+  function renderPassive(p){
   const model=p.passive;
   passiveBox.replaceChildren();
   passiveBox.classList.remove("hidden");
@@ -362,8 +441,7 @@ export function initializeKnowledgeLevelingUI(getSave){
    },
    getDelay:()=>Number(speed.value)
   });
-  const initial=p.mode==="focused"?0:
-   Math.min(p.preparedStep??0,p.steps.length-1);
+  const initial=Math.min(p.preparedStep??0,p.steps.length-1);
   if(initial>0)controller.goTo(initial);
   else renderFrame(0);
  }
@@ -372,7 +450,7 @@ export function initializeKnowledgeLevelingUI(getSave){
   const bullets=[
    "The optimizer uses the Combo Meter legal merge engine, including up to 25 East Wind upgrades when unlocked. Each verified creation event awards EXP to the created Sushi tier.",
    "Lithium Firelighter is 2× Knowledge EXP for Sushi above pink fireplaces; the solver also models reduced Fuel regeneration when orange fireplaces are changed to pink.",
-   "The first frame is the imported Sushi board. Survivors are carried forward between refills.",
+   "The optimizer chooses a NEW prepared Sushi board rather than copying the imported inventory. It retains your highest-tier Sushi at its original location. Clearing other current Sushi to reach this preparation is a separate, unsolved task.",
    "Balanced merges and parks survivors near the top, refills empty cells, and builds toward one T64. T64 + T64 yields one T64.",
    "Focused: first produce and bank as many selected-tier Sushi as possible. Only after the board runs out of space does an explicit Harvest phase merge the saved copies into higher tiers. EXP belongs to the newly created tier, not the ingredient being consumed.",
    "Moving Sushi into a vacant slot is a separate action. Movement Mittens toggles dragging to plates; disable it for Sushi repositioning.",
@@ -418,7 +496,8 @@ export function initializeKnowledgeLevelingUI(getSave){
     }
     const plan=msg.result;
     if(!plan.available){status.textContent=plan.reason;return;}
-    renderSummary(plan);renderPassive(plan);showProgress(plan);createReplay(plan);
+    renderSummary(plan);renderDesignedBoard(plan);
+    renderPassive(plan);showProgress(plan);createReplay(plan);
     status.textContent=plan.mode==="focused"?
      "Focused T"+plan.targetTier+" · "+compact(plan.targetCreated)+
       " target creations · peak batch "+compact(plan.peakTargetCopies)+
