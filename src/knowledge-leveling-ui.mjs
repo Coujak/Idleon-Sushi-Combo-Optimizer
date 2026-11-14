@@ -511,14 +511,20 @@ export function initializeKnowledgeLevelingUI(getSave){
  function showProgress(p){
   const rows=$("knowledgePlanLevelRows");
   rows.replaceChildren();
+  const inRange=t=>t>=(p.balancedStartTier??1)&&
+   t<=(p.balancedEndTier??64);
   let ordered=p.perTier.slice().sort((a,b)=>
    p.mode==="focused"&&a.tier===p.targetTier?-1:
    p.mode==="focused"&&b.tier===p.targetTier?1:
+   p.mode==="balanced"&&inRange(a.tier)!==inRange(b.tier)?
+    (inRange(a.tier)?-1:1):
    (b.expPerHour??-1)-(a.expPerHour??-1)||a.tier-b.tier);
   for(const entry of ordered){
    const tr=elem("tr");
    if(p.mode==="focused"&&entry.tier===p.targetTier)
     tr.classList.add("is-target");
+   if(p.mode==="balanced")
+    tr.classList.add(inRange(entry.tier)?"is-balanced-range":"is-outside-range");
    const name=elem("td","lab-kp-tier");
    const img=elem("img");
    img.src=sushiTierIconPath(entry.tier);img.alt="";img.loading="lazy";
