@@ -152,14 +152,14 @@ export function initializeKnowledgeLevelingUI(getSave){
   ])grid.append(metric(label,value));
   summary.append(grid);
   if(p.mode==="balanced"){
-   if(p.startingPattern==="t2Climb"){
+   if(p.startingPattern==="t1Climb"){
     const actual=p.firstCookResultTier??p.startCookTier;
-    addNote(summary,actual===2?
-     "Balanced requests T2 on every refill, then merges upward. Its objective favors a descending Knowledge EXP staircase across discovered tiers.":
-     "Balanced requests T2 on every refill, but your modeled cooking bonuses change each T2 into T"+actual+". The board displays the resulting sushi: directly cooking T2 therefore cannot earn T2 EXP until the cooking bonus can be avoided.",
-     actual===2?"lab-kp-note":"lab-kp-warning");
-   }else if(p.balancedT2Feasible===false)
-    addNote(summary,"T2 is not directly cookable within the modeled Fuel capacity; Balanced used a fallback strategy.","lab-kp-warning");
+    addNote(summary,actual===1?
+     "Balanced cooks T1 (the lowest Sushi tier) on every refill, then merges upward. Lower tiers are prioritized for the EXP staircase.":
+     "Balanced requests T1, but your guaranteed cooking tier bonus makes the lowest possible resulting Sushi T"+actual+". The walkthrough starts at that actual tier; lower tiers cannot be directly cooked with the present guaranteed bonus.",
+     actual===1?"lab-kp-note":"lab-kp-warning");
+   }else if(p.balancedT1Feasible===false)
+    addNote(summary,"T1 could not be cooked within the modeled Fuel capacity. Balanced used an alternative recipe.","lab-kp-warning");
   }
   if(!p.fuelSafePreparation)
    addNote(summary,"Fuel warning: preparing this full board is estimated "+
@@ -500,7 +500,7 @@ export function initializeKnowledgeLevelingUI(getSave){
    "The optimizer uses the Combo Meter legal merge engine, including up to 25 East Wind upgrades when unlocked. Each verified creation event awards EXP to the created Sushi tier.",
    "Lithium Firelighter is 2× Knowledge EXP for Sushi above pink fireplaces; the solver also models reduced Fuel regeneration when orange fireplaces are changed to pink.",
    "The optimizer chooses a NEW prepared Sushi board rather than copying the imported inventory. It retains your highest-tier Sushi at its original location. Clearing other current Sushi to reach this preparation is a separate, unsolved task.",
-   "Balanced begins with a FULL board cooked at a Fuel-safe starter tier. Later refills prioritize preparing pairs of discovered Sushi tiers missing active Knowledge EXP, while East Wind carries higher tiers upward. When one T64 remains, another refill can begin.",
+   "Balanced requests the lowest cookable tier (normally T1), but guaranteed +tier bonuses raise the actual Sushi tier produced. Fill empty slots and merge upward without deleting survivors. Extend the same rotation with Continue when the preview refill limit is reached.",
    "Focused: first produce and bank as many selected-tier Sushi as possible. Only after the board runs out of space does an explicit Harvest phase merge the saved copies into higher tiers. EXP belongs to the newly created tier, not the ingredient being consumed.",
    "Moving Sushi into a vacant slot is a separate action. Movement Mittens toggles dragging to plates; disable it for Sushi repositioning.",
    "The first full-board fill is screened using the imported Fuel balance, Fuel capacity, estimated generation and actual tier costs. A separate warning appears if no tested recipe avoids regeneration waits. Milktoast/Cold provide passive EXP/day and can be optionally protected.",
