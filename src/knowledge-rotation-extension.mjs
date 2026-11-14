@@ -91,9 +91,10 @@ export function knowledgeContinuationResumeStep(oldSteps,newSteps,previousIndex,
  if(!goToNext&&index<oldSteps.length-2)
   return Math.max(0,Math.min(index,newSteps.length-1));
  const firstNew=Math.max(0,oldSteps.length-1);
- const refill=newSteps.findIndex((frame,i)=>i>=firstNew&&frame.kind==="refill");
+ const refill=goToNext?newSteps.findIndex((frame,i)=>
+  i>=firstNew&&frame.kind==="refill"):-1;
  if(refill>=0)return refill;
  const action=newSteps.findIndex((frame,i)=>i>=firstNew&&
-  ["cook","merge","move"].includes(frame.kind));
+  ["cook","merge","move","refill"].includes(frame.kind));
  return action>=0?action:newSteps.length-1;
 }
