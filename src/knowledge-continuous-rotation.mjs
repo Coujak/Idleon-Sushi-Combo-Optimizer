@@ -30,6 +30,9 @@ export function simulateContinuousKnowledgeRotation({
  if(board.some((tier,i)=>tier<0||tier>MAX||!Number.isInteger(tier)||tier>0&&!playable.has(i)))
   throw Error("Imported board contains an invalid Sushi tier or locked position");
  const initial=board.slice();
+ // Always retain the last original T64 as the permanent board anchor.
+ // An extra T64 can legally merge INTO it, never consume this one as source.
+ const permanentT64Index=initial.lastIndexOf(64);
  const gains=blank(),frames=[];
  let cooks=0,merges=0,windEvents=0,moves=0,fuel=0,roundsDone=0,
   focusCompressed=0,haltReason="",completed=false;
@@ -113,6 +116,7 @@ export function simulateContinuousKnowledgeRotation({
       ...srcs.filter(x=>x>dst).slice(0,1)
      ]);
      for(const src of srcList){
+      if(src===permanentT64Index)continue;
       const action=simulateMerge(board,src,dst,windCap,chain,64);
       if(!action||action.events.some(e=>!playable.has(e.at)))continue;
       const events=action.events;
