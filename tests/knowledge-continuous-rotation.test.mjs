@@ -70,12 +70,14 @@ test("Balanced can consolidate T63 Sushi into one T64 and then restart",()=>{
   requestedTier:63,mode:"balanced",pattern:"uniform",rounds:3
  });
  assert.equal(plan.completed,true);
- assert.equal(plan.repeatable,true);
- assert.equal(plan.finalBoard.filter(t=>t>0).length,1);
- assert.equal(plan.finalBoard.filter(t=>t===64).length,1);
+ assert.ok(plan.balancedCycles>=1);
+ assert.equal(plan.rounds,3,"A completed T64 consolidation should not stop later refills");
  assert.ok(plan.frames.some(x=>x.kind==="merge"&&
   x.events.some(ev=>ev.tier===64)));
- assert.equal(plan.frames.at(-1).kind,"repeat");
+ assert.ok(plan.frames.some(x=>x.kind==="stage"&&
+  /Completed a balanced T64 rotation/.test(x.title)));
+ assert.equal(plan.repeatable,plan.finalBoard.filter(t=>t>0).length===1&&
+  plan.finalBoard.filter(t=>t===64).length===1);
  verifyFrames(plan,slots);
 });
 
