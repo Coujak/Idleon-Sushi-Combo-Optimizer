@@ -294,7 +294,7 @@ export function initializeKnowledgeLevelingUI(getSave){
   block.append(cards);
   const occupancy=elem("div","lab-kp-passive-assignments");
   const formatAssignments=(indices)=>indices.length?
-   indices.map(i=>"T"+p.startingBoard[i]+
+   indices.map(i=>"T"+p.importedBoard[i]+
     " (R"+(Math.floor(i/15)+1)+"C"+(i%15+1)+")").join(" · "):
    "No occupied sources available";
   occupancy.append(
@@ -309,7 +309,7 @@ export function initializeKnowledgeLevelingUI(getSave){
    "Some suggested plate positions could not be assigned by pairwise swaps. "+
    "Treat the preview as a partial setup, not a confirmed arrangement.",
    "lab-kp-warning");
-  if(p.mode==="focused"&&!p.startingBoard.includes(p.targetTier))addNote(block,
+  if(p.mode==="focused"&&!p.importedBoard.includes(p.targetTier))addNote(block,
    "T"+p.targetTier+" is discovered but not currently on the board. "+
    "The Focused rotation must create a copy before it can be parked on a Milktoast Plate.",
    "lab-kp-note");
@@ -320,7 +320,7 @@ export function initializeKnowledgeLevelingUI(getSave){
   const grid=elem("div","lab-kp-passive-board");
   const slots=model.recommendedSlots;
   for(let i=0;i<120;i++){
-   const type=slots[i]??-1,tier=p.startingBoard[i]??0;
+   const type=slots[i]??-1,tier=p.importedBoard[i]??0;
    const tile=elem("div","lab-kp-passive-tile slot-"+type);
    if(type<0)tile.classList.add("locked");
    if(type!==p.layout.slots[i])tile.classList.add("changed");
