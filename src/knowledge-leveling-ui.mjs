@@ -643,7 +643,10 @@ export function initializeKnowledgeLevelingUI(getSave){
    continueButton.disabled=false;
    jumpToNextRefill=false;jumpToNextHarvest=false;
   };
-  continueButton.disabled=true;
+  // Keep the physical button enabled during an active hold so browsers
+  // continue delivering pointer release events. The worker guard prevents
+  // overlapping requests; ordinary clicks still disable the control.
+  continueButton.disabled=!continueHold?.holding;
   continueButton.textContent="Simulating +"+additionalWaves+" refills…";
   cancelButton.classList.remove("hidden");
   build.disabled=true;
