@@ -216,11 +216,18 @@ export function initializeKnowledgeLevelingUI(getSave){
    addNote(section,"Base "+compact(xp.base)+
     " × 3rd Degree Searing "+compact(xp.thirdMultiplier)+
     " × Knowledge bonuses "+compact(xp.knowledgeMultiplier)+
-    (xp.lithiumEnabled?" × pink "+compact(xp.pinkMultiplier):"")+
+    (xp.lithiumEnabled?
+     " × Lithium "+compact(xp.pinkMultiplier)+" (base 2×, "+
+     "Fireplace Strength bonus +"+compact(xp.fireplaceKnowledgeBonus)+"%, "+
+     "Sparks bonus +"+compact(xp.fireplaceSparkBonus)+"%)":"")+
     ". The result depends on the column where each sushi is CREATED, "+
     "not where it is moved later. The pink amount assumes a pink fireplace "+
-    "is selected in that column. Calculated from imported stats; verify "+
-    "against the in-game EXP value.","lab-kp-creation-xp-explanation");
+    "is selected in that column."+
+    (xp.lithiumEnabled&&!xp.sparksKnown&&!xp.manualLithium?
+     " WARNING: Sparks were missing from the imported JSON; "+
+     "the pink fireplace estimate may be too low.":"")+
+    " Calculated from imported stats; verify against the in-game EXP value.",
+    "lab-kp-creation-xp-explanation");
    summary.append(section);
   }
   const secondary=[
