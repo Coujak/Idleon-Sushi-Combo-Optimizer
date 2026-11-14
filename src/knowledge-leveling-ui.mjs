@@ -450,12 +450,17 @@ export function initializeKnowledgeLevelingUI(getSave){
    (b.expPerHour??-1)-(a.expPerHour??-1)||a.tier-b.tier);
   for(const entry of ordered){
    const tr=elem("tr");
+   if(p.mode==="focused"&&entry.tier===p.targetTier)
+    tr.classList.add("is-target");
    const name=elem("td","lab-kp-tier");
    const img=elem("img");
    img.src=sushiTierIconPath(entry.tier);img.alt="";img.loading="lazy";
    img.onerror=()=>img.remove();
    name.append(img,elem("span","","T"+entry.tier+" · "+entry.name));
-   tr.append(name,elem("td","",compact(entry.expPerCycle)),
+   const active=elem("td");
+   active.append(elem("span","lab-kp-exp-value"+
+    (entry.expPerCycle>0?"":" is-empty"),compact(entry.expPerCycle)));
+   tr.append(name,active,
     elem("td","",compact(entry.passiveExpPerDay)),
     elem("td","",rate(entry.expPerHour)),
     elem("td","",formatHours(entry.etaHours)));
