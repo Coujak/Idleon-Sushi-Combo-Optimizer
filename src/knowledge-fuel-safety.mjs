@@ -31,11 +31,28 @@ export function estimateKnowledgeRefillFuel(frames,{
  // Never assume a full tank when the imported JSON supplies a lower balance.
  const tankAllocation=Math.min(balance,max*reserve);
  const budget=tankAllocation+rate*count*seconds/3600;
+ // The aggregate budget is not sufficient: a T46 might be affordable
+ // overall while its FIRST cook starts with less Fuel than it requires.
+ // Simulate every planned cook in order with cap-limited regeneration.
+ let available=tankAllocation,wait=0,shortCooks=0;
+ for(let i=index+1;i<frames.length&&frames[i].kind==="cook";i++){
+  const cost=Number(frames[i].cookFuel??0);
+  available=Math.min(max,available+rate*seconds/3600);
+  if(cost>available){
+   wait+=(cost-available)*3600/rate;
+   available=0;
+   shortCooks++;
+  }else available-=cost;
+ }
+ const noWait=count>0&&wait<0.001;
  const excess=Math.max(0,fuel-budget);
  return {cooks:count,fuel,capacity:max,generationPerHour:rate,
-  highestRequestedTier:highest,budget,noWait:count>0&&excess<=Math.max(1,budget*1e-9),
-  excessFuel:excess,estimatedWaitSeconds:excess*3600/rate,
+  highestRequestedTier:highest,budget,noWait,
+  excessFuel:excess,estimatedWaitSeconds:wait,
+  waitingCooks:shortCooks,remainingFuel:available,
   refillIndex:index,preparedIndex:last,reserveFraction:reserve,
   startingFuel:balance,tankAllocation,
-  reason:count===0?"No Sushi were cooked":"A refill would require extra Fuel regeneration"};
+  reason:count===0?"No Sushi were cooked":noWait?
+   "All first-fill cooks can be made without modeled Fuel waiting":
+   shortCooks+" planned cooks would need additional Fuel generation"};
 }
