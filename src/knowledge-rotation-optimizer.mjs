@@ -225,7 +225,8 @@ export function optimizeKnowledgeRotation(save,rawOptions={}){
   windCap,steps:rotation.frames,preparedStep,
   startCookTier:best.cookTier,startingPattern:best.pattern,packingMode:best.packingMode,
   highestNewTier,highestWorkingTier,
-  protectedIndices,
+  protectedIndices:rotation.protectedIndices,
+  initialProtectedIndices:protectedIndices,
   passive: {
    ...passiveRecommendation,
    averageExpPerDay:best.passivePerDay,
