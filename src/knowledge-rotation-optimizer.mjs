@@ -1,7 +1,7 @@
 // Search legal cook/merge/park rotations from freshly DESIGNED preparation
 // scenarios. The imported board provides account constraints, not ingredients.
 import {simulateContinuousKnowledgeRotation} from "./knowledge-continuous-rotation.mjs?v=1.0.9";
-import {estimateKnowledgeRefillFuel} from "./knowledge-fuel-safety.mjs?v=1.0.0";
+import {estimateKnowledgeRefillFuel} from "./knowledge-fuel-safety.mjs?v=1.0.1";
 import {
  designKnowledgeStartingBoard,captureKnowledgePreparedBoard
 } from "./knowledge-board-design.mjs?v=1.0.0";
