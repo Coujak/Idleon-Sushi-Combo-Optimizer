@@ -79,3 +79,21 @@ export function combineKnowledgeContinuation(previous,chunk,requestedWaves=6){
   // It does not claim that all later refills are fuel-wait-free.
  };
 }
+
+/**
+ * Keep the user's place while reviewing old steps. When they press Continue
+ * from the previous final step, jump straight to the NEXT refill so the button
+ * visibly advances the walkthrough rather than leaving it on the old board.
+ */
+export function knowledgeContinuationResumeStep(oldSteps,newSteps,previousIndex,goToNext=false){
+ if(!Array.isArray(oldSteps)||!Array.isArray(newSteps)||!newSteps.length)return 0;
+ const index=Number.isInteger(previousIndex)?previousIndex:oldSteps.length-1;
+ if(!goToNext&&index<oldSteps.length-2)
+  return Math.max(0,Math.min(index,newSteps.length-1));
+ const firstNew=Math.max(0,oldSteps.length-1);
+ const refill=newSteps.findIndex((frame,i)=>i>=firstNew&&frame.kind==="refill");
+ if(refill>=0)return refill;
+ const action=newSteps.findIndex((frame,i)=>i>=firstNew&&
+  ["cook","merge","move"].includes(frame.kind));
+ return action>=0?action:newSteps.length-1;
+}
