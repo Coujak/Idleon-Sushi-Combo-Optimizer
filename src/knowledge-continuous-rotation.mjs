@@ -168,8 +168,11 @@ export function simulateContinuousKnowledgeRotation({
       const pairs=new Map();
       for(const t of action.board)if(t>0&&t<64)pairs.set(t,(pairs.get(t)??0)+1);
       const close=[...pairs.values()].reduce((sum,n)=>sum+Math.floor(n/2),0);
+      const targetOnMilktoast=events.filter(e=>
+       e.tier===targetTier&&slots[e.at]===3).length;
       let score=mode==="focused"?
-       createsTarget*10000+reach*32+wind*5+close*.3:
+       createsTarget*10000+reach*32+wind*5+close*.3+
+       targetOnMilktoast*8:
        wind*23+creates64*18+events.length*5+close*.1;
       if(mode==="focused"&&compressFocus&&tier===targetTier)
        score+=200+focusCount();
@@ -191,15 +194,24 @@ export function simulateContinuousKnowledgeRotation({
  }
  function parkLeftovers(){
   let repositioned=0;
-  // When possible, move a newly made T58 onto a vacant Milktoast Plate.
-  // Once parked, that particular copy is protected for passive EXP.
-  if(mode==="focused"&&protectFocusedMilktoast){
-   const milkSlots=slotsFree.filter(i=>slots[i]===3&&board[i]===0);
+  // Milktoast (yellow) gives PASSIVE EXP/day to its occupant; it does
+  // not multiply EXP from a merge. Park new target copies there where
+  // legal. When preservation is unchecked, they remain harvestable.
+  if(mode==="focused"){
+   const milkSlots=slotsFree.filter(i=>slots[i]===3&&
+    !protectedSet.has(i)&&board[i]!==targetTier);
    for(const dst of milkSlots){
-    if(frames.length>=maxActions)break;
+    if(frames.length+3>=maxActions)break;
     const src=slotsFree.find(i=>board[i]===targetTier&&i!==dst&&
      !protectedSet.has(i)&&slots[i]!==3);
     if(src===undefined)break;
+    if(board[dst]!==0){
+     if(board[dst]===MAX)continue;
+     const buffer=slotsFree.find(i=>board[i]===0&&!protectedSet.has(i)&&
+      i!==dst&&i!==src);
+     if(buffer===undefined||!applyMove(dst,buffer))continue;
+     repositioned++;
+    }
     if(applyMove(src,dst))repositioned++;
    }
   }
