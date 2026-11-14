@@ -1,6 +1,6 @@
 // Search legal cook/merge/park rotations from freshly DESIGNED preparation
 // scenarios. The imported board provides account constraints, not ingredients.
-import {simulateContinuousKnowledgeRotation} from "./knowledge-continuous-rotation.mjs?v=1.0.11";
+import {simulateContinuousKnowledgeRotation} from "./knowledge-continuous-rotation.mjs?v=1.0.12";
 import {estimateKnowledgeRefillFuel} from "./knowledge-fuel-safety.mjs?v=1.0.1";
 import {
  designKnowledgeStartingBoard,captureKnowledgePreparedBoard
@@ -372,4 +372,58 @@ export function optimizeKnowledgeRotation(save,rawOptions={}){
   considered:candidates,haltReason:rotation.reason,
   note:"Balanced requests T1 on each refill when feasible; guaranteed cooking bonuses may produce T2 or higher. Balanced ranks actual EXP by its fit to a descending low-to-high-tier staircase, plus tier coverage and active EXP rate, without passive EXP/day. Balanced begins with a full board of the selected starter tier and prioritizes creating missing discovered tiers during later refills. The tier-coverage score counts actual Knowledge EXP events, not just passive EXP/day. Any tiers that remain uncovered are reported explicitly; the planner never invents high-tier creation events. First-fill recipes are screened against a conservative Fuel buffer (a precharged full tank, spending at most half the capacity plus Fuel regenerated during normal cooking); this does not claim uninterrupted sustained refills. The optimizer designs an ingredient board from account cooking limits and available slots; the imported Sushi inventory is NOT assumed to be the optimal preparation. It keeps the highest-tier anchor in its existing position. IMPORTANT: converting the current inventory into this clean design may require legal cleanup merges NOT included in the walkthrough. Once that starting state is achieved, each subsequent cook, move, Wind cascade and merge is replay-validated. Focused ranks actual target creations and prepared target copies; harvest earns EXP for the result tier. This bounded search is not a mathematical proof of optimality."
  };
+}
+
+
+/**
+ * Continue an already-selected Balanced recipe from its REAL last board.
+ * Each worker invocation simulates only a small chunk, so long-running
+ * rotations do not redo tens of thousands of earlier steps.
+ */
+export function continueKnowledgeRotation(save,snapshot,waves=6){
+ const fail=reason=>({available:false,reason});
+ if(!snapshot||snapshot.mode!=="balanced"||snapshot.completed)
+  return fail("Only an unfinished Balanced rotation can be extended.");
+ if(!save?.sushi||!Array.isArray(save?.slots))
+  return fail("A valid account save is required to continue.");
+ const layout=layoutFromSave(save);
+ const board=snapshot.finalBoard;
+ const protectedIndices=snapshot.protectedIndices;
+ if(!Array.isArray(board)||board.length!==SIZE||
+    !Array.isArray(protectedIndices)||
+    !layout.slots.every((v,i)=>v===snapshot.slots?.[i]))
+  return fail("The board layout changed. Rebuild the Knowledge planner.");
+ const rows=getKnowledgeRows(save).filter(row=>row.discovered);
+ const opts={...normalizeKnowledgeCycleOptions(snapshot.options),
+  preservePassive:snapshot.options?.preservePassive===true};
+ const profile=expProfile(save,rows,opts,snapshot.proposedFires,
+  getSushiDashboardMetrics(save));
+ if(profile.guaranteed!==snapshot.guaranteedCookBonus)
+  return fail("The guaranteed cooking bonus changed. Rebuild your rotation.");
+ const count=Math.max(1,Math.min(12,Math.floor(Number(waves))||6));
+ const requested=Number(snapshot.startCookTier);
+ if(!Number.isInteger(requested)||requested<1||requested>64||
+    !["t1Climb","t2Climb","wind","paired","longWind","spread","widePairs"].includes(snapshot.startingPattern)||
+    !Number.isInteger(snapshot.roundsCompleted)||snapshot.roundsCompleted<0)
+  return fail("The previous recipe is incomplete. Rebuild the rotation.");
+ const rotation=simulateContinuousKnowledgeRotation({
+  startingBoard:board,slots:layout.slots,mode:"balanced",
+  targetTier:snapshot.targetTier??64,requestedTier:requested,
+  guaranteedBonus:profile.guaranteed,
+  windCap:snapshot.windCap,chain:snapshot.windCap>0?25:0,
+  expAt:profile.expAt,cookCost:sushiDirectCookFuel,rounds:count,
+  pattern:snapshot.startingPattern,
+  recipeOffset:snapshot.recipeOffset??0,
+  packingMode:snapshot.packingMode??"simple",
+  protectedIndices,protectFocusedMilktoast:opts.preservePassive,
+  startingContext:"continuation",
+  coverageTiers:rows.map(row=>row.tier),
+  roundOffset:snapshot.roundsCompleted,
+  maximumActions:5000
+ });
+ if(!rotation.valid||!rotation.frames.length||rotation.rounds<1&&!rotation.completed)
+  return fail(rotation.reason??"No additional legal rotation progress was possible.");
+ if(!rotation.initialBoard.every((t,i)=>t===board[i]))
+  return fail("The continuation changed the existing starting board.");
+ return {available:true,rotation,requestedWaves:count};
 }
