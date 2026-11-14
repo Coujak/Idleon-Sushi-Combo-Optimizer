@@ -62,6 +62,9 @@ export function simulateContinuousKnowledgeRotation({
     throw Error("Invalid Sushi EXP event");
    const value=Number(expAt(event.tier,event.at));
    if(!(value>=0)||!Number.isFinite(value))throw Error("Knowledge EXP cannot be calculated");
+   // Preserve the gain on its individual result event. One East Wind
+   // action can create several Sushi under different fireplace columns.
+   event.knowledgeExp=value;
    out[event.tier]+=value;gains[event.tier]+=value;
    if(mode==="focused"&&event.tier===targetTier)targetCreated++;
   }
