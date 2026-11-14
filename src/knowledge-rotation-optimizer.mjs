@@ -155,11 +155,18 @@ export function optimizeKnowledgeRotation(save,rawOptions={}){
     const passivePerDay=passiveStart.expPerDay.map((v,t)=>
      (v+passiveEnd.expPerDay[t])/2);
     const focus=rotation.gains[targetTier]||0;
+    const peakCreated=rotation.frames.reduce((best,frame)=>
+     Math.max(best,...frame.events.filter(e=>
+      e.kind==="cook"||e.kind==="merge"||e.kind==="wind").map(e=>e.tier),0),0);
+    // When no T58 is yet attainable within the bounded preview,
+    // prioritize real progress toward T58 rather than a cheap T2 loop.
+    const progressRate=rotation.gains.reduce((n,x,i)=>n+
+     (i<targetTier?x*Math.pow(i/targetTier,4):0),0)*
+      3600/durationSeconds;
     const score=options.mode==="focused"?
      (focus*3600/durationSeconds+passivePerDay[targetTier]/24)*100+
-      rotation.gains.reduce((n,x,i)=>n+
-       (i<targetTier?x*i/targetTier:x)*.0001,0)*3600/durationSeconds+
-       rotation.focusCopies*.01:
+      progressRate*.02+Math.min(targetTier,peakCreated)*.3+
+      rotation.focusCopies*.01:
      expFairness(rotation.gains,durationSeconds,eligible.map(x=>x.tier),passivePerDay)+
       (rotation.completed?100:0)+rotation.highestTier*.01;
     candidates++;
@@ -183,8 +190,9 @@ export function optimizeKnowledgeRotation(save,rawOptions={}){
  const initialAnchors=new Set(rotation.initialBoard.flatMap(
   (tier,i)=>tier===64?[i]:[]));
  const highestNewTier=rotation.frames.reduce((max,frame)=>
-  Math.max(max,...frame.board.flatMap((tier,i)=>
-   !initialAnchors.has(i)&&tier>0?[tier]:[])),0);
+  Math.max(max,...(frame.events??[]).filter(e=>
+   e.kind==="cook"||e.kind==="merge"||e.kind==="wind")
+   .map(e=>e.tier),0),0);
  const highestWorkingTier=Math.max(0,...rotation.finalBoard.flatMap(
   (tier,i)=>!initialAnchors.has(i)&&tier>0?[tier]:[]));
  const windowExpPerHour=rotation.totalExp*3600/best.durationSeconds;
