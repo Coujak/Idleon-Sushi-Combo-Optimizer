@@ -111,7 +111,7 @@ export function initializeKnowledgeLevelingUI(getSave){
   heading.append(elem("h3","",p.mode==="focused"?
    "Focused target-building rotation · T"+p.targetTier:"Balanced · toward one T64"),
    elem("p","",p.roundsCompleted+" refill waves · started from imported board · "+
-    p.cooks+" cooks · "+p.merges+" merges · "+p.moves+" Sushi moves · "+
+    "starting T"+p.startCookTier+" · "+p.cooks+" cooks · "+p.merges+" merges · "+p.moves+" Sushi moves · "+
     p.windEvents+" Wind upgrades"));
   summary.append(heading);
   const grid=elem("div","lab-kp-stats");
@@ -121,9 +121,10 @@ export function initializeKnowledgeLevelingUI(getSave){
    ["Preview duration",formatHours(p.cycleSeconds/3600)],
    ["Fuel / preview",compact(p.fuelPerCycle)],
    ["Modeled Fuel / hr",compact(p.estimatedFuelGeneration)],
-   ["Starting tier","T"+p.startCookTier],
-   ["Refill waves",p.roundsCompleted+" / "+p.roundsRequested],
-   ["Candidates tested",compact(p.considered)]
+   ["Highest tier produced","T"+p.highestNewTier],
+   ["Survivor parking",p.packingMode==="ascending"?"Staircase low → high":
+     p.packingMode==="descending"?"Staircase high → low":"Simple parking"],
+   ["Refill waves",p.roundsCompleted+" / "+p.roundsRequested]
   ])grid.append(metric(label,value));
   summary.append(grid);
   if(p.mode==="focused"){
@@ -145,7 +146,7 @@ export function initializeKnowledgeLevelingUI(getSave){
     "lab-kp-lithium");
   }
   addNote(summary,p.note);
-  addNote(summary,"Final board: "+p.stranded+" Sushi · highest T"+p.highestTier+
+  addNote(summary,"Final board: "+p.stranded+" Sushi · highest working tier T"+p.highestWorkingTier+
    (p.mode==="focused"?" · T"+p.targetTier+" copies: "+p.focusCopies:"")+
    ". "+p.haltReason,"lab-kp-note");
   if(p.rotationTerminal)addNote(summary,
