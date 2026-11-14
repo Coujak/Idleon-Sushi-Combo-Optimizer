@@ -186,7 +186,7 @@ export function initializeKnowledgeLevelingUI(getSave){
    ["Peak copies on board",compact(p.peakTargetCopies)],
    ["Batch harvests",compact(p.harvestCount)]
   ]:[
-   ["Knowledge coverage",p.coverageTotal+" / "+p.coverageRequested],
+   ["Range EXP coverage",p.coverageTotal+" / "+p.coverageRequested],
    ["Active EXP / preview",compact(p.totalExpPerCycle)],
    ["Highest newly created","T"+p.highestNewTier],
    ["Refills simulated",compact(p.roundsCompleted)]
@@ -231,6 +231,9 @@ export function initializeKnowledgeLevelingUI(getSave){
   more.append(grid);
   summary.append(more);
   if(p.mode==="balanced"){
+   addNote(summary,"Balanced target range: T"+(p.balancedStartTier??1)+
+    " → T"+(p.balancedEndTier??64)+
+    ". EXP outside this range is still tracked in the progression table, but is not part of the Balanced scoring priority.","lab-kp-note");
    if(p.startingPattern==="t1Climb"){
     const actual=p.firstCookResultTier??p.startCookTier;
     addNote(summary,actual===1?
@@ -322,7 +325,8 @@ export function initializeKnowledgeLevelingUI(getSave){
    (p.mode==="focused"?" · T"+p.targetTier+" copies: "+p.focusCopies:"")+
    ". "+p.haltReason,"lab-kp-note");
   if(p.rotationTerminal)addNote(summary,
-   "Full Balanced rotation complete: a NEW T64 was created by a legal merge or East Wind cascade. The original protected T64 was not counted.",
+   "Full Balanced rotation complete: a NEW T"+(p.balancedEndTier??64)+
+   " was created by a legal cook, merge, or East Wind cascade. The original protected Sushi was not counted.",
    "lab-kp-lithium");
   else addNote(summary,
    "This is a continuing rotation preview. Leftover Sushi stay on the board for the next refill. EXP/hr is a projection over this finite window, not a verified long-term rate.",
@@ -719,7 +723,7 @@ export function initializeKnowledgeLevelingUI(getSave){
       " tiers with active EXP · "+compact(plan.totalExpPerCycle)+" EXP")+
      " · "+plan.roundsCompleted+"/"+plan.roundsRequested+" refills"+
      (plan.rotationTerminal?
-      " · Full rotation complete: a new T64 was created":
+      " · Full rotation complete: a new T"+(plan.balancedEndTier??64)+" was created":
       plan.roundsCompleted<plan.roundsRequested?
       " · stopped early: "+plan.haltReason:" · preview limit reached");
    };
@@ -753,7 +757,7 @@ export function initializeKnowledgeLevelingUI(getSave){
   }
   if(!canExtendBalancedRotation(result)){
    announceContinuation(result?.rotationTerminal?
-    "Full rotation complete: a new T64 has already been created.":
+    "Full rotation complete: a new T"+(result.balancedEndTier??64)+" has already been created.":
     "No legal continuation is available from this board.");
    return;
   }
@@ -836,8 +840,8 @@ export function initializeKnowledgeLevelingUI(getSave){
      continueButton.textContent=knowledgeContinueButtonLabel(plan.roundsCompleted);
      const progressed=plan.roundsCompleted-previous.roundsCompleted;
      const message=plan.rotationTerminal?
-      "Full Balanced rotation complete! A NEW T64 was created after "+
-      progressed+" additional refills.":
+      "Full Balanced rotation complete! A NEW T"+(plan.balancedEndTier??64)+
+      " was created after "+progressed+" additional refills.":
       (plan.mode==="focused"?
        "Focused T"+plan.targetTier+" · "+plan.targetCreated+
        " target creations · "+plan.harvestCount+" harvests · ":"")+
@@ -878,6 +882,8 @@ export function initializeKnowledgeLevelingUI(getSave){
     startCookTier:previous.startCookTier,startingPattern:previous.startingPattern,
     recipeOffset:previous.recipeOffset,packingMode:previous.packingMode,
     roundsCompleted:previous.roundsCompleted,targetTier:previous.targetTier,
+    balancedStartTier:previous.balancedStartTier,
+    balancedEndTier:previous.balancedEndTier,
     targetCreated:previous.targetCreated
    }});
   }catch(error){
