@@ -34,7 +34,7 @@ function layoutFromSave(save){
  });
  return {slots,tiles,fires};
 }
-function startingTiers(economy,guaranteed,options,targetTier){
+function startingTiers(economy,guaranteed,options,targetTier,availableSlots=100){
  const upper=Math.min(64-guaranteed,Math.floor(num(economy.maxCookTier)));
  const cap=num(economy.capacity);
  const valid=[];
@@ -44,15 +44,22 @@ function startingTiers(economy,guaranteed,options,targetTier){
  }
  if(!valid.length)return [];
  const max=valid.at(-1);
- // Explore genuinely cheaper tiers, not just T46/T45 that may take hours
- // to regenerate enough Fuel for a complete board preparation.
+ const cooks=Math.max(1,Math.floor(availableSlots));
+ const perCookRegeneration=num(economy.generationPerHour)*
+  options.secondsPerCook/3600;
+ // The safe first-preparation tier must be affordable for the FULL board.
+ // Include one conservative precharged half-tank (or less when the imported
+ // current Fuel is lower), distributed across all required new Sushi.
+ const startup=Math.min(cap*.5,Math.max(0,num(economy.currentFuel)));
+ const averageFirstCookBudget=startup/cooks+perCookRegeneration;
+ const safe=valid.filter(t=>sushiDirectCookFuel(t)<=averageFirstCookBudget).at(-1)??1;
+ const sustainable=valid.filter(t=>sushiDirectCookFuel(t)<=perCookRegeneration).at(-1)??1;
  const requests=options.mode==="focused"?
-  [targetTier-guaranteed,max,max-1,max-2,max-4,max-6,max-8,max-10,
-   max-12,Math.floor(max*.65),Math.floor(max*.5),1]:
-  [max,max-1,max-3,max-6,max-9,Math.floor(max*.75),
-   Math.floor(max*.5),1];
+  [safe,sustainable,max,max-1,max-3,max-5,max-8,max-12,1,
+   targetTier-guaranteed]:
+  [safe,sustainable,max,max-2,max-5,max-9,1];
  return unique(requests.filter(x=>valid.includes(x))).slice(0,
-  options.mode==="focused"?9:7);
+  options.mode==="focused"?10:7);
 }
 function expProfile(save,rows,options,fires,metrics){
  const upgrade=getUpgradeRows(save);
@@ -115,7 +122,8 @@ export function optimizeKnowledgeRotation(save,rawOptions={}){
  const design=designKnowledgeStartingBoard(layout,options);
  const protectedIndices=design.protectedIndices;
  const originalProfile=expProfile(save,eligible,options,layout.fires,metrics);
- const bases=startingTiers(economy,originalProfile.guaranteed,options,targetTier);
+ const bases=startingTiers(economy,originalProfile.guaranteed,options,
+  targetTier,design.availableWorkingSlots);
  if(!bases.length)return fail("No directly cookable Sushi tier fits your estimated fuel capacity.");
  const highestDiscovered=eligible.reduce((n,row)=>Math.max(n,row.tier),0);
  const windCap=num(save?.sushi?.[2]?.[29])>0?Math.max(0,Math.min(58,highestDiscovered-6)):0;
