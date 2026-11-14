@@ -18,7 +18,8 @@ export function simulateContinuousKnowledgeRotation({
  guaranteedBonus=0,windCap=0,chain=0,expAt=()=>1,cookCost=()=>1,
  rounds=6,pattern="wind",recipeOffset=0,packingMode="simple",protectedIndices=[],
  protectFocusedMilktoast=true,startingContext="imported",
- coverageTiers=[],coverageMode="recover",roundOffset=0,maximumActions=1800
+ coverageTiers=[],coverageMode="recover",roundOffset=0,
+ startingTargetCreated=0,maximumActions=1800
 }={}){
  if(!Array.isArray(startingBoard)||startingBoard.length!==SIZE||
    !Array.isArray(slots)||slots.length!==SIZE)throw Error("Knowledge rotation requires an 8×15 board");
@@ -39,12 +40,14 @@ export function simulateContinuousKnowledgeRotation({
  }
  // Always retain the last original T64 as the permanent board anchor.
  // An extra T64 can legally merge INTO it, never consume this one as source.
- const permanentT64Index=initial.lastIndexOf(64);
+ const permanentT64Index=protectedIndices.find(i=>initial[i]===64)??
+  initial.lastIndexOf(64);
  const gains=blank(),frames=[];
  let cooks=0,merges=0,windEvents=0,moves=0,fuel=0,roundsDone=0,
   focusCompressed=0,haltReason="",completed=false;
  let activePhase=mode==="focused"?"prepare":"balanced";
- let targetCreated=0,targetMergedInHarvest=0,peakTargetCopies=count(board,targetTier);
+ let targetCreated=Math.max(0,Math.floor(Number(startingTargetCreated))||0),
+  targetMergedInHarvest=0,peakTargetCopies=count(board,targetTier);
  const harvestBatches=[];
  const discoveredCoverage=Array.isArray(coverageTiers)&&coverageTiers.length?
   [...new Set(coverageTiers.filter(t=>Number.isInteger(t)&&t>=1&&t<=MAX))]:
@@ -368,7 +371,7 @@ export function simulateContinuousKnowledgeRotation({
    "Fill and merge lower tiers to create as many T"+targetTier+
    " Sushi as possible. Every created T"+targetTier+
    " earns its own Knowledge EXP; saved copies are not merged yet.");
-  for(let wave=1;wave<=Math.max(1,Math.min(16,Math.floor(rounds)||6));wave++){
+  for(let wave=1;wave<=Math.max(1,Math.floor(rounds)||6);wave++){
    if(frames.length>=maxActions){haltReason="Replay action limit reached";break;}
    // Work on all non-target pairs first. A full target stockpile is harvested
    // only when no further cooking is possible in the current preparation.
@@ -381,14 +384,14 @@ export function simulateContinuousKnowledgeRotation({
    if(slotsFree.length===occupied(board)){
     haltReason="No unlocked empty positions remain after legal harvest";break;
    }
-   fillRound(wave);
+   fillRound(wave+roundOffset);
    mergePass({compressFocus:false});
    parkLeftovers();
    roundsDone++;
    // If the preparation has saturated, harvest only after all available
    // non-target merges and Wind cascades have finished.
    if(slotsFree.length===occupied(board)&&count(board,targetTier)>=2)
-    harvestFocus("Prepared board saturated after refill "+wave);
+    harvestFocus("Prepared board saturated after refill "+(wave+roundOffset));
   }
   if(!haltReason)haltReason=roundsDone>=rounds?
    "Preparation preview limit reached; banked Sushi carry forward":
