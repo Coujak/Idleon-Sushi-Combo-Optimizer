@@ -225,8 +225,9 @@ export function optimizeKnowledgeRotation(save,rawOptions={}){
      focus, precursor, rotation.harvested,
      -durationSeconds
     ]:[
-     staircase.coverage,
+     // The descending EXP distribution is the primary Balanced objective.
      staircase.fit,
+     staircase.coverage,
      staircase.weightedRate,
      rotation.balancedCycles,
      -durationSeconds
@@ -307,7 +308,7 @@ export function optimizeKnowledgeRotation(save,rawOptions={}){
   guaranteedCookBonus:best.xp.guaranteed,
   firstCookResultTier:Math.min(64,best.cookTier+best.xp.guaranteed),
   balancedT2Feasible:options.mode==="balanced"?t2Feasible:null,
-  balancedStaircaseFit:options.mode==="balanced"?best.rank[1]:null,
+  balancedStaircaseFit:options.mode==="balanced"?best.rank[0]:null,
   recipeOffset:best.recipeOffset,packingMode:best.packingMode,
   highestNewTier,highestWorkingTier,
   coveredTiers:rotation.coveredTiers,
