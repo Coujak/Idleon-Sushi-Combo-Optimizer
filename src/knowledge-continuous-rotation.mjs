@@ -265,7 +265,7 @@ export function simulateContinuousKnowledgeRotation({
   // that can be cooked without exceeding the chosen safe base.
   const pending=mode==="balanced"&&coverageMode==="recover"&&round>1?
    discoveredCoverage.filter(t=>gains[t]<=0&&t>guaranteedBonus&&
-    t-guaranteedBonus<=requestedTier):[];
+    t-guaranteedBonus<=requestedTier).slice(0,Math.floor(available.length/2)):[];
   record("refill","Refill "+round,
    "Carry forward "+occupied(board)+" existing Sushi; fill "+available.length+
    " empty slots without overwriting any."+
@@ -279,8 +279,10 @@ export function simulateContinuousKnowledgeRotation({
    if(i!==last+1)segment=0;
    const phase=segment+Math.max(0,Math.floor(Number(recipeOffset)||0));
    let tier=requestedTier;
-   if(mode==="balanced"&&coverageUsed<pending.length){
-    tier=pending[coverageUsed++]-guaranteedBonus;
+   if(mode==="balanced"&&coverageUsed<pending.length*2){
+    // Prepare pairs, not unique singletons; otherwise a packed board can
+    // become permanently unmergeable even though it has plenty of EXP.
+    tier=pending[Math.floor(coverageUsed++/2)]-guaranteedBonus;
    }else if(mode==="balanced"&&round===1){
     tier=requestedTier;
    }else if(pattern==="wind"){
