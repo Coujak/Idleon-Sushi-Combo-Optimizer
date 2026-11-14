@@ -29,12 +29,13 @@ test("The original T64 is not full rotation; creating a NEW T64 immediately comp
  assert.equal(rotation.merges,1);
  assert.equal(rotation.cooks,0);
  assert.equal(rotation.rounds,0);
- assert.equal(rotation.frames.at(-2).kind,"merge");
- assert.equal(rotation.frames.at(-2).events[0].tier,64);
+ assert.equal(rotation.frames.at(-1).kind,"merge");
+ assert.equal(rotation.frames.at(-1).events[0].tier,64);
  assert.match(rotation.reason,/new T64 created/i);
  assert.equal(rotation.finalBoard.filter(t=>t===64).length,2,
   "The original protected anchor and newly created T64 both remain; no clearing is required.");
- assert.equal(rotation.frames.at(-1).title,"New T64 created · full Balanced rotation");
+ assert.equal(rotation.frames.at(-1).kind,"merge",
+  "T64 creation must be the last actual replay action.");
 });
 test("Fresh T64 stops further cooking in the middle of a refill wave",()=>{
  const board=anchored();board[0]=63;board[1]=63;
@@ -59,10 +60,10 @@ test("Cooking a new T64 also ends Balanced immediately when tier-up bonus guaran
  assert.equal(result.cooks,1);
  assert.equal(result.merges,0);
  assert.equal(result.rounds,1);
- assert.equal(result.frames.at(-2).kind,"cook");
- assert.equal(result.frames.at(-2).events[0].tier,64);
+ assert.equal(result.frames.at(-1).kind,"cook");
+ assert.equal(result.frames.at(-1).events[0].tier,64);
  assert.equal(result.finalBoard.filter(t=>t===64).length,2);
- assert.ok(result.frames.slice(-1).every(f=>f.kind==="repeat"));
+ assert.equal(result.frames.at(-1).kind,"cook");
 });
 
 test("Incremental refills work after global refill 64 and preserve earlier steps",()=>{
