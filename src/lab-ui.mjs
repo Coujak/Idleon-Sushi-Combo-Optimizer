@@ -6,7 +6,7 @@ import {KNOWLEDGE_SORT_OPTIONS,KNOWLEDGE_STATUS_OPTIONS,filterKnowledgeRows,know
  from "./knowledge-view.mjs?v=1.0.2";
 import {describeKnowledgeBonus,formatKnowledgeBonusValue} from "./knowledge-bonus-format.mjs?v=1.0.2";
 import {initializePerfectoUI} from "./perfecto-ui.mjs?v=1.36.3";
-import {initializeKnowledgeLevelingUI} from "./knowledge-leveling-ui.mjs?v=1.0.15";
+import {initializeKnowledgeLevelingUI} from "./knowledge-leveling-ui.mjs?v=1.0.16";
 import {CATALOG_SORT_OPTIONS,CATALOG_STATUS_OPTIONS,upgradeSummary,readableUpgradeDescription,upgradeDescriptionSegments,catalogHasVariableValues,filterSortCatalog,upgradeCatalogDollarValue} from "./upgrade-catalog.mjs?v=1.16.9";
 import {ADVISOR_GOALS,numberText,getSushiSnapshot,getUpgradeRows,
  getKnowledgeRows,advisorUpgrades,getSushiDoublerCounts,sushiUpgradeExtraText,upgradeAffordability} from "./lab-model.mjs?v=1.19.13";
