@@ -16,7 +16,7 @@ const highest=board=>board.reduce((a,b)=>Math.max(a,b),0);
 export function simulateContinuousKnowledgeRotation({
  startingBoard,slots,mode="balanced",targetTier=64,requestedTier=1,
  guaranteedBonus=0,windCap=0,chain=0,expAt=()=>1,cookCost=()=>1,
- rounds=6,pattern="wind",packingMode="simple",protectedIndices=[],
+ rounds=6,pattern="wind",recipeOffset=0,packingMode="simple",protectedIndices=[],
  protectFocusedMilktoast=true,startingContext="imported",maximumActions=1800
 }={}){
  if(!Array.isArray(startingBoard)||startingBoard.length!==SIZE||
@@ -242,21 +242,22 @@ export function simulateContinuousKnowledgeRotation({
   for(const i of available){
    if(frames.length>=maxActions)break;
    if(i!==last+1)segment=0;
+   const phase=segment+Math.max(0,Math.floor(Number(recipeOffset)||0));
    let tier=requestedTier;
    if(pattern==="wind"){
     const offsets=[0,0,1,2,3,4,5,6];
-    tier=Math.max(1,requestedTier-offsets[segment%offsets.length]);
+    tier=Math.max(1,requestedTier-offsets[phase%offsets.length]);
    }else if(pattern==="longWind"){
     // Two starting copies and a descending 25-tier staircase make a
     // legitimate full-length East Wind trigger when the tier is high enough.
-    const step=segment%27;
+    const step=phase%27;
     tier=Math.max(1,requestedTier-(step<2?0:step-1));
    }else if(pattern==="paired"){
-    tier=Math.max(1,requestedTier-(Math.floor(segment/2)%5));
+    tier=Math.max(1,requestedTier-(Math.floor(phase/2)%5));
    }else if(pattern==="spread"){
-    tier=Math.max(1,requestedTier-(Math.floor(segment/3)%9));
+    tier=Math.max(1,requestedTier-(Math.floor(phase/3)%9));
    }else if(pattern==="widePairs"){
-    tier=Math.max(1,requestedTier-(Math.floor(segment/2)%10));
+    tier=Math.max(1,requestedTier-(Math.floor(phase/2)%10));
    }
    if(!performCook(i,tier))break;
    segment++;last=i;
@@ -404,7 +405,7 @@ export function simulateContinuousKnowledgeRotation({
   active:occupied(final),cooks,merges,moves,windEvents,fuel,
   gains,totalExp,reason:haltReason,
   // This preview is a finite window; not all windows are steady-state.
-  packingMode,protectedIndices:[...protectedSet],
+  packingMode,recipeOffset,protectedIndices:[...protectedSet],
   repeatable:completed&&mode==="balanced"
  };
 }
