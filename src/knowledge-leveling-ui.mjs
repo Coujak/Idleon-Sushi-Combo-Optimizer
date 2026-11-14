@@ -12,7 +12,7 @@ import {knowledgeContinueWaveCount,knowledgeContinueButtonLabel} from "./knowled
 import {installKnowledgeContinueHold} from "./knowledge-continue-hold.mjs?v=1.0.0";
 
 const $=id=>document.getElementById(id);
-const createKnowledgeWorker=()=>new Worker(new URL("./knowledge-cycle-worker.mjs?v=1.0.20",
+const createKnowledgeWorker=()=>new Worker(new URL("./knowledge-cycle-worker.mjs?v=1.0.21",
  import.meta.url),{type:"module"});
 const elem=(tag,cls="",value)=>{
  const node=document.createElement(tag);
