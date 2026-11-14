@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {readFileSync} from "node:fs";
 import {canExtendBalancedRotation} from "../src/knowledge-rotation-continuation-eligibility.mjs";
+import {knowledgeContinuationResumeStep} from "../src/knowledge-rotation-extension.mjs";
 import {simulateContinuousKnowledgeRotation} from "../src/knowledge-continuous-rotation.mjs";
 
 const slots=Array.from({length:120},(_,i)=>i<100?0:-1);
@@ -58,4 +59,23 @@ test("No invisible 64-round guard remains on UI continuation buttons",()=>{
  assert.ok(!ui.includes("roundsRequested<64"));
  assert.ok(!ui.includes("roundsRequested>=64"));
  assert.ok(!ui.includes("roundsCompleted!==result.roundsRequested"));
+});
+
+test("Continue from final step opens the FIRST new refill instead of the old final board",()=>{
+ const previous=[
+  {kind:"start"},{kind:"cook"},{kind:"merge"},{kind:"partial"}
+ ];
+ const extended=[
+  ...previous.slice(0,-1),
+  {kind:"wave"},{kind:"merge"},{kind:"refill"},
+  {kind:"cook"},{kind:"merge"},{kind:"partial"}
+ ];
+ assert.equal(knowledgeContinuationResumeStep(previous,extended,3),5);
+ assert.equal(knowledgeContinuationResumeStep(previous,extended,1),1,
+  "Continuing while browsing an earlier step should retain it");
+ assert.equal(knowledgeContinuationResumeStep(previous,extended,1,true),5,
+  "Next refill explicitly requests jumping to the newly generated part");
+ const t64=[...previous.slice(0,-1),{kind:"wave"},{kind:"merge"}];
+ assert.equal(knowledgeContinuationResumeStep(previous,t64,3),4,
+  "If new T64 is created before a refill, show its merge instead");
 });
