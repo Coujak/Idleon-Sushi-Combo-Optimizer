@@ -21,9 +21,16 @@ export const KNOWLEDGE_CYCLE_MODES=[
 export function normalizeKnowledgeCycleOptions(raw={}){
  const x=raw&&typeof raw==="object"?raw:{};
  const target=Number(x.targetTier);
+ const rangeStart=Number(x.balancedStartTier);
+ const rangeEnd=Number(x.balancedEndTier);
+ const balancedStartTier=Number.isInteger(rangeStart)&&rangeStart>=1&&rangeStart<=64?
+  rangeStart:1;
+ const balancedEndTier=Math.max(balancedStartTier,
+  Number.isInteger(rangeEnd)&&rangeEnd>=1&&rangeEnd<=64?rangeEnd:64);
  return {
   mode:x.mode==="focused"?"focused":"balanced",
   targetTier:Number.isInteger(target)&&target>=1&&target<=64?target:null,
+  balancedStartTier,balancedEndTier,
   secondsPerCook:safeSeconds(x.secondsPerCook,2),
   secondsPerMerge:safeSeconds(x.secondsPerMerge,1.5),
   fuelGeneration:validPositive(x.fuelGeneration)?Number(x.fuelGeneration):null,
