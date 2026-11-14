@@ -50,18 +50,21 @@ export function initializeKnowledgeLevelingUI(getSave){
  const build=$("knowledgePlanRun"),cancelButton=$("knowledgePlanCancel");
  const status=$("knowledgePlanStatus");
  const summary=$("knowledgePlanFeatured"),replay=$("knowledgePlanRotation");
+ const passiveBox=$("knowledgePlanPassive"),passiveToggle=$("knowledgePlanProtectPassive");
  const board=$("knowledgePlanBoard"),tips=$("knowledgePlanTips");
  const speed=$("knowledgePlanSpeed");
  let state={mode:"balanced",targetTier:null};
  let result=null,controller=null,worker=null;
  try{
   const old=JSON.parse(window.localStorage.getItem(preferenceKey)||"null");
-  state=normalizeKnowledgeCycleOptions(old);
- }catch{state=normalizeKnowledgeCycleOptions();}
+  state={...normalizeKnowledgeCycleOptions(old),preservePassive:old?.preservePassive!==false};
+ }catch{state={...normalizeKnowledgeCycleOptions(),preservePassive:true};}
  mode.value=state.mode;
+ passiveToggle.checked=state.preservePassive;
  const persist=()=>{
   try{window.localStorage.setItem(preferenceKey,JSON.stringify({
-   mode:mode.value,targetTier:state.targetTier
+   mode:mode.value,targetTier:state.targetTier,
+   preservePassive:passiveToggle.checked
   }));}catch{/* Browser-local settings are optional. */}
  };
  const stopSearch=()=>{
@@ -73,8 +76,10 @@ export function initializeKnowledgeLevelingUI(getSave){
   stopSearch();
   controller?.dispose();controller=null;
   result=null;summary.replaceChildren();board.replaceChildren();
+  passiveBox.replaceChildren();
   $("knowledgePlanLevelRows").replaceChildren();
-  summary.classList.add("hidden");replay.classList.add("hidden");
+  summary.classList.add("hidden");passiveBox.classList.add("hidden");
+  replay.classList.add("hidden");
  };
  function updateTargets(){
   const candidates=getKnowledgeRows(getSave()).filter(x=>x.discovered);
@@ -90,6 +95,7 @@ export function initializeKnowledgeLevelingUI(getSave){
   const options={
    mode:mode.value,
    targetTier:state.targetTier,
+   preservePassive:passiveToggle.checked,
    fuelGeneration:quantityInput("knowledgePlanFuelRate"),
    fuelCapacity:quantityInput("knowledgePlanFuelCap"),
    expPerCreation:quantityInput("knowledgePlanXpPerCreation"),
@@ -117,10 +123,11 @@ export function initializeKnowledgeLevelingUI(getSave){
   const grid=elem("div","lab-kp-stats");
   for(const [label,value] of [
    ["EXP / preview",compact(p.totalExpPerCycle)],
-   ["Projected EXP / hr",rate(p.previewExpPerHour)],
+   ["Hybrid EXP / hr",rate(p.hybridPreviewExpPerHour)],
    ["Preview duration",formatHours(p.cycleSeconds/3600)],
    ["Fuel / preview",compact(p.fuelPerCycle)],
    ["Modeled Fuel / hr",compact(p.estimatedFuelGeneration)],
+   ["Passive EXP / day",compact(p.passive.averageTotalPerDay)],
    ["Highest tier produced","T"+p.highestNewTier],
    ["Survivor parking",p.packingMode==="ascending"?"Staircase low → high":
      p.packingMode==="descending"?"Staircase high → low":"Simple parking"],
@@ -132,15 +139,17 @@ export function initializeKnowledgeLevelingUI(getSave){
    if(focus){
     const box=elem("div","lab-kp-focus-summary");
     box.append(elem("strong","","T"+focus.tier+" · "+focus.name),
-     elem("span","","Projected "+rate(focus.expPerHour)+" EXP/hr · "+
-      "Estimated next level: "+formatHours(focus.etaHours)+
-      " · "+p.focusCopies+" target copies on board"));
+     elem("span","","Active "+rate(focus.activeExpPerHour)+" EXP/hr + "+
+      "Passive "+compact(focus.passiveExpPerDay)+" EXP/day = "+
+      rate(focus.expPerHour)+" hybrid EXP/hr · "+
+      "Next level: "+formatHours(focus.etaHours)+
+      " · "+p.focusCopies+" copies on board"));
     summary.append(box);
    }
   }
   if(p.pinkMultiplier!==null){
    addNote(summary,"Lithium Firelighter: "+compact(p.pinkMultiplier)+
-    "× Knowledge EXP for creation events in pink columns. "+
+    "× Knowledge EXP generated in pink columns, including Cold and Milktoast passive sources. "+
     p.proposedFires.filter(x=>x===3).length+" of "+
     p.proposedFires.filter(x=>x>=0).length+" available fireplaces set to pink.",
     "lab-kp-lithium");
@@ -171,6 +180,7 @@ export function initializeKnowledgeLevelingUI(getSave){
    img.onerror=()=>img.remove();
    name.append(img,elem("span","","T"+entry.tier+" · "+entry.name));
    tr.append(name,elem("td","",compact(entry.expPerCycle)),
+    elem("td","",compact(entry.passiveExpPerDay)),
     elem("td","",rate(entry.expPerHour)),
     elem("td","",formatHours(entry.etaHours)));
    rows.append(tr);
@@ -180,6 +190,7 @@ export function initializeKnowledgeLevelingUI(getSave){
   if(!result)return;
   const frame=result.steps[index];if(!frame)return;
   const slots=result.layout.slots;
+  const passiveProtected=new Set(result.protectedIndices??[]);
   const changed=new Set((frame.events??[]).map(e=>e.at));
   if(frame.src!==undefined)changed.add(frame.src);
   if(frame.dst!==undefined)changed.add(frame.dst);
@@ -193,6 +204,7 @@ export function initializeKnowledgeLevelingUI(getSave){
     " · "+(slot<0?"Locked":tier?"T"+tier:"Empty");
    if(slot<0)box.classList.add("locked");
    if(tier===64)box.classList.add("is-protected");
+   if(tier&&passiveProtected.has(i))box.classList.add("is-passive-protected");
    if(changed.has(i))box.classList.add("is-affected");
    if(tier>0){
     const img=elem("img","lab-kp-tile-icon");
@@ -269,6 +281,9 @@ export function initializeKnowledgeLevelingUI(getSave){
  mode.addEventListener("change",()=>{
   state.mode=mode.value;persist();clearAndPrompt();
  });
+ passiveToggle.addEventListener("change",()=>{
+  state.preservePassive=passiveToggle.checked;persist();clearAndPrompt();
+ });
  target.addEventListener("change",()=>{
   state.targetTier=Number(target.value);persist();release();
  });
@@ -292,7 +307,7 @@ export function initializeKnowledgeLevelingUI(getSave){
     }
     const plan=msg.result;
     if(!plan.available){status.textContent=plan.reason;return;}
-    renderSummary(plan);showProgress(plan);createReplay(plan);
+    renderSummary(plan);renderPassive(plan);showProgress(plan);createReplay(plan);
     status.textContent="Compared "+compact(plan.considered)+
      " candidates · "+plan.roundsCompleted+" refill waves · "+
      compact(plan.totalExpPerCycle)+" active EXP · starting T"+plan.startCookTier;
