@@ -58,7 +58,7 @@ export function calculateKnowledgeCreationExp({
   unlocked:searedUnlocked,manuallyCalibrated,
   secondDegree,thirdDegree,knowledgeBonus,
   base,thirdMultiplier,knowledgeMultiplier,globalMultiplier,
-  lithiumEnabled:lithiumUnlocked,lithium:pinkMultiplier,
+  lithiumEnabled:lithiumUnlocked,lithium:pinkMultiplier,pinkMultiplier,
   fireplaceStrength:fireplace.strength,
   fireplaceKnowledgeBonus:fireplace.knowledgeBonus,
   fireplaceSparkBonus:fireplace.sparkBonus,
