@@ -60,3 +60,27 @@ test("Integrated optimizer refuses empty imported accounts",()=>{
  const locked=account();locked.sushi[2][13]=0;
  assert.match(optimizeKnowledgeRotation(locked,options).reason,/Seared Knowledge/);
 });
+
+test("Focused T58 estimates Cold plus Milktoast EXP without merging the protected T58",()=>{
+ const save=account();
+ save.slots=Array.from({length:120},(_,i)=>i<100?0:-1);
+ save.tiles=Array(120).fill(-1);
+ save.slots[0]=3;save.tiles[0]=57; // T58 on Milktoast
+ save.slots[1]=2;save.tiles[1]=63; // T64 on Cold
+ save.fires=Array(15).fill(3);
+ save.sushi[5][57]=0;save.sushi[5][63]=0;
+ const plan=optimizeKnowledgeRotation(save,{
+  ...options,mode:"focused",targetTier:58,rounds:2,preservePassive:true
+ });
+ assert.equal(plan.available,true,plan.reason);
+ assert.equal(plan.targetTier,58);
+ assert.deepEqual(plan.protectedIndices,[0,1]);
+ assert.ok(plan.steps.every(f=>f.board[0]===58&&f.board[1]===64),
+  "The T58 on Milktoast and T64 on Cold must remain throughout the replay");
+ assert.ok(plan.passive.current.expPerDay[58]>0);
+ assert.ok(plan.passive.current.covered>=63);
+ assert.ok(plan.targetHybridPreviewExpPerHour>=plan.targetPreviewExpPerHour);
+ assert.equal(plan.passive.needAnotherT64,true);
+ assert.equal(plan.passive.usesSecondT64,false);
+ assert.ok(plan.perTier.find(x=>x.tier===58).passiveExpPerDay>0);
+});
