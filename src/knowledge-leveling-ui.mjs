@@ -213,9 +213,11 @@ export function initializeKnowledgeLevelingUI(getSave){
   const stats=elem("div","lab-kp-design-details");
   stats.append(
    metric("Starting cook tier","T"+p.startCookTier),
-   metric("Ingredient pattern",p.startingPattern),
+   metric("Maximum cookable","T"+p.maximumCookTier),
+   metric("Ingredient layout",p.startingPattern+
+    (p.recipeOffset?" · offset "+p.recipeOffset:"")),
    metric("Prepared ingredients",compact(p.preparedBoardCooks)),
-   metric("Available unlocked slots",compact(p.design.unlockedCount)));
+   metric("Unlocked board slots",compact(p.design.unlockedCount)));
   area.append(stats);
   if(p.scenarioRequiresCleanup)
    addNote(area,"This candidate assumes a clean working board after legal "+
