@@ -70,9 +70,16 @@ export function recommendPassiveKnowledgeLayout(board,slots,fires,{targetTier=nu
  const swaps=[];
  for(const [at,type] of targets){
   if(recommended[at]===type)continue;
-  const spare=recommended.findIndex((v,i)=>v===type&&!targets.has(i));
-  if(spare<0)continue;
+  // Borrow from an unassigned plate first; if both desired plate pools
+  // overlap, exchange with a target requesting our current plate type.
   const old=recommended[at];
+  let spare=recommended.findIndex((v,i)=>v===type&&!targets.has(i));
+  if(spare<0)spare=recommended.findIndex((v,i)=>
+   v===type&&targets.has(i)&&targets.get(i)!==type&&
+   targets.get(i)===old);
+  if(spare<0)spare=recommended.findIndex((v,i)=>
+   v===type&&targets.has(i)&&targets.get(i)!==type);
+  if(spare<0)continue;
   recommended[at]=type;recommended[spare]=old;
   swaps.push({from:spare,to:at,plate:type,replaced:old});
  }
