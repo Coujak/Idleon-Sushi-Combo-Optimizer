@@ -45,6 +45,26 @@ test("Fresh T64 stops further cooking in the middle of a refill wave",()=>{
  assert.equal(result.frames.slice(completedIndex+1).every(f=>
   !["cook","merge","move","refill"].includes(f.kind)),true);
 });
+test("Cooking a new T64 also ends Balanced immediately when tier-up bonus guarantees it",()=>{
+ const board=anchored();
+ const slots=Array(120).fill(-1);
+ for(let i=0;i<40;i++)slots[i]=0;
+ const result=simulateContinuousKnowledgeRotation({
+  startingBoard:board,slots,mode:"balanced",targetTier:64,
+  requestedTier:1,guaranteedBonus:63,windCap:58,chain:25,
+  rounds:6,pattern:"t1Climb",protectedIndices:[39],
+  expAt:()=>1,cookCost:()=>1,maximumActions:5000
+ });
+ assert.equal(result.completed,true);
+ assert.equal(result.cooks,1);
+ assert.equal(result.merges,0);
+ assert.equal(result.rounds,1);
+ assert.equal(result.frames.at(-2).kind,"cook");
+ assert.equal(result.frames.at(-2).events[0].tier,64);
+ assert.equal(result.finalBoard.filter(t=>t===64).length,2);
+ assert.ok(result.frames.slice(-1).every(f=>f.kind==="repeat"));
+});
+
 test("Incremental refills work after global refill 64 and preserve earlier steps",()=>{
  const first=run(anchored(),2);
  assert.equal(first.completed,false);
