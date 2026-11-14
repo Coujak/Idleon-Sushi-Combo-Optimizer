@@ -323,6 +323,14 @@
   <label id="knowledgePlanTargetLabel" class="hidden">Target Sushi<select id="knowledgePlanTarget" aria-label="Focused Sushi target"></select></label>
   <label class="lab-kp-passive-toggle"><input id="knowledgePlanProtectPassive" type="checkbox"> <span>Preserve existing passive-source Sushi<small>Protects the passive setup, but leaves fewer working slots</small></span></label>
  </div>
+ <div id="knowledgePlanBalancedRange" class="lab-kp-balanced-range">
+  <div class="lab-kp-range-heading"><strong>Balanced Sushi tier range</strong><span id="knowledgePlanRangeValue" class="lab-kp-range-badge">T1 → T64</span></div>
+  <p class="hint">Choose the tiers to prioritize for Knowledge EXP. The planner still chooses a Fuel-safe cooking tier; the End tier is the rotation's creation goal.</p>
+  <div class="lab-kp-range-sliders">
+   <label for="knowledgePlanRangeStart">Start Sushi <output id="knowledgePlanRangeStartValue" for="knowledgePlanRangeStart">T1</output><input id="knowledgePlanRangeStart" type="range" min="1" max="64" step="1" value="1" aria-label="Balanced starting Knowledge Sushi tier"></label>
+   <label for="knowledgePlanRangeEnd">End Sushi <output id="knowledgePlanRangeEndValue" for="knowledgePlanRangeEnd">T64</output><input id="knowledgePlanRangeEnd" type="range" min="1" max="64" step="1" value="64" aria-label="Balanced ending Knowledge Sushi tier"></label>
+  </div>
+ </div>
  <div class="lab-kp-strategy-detail" id="knowledgePlanStrategyDetail" aria-live="polite">Balanced · prioritize a descending staircase of active Knowledge EXP while building toward a new T64.</div>
  <details class="lab-kp-settings">
   <summary>Timing &amp; rate calibration (optional)</summary>
