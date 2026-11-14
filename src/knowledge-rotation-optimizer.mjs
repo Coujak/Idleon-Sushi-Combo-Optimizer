@@ -13,7 +13,7 @@ import {getKnowledgeRows,getUpgradeRows} from "./lab-model.mjs?v=1.19.13";
 import {getSushiDashboardMetrics} from "./dashboard-metrics.mjs?v=1.0.2";
 import {normalizeKnowledgeCycleOptions} from "./knowledge-cycle-optimizer.mjs?v=1.0.3";
 import {inspectKnowledgePinkFireplaces} from "./knowledge-pink-fireplaces.mjs?v=1.0.0";
-import {calculateKnowledgeCreationExp} from "./knowledge-creation-exp.mjs?v=1.0.0";
+import {calculateKnowledgeCreationExp} from "./knowledge-creation-exp.mjs?v=1.0.1";
 
 export {normalizeKnowledgeCycleOptions};
 const SIZE=120,COLS=15;
