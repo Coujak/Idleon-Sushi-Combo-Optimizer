@@ -37,7 +37,7 @@ export async function unlockPrivateExperiment14(envelope,password){
 
 export function buildPrivateExperiment14Candidate(payload,positions){
  if(payload?.version!==1||typeof payload.split!=="string"||
-  !/^\\d{1,2}\\/\\d{1,2}$/.test(payload.split)||
+  payload.split.split("/").length!==2||
   !Number.isSafeInteger(payload.score)||payload.score<1||
   !Array.isArray(payload.board)||payload.board.length!==100||
   !Array.isArray(payload.actions)||payload.actions.length<1||
