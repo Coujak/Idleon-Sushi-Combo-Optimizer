@@ -1396,8 +1396,66 @@ initModePicker();
 $("optimizerMode").addEventListener("change",updateOptimizerModeHint);
 $("customSplitMode").addEventListener("change",updateOptimizerModeHint);
 $("customPerSplit").addEventListener("input",updateOptimizerModeHint);
-const updateFoundButton=()=>{$("runFoundConfiguration").disabled=!$("foundConfiguration").value;};
-$("foundConfiguration").addEventListener("change",updateFoundButton);
+const privateFoundSelected=()=>$("foundConfiguration").value===PRIVATE_EXPERIMENT_14.id;
+function clearPrivateExperiment14(){
+ unlockedExperiment14=null;
+ $("privateExperiment14Password").value="";
+ $("privateExperiment14Status").textContent="Locked · unlock to replay";
+ $("unlockPrivateExperiment14").textContent="Unlock Experiment 14.0";
+ if(privateReplayVisible){
+  disposeReplay();preparedOutlineCleanup();preparedOutlineCleanup=()=>{};
+  $("solverSteps").replaceChildren();
+  $("solverResults").classList.add("hidden");
+  $("solverScoreBubble").classList.add("hidden");
+  privateReplayVisible=false;
+ }
+}
+const updateFoundButton=()=>{
+ const privateSelected=privateFoundSelected();
+ $("privateExperiment14Gate").classList.toggle("hidden",!privateSelected);
+ $("runFoundConfiguration").disabled=!$("foundConfiguration").value||
+  (privateSelected&&!unlockedExperiment14)||Boolean(activeSearch);
+};
+$("foundConfiguration").addEventListener("change",()=>{
+ clearPrivateExperiment14();
+ updateFoundButton();
+});
+$("unlockPrivateExperiment14").addEventListener("click",async()=>{
+ if(!privateFoundSelected()||activeSearch)return;
+ if(unlockedExperiment14){
+  clearPrivateExperiment14();updateFoundButton();return;
+ }
+ const field=$("privateExperiment14Password");
+ const password=field.value;
+ if(!password){
+  $("privateExperiment14Status").textContent="Enter your passphrase to unlock.";
+  return;
+ }
+ const button=$("unlockPrivateExperiment14");
+ button.disabled=true;
+ $("privateExperiment14Status").textContent="Unlocking encrypted experiment locally…";
+ try{
+  const response=await fetch("./private/experiment14.enc.json",{cache:"no-store"});
+  if(!response.ok)
+   throw Error("Encrypted research file not found. Keep private/experiment14.enc.json in your local project.");
+  const envelope=await response.json();
+  const payload=await unlockPrivateExperiment14(envelope,password);
+  if(privateFoundSelected()){
+   unlockedExperiment14=payload;
+   $("privateExperiment14Status").textContent="Unlocked in this session · Replay found board is ready.";
+   button.textContent="Lock Experiment 14.0";
+  }
+ }catch(error){
+  $("privateExperiment14Status").textContent=
+   "Unable to unlock: "+(error?.name==="OperationError"?
+    "incorrect passphrase or damaged encrypted data.":String(error.message??error));
+ }finally{
+  field.value="";button.disabled=false;updateFoundButton();
+ }
+});
+$("privateExperiment14Password").addEventListener("keydown",event=>{
+ if(event.key==="Enter"){event.preventDefault();$("unlockPrivateExperiment14").click();}
+});
 updateFoundButton();
 updateOptimizerModeHint();
 function updateCancelControls(state){
@@ -1501,6 +1559,7 @@ async function executeConfiguredSearch(foundId=null,savedOnly=false){
   if(!imported){$("solverNote").textContent="Import a valid game save JSON first.";return;}
   if(activeSearch)return;
   disposeReplay();
+  privateReplayVisible=false;
   const controller=new AbortController();
   activeSearch=controller;
   controller.keepBestRequested=false;controller.hasResult=false;
@@ -1524,6 +1583,7 @@ async function executeConfiguredSearch(foundId=null,savedOnly=false){
     // candidate catalogue, which otherwise blocks the main JS thread.
     await yieldToUI(controller.signal);
     await showSolver(controller.signal,foundId,savedOnly);
+    privateReplayVisible=foundId===PRIVATE_EXPERIMENT_14.id;
     if(!controller.keepBestRequested)throwIfCancelled(controller.signal);
     $("solverResults").classList.remove("hidden");
     $("optimizerProgressText").textContent=controller.keepBestRequested?
@@ -1546,7 +1606,7 @@ async function executeConfiguredSearch(foundId=null,savedOnly=false){
     if(activeSearch===controller)activeSearch=null;
     runButton.disabled=false;runButton.textContent="Run optimizer";
     foundButton.textContent="Replay found board";
-    foundButton.disabled=!$("foundConfiguration").value;
+    updateFoundButton();
     updateCancelControls("idle");
     for(const id of ["clearResearchHistory","viewResearchBest","exportResearch","importResearch"])
      $(id).disabled=false;
