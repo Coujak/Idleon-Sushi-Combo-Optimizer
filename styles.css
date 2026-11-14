@@ -4360,3 +4360,17 @@ details summary{cursor:pointer;font-size:12px;font-weight:700;color:#9eb7c9}
 #knowledgePlanner .lab-kp-progress-table tr.is-outside-range td:nth-child(2){
  color:#9db6ac;
 }
+
+/* Active Knowledge EXP belongs to the selected replay step, not the full preview. */
+#knowledgePlanner .lab-kp-progress-table td.lab-kp-active-gain-cell{
+ vertical-align:middle;
+ text-align:right;
+}
+#knowledgePlanner .lab-kp-creation-count{
+ display:block;margin-top:5px;color:#9bbdc2;
+ font-size:10px;font-weight:600;line-height:1.4;
+ font-variant-numeric:tabular-nums;
+}
+#knowledgePlanner .lab-kp-progress-table tr.is-target .lab-kp-creation-count{
+ color:#a8e4c5;
+}
