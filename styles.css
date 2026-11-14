@@ -3943,11 +3943,11 @@ details summary{cursor:pointer;font-size:12px;font-weight:700;color:#9eb7c9}
  min-height:43px;background:#0d202e;border-color:#426675;
  border-radius:10px;padding:10px 11px;font-size:12px;
 }
-#knowledgePlanner .lab-kp-passive-toggle{
+#knowledgePlanner .lab-kp-controls .lab-kp-passive-toggle{
  display:flex;flex-direction:row;align-items:flex-start;gap:10px;
  max-width:none;align-self:center;cursor:pointer;
 }
-#knowledgePlanner .lab-kp-passive-toggle input{
+#knowledgePlanner .lab-kp-controls .lab-kp-passive-toggle input{
  flex:none;width:16px;height:16px;margin-top:3px;
 }
 #knowledgePlanner .lab-kp-passive-toggle span{
