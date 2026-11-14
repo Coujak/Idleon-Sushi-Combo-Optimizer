@@ -141,6 +141,7 @@ export function initializeKnowledgeLevelingUI(getSave){
   parent.append(elem("p",cls,text));
  }
  function renderSummary(p){
+  const metricsOpen=summary.querySelector(".lab-kp-more-metrics")?.open??false;
   summary.replaceChildren();summary.classList.remove("hidden");
   const heading=elem("div","lab-kp-headline");
   heading.append(elem("h3","",p.mode==="focused"?
@@ -194,7 +195,6 @@ export function initializeKnowledgeLevelingUI(getSave){
    ["Sushi moves",compact(p.moves)],
    ["East Wind upgrades",compact(p.windEvents)]
   ];
-  const metricsOpen=summary.querySelector(".lab-kp-more-metrics")?.open??false;
   const more=elem("details","lab-kp-more-metrics");
   more.open=metricsOpen;
   more.append(elem("summary","","All plan metrics · cooking, Fuel, and EXP estimates"));
