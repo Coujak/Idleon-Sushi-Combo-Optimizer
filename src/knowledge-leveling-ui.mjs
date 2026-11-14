@@ -8,9 +8,10 @@ import {normalizeKnowledgeCycleOptions}
 import {createReplayController} from "./replay-controller.mjs";
 import {combineKnowledgeContinuation,knowledgeContinuationResumeStep} from "./knowledge-rotation-extension.mjs?v=1.0.3";
 import {canExtendBalancedRotation} from "./knowledge-rotation-continuation-eligibility.mjs?v=1.0.0";
+import {knowledgeContinueWaveCount,knowledgeContinueButtonLabel} from "./knowledge-refill-scale.mjs?v=1.0.0";
 
 const $=id=>document.getElementById(id);
-const createKnowledgeWorker=()=>new Worker(new URL("./knowledge-cycle-worker.mjs?v=1.0.19",
+const createKnowledgeWorker=()=>new Worker(new URL("./knowledge-cycle-worker.mjs?v=1.0.20",
  import.meta.url),{type:"module"});
 const elem=(tag,cls="",value)=>{
  const node=document.createElement(tag);
@@ -92,7 +93,7 @@ export function initializeKnowledgeLevelingUI(getSave){
   controller?.dispose();controller=null;
   result=null;jumpToNextRefill=false;announceContinuation("");
   continueButton.classList.add("hidden");continueButton.disabled=false;
-  continueButton.textContent="Continue rotation +6 refills";
+  continueButton.textContent="Continue rotation";
   summary.replaceChildren();board.replaceChildren();
   recommendedBoard.replaceChildren();recommendedBoard.classList.add("hidden");
   passiveBox.replaceChildren();
@@ -488,7 +489,7 @@ export function initializeKnowledgeLevelingUI(getSave){
    i>index&&f.kind==="refill")?
    "Jump to the next simulated refill":
    canExtendBalancedRotation(result)?
-    "Continue from this board with six additional refill waves":
+    "Continue from this board by "+knowledgeContinueWaveCount(result.roundsCompleted)+" refill waves (5%)":
     "No further legal refill; "+result.haltReason;
   $("knowledgePlanNextHarvest").disabled=!result.steps.some((f,i)=>
    i>index&&f.kind==="stage"&&f.phase==="harvest"&&f.title.startsWith("Harvest prepared"));
@@ -513,6 +514,8 @@ export function initializeKnowledgeLevelingUI(getSave){
   // The only completion condition is creating a NEW T64. A 64-wave
   // preview or an action budget is not game completion if moves remain.
   continueButton.classList.toggle("hidden",!canExtendBalancedRotation(p));
+  continueButton.textContent=knowledgeContinueButtonLabel(p.roundsCompleted);
+  continueButton.title="Advance the Balanced rotation by 5% of its current completed refill count";
   continueButton.disabled=false;
   const initial=Math.min(resumeIndex??p.preparedStep??0,p.steps.length-1);
   if(initial>0)controller.goTo(initial);
@@ -524,7 +527,7 @@ export function initializeKnowledgeLevelingUI(getSave){
    "The optimizer uses the Combo Meter legal merge engine, including up to 25 East Wind upgrades when unlocked. Each verified creation event awards EXP to the created Sushi tier.",
    "Lithium Firelighter is 2× Knowledge EXP for Sushi above pink fireplaces; the solver also models reduced Fuel regeneration when orange fireplaces are changed to pink.",
    "The optimizer chooses a NEW prepared Sushi board rather than copying the imported inventory. It retains your highest-tier Sushi at its original location. Clearing other current Sushi to reach this preparation is a separate, unsolved task.",
-   "Balanced requests the lowest cookable tier (normally T1), but guaranteed +tier bonuses raise the actual Sushi tier produced. Merge and refill without deleting survivors. A full rotation ends ONLY when a new T64 is created. The existing protected T64 does not count. Continue in six-refill chunks whenever the preview limit is reached.",
+   "Balanced requests the lowest cookable tier (normally T1), but guaranteed +tier bonuses raise the actual Sushi tier produced. Merge and refill without deleting survivors. A full rotation ends ONLY when a new T64 is created. The existing protected T64 does not count. Continue advances by 5% of the current refill count, calculated in small validated batches.",
    "Focused: first produce and bank as many selected-tier Sushi as possible. Only after the board runs out of space does an explicit Harvest phase merge the saved copies into higher tiers. EXP belongs to the newly created tier, not the ingredient being consumed.",
    "Moving Sushi into a vacant slot is a separate action. Movement Mittens toggles dragging to plates; disable it for Sushi repositioning.",
    "The first full-board fill is screened using the imported Fuel balance, Fuel capacity, estimated generation and actual tier costs. A separate warning appears if no tested recipe avoids regeneration waits. Milktoast/Cold provide passive EXP/day and can be optionally protected.",
@@ -597,6 +600,8 @@ export function initializeKnowledgeLevelingUI(getSave){
  cancelButton.addEventListener("click",()=>{
   if(worker){
    stopSearch();jumpToNextRefill=false;continueButton.disabled=false;
+   continueButton.textContent=result?knowledgeContinueButtonLabel(result.roundsCompleted):"Continue rotation";
+   announceContinuation("Continuation canceled. Your previous walkthrough remains available.");
    status.textContent="Knowledge optimization canceled. The previous walkthrough is retained.";
   }
  });
@@ -617,23 +622,23 @@ export function initializeKnowledgeLevelingUI(getSave){
    announceContinuation("Import your game data to extend the walkthrough.");
    return;
   }
-  const additionalWaves=6;
+  const additionalWaves=knowledgeContinueWaveCount(previous.roundsCompleted);
   const nextRounds=previous.roundsCompleted+additionalWaves;
   const skipToRefill=jumpToNextRefill;
   const failContinuation=reason=>{
    const message="Unable to continue: "+reason;
    announceContinuation(message);
    status.textContent=message;
-   continueButton.textContent="Continue rotation +6 refills";
+   continueButton.textContent=knowledgeContinueButtonLabel(previous.roundsCompleted);
    continueButton.disabled=false;
    jumpToNextRefill=false;
   };
   continueButton.disabled=true;
-  continueButton.textContent="Simulating 6 refills…";
+  continueButton.textContent="Simulating +"+additionalWaves+" refills…";
   cancelButton.classList.remove("hidden");
   build.disabled=true;
-  announceContinuation("Simulating from your current final board, through refill "+nextRounds+"…");
-  status.textContent="Simulating the next six Balanced refill waves…";
+  announceContinuation("Simulating +"+additionalWaves+" refills (5%) from the current board, through refill "+nextRounds+"…");
+  status.textContent="Simulating "+additionalWaves+" Balanced refill waves (5% of "+previous.roundsCompleted+")…";
   try{
    const search=createKnowledgeWorker();
    worker=search;
