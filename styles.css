@@ -3840,3 +3840,25 @@ details summary{cursor:pointer;font-size:12px;font-weight:700;color:#9eb7c9}
   grid-template-columns:minmax(0,1fr)
  }
 }
+
+
+/* Focused Knowledge: distinguish preparation from a real batch harvest. */
+#knowledgePlanner .lab-kp-focus-progress{
+ display:inline-flex;align-items:center;
+ border:1px solid #659583;background:#203c35;color:#bdf7df;
+ border-radius:8px;padding:5px 9px;font-size:11px;font-weight:750
+}
+#knowledgePlanner .lab-kp-focus-progress.hidden{display:none}
+#knowledgePlanner .lab-kp-tile.is-focus-target{
+ outline:2px solid #c19cff;outline-offset:-2px;
+ box-shadow:0 0 9px #9e7ae577
+}
+#knowledgePlanner .lab-kp-tile.is-focus-target.is-affected{
+ outline-color:#d5adff;box-shadow:0 0 12px #c68cfbbb
+}
+#knowledgePlanner .lab-kp-passive-panel summary{
+ cursor:pointer;color:#badbce;font-weight:750;font-size:13px;
+ padding:6px 0;list-style-position:inside
+}
+#knowledgePlanner .lab-kp-passive-panel summary:hover{color:#e5fbf2}
+#knowledgePlanner .lab-kp-passive-panel:not([open]){padding:11px 16px}
