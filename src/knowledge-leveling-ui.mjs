@@ -60,6 +60,9 @@ export function initializeKnowledgeLevelingUI(getSave){
  const continueButton=$("knowledgePlanContinue");
  const continueStatus=$("knowledgePlanContinueStatus");
  const announceContinuation=message=>{
+  // A cached older index.html might not yet contain this optional status
+  // element. Never allow a missing status label to break the action.
+  if(!continueStatus)return;
   continueStatus.textContent=message;
   continueStatus.classList.toggle("hidden",!message);
  };
@@ -654,6 +657,7 @@ export function initializeKnowledgeLevelingUI(getSave){
       previous.steps,plan.steps,previous.steps.length-1,skipToRefill);
      createReplay(plan,resume);
      jumpToNextRefill=false;
+     continueButton.disabled=false;
      continueButton.textContent="Continue rotation +6 refills";
      const message=plan.rotationTerminal?
       "Rotation complete! A new T64 was created at step "+resume+".":
