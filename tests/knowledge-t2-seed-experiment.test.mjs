@@ -116,7 +116,14 @@ test("Refills after a T2-only start preserve the T64 and every legal change",()=
   rounds:12,pattern:"uniform",maximumActions:3600
  });
  assert.equal(result.valid,true);
- console.log("T2-only start, 12-refill preview:",JSON.stringify({maxTier:result.highestTier,refills:result.rounds,cooks:result.cooks,merges:result.merges,windUpgrades:result.windEvents,remaining:result.active}));
+ const nonAnchorPeak=Math.max(...result.frames.map(frame=>
+  Math.max(...frame.board.slice(0,ANCHOR))));
+ console.log("T2-only start, 12-refill preview:",JSON.stringify({
+  peakNonAnchorTier:nonAnchorPeak,
+  finalNonAnchorTier:Math.max(...result.finalBoard.slice(0,ANCHOR)),
+  refills:result.rounds,cooks:result.cooks,merges:result.merges,
+  windUpgrades:result.windEvents,remainingNonAnchor:result.active-1
+ }));
  assert.deepEqual(result.initialBoard,initial);
  assert.ok(result.frames.some(frame=>frame.kind==="refill"));
  assert.ok(result.frames.some(frame=>frame.kind==="cook"));
