@@ -72,4 +72,10 @@ test("Staircase-recycling comparison: 99 T2, last-slot T64, 12 refills",()=>{
   }
  }
  assert.ok(ascending.moves>simple.moves,"Staircase preparation must consist of real Sushi relocations");
+ assert.ok(peak(descending)>peak(simple),
+  "Descending staircase must beat the baseline T2-refill peak");
+ assert.ok(descending.windEvents>simple.windEvents,
+  "The extra legal staircase moves should create more East Wind upgrades");
+ assert.ok(peak(descending)>=38,
+  "Keep the reproducible T38 experimental benchmark for the 12-refill case");
 });
