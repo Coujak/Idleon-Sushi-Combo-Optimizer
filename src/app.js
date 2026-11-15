@@ -1440,7 +1440,7 @@ function clearPrivateExperiment14(){
  unlockedExperiment14=null;
  $("privateExperiment14Password").value="";
  $("privateExperiment14Status").textContent="Locked · unlock to replay";
- $("unlockPrivateExperiment14").textContent="Unlock Experiment 14.0";
+ $("unlockPrivateExperiment14").textContent="Unlock private experiment";
  if(privateReplayVisible){
   disposeReplay();preparedOutlineCleanup();preparedOutlineCleanup=()=>{};
   $("solverSteps").replaceChildren();
@@ -1454,6 +1454,10 @@ function clearPrivateExperiment14(){
 const updateFoundButton=()=>{
  const privateSelected=privateFoundSelected();
  $("privateExperiment14Gate").classList.toggle("hidden",!privateSelected);
+ if(privateSelected){const number=selectedPrivateExperiment().number;
+  $("privateExperiment14Explanation").textContent="Experiment "+number+".0 is encrypted. Enter its passphrase to unlock Replay found board; decryption stays in this browser.";
+  if(!unlockedExperiment14)$("unlockPrivateExperiment14").textContent="Unlock Experiment "+number+".0";
+ }
  $("runFoundConfiguration").disabled=!$("foundConfiguration").value||
   (privateSelected&&!unlockedExperiment14)||Boolean(activeSearch);
 };
