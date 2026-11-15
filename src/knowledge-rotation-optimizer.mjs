@@ -218,7 +218,7 @@ export function optimizeKnowledgeRotation(save,rawOptions={},onProgress=null){
     if(continuing&&(packingMode!==continuing.packingMode||
      fire.name!==continuing.fireChoice))continue;
     // The previous candidate has completed before the next one starts.
-    evaluated++;reportProgress();
+    reportProgress();evaluated++;
     const rotation=simulateContinuousKnowledgeRotation({
      startingBoard:design.board,slots:layout.slots,mode:options.mode,targetTier,
      requestedTier:cookTier,guaranteedBonus:xp.guaranteed,
