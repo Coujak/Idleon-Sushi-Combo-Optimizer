@@ -3,10 +3,17 @@
 import {optimizeKnowledgeRotation,continueKnowledgeRotation} from "./knowledge-rotation-optimizer.mjs?v=1.0.22";
 
 function extendKnowledgeInBatches(save,snapshot,requestedWaves,seekTargetTier=0){
- const total=Math.max(1,Math.floor(Number(requestedWaves))||1);
+ // A target seek runs for much longer than a normal 5% refill increment.
+ // Safety bounds prevent a missing or impossible target from consuming
+ // unlimited memory. The user can terminate this browser-local worker.
+ const targetSeek=Number.isInteger(seekTargetTier)&&seekTargetTier>=1&&seekTargetTier<=64;
+ const MAX_TARGET_REFILLS=2400,MAX_TARGET_FRAMES=60000;
+ const total=Math.max(1,Math.min(targetSeek?MAX_TARGET_REFILLS:100000,
+  Math.floor(Number(requestedWaves))||1));
  const rotations=[];
  let current={...snapshot};
- let remaining=total,completedWaves=0,haltReason="",targetCreationFound=false;
+ let remaining=total,completedWaves=0,haltReason="",targetCreationFound=false,
+  framesSearched=0,searchLimitReached=false;
  // At most 6 refill waves per simulation keeps either 5% control responsive
  // without hitting the 5000-action preview ceiling for normal board sizes.
  while(remaining>0&&!current.completed){
@@ -24,6 +31,7 @@ function extendKnowledgeInBatches(save,snapshot,requestedWaves,seekTargetTier=0)
     ["cook","merge","wind"].includes(event.kind)));
   completedWaves+=rotation.rounds;
   remaining-=rotation.rounds;
+  framesSearched+=rotation.frames.length;
   current={...current,finalBoard:rotation.finalBoard,
    protectedIndices:rotation.protectedIndices,
    targetCreated:rotation.targetCreated,
@@ -31,10 +39,18 @@ function extendKnowledgeInBatches(save,snapshot,requestedWaves,seekTargetTier=0)
    completed:rotation.completed};
   self.postMessage({progress:true,completedWaves,requestedWaves:total,
    totalRefills:current.roundsCompleted,completed:rotation.completed,
-   targetCreationFound:matched,seekTargetTier});
+   targetCreationFound:matched,seekTargetTier,framesSearched});
   // Only a verified creation counts as success, never a harvest label.
   if(matched){
    targetCreationFound=true;
+   break;
+  }
+  // Protect long T64 searches from excessive replay allocations. This is
+  // not a successful target discovery and must be identified to the user.
+  if(targetSeek&&framesSearched>=MAX_TARGET_FRAMES){
+   searchLimitReached=true;
+   haltReason="Target search action safety limit reached (no T"+
+    seekTargetTier+" creation found yet)";
    break;
   }
   // A stop inside a wave must not silently repeat the same refill number.
@@ -44,9 +60,14 @@ function extendKnowledgeInBatches(save,snapshot,requestedWaves,seekTargetTier=0)
    break;
   }
  }
+ if(targetSeek&&!targetCreationFound&&remaining===0&&!haltReason){
+  searchLimitReached=true;
+  haltReason="Target search refill safety limit reached (no T"+
+   seekTargetTier+" creation found yet)";
+ }
  return {available:true,rotations,requestedWaves:total,
   completedWaves,completed:current.completed,haltReason,
-  targetCreationFound,seekTargetTier};
+  targetCreationFound,seekTargetTier,framesSearched,searchLimitReached};
 }
 
 self.onmessage=event=>{
