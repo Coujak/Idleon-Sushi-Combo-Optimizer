@@ -75,3 +75,19 @@ test("Choose a planner cards are full-surface accessible buttons linked to match
  assert.match(perfectoUI,/scrollIntoView\(\{behavior:"smooth",block:"start"\}\)/);
  assert.match(css,/\.lab-planner-cards button\.lab-planner-card/);
 });
+
+
+test("approved transparent Sushi Lab logo is used in the tab and hero",()=>{
+ const html=readFileSync(new URL("../index.html",import.meta.url),"utf8");
+ const css=readFileSync(new URL("../styles.css",import.meta.url),"utf8");
+ const png=readFileSync(new URL("../assets/sushi-station-lab-logo.png",import.meta.url));
+ assert.equal(png.subarray(0,8).toString("hex"),"89504e470d0a1a0a");
+ assert.equal(png.readUInt32BE(16),160);
+ assert.equal(png.readUInt32BE(20),160);
+ assert.ok(png.includes(Buffer.from("tRNS")),"PNG preserves transparency");
+ assert.match(html,/<link rel="icon" type="image\/png"[^>]*sushi-station-lab-logo\.png/);
+ assert.match(html,/<link rel="apple-touch-icon"[^>]*sushi-station-lab-logo\.png/);
+ assert.match(html,/<div class="hero-visual"[^>]*><img src="assets\/sushi-station-lab-logo\.png\?v=1" alt=""><\/div>/);
+ assert.doesNotMatch(html,/<div class="hero-visual"[^>]*>.*?Leviathan/);
+ assert.match(css,/\.hero-visual img\{\s*width:170px;height:170px;image-rendering:auto;transform:none/);
+});
