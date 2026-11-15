@@ -287,6 +287,8 @@ function renderBoard(tiles,perfecto,slots,fires){
 }
 function importSave(data,label){
   const parsed=decodeSave(data);
+  // A later Google response must not overwrite a newer manual JSON import.
+  if(label!=="Google cloud save")googleImportUI.clear();
   cancelRunningSearch();
   disposeReplay();
   imported=parsed;customBoard=null;applyImportedLimits();$("importError").classList.add("hidden");
