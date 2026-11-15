@@ -13,7 +13,7 @@ import {installKnowledgeContinueHold} from "./knowledge-continue-hold.mjs?v=1.0.
 import {buildKnowledgeActiveExpHistory} from "./knowledge-active-exp-history.mjs?v=1.0.0";
 
 const $=id=>document.getElementById(id);
-const createKnowledgeWorker=()=>new Worker(new URL("./knowledge-cycle-worker.mjs?v=1.0.24",
+const createKnowledgeWorker=()=>new Worker(new URL("./knowledge-cycle-worker.mjs?v=1.0.25",
  import.meta.url),{type:"module"});
 const elem=(tag,cls="",value)=>{
  const node=document.createElement(tag);
@@ -58,6 +58,8 @@ export function initializeKnowledgeLevelingUI(getSave){
  const rangeStart=$("knowledgePlanRangeStart"),rangeEnd=$("knowledgePlanRangeEnd");
  const build=$("knowledgePlanRun"),cancelButton=$("knowledgePlanCancel");
  const status=$("knowledgePlanStatus");
+ const loadBox=$("knowledgePlanLoading"),loadBar=$("knowledgePlanLoadingBar");
+ const loadText=$("knowledgePlanLoadingText"),showZero=$("knowledgePlanShowZero");
  const summary=$("knowledgePlanFeatured"),replay=$("knowledgePlanRotation");
  const passiveBox=$("knowledgePlanPassive"),passiveToggle=$("knowledgePlanProtectPassive");
  const board=$("knowledgePlanBoard"),tips=$("knowledgePlanTips");
@@ -80,6 +82,8 @@ export function initializeKnowledgeLevelingUI(getSave){
   const old=JSON.parse(window.localStorage.getItem(preferenceKey)||"null");
   state={...normalizeKnowledgeCycleOptions(old),preservePassive:old?.preservePassive===true};
  }catch{state={...normalizeKnowledgeCycleOptions(),preservePassive:false};}
+ // Open at the complete range, regardless of the previous local selection.
+ state.balancedStartTier=1;state.balancedEndTier=64;
  mode.value=state.mode;
  passiveToggle.checked=state.preservePassive;
  const persist=()=>{
@@ -90,9 +94,28 @@ export function initializeKnowledgeLevelingUI(getSave){
    preservePassive:passiveToggle.checked
   }));}catch{/* Browser-local settings are optional. */}
  };
+ const hideProgress=()=>{
+  loadBox?.classList.add("hidden");
+  if(loadBar){loadBar.max=100;loadBar.value=0;}
+ };
+ const beginProgress=message=>{
+  if(!loadBox||!loadBar||!loadText)return;
+  loadBox.classList.remove("hidden");
+  loadBar.removeAttribute("value"); // Indeterminate until worker sends total
+  loadText.textContent=message;
+ };
+ const updateProgress=(completed,total,unit="candidates")=>{
+  if(!loadBar||!loadText||!loadBox||!Number.isFinite(total)||total<=0)return;
+  const done=Math.max(0,Math.min(total,Number(completed)||0));
+  loadBox.classList.remove("hidden");
+  loadBar.max=total;loadBar.value=done;
+  loadText.textContent=done+" / "+total+" "+unit+" · "+
+   Math.round(done/total*100)+"%";
+ };
  const stopSearch=()=>{
   worker?.terminate();worker=null;
   cancelButton.classList.add("hidden");
+  hideProgress();
   build.disabled=!getSave();
  };
  const release=()=>{
@@ -138,7 +161,7 @@ export function initializeKnowledgeLevelingUI(getSave){
   targetLabel.classList.toggle("hidden",mode.value!=="focused");
   rangeBox.classList.toggle("hidden",mode.value!=="balanced");
   $("knowledgePlanNextHarvest").classList.toggle("hidden",mode.value!=="focused");
-  const maxTier=candidates.length?Math.max(...candidates.map(x=>x.tier)):64;
+  const maxTier=64;
   rangeStart.max=rangeEnd.max=String(maxTier);
   state.balancedStartTier=Math.max(1,Math.min(maxTier,
    Math.floor(Number(state.balancedStartTier))||1));
@@ -467,7 +490,12 @@ export function initializeKnowledgeLevelingUI(getSave){
    p.mode==="balanced"&&inRange(a.tier)!==inRange(b.tier)?
     (inRange(a.tier)?-1:1):
    (b.expPerHour??-1)-(a.expPerHour??-1)||a.tier-b.tier);
-  for(const entry of ordered){
+  const visible=ordered.filter(entry=>
+   showZero?.checked||entry.expPerCycle>0||entry.passiveExpPerDay>0);
+  const counter=$("knowledgePlanLevelCount");
+  if(counter)counter.textContent=visible.length+" / "+ordered.length+" tiers";
+  $("knowledgePlanLevelEmpty")?.classList.toggle("hidden",visible.length>0);
+  for(const entry of visible){
    const tr=elem("tr");
    if(p.mode==="focused"&&entry.tier===p.targetTier)
     tr.classList.add("is-target");
@@ -654,6 +682,11 @@ export function initializeKnowledgeLevelingUI(getSave){
   ];
   for(const note of bullets)tips.append(elem("li","",note));
  }
+ showZero?.addEventListener("change",()=>{
+  if(!result)return;
+  showProgress(result);
+  renderVisibleActiveExp(controller?.step??0);
+ });
  const clearAndPrompt=()=>{
   release();updateTargets();
   build.disabled=!getSave();
@@ -693,14 +726,19 @@ export function initializeKnowledgeLevelingUI(getSave){
   const save=getSave();
   if(!save)return;
   build.disabled=true;cancelButton.classList.remove("hidden");
-  status.textContent="Simulating multi-refill Sushi rotations, East Wind merges and Lithium/Fuel trade-offs…";
+  beginProgress("Evaluating Knowledge preparations…");
+  status.textContent="Comparing Knowledge strategies…";
   try{
    const search=createKnowledgeWorker();
    worker=search;
    search.onmessage=event=>{
     if(worker!==search)return; // A new search replaced this one.
-    stopSearch();
     const msg=event.data;
+    if(msg?.progress){
+     if(msg.phase==="search")updateProgress(msg.completed,msg.total);
+     return;
+    }
+    stopSearch();
     if(!msg?.ok){
      status.textContent="Unable to complete this cycle: "+(msg?.error??"Unknown search error");
      return;
@@ -766,7 +804,7 @@ export function initializeKnowledgeLevelingUI(getSave){
   const skipToRefill=jumpToNextRefill;
   const skipToHarvest=jumpToNextHarvest;
   const failContinuation=reason=>{
-   continueHold?.stop();
+   continueHold?.stop();hideProgress();
    const message="Unable to continue: "+reason;
    announceContinuation(message);
    status.textContent=message;
@@ -780,6 +818,7 @@ export function initializeKnowledgeLevelingUI(getSave){
   continueButton.disabled=!continueHold?.holding;
   continueButton.textContent="Simulating +"+additionalWaves+" refills…";
   cancelButton.classList.remove("hidden");
+  beginProgress("Simulating additional refills…");
   build.disabled=true;
   announceContinuation("Simulating +"+additionalWaves+" refills (5%) from the current board, through refill "+nextRounds+"…");
   status.textContent="Simulating "+additionalWaves+" "+
@@ -794,6 +833,7 @@ export function initializeKnowledgeLevelingUI(getSave){
     // Progress messages do not end the worker. A single +5% click can
     // contain many short, validated refill batches.
     if(msg?.progress){
+     updateProgress(msg.completedWaves,msg.requestedWaves,"refills");
      const message="Simulating "+msg.completedWaves+" / "+
       msg.requestedWaves+" refills · current total "+
       msg.totalRefills+(msg.completed?
