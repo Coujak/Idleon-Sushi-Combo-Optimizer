@@ -33,3 +33,13 @@ test("Playback speed and reduced motion are applied to every step",()=>{
  assert.ok(app.includes("finishFlight();\n    player.reschedule()"));
  assert.ok(app.includes('if(document.hidden){player.pause();finishFlight();}'));
 });
+
+test("Combo interactive merge seek bar reflects replay progress with themed thumb",()=>{
+ assert.match(app,/seek\.style\.setProperty\("--merge-seek-progress","0%"\)/);
+ assert.match(app,/selected\/result\.moves\.length\*100/);
+ assert.match(css,/#solver \.merge-timeline input\.merge-seek::-webkit-slider-runnable-track/);
+ assert.match(css,/#solver \.merge-timeline input\.merge-seek::-moz-range-track/);
+ assert.match(css,/#solver \.merge-timeline input\.merge-seek::-webkit-slider-thumb/);
+ assert.match(css,/--merge-seek-progress/);
+ assert.match(app,/seek\.addEventListener\("input",\(\)=>player\.goTo\(Number\(seek\.value\)\)\)/);
+});
