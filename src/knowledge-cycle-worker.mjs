@@ -130,7 +130,7 @@ function extendKnowledgeInBatches(save,snapshot,requestedWaves,seekTargetTier=0)
    targetCreated:rotation.targetCreated,
    roundsCompleted:current.roundsCompleted+rotation.rounds,
    completed:rotation.completed};
-  if(targetSeek||completedWaves%24===0||remaining===0)
+  if(!targetSeek||completedWaves%24===0||matched)
    self.postMessage({progress:true,completedWaves,
     requestedWaves:total,totalRefills:current.roundsCompleted,
     completed:rotation.completed,targetCreationFound:matched,
