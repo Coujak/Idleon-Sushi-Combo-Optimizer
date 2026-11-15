@@ -19,7 +19,8 @@ test("Knowledge has a concise three-section layout and all functional controls",
   "knowledgePlanMode","knowledgePlanTarget","knowledgePlanProtectPassive",
   "knowledgePlanRun","knowledgePlanCancel","knowledgePlanRounds",
   "knowledgePlanContinue","knowledgePlanSpeed","knowledgePlanNextRefill",
-  "knowledgePlanNextHarvest","knowledgePlanPlay","knowledgePlanPrev",
+  "knowledgePlanNextHarvest","knowledgePlanNextTargetCreation",
+  "knowledgePlanPlay","knowledgePlanPrev",
   "knowledgePlanNext","knowledgePlanEnd","knowledgePlanPrepared",
   "knowledgePlanStepTitle","knowledgePlanBoard","knowledgePlanLevelRows",
   "knowledgePlanReplayProgress","knowledgePlanStepKind",
@@ -145,4 +146,18 @@ test("Knowledge playback speeds follow ascending order and preserve 1× default"
  assert.match(select,/<option value="1800" selected>1×<\/option>/);
  assert.match(ui,/getDelay:\(\)=>Number\(speed\.value\)/);
  assert.match(css,/#knowledgePlanner \.lab-kp-replay-actions \.lab-kp-speed-label/);
+});
+
+test("Focused reset returns to original plan before jumping to another harvest",()=>{
+ assert.match(ui,/let initialFocusedPlan=null/);
+ assert.match(ui,/if\(plan\.mode==="focused"\)initialFocusedPlan=plan/);
+ assert.match(ui,/function rewindKnowledgeReplay\(prepared=false\)/);
+ assert.match(ui,/result!==initialFocusedPlan/);
+ assert.match(ui,/createReplay\(original,prepared\?original\.preparedStep\?\?0:0\)/);
+ assert.match(ui,/\$\("knowledgePlanReset"\)\.addEventListener\("click",\(\)=>rewindKnowledgeReplay\(false\)\)/);
+ assert.match(ui,/\$\("knowledgePlanPrepared"\)\.addEventListener\("click",\(\)=>rewindKnowledgeReplay\(true\)\)/);
+ assert.match(ui,/jumpToNextTargetCreation=false/);
+ assert.match(ui,/nextKnowledgeHarvestStep\(result\.steps,controller\.step\)/);
+ assert.match(ui,/nextKnowledgeTargetCreationStep\(/);
+ assert.match(section,/id="knowledgePlanNextTargetCreation"/);
 });
