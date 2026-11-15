@@ -52,7 +52,7 @@ function makeHarness(refills=100){
     highestNewTier:53
    };
   },
-  beginProgress(){},updateProgress(){},hideProgress(){},
+  beginProgress(){},updateProgress(){},hideProgress(){},showTargetSearch(){},
   renderSummary(){},renderPassive(){},showProgress(){},
   knowledgeContinuationResumeStep,nextKnowledgeTargetCreationStep,
   nextKnowledgeHarvestStep,
