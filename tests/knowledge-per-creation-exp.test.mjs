@@ -140,7 +140,7 @@ test("Per-event gains sum to the exact model totals in the rotation",()=>{
 test("Both the account breakdown and event-by-event gains are visible in the UI",()=>{
  const ui=readFileSync(new URL("../src/knowledge-leveling-ui.mjs",import.meta.url),"utf8");
  const html=readFileSync(new URL("../index.html",import.meta.url),"utf8");
- assert.match(ui,/Calculated Knowledge EXP per sushi created/);
+ assert.match(ui,/EXP per creation/);
  assert.match(ui,/event\.knowledgeExp/);
  assert.match(ui,/p\.creationXp/);
  assert.match(html,/id="knowledgePlanCreatedXp"/);
