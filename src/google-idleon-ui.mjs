@@ -20,9 +20,11 @@ function loadGoogleLibrary(){
 export function initializeGoogleIdleonUI(onSave){
  const button=$("googleIdleonConnect"),status=$("googleIdleonStatus");
  const panel=$("googleIdleonPanel");
+ const clientInput=$("googleIdleonClientId"),apiKeyInput=$("googleIdleonApiKey");
+ const applyButton=$("googleIdleonApply");
  if(!button||!status||!panel)return {clear(){}};
- const config=GOOGLE_IDLEON_CONFIG;
- const ready=validateGoogleImportConfig(config);
+ let config={...GOOGLE_IDLEON_CONFIG};
+ let ready=validateGoogleImportConfig(config);
  let busy=false,generation=0,googleReady=false;
  const setStatus=(message,state="")=>{
   status.textContent=message;
@@ -35,6 +37,27 @@ export function initializeGoogleIdleonUI(onSave){
   setStatus("Experimental — sign in using the Google account linked to your Idleon save. Your game data stays in this browser.","idle");
   loadGoogleLibrary().then(()=>{googleReady=true;}).catch(error=>setStatus(error.message,"error"));
  }
+ applyButton?.addEventListener("click",()=>{
+  if(busy)return;
+  const proposal={
+   clientId:String(clientInput?.value??"").trim(),
+   firebaseApiKey:String(apiKeyInput?.value??"").trim(),
+   projectId:"idlemmo"
+  };
+  const verdict=validateGoogleImportConfig(proposal);
+  if(!verdict.ready){
+   button.disabled=true;
+   setStatus(verdict.reason+" Manual JSON import remains available.","error");
+   return;
+  }
+  config=proposal;ready=verdict;
+  button.disabled=false;
+  setStatus("Loading official Google sign-in. Use an account that you own and that is linked to Idleon.","idle");
+  loadGoogleLibrary().then(()=>{
+   googleReady=true;
+   setStatus("Ready to test your Google account. Cloud-save access is not yet verified.","idle");
+  }).catch(error=>setStatus(error.message,"error"));
+ });
  function clear(){
   generation++;
   busy=false;
