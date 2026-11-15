@@ -353,6 +353,10 @@
   <button id="knowledgePlanCancel" type="button" class="button secondary hidden">Cancel search</button>
   <p id="knowledgePlanStatus" role="status" aria-live="polite">Import a Sushi Station save in Overview to generate a Knowledge plan.</p>
  </div>
+ <div id="knowledgePlanLoading" class="lab-kp-loading hidden" role="status" aria-live="polite">
+  <div class="lab-kp-loading-head"><strong>Optimizing Knowledge…</strong><span id="knowledgePlanLoadingText">Preparing search…</span></div>
+  <progress id="knowledgePlanLoadingBar" max="100" aria-label="Knowledge optimization progress"></progress>
+ </div>
  <div id="knowledgePlanFeatured" class="hidden"></div>
  <div id="knowledgePlanRotation" class="hidden">
   <div class="lab-kp-section-head"><h3>2 · Walkthrough</h3></div>
@@ -400,6 +404,14 @@
   </div>
   <div class="lab-kp-section-head"><h3>3 · Knowledge progression</h3><span class="lab-kp-estimate-tag">Estimated</span></div>
   <p class="hint lab-kp-projection-note">Active EXP follows the selected step. Hourly rates and level estimates use the full preview.</p>
+  <div class="lab-kp-progression-controls">
+   <label class="lab-kp-show-zero"><input id="knowledgePlanShowZero" type="checkbox"> Show zero-EXP tiers</label>
+   <div class="lab-kp-exp-legend" aria-label="Knowledge EXP progress colors">
+    <span><i class="is-current"></i> Current</span><span><i class="is-gained"></i> Gained by step</span>
+   </div>
+   <span id="knowledgePlanLevelCount" class="lab-kp-tier-count">—</span>
+  </div>
+  <p id="knowledgePlanLevelEmpty" class="hint hidden">No tiers gain EXP in this preview. Show zero-EXP tiers to see all.</p>
   <div class="lab-table-wrap"><table class="lab-data-table lab-kp-progress-table"><thead><tr>
    <th scope="col">Sushi tier</th><th scope="col">Active EXP · to step</th><th scope="col">Passive / day</th><th scope="col">Total / hr · est.</th><th scope="col">Next level · est.</th>
   </tr></thead><tbody id="knowledgePlanLevelRows"></tbody></table></div>
