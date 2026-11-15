@@ -29,7 +29,7 @@ function makeHarness(refills=100){
  let inline="",resumeIndex=null,combined=0;
  const context={
   continueButton:button,continueHold:null,worker:null,jumpToNextRefill:false,
-   jumpToNextHarvest:false,
+   jumpToNextHarvest:false,jumpToNextTargetCreation:false,
   result:previous,canExtendBalancedRotation:()=>true,
   knowledgeContinueWaveCount,knowledgeContinueButtonLabel,
   getSave:()=>({sushi:[[],[],[]]}),
