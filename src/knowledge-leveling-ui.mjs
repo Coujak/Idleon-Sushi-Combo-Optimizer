@@ -547,10 +547,11 @@ export function initializeKnowledgeLevelingUI(getSave){
     ". Actual in-game EXP must be measured separately.";
    activeExpDisplays.set(entry.tier,{gained,created,expBar,projected,
     initialPct,xpReq:entry.xpReq,xp:entry.xp});
-   tr.append(name,active,
-    elem("td","",compact(entry.passiveExpPerDay)),
-    elem("td","",rate(entry.expPerHour)),
-    elem("td","",formatHours(entry.etaHours)));
+   const totalRate=elem("td","",rate(entry.expPerHour));
+   totalRate.title="Estimated active EXP/hr plus modeled passive EXP/hr";
+   const nextLevel=elem("td","",formatHours(entry.etaHours));
+   nextLevel.title="Estimated using active and passive EXP rates";
+   tr.append(name,active,totalRate,nextLevel);
    rows.append(tr);
   }
  }
