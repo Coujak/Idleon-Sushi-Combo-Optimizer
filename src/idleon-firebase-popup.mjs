@@ -1,5 +1,5 @@
 // Experimental sign-in through Idleon's publicly published Firebase project.
-// The app never asks for a password, copies another site's OAuth client or stores tokens.
+// The app never asks for a password, copies another site's OAuth client or persists tokens.
 // This only succeeds if the game's Firebase configuration authorizes this origin.
 import {fetchAuthorizedIdleonSave} from "./google-idleon-import.mjs?v=1.0.1";
 
@@ -20,6 +20,8 @@ export function describeIdleonPopupError(error){
   return "The browser blocked Google's sign-in window. Allow popups for this page and try again.";
  if(/auth\/popup-closed-by-user|auth\/cancelled-popup-request/.test(code))
   return "Google sign-in was canceled. Your existing account data was not changed.";
+ if(/auth\/requires-recent-login|auth\/user-token-expired|auth\/invalid-user-token|auth\/user-disabled/.test(code))
+  return "Your Google session has expired or was revoked. Sign in again to resume automatic refresh.";
  if(/auth\/operation-not-allowed|auth\/invalid-oauth-client-id|INVALID_IDP_RESPONSE|auth\/invalid-credential/.test(code))
   return "Idleon's Firebase refused this Google sign-in method. We need an officially authorized client; another website's credentials will not be copied.";
  if(/PERMISSION_DENIED|UNAUTHENTICATED|auth\/user-disabled|403/.test(code))
@@ -49,23 +51,39 @@ export function preloadIdleonPopup(){
  return pending;
 }
 
+export async function refreshSignedInIdleonSave(){
+ const {auth}=await preloadIdleonPopup();
+ const user=auth.currentUser;
+ if(!user?.uid){
+  const error=new Error("No active Firebase session");
+  error.code="auth/requires-recent-login";
+  throw error;
+ }
+ const token=await user.getIdToken();
+ // Read only the currently signed-in user's own account document.
+ return fetchAuthorizedIdleonSave(user.uid,token,FIREBASE_PROJECT);
+}
+
 export async function signInAndFetchIdleonSave(){
  const {auth,authModule}=await preloadIdleonPopup();
  const provider=new authModule.GoogleAuthProvider();
- let signedIn=false;
+ await authModule.signInWithPopup(auth,provider);
  try{
-  const result=await authModule.signInWithPopup(auth,provider);
-  signedIn=true;
-  const uid=result?.user?.uid;
-  if(typeof uid!=="string"||!uid)throw Error("Firebase did not provide an account identifier");
-  const token=await result.user.getIdToken();
-  // Reading only the signed-in user's own _data document is intentional.
-  return await fetchAuthorizedIdleonSave(uid,token,FIREBASE_PROJECT);
- }finally{
-  if(signedIn){
-   try{await authModule.signOut(auth);}catch{/* No persistence was enabled. */}
-  }
+  // Keep only an in-memory Firebase session for automatic five-minute refresh.
+  // A manual JSON import, Clear, or closing this tab terminates this session.
+  return await refreshSignedInIdleonSave();
+ }catch(error){
+  await authModule.signOut(auth).catch(()=>{});
+  throw error;
  }
+}
+
+export async function endIdleonSession(){
+ if(!pending)return;
+ try{
+  const {auth,authModule}=await pending;
+  if(auth.currentUser)await authModule.signOut(auth);
+ }catch{/* Never block the Clear / manual import action. */}
 }
 
 export const IDLEON_FIREBASE_PROJECT=Object.freeze({projectId:FIREBASE_PROJECT.projectId,
