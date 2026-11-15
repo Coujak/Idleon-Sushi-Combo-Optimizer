@@ -30,6 +30,41 @@ test("Candidate progress reports completed evaluations with a real final total",
   assert.equal(readings[i].total,last.total);
  }
 });
+test("Balanced Start T20 is the prepared Sushi tier and stays T20 on refills",()=>{
+ const save=account();
+ // Unlock direct cooking of T19/T20 and discovery through the End tier.
+ save.sushi[2][6]=25;
+ for(let t=0;t<40;t++)save.sushi[5][t]=0;
+ const p=optimizeKnowledgeRotation(save,{
+  ...options,balancedStartTier:20,balancedEndTier:40,
+  fuelCapacity:1e18,fuelGeneration:1e18
+ });
+ assert.equal(p.available,true,p.reason);
+ assert.equal(p.balancedStartTier,20);
+ assert.equal(p.balancedEndTier,40);
+ assert.equal(p.actualBalancedStartTier,20);
+ assert.equal(p.firstCookResultTier,20);
+ assert.equal(p.startingPattern,"rangeClimb");
+ assert.ok(p.preparedBoard.filter(t=>t===20).length>=10,
+  "All available non-anchor cells should hold T20, not T1/T2");
+ assert.equal(p.preparedBoard.some(t=>t===1||t===2),false);
+ const cooks=p.steps.filter(frame=>frame.kind==="cook");
+ assert.ok(cooks.length>0);
+ assert.ok(cooks.every(frame=>frame.events[0].tier===20),
+  "Refills must keep creating T20 and not fall back to T1");
+ assert.ok(p.steps.some(frame=>frame.kind==="merge"&&
+  frame.events.some(ev=>ev.tier>=21&&ev.tier<=40)));
+});
+test("Uncookable custom Balanced Start reports an error instead of silently lowering tier",()=>{
+ const save=account();
+ for(let t=0;t<40;t++)save.sushi[5][t]=0;
+ const p=optimizeKnowledgeRotation(save,{
+  ...options,balancedStartTier:30,balancedEndTier:40
+ });
+ assert.equal(p.available,false);
+ assert.match(p.reason,/Balanced Start T30/);
+ assert.match(p.reason,/cannot be cooked/);
+});
 test("Integrated Knowledge optimizer designs its own preparation without copying the imported board",()=>{
  const save=account(),p=optimizeKnowledgeRotation(save,options);
  assert.equal(p.available,true,p.reason);
