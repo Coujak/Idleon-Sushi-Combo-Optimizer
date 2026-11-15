@@ -81,7 +81,7 @@ test("UI labels the active table as modeled EXP through the selected step",()=>{
  const html=readFileSync(new URL("../index.html",import.meta.url),"utf8");
  const ui=readFileSync(new URL("../src/knowledge-leveling-ui.mjs",import.meta.url),"utf8");
  assert.match(html,/Active EXP · to step/);
- assert.match(html,/Total \/ hr · est./);
+ assert.match(html,/Total EXP\/hr · est./);
  assert.match(ui,/buildKnowledgeActiveExpHistory\(p\.steps\)/);
  assert.match(ui,/renderVisibleActiveExp\(index\)/);
  assert.match(ui,/activeExpHistory\.atStep\(tier,step\)/);
