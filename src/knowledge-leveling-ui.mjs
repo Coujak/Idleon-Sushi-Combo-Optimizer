@@ -141,7 +141,8 @@ export function initializeKnowledgeLevelingUI(getSave){
   const detail=$("knowledgePlanStrategyDetail");
   if(detail&&mode.value==="balanced")
    detail.textContent="Earn EXP across T"+state.balancedStartTier+"–T"+
-    state.balancedEndTier+" · finish by creating a new T"+state.balancedEndTier+".";
+    state.balancedEndTier+" · start with T"+state.balancedStartTier+
+    " Sushi and finish by creating a new T"+state.balancedEndTier+".";
   const slider=$("knowledgePlanDualRange");
   if(slider){
    const max=Number(rangeStart.max)||64;
@@ -204,7 +205,8 @@ export function initializeKnowledgeLevelingUI(getSave){
   heading.append(elem("h3","",p.mode==="focused"?
    "Focused target-building rotation · T"+p.targetTier:
    "Balanced · T"+(p.balancedStartTier??1)+" → T"+(p.balancedEndTier??64)),
-   elem("p","",p.roundsCompleted+" refills · start T"+p.startCookTier+
+   elem("p","",p.roundsCompleted+" refills · start T"+
+    (p.mode==="balanced"?p.firstCookResultTier:p.startCookTier)+
     " · "+p.cooks+" cooks · "+p.windEvents+" Wind upgrades"));
   summary.append(heading);
   // Match Perfecto's result hierarchy: four primary KPIs, with the
@@ -300,24 +302,27 @@ export function initializeKnowledgeLevelingUI(getSave){
   const planNote=(text,cls="lab-kp-note")=>
    addNote(cls==="lab-kp-warning"?summary:extraBody,text,cls);
   if(p.mode==="balanced"){
-   planNote("Balanced target range: T"+(p.balancedStartTier??1)+
-    " → T"+(p.balancedEndTier??64)+
-    ". EXP outside this range is still tracked in the progression table, but is not part of the Balanced scoring priority.","lab-kp-note");
-   if(p.startingPattern==="t1Climb"){
-    const actual=p.firstCookResultTier??p.startCookTier;
-    planNote(actual===1?
-     "Balanced cooks T1 (the lowest Sushi tier) on every refill, then merges upward. Lower tiers are prioritized for the EXP staircase.":
-     "Balanced requests T1, but your guaranteed cooking tier bonus makes the lowest possible resulting Sushi T"+actual+". The walkthrough starts at that actual tier; lower tiers cannot be directly cooked with the present guaranteed bonus.",
-     actual===1?"lab-kp-note":"lab-kp-warning");
-   }else if(p.balancedT1Feasible===false)
-    planNote("T1 could not be cooked within the modeled Fuel capacity. Balanced used an alternative recipe.","lab-kp-warning");
+   planNote("Prepare and refill T"+(p.firstCookResultTier??p.actualBalancedStartTier)+
+    " Sushi, then merge upward to create T"+p.balancedEndTier+
+    ". Active EXP for T"+p.balancedStartTier+"–T"+p.balancedEndTier+
+    " is the scoring priority. The game cook request is T"+p.startCookTier+
+    (p.guaranteedCookBonus?
+     ", plus "+p.guaranteedCookBonus+" guaranteed cooking tiers.":"."),
+    "lab-kp-note");
+   if(p.actualBalancedStartTier>p.balancedStartTier)
+    planNote("Requested Start T"+p.balancedStartTier+
+     " cannot be cooked with your guaranteed +tier bonus. This plan starts "+
+     "at the lowest obtainable T"+p.actualBalancedStartTier+".",
+     "lab-kp-warning");
   }
   if(!p.fuelSafePreparation)
    planNote("Fuel warning: preparing this full board is estimated "+
     "to require "+formatHours(p.refillFuelSafety.estimatedWaitSeconds/3600)+
     " of extra regeneration beyond the initial Fuel buffer. "+
-    "The selected cooking tier was the least-waiting tested candidate, "+
-    "not an instant full-board recipe.","lab-kp-warning");
+    (p.mode==="balanced"?
+     "Your selected Start tier is kept; the optimizer does not lower it to skip Fuel waits.":
+     "The selected cooking tier was the least-waiting tested candidate, not an instant full-board recipe."),
+    "lab-kp-warning");
   else planNote("Fuel-safe first fill: the chosen recipe fits within "+
    "the imported Fuel balance (up to half of max capacity reserved for the "+
    "first fill) plus regeneration during cooking. Later refills may "+
@@ -709,7 +714,7 @@ export function initializeKnowledgeLevelingUI(getSave){
    "The optimizer uses the Combo Meter legal merge engine, including up to 25 East Wind upgrades when unlocked. Each verified creation event awards EXP to the created Sushi tier.",
    "Lithium Firelighter is 2× Knowledge EXP for Sushi above pink fireplaces; the solver also models reduced Fuel regeneration when orange fireplaces are changed to pink.",
    "The optimizer chooses a NEW prepared Sushi board rather than copying the imported inventory. It retains your highest-tier Sushi at its original location. Clearing other current Sushi to reach this preparation is a separate, unsolved task.",
-   "Balanced requests the lowest cookable tier (normally T1), but guaranteed +tier bonuses raise the actual Sushi tier produced. Its selected End tier is the completion goal; an existing protected Sushi does not count. Click Continue to advance by 5%, or press and hold to repeat until release (the in-flight increment finishes).",
+   "Balanced prepares and refills the selected Start tier (after guaranteed +tier cooking bonuses), then merges toward the End tier. An existing protected Sushi does not count as a newly created End tier. An unobtainable custom Start is reported rather than replaced. Click Continue for another 5% of refills, or hold to repeat.",
    "Focused: produce and bank the selected tier, then harvest pairs only when necessary to recover space. Click Continue to extend by 5%, or hold it down to repeat until release (an in-flight increment finishes). Focused does not stop when a T64 is created; its goal is continued target EXP.",
    "Moving Sushi into a vacant slot is a separate action. Movement Mittens toggles dragging to plates; disable it for Sushi repositioning.",
    "The first full-board fill is screened using the imported Fuel balance, Fuel capacity, estimated generation and actual tier costs. A separate warning appears if no tested recipe avoids regeneration waits. Milktoast/Cold provide passive EXP/day and can be optionally protected.",
