@@ -114,7 +114,8 @@ test("Knowledge EXP bars stay inside aligned table cells",()=>{
  assert.match(ui,/name\.append\(nameContent\)/);
  assert.match(ui,/const activeContent=elem\("div","lab-kp-active-content"\)/);
  assert.match(ui,/const activeHeading=elem\("div","lab-kp-active-heading"\)/);
- assert.match(ui,/activeHeading\.append\(gained,created\)/);
+ assert.match(ui,/expBadges\.append\(gained,levelStatus\)/);
+ assert.match(ui,/activeHeading\.append\(expBadges,created\)/);
  assert.match(ui,/activeContent\.append\(progressWrap\)/);
  assert.match(ui,/active\.append\(activeContent\)/);
  assert.match(css,/#knowledgePlanner \.lab-kp-tier\{display:table-cell\}/);
@@ -181,4 +182,15 @@ test("Next targeted creation has no fixed refill cap and preserves truthful chec
  assert.match(ui,/resume=targetCreation>=0\?targetCreation:/);
  assert.match(ui,/No T"\+plan\.targetTier\+" creation after/);
  assert.match(section,/knowledgePlanNextTargetCreation/);
+});
+
+test("Knowledge +X Lv. badge sits inline with the green EXP bubble, not below it",()=>{
+ assert.match(ui,/const levelStatus=elem\("small","lab-kp-tier-level-status hidden"\)/);
+ assert.match(ui,/const expBadges=elem\("span","lab-kp-exp-badges"\)/);
+ assert.match(ui,/expBadges\.append\(gained,levelStatus\)/);
+ assert.match(ui,/activeHeading\.append\(expBadges,created\)/);
+ assert.match(ui,/progressWrap\.append\(label,expBar\)/);
+ assert.doesNotMatch(ui,/progressWrap\.append\(levelStatus,/);
+ assert.match(css,/#knowledgePlanner \.lab-kp-exp-badges\{[\s\S]*?flex-wrap:nowrap/);
+ assert.match(css,/#knowledgePlanner \.lab-kp-tier-level-status\{[\s\S]*?white-space:nowrap/);
 });
