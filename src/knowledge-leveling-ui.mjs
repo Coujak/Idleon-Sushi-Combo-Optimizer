@@ -925,10 +925,13 @@ export function initializeKnowledgeLevelingUI(getSave){
    return;
   }
   const additionalWaves=knowledgeContinueWaveCount(previous.roundsCompleted);
-  const nextRounds=previous.roundsCompleted+additionalWaves;
   const skipToRefill=jumpToNextRefill;
   const skipToHarvest=jumpToNextHarvest;
   const skipToTarget=jumpToNextTargetCreation;
+  // Search farther for a real creation; keep the visible board if none appears.
+  const requestedWaves=skipToTarget?
+   Math.max(24,Math.min(60,additionalWaves*6)):additionalWaves;
+  const nextRounds=previous.roundsCompleted+requestedWaves;
   const failContinuation=reason=>{
    continueHold?.stop();hideProgress();
    const message="Unable to continue: "+reason;
@@ -943,14 +946,23 @@ export function initializeKnowledgeLevelingUI(getSave){
   // continue delivering pointer release events. The worker guard prevents
   // overlapping requests; ordinary clicks still disable the control.
   continueButton.disabled=!continueHold?.holding;
-  continueButton.textContent="Simulating +"+additionalWaves+" refills…";
+  continueButton.textContent=skipToTarget?
+   "Finding next T"+previous.targetTier+" creation…":
+   "Simulating +"+additionalWaves+" refills…";
   cancelButton.classList.remove("hidden");
-  beginProgress("Simulating additional refills…");
+  beginProgress(skipToTarget?
+   "Searching for the next T"+previous.targetTier+" creation…":
+   "Simulating additional refills…");
   build.disabled=true;
-  announceContinuation("Simulating +"+additionalWaves+" refills (5%) from the current board, through refill "+nextRounds+"…");
-  status.textContent="Simulating "+additionalWaves+" "+
-   (previous.mode==="focused"?"Focused":"Balanced")+
-   " refill waves (5% of "+previous.roundsCompleted+")…";
+  announceContinuation(skipToTarget?
+   "Searching up to "+requestedWaves+" refills for an actual T"+
+    previous.targetTier+" creation…":
+   "Simulating +"+additionalWaves+" refills (5%) from the current board, through refill "+nextRounds+"…");
+  status.textContent=skipToTarget?
+   "Searching for the next T"+previous.targetTier+" creation…":
+   "Simulating "+additionalWaves+" "+
+    (previous.mode==="focused"?"Focused":"Balanced")+
+    " refill waves (5% of "+previous.roundsCompleted+")…";
   try{
    const search=createKnowledgeWorker();
    worker=search;
@@ -996,7 +1008,11 @@ export function initializeKnowledgeLevelingUI(getSave){
      }
      const targetCreation=skipToTarget?nextKnowledgeTargetCreationStep(
       plan.steps,previous.steps.length-2,plan.targetTier):-1;
-     if(targetCreation>=0)resume=targetCreation;
+     if(skipToTarget){
+      // The chosen creation is the ONLY acceptable automatic destination.
+      resume=targetCreation>=0?targetCreation:
+       Math.min(controller?.step??previous.steps.length-1,plan.steps.length-1);
+     }
      createReplay(plan,resume);
      jumpToNextRefill=false;jumpToNextHarvest=false;
      jumpToNextTargetCreation=false;
@@ -1009,17 +1025,22 @@ export function initializeKnowledgeLevelingUI(getSave){
       (plan.mode==="focused"?
        "Focused T"+plan.targetTier+" · "+plan.targetCreated+
        " target creations · "+plan.harvestCount+" harvests · ":"")+
-      "Advanced "+progressed+" / "+additionalWaves+
-      " requested refills (5%) · total "+plan.roundsCompleted+
+      "Advanced "+progressed+" / "+requestedWaves+
+      " requested refills"+(skipToTarget?" (target search)":" (5%)")+
+      " · total "+plan.roundsCompleted+
       " · highest newly created T"+plan.highestNewTier+
       " · showing step "+resume+" / "+(plan.steps.length-1)+
       (msg.result.haltReason?
        " · Stopped early: "+msg.result.haltReason:
        " · next increment "+knowledgeContinueWaveCount(plan.roundsCompleted));
-     const finalMessage=skipToTarget&&targetCreation<0?
-      message+" · No new T"+plan.targetTier+
-       " creation in these refills; click Next T"+plan.targetTier+
-       " creation again to search farther.":message;
+     const finalMessage=skipToTarget?
+      targetCreation>=0?
+       "Next T"+plan.targetTier+" creation at step "+targetCreation+
+        " after "+progressed+" extra refills.":
+       "No T"+plan.targetTier+" creation found in "+progressed+
+        " simulated refills. The replay board has not jumped. "+
+        "Click Next T"+plan.targetTier+" creation again to search farther.":
+      message;
      announceContinuation(finalMessage);
      status.textContent=finalMessage;
      // While still physically held, schedule another +5% only AFTER
@@ -1040,7 +1061,8 @@ export function initializeKnowledgeLevelingUI(getSave){
     stopSearch();
     failContinuation("the browser could not receive the continued replay.");
    };
-   search.postMessage({save,waves:additionalWaves,continuation:{
+   search.postMessage({save,waves:requestedWaves,
+    seekTargetTier:skipToTarget?previous.targetTier:0,continuation:{
     mode:previous.mode,completed:previous.completed,
     options:previous.options,finalBoard:previous.finalBoard,
     slots:previous.layout.slots,protectedIndices:previous.protectedIndices,
