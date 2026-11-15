@@ -54,10 +54,11 @@ test("Authorized Firebase session loads only its own Firestore save",async()=>{
  const calls=[];
  const fetcher=async(url,options)=>{
   calls.push({url,options});
-  return response(200,{fields:{Sushi:{stringValue:"[[1,2],[0,0],[]]"}}});
+  return response(200,{updateTime:"2026-11-15T17:00:00.000000Z",fields:{Sushi:{stringValue:"[[1,2],[0,0],[]]"}}});
  };
  const save=await fetchAuthorizedIdleonSave("my uid","firebase-test-token",valid,fetcher);
  assert.equal(save.data.Sushi,"[[1,2],[0,0],[]]");
+ assert.equal(save.updatedAt,"2026-11-15T17:00:00.000000Z");
  assert.match(calls[0].url,/\/documents\/_data\/my%20uid$/);
  assert.equal(calls[0].options.headers.Authorization,"Bearer firebase-test-token");
  assert.equal(calls[0].options.cache,"no-store");
@@ -106,6 +107,9 @@ test("Google sign-in preview starts with one click and retains JSON fallback",()
  assert.match(ui,/Pause auto-refresh/);
  assert.match(ui,/Resume auto-refresh/);
  assert.match(ui,/stopTimer\(\)/);
+ assert.match(ui,/lastSaveVersion=version/);
+ assert.match(ui,/if\(version!==lastSaveVersion\)/);
+ assert.match(ui,/lastSaveVersion=null/);
  assert.match(popup,/refreshSignedInIdleonSave/);
  assert.match(popup,/endIdleonSession/);
  assert.doesNotMatch(html,/googleIdleonClientId|googleIdleonApiKey/);
