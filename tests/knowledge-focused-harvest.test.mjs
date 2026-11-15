@@ -4,6 +4,8 @@ import {simulateMerge,simulateRelocation,validateComboReplay}
  from "../src/optimizer-core.mjs";
 import {simulateContinuousKnowledgeRotation}
  from "../src/knowledge-continuous-rotation.mjs";
+import {nextKnowledgeHarvestStep,nextKnowledgeTargetCreationStep}
+ from "../src/knowledge-rotation-extension.mjs";
 
 const filled=(n,t=0)=>{
  const board=Array(120).fill(0),slots=Array(120).fill(-1);
@@ -166,4 +168,43 @@ test("T64 is the capped exception: merging T64+T64 creates new T64 EXP",()=>{
  assert.equal(r.frames.every(f=>f.board[7]===64),true,
   "The originally imported final T64 must remain in its cell");
  verifyAll(r,slots);
+});
+
+test("Rewound T58 replay always finds the first harvest, not the last visited harvest",()=>{
+ const steps=[
+  {kind:"start",board:[0]},
+  {kind:"cook",events:[{kind:"cook",tier:58,at:0}]},
+  {kind:"stage",phase:"harvest",title:"Harvest prepared T58 Sushi",board:[58]},
+  {kind:"merge",phase:"harvest",events:[{kind:"merge",tier:59,at:0}]},
+  {kind:"stage",phase:"prepare",title:"Prepare T58 copies"},
+  {kind:"cook",events:[{kind:"cook",tier:58,at:1}]},
+  {kind:"stage",phase:"harvest",title:"Harvest prepared T58 Sushi",board:[58,58]},
+  {kind:"partial",board:[59,58]}
+ ];
+ assert.equal(nextKnowledgeHarvestStep(steps,0),2);
+ assert.equal(nextKnowledgeHarvestStep(steps,2),6);
+ assert.equal(nextKnowledgeHarvestStep(steps,6),-1);
+ assert.equal(nextKnowledgeHarvestStep(steps,0),2,
+  "After Step 0, the next harvest must be the earliest one again");
+ assert.equal(nextKnowledgeHarvestStep(steps,1),2,
+  "Prepared board should also jump to the first harvest");
+});
+
+test("Next targeted creation finds real T58 cook/merge/Wind events, never a T59 harvest",()=>{
+ const steps=[
+  {kind:"start"},
+  {kind:"merge",events:[{kind:"merge",tier:57,at:0}]},
+  {kind:"merge",events:[{kind:"wind",tier:58,at:1}]},
+  {kind:"stage",phase:"harvest",title:"Harvest prepared T58 Sushi"},
+  {kind:"merge",phase:"harvest",events:[{kind:"merge",tier:59,at:2}]},
+  {kind:"cook",events:[{kind:"cook",tier:58,at:3}]},
+  {kind:"merge",events:[{kind:"merge",tier:58,at:4}]}
+ ];
+ assert.equal(nextKnowledgeTargetCreationStep(steps,0,58),2);
+ assert.equal(nextKnowledgeTargetCreationStep(steps,2,58),5);
+ assert.equal(nextKnowledgeTargetCreationStep(steps,5,58),6);
+ assert.equal(nextKnowledgeTargetCreationStep(steps,6,58),-1);
+ assert.equal(nextKnowledgeTargetCreationStep(steps,2,59),4);
+ assert.equal(nextKnowledgeTargetCreationStep([],0,58),-1);
+ assert.equal(nextKnowledgeTargetCreationStep(steps,0,0),-1);
 });
