@@ -201,7 +201,7 @@ test("target-creation search can be canceled beside the walkthrough board",()=>{
   .split('class="lab-kp-replay-group lab-kp-replay-group-playback"')[0];
  assert.match(navigation,/id="knowledgePlanNextTargetCreation"/);
  assert.match(navigation,/id="knowledgePlanTargetCancel"/);
- assert.match(navigation,/Cancel target search/);
+ assert.match(navigation,/>Cancel<\/button>/);
  assert.match(ui,/const targetCancelButton=\$\("knowledgePlanTargetCancel"\)/);
  assert.match(ui,/if\(skipToTarget\)showTargetSearch\(previous\.targetTier\)/);
  assert.match(ui,/targetCancelButton\.addEventListener\("click",\(\)=>cancelButton\.click\(\)\)/);
