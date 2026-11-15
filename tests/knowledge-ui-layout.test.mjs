@@ -176,7 +176,7 @@ test("Knowledge EXP has one bar that stays full with compact +X Lv. badge",()=>{
 test("Next targeted creation has no fixed refill cap and preserves truthful checkpoints",()=>{
  assert.match(ui,/const requestedWaves=skipToTarget\?null:additionalWaves/);
  assert.match(ui,/No arbitrary refill ceiling/);
- assert.match(ui,/Cancel search to stop/);
+ assert.match(ui,/Click Cancel beside Next T/);
  assert.match(ui,/seekTargetTier:skipToTarget\?previous\.targetTier:0/);
  assert.match(ui,/msg\.result\.checkpoint/);
  assert.match(ui,/resume=targetCreation>=0\?targetCreation:/);
