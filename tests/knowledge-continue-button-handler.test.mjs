@@ -51,7 +51,8 @@ function makeHarness(refills=100){
     highestNewTier:53
    };
   },
-  renderSummary(){},renderDesignedBoard(){},renderPassive(){},showProgress(){},
+  beginProgress(){},updateProgress(){},hideProgress(){},
+  renderSummary(){},renderPassive(){},showProgress(){},
   knowledgeContinuationResumeStep,
   createReplay(plan,step){resumeIndex=step;context.result=plan;}
  };
