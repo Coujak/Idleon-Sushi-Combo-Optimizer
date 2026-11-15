@@ -59,7 +59,7 @@ function harness(mode="focused"){
  };
  const context={
   continueButton:button,continueHold:null,worker:null,
-  result:previous,jumpToNextRefill:false,jumpToNextHarvest:false,
+  result:previous,jumpToNextRefill:false,jumpToNextHarvest:false,jumpToNextTargetCreation:false,
   canExtendBalancedRotation:p=>!p.completed,
   knowledgeContinueWaveCount,knowledgeContinueButtonLabel,
   getSave:()=>({sushi:[[],[],[]]}),
