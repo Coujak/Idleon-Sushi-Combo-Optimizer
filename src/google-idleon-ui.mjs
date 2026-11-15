@@ -17,6 +17,8 @@ export function initializeGoogleIdleonUI(onSave){
 
  let ready=false,busy=false,connected=false,paused=false,generation=0;
  let remaining=CLOUD_SAVE_REFRESH_INTERVAL_MS;
+ let lastSaveVersion=null;
+ const versionOf=save=>save.updatedAt||JSON.stringify(save.data);
  let stopRefresh=()=>{};
 
  const update=(message,state="idle")=>{
@@ -66,9 +68,16 @@ export function initializeGoogleIdleonUI(onSave){
   try{
    const save=await refreshSignedInIdleonSave();
    if(requestId!==generation)return;
-   onSave(save,"Google cloud save");
-   update(paused?"Cloud save updated · Auto-refresh paused.":
-    "Cloud save updated · Automatically refreshes every 5 minutes.","ok");
+   const version=versionOf(save);
+   if(version!==lastSaveVersion){
+    onSave(save,"Google cloud save");
+    lastSaveVersion=version;
+    update(paused?"Cloud save updated · Auto-refresh paused.":
+     "Cloud save updated · Automatically refreshes every 5 minutes.","ok");
+   }else{
+    update(paused?"Cloud save checked · No changes · Auto-refresh paused.":
+     "Cloud save checked · No changes · Refreshes every 5 minutes.","ok");
+   }
   }catch(error){
    if(requestId!==generation)return;
    if(sessionExpired(error)){
@@ -120,6 +129,7 @@ export function initializeGoogleIdleonUI(onSave){
     return;
    }
    onSave(save,"Google cloud save");
+   lastSaveVersion=versionOf(save);
    connected=true;
    paused=false;
    startTimer();
@@ -154,6 +164,7 @@ export function initializeGoogleIdleonUI(onSave){
    paused=false;
    busy=false;
    remaining=CLOUD_SAVE_REFRESH_INTERVAL_MS;
+   lastSaveVersion=null;
    void endIdleonSession();
    render();
    update("","idle");
