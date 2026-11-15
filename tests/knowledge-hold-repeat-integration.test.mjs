@@ -83,7 +83,8 @@ function harness(mode="focused"){
     highestNewTier:53};
   },
   knowledgeContinuationResumeStep,
-  renderSummary(){},renderDesignedBoard(){},renderPassive(){},showProgress(){},
+  beginProgress(){},updateProgress(){},hideProgress(){},
+  renderSummary(){},renderPassive(){},showProgress(){},
   createReplay(plan,step){
    context.result=plan;context.resumed=step;button.disabled=false;
   }
