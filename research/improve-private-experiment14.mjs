@@ -42,15 +42,6 @@ function decrypt(envelope,passphrase){
  const text=Buffer.concat([decipher.update(bytes.subarray(0,-16)),decipher.final()]);
  return JSON.parse(text.toString("utf8"));
 }
-function actionsToMoves(board,actions){
- const moves=[];let current=board;
- for(const action of actions){
-  const move=simulateMerge(current,action.src,action.dst,58,25,64);
-  if(!move)throw Error("Invalid stored Experiment 14 action.");
-  moves.push(move);current=move.board;
- }
- return moves;
-}
 function choices(board,avoid,maxChoices){
  const byTier=new Map();
  board.forEach((tier,i)=>{if(tier>0&&tier<64){if(!byTier.has(tier))byTier.set(tier,[]);byTier.get(tier).push(i);}});
@@ -126,7 +117,7 @@ if(best.score>original.privateSearch.score){
   iterations,salt:salt.toString("hex"),iv:iv.toString("hex"),ciphertext:ciphertext.toString("hex")};
  const output=options.output??"private/experiment14-improved.enc.json";
  mkdirSync(dirname(output),{recursive:true});
- writeFileSync(output,JSON.stringify(envelope)+"\\n",{mode:0o600});
+ writeFileSync(output,JSON.stringify(envelope)+"\n",{mode:0o600});
  console.log("Encrypted improved replay saved locally: "+output);
 }
 passphrase="";
