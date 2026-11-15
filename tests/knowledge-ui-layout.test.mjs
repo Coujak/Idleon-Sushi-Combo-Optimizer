@@ -122,3 +122,27 @@ test("Knowledge EXP bars stay inside aligned table cells",()=>{
  assert.match(css,/#knowledgePlanner \.lab-kp-active-heading\{/);
  assert.match(css,/#knowledgePlanner \.lab-kp-progress-table\{\s*width:100%;\s*min-width:880px;\s*table-layout:fixed/);
 });
+
+test("Knowledge progression keeps four columns and passive EXP in separate setup",()=>{
+ const header=section.match(/<table class="lab-data-table lab-kp-progress-table"><thead><tr>([\s\S]*?)<\/tr>/)?.[1];
+ assert.ok(header,"Progression table header is present");
+ assert.equal((header.match(/<th /g)??[]).length,4);
+ assert.doesNotMatch(header,/Passive \/ day/);
+ assert.match(header,/Total EXP\/hr · est\./);
+ assert.match(section,/including modeled passive EXP/);
+ assert.match(ui,/Estimated active EXP\/hr plus modeled passive EXP\/hr/);
+ assert.match(ui,/tr\.append\(name,active,totalRate,nextLevel\)/);
+ assert.match(ui,/Passive EXP · Plate setup/);
+ const sizeRules=css.split("/* Knowledge progression: a single compact, consistent table row per tier.")[1];
+ assert.match(sizeRules,/td:nth-child\(2\)\{width:40%\}/);
+});
+test("Knowledge playback speeds follow ascending order and preserve 1× default",()=>{
+ const select=section.match(/<select id="knowledgePlanSpeed"[^>]*>([\s\S]*?)<\/select>/)?.[1];
+ assert.ok(select,"Speed dropdown exists");
+ const options=[...select.matchAll(/<option value="(\d+)"(?: selected)?>([\d.]+)×<\/option>/g)];
+ assert.deepEqual(options.map(m=>Number(m[2])),[0.5,0.75,1,1.5,2,3]);
+ assert.deepEqual(options.map(m=>Number(m[1])),[3600,2400,1800,1200,900,600]);
+ assert.match(select,/<option value="1800" selected>1×<\/option>/);
+ assert.match(ui,/getDelay:\(\)=>Number\(speed\.value\)/);
+ assert.match(css,/#knowledgePlanner \.lab-kp-replay-actions \.lab-kp-speed-label/);
+});
