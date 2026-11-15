@@ -6,7 +6,10 @@ import {parseGameQuantity} from "./progression-calibration.mjs?v=1.17.1";
 import {normalizeKnowledgeCycleOptions}
  from "./knowledge-cycle-optimizer.mjs?v=1.0.3";
 import {createReplayController} from "./replay-controller.mjs";
-import {combineKnowledgeContinuation,knowledgeContinuationResumeStep} from "./knowledge-rotation-extension.mjs?v=1.0.5";
+import {
+ combineKnowledgeContinuation,knowledgeContinuationResumeStep,
+ nextKnowledgeHarvestStep,nextKnowledgeTargetCreationStep
+} from "./knowledge-rotation-extension.mjs?v=1.0.6";
 import {canExtendBalancedRotation} from "./knowledge-rotation-continuation-eligibility.mjs?v=1.0.1";
 import {knowledgeContinueWaveCount,knowledgeContinueButtonLabel} from "./knowledge-refill-scale.mjs?v=1.0.0";
 import {installKnowledgeContinueHold} from "./knowledge-continue-hold.mjs?v=1.0.0";
@@ -75,8 +78,9 @@ export function initializeKnowledgeLevelingUI(getSave){
  const speed=$("knowledgePlanSpeed");
  let state={mode:"balanced",targetTier:null};
  let result=null,controller=null,worker=null;
+ let initialFocusedPlan=null; // The first validated simulation, before extensions
  let activeExpHistory=null,activeExpDisplays=new Map();
- let jumpToNextRefill=false,jumpToNextHarvest=false;
+ let jumpToNextRefill=false,jumpToNextHarvest=false,jumpToNextTargetCreation=false;
  let continueHold=null;
  try{
   const old=JSON.parse(window.localStorage.getItem(preferenceKey)||"null");
@@ -122,8 +126,9 @@ export function initializeKnowledgeLevelingUI(getSave){
   continueHold?.stop();
   stopSearch();
   controller?.dispose();controller=null;
-  result=null;activeExpHistory=null;activeExpDisplays.clear();
-  jumpToNextRefill=false;jumpToNextHarvest=false;
+  result=null;initialFocusedPlan=null;
+  activeExpHistory=null;activeExpDisplays.clear();
+  jumpToNextRefill=false;jumpToNextHarvest=false;jumpToNextTargetCreation=false;
   announceContinuation("");
   continueButton.classList.add("hidden");continueButton.disabled=false;
   continueButton.textContent="Continue rotation";
@@ -162,6 +167,7 @@ export function initializeKnowledgeLevelingUI(getSave){
   targetLabel.classList.toggle("hidden",mode.value!=="focused");
   rangeBox.classList.toggle("hidden",mode.value!=="balanced");
   $("knowledgePlanNextHarvest").classList.toggle("hidden",mode.value!=="focused");
+  $("knowledgePlanNextTargetCreation").classList.toggle("hidden",mode.value!=="focused");
   const maxTier=64;
   rangeStart.max=rangeEnd.max=String(maxTier);
   state.balancedStartTier=Math.max(1,Math.min(maxTier,
@@ -683,9 +689,19 @@ export function initializeKnowledgeLevelingUI(getSave){
    canExtendBalancedRotation(result)?
     "Continue from this board by "+knowledgeContinueWaveCount(result.roundsCompleted)+" refill waves (5%)":
     "No further legal refill; "+result.haltReason;
-  $("knowledgePlanNextHarvest").disabled=!result.steps.some((f,i)=>
-   i>index&&f.kind==="stage"&&f.phase==="harvest"&&f.title.startsWith("Harvest prepared"))&&
-   !(result.mode==="focused"&&canExtendBalancedRotation(result));
+  const focused=result.mode==="focused";
+  const canContinue=focused&&canExtendBalancedRotation(result);
+  $("knowledgePlanNextHarvest").disabled=
+   nextKnowledgeHarvestStep(result.steps,index)<0&&!canContinue;
+  const nextTarget=$("knowledgePlanNextTargetCreation");
+  nextTarget.classList.toggle("hidden",!focused);
+  if(focused){
+   nextTarget.textContent="Next T"+result.targetTier+" creation";
+   nextTarget.title="Jump to the next T"+result.targetTier+
+    " creation from cooking, merging or Wind";
+  }
+  nextTarget.disabled=!focused||
+   nextKnowledgeTargetCreationStep(result.steps,index,result.targetTier)<0&&!canContinue;
   $("knowledgePlanPrev").disabled=index===0;
   $("knowledgePlanNext").disabled=index===result.steps.length-1&&
    !canExtendBalancedRotation(result);
@@ -792,6 +808,7 @@ export function initializeKnowledgeLevelingUI(getSave){
     }
     const plan=msg.result;
     if(!plan.available){status.textContent=plan.reason;return;}
+    if(plan.mode==="focused")initialFocusedPlan=plan;
     renderSummary(plan);
     renderPassive(plan);showProgress(plan);createReplay(plan);
     status.textContent=(plan.mode==="focused"?
