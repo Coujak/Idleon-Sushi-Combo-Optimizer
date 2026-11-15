@@ -44,7 +44,8 @@ self.onmessage=event=>{
   const {save,options,continuation,waves}=event.data??{};
   const result=continuation?
    extendKnowledgeInBatches(save,continuation,waves):
-   optimizeKnowledgeRotation(save,options);
+   optimizeKnowledgeRotation(save,options,progress=>
+    self.postMessage({progress:true,...progress}));
   self.postMessage({ok:true,result});
  }catch(error){
   self.postMessage({ok:false,error:error?.message??String(error)});
