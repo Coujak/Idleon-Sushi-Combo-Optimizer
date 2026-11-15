@@ -125,7 +125,21 @@ export function initializePerfectoUI(getSave){
    choice.setAttribute("aria-selected",String(selected));
    choice.tabIndex=selected?0:-1;
   }
+  for(const card of document.querySelectorAll("[data-planner-card]")){
+   const selected=card.dataset.plannerCard===plannerTab;
+   card.classList.toggle("is-active",selected);
+   card.setAttribute("aria-pressed",String(selected));
+  }
   if(plannerTab==="perfecto")render();
+ }
+ for(const card of document.querySelectorAll("[data-planner-card]")){
+  card.addEventListener("click",()=>{
+   const target=card.dataset.plannerCard;
+   setPlannerTab(target);
+   const panelId={combo:"solver",perfecto:"perfectoPlanner",
+    knowledge:"knowledgePlanner"}[target];
+   if(panelId)$(panelId)?.scrollIntoView({behavior:"smooth",block:"start"});
+  });
  }
  for(const button of document.querySelectorAll("[data-planner-target]")){
   button.addEventListener("click",()=>setPlannerTab(button.dataset.plannerTarget));
