@@ -510,10 +510,32 @@ export function initializeKnowledgeLevelingUI(getSave){
    const gained=elem("span","lab-kp-exp-value is-empty","0");
    const created=elem("small","lab-kp-creation-count","0 creations");
    active.append(gained,created);
+   // Green is saved Knowledge EXP; blue is active EXP earned by this step.
+   let expBar=null,projected=null,initialPct=0;
+   if(Number.isFinite(entry.xp)&&Number.isFinite(entry.xpReq)&&entry.xpReq>0){
+    initialPct=Math.max(0,Math.min(100,entry.xp/entry.xpReq*100));
+    const progressWrap=elem("div","lab-kp-tier-exp");
+    const label=elem("small","lab-kp-tier-exp-current",
+     compact(entry.xp)+" / "+compact(entry.xpReq)+" EXP");
+    expBar=elem("div","lab-kp-tier-exp-bar");
+    expBar.setAttribute("role","progressbar");
+    expBar.setAttribute("aria-label","Knowledge EXP toward next level for T"+entry.tier);
+    expBar.setAttribute("aria-valuemin","0");
+    expBar.setAttribute("aria-valuemax","100");
+    expBar.setAttribute("aria-valuenow",String(Math.round(initialPct*10)/10));
+    const saved=elem("span","lab-kp-tier-exp-saved");
+    saved.style.width=initialPct+"%";
+    projected=elem("span","lab-kp-tier-exp-new");
+    projected.style.width="0%";
+    expBar.append(saved,projected);
+    progressWrap.append(label,expBar);
+    active.append(progressWrap);
+   }
    active.title="Simulated gain to the selected walkthrough step. "+
     "Full-preview T"+entry.tier+" EXP: "+compact(entry.expPerCycle)+
     ". Actual in-game EXP must be measured separately.";
-   activeExpDisplays.set(entry.tier,{gained,created});
+   activeExpDisplays.set(entry.tier,{gained,created,expBar,projected,
+    initialPct,xpReq:entry.xpReq,xp:entry.xp});
    tr.append(name,active,
     elem("td","",compact(entry.passiveExpPerDay)),
     elem("td","",rate(entry.expPerHour)),
@@ -528,6 +550,19 @@ export function initializeKnowledgeLevelingUI(getSave){
    display.gained.textContent=compact(exp);
    display.gained.classList.toggle("is-empty",exp===0);
    display.created.textContent=creations?creations+" creation"+(creations===1?"":"s"):"";
+   if(display.expBar&&display.projected){
+    const additional=Math.max(0,Math.min(100-display.initialPct,
+     exp/display.xpReq*100));
+    display.projected.style.width=additional+"%";
+    const projectedPercent=display.initialPct+additional;
+    display.expBar.setAttribute("aria-valuenow",
+     String(Math.round(projectedPercent*10)/10));
+    display.expBar.title="Current: "+compact(display.xp)+
+     " EXP · Modeled active gain: +"+compact(exp)+
+     " EXP · Next Knowledge level: "+compact(display.xpReq)+" EXP"+
+     (exp>display.xpReq-display.xp?
+      " · Extra EXP beyond the current level threshold is not shown on this bar":"");
+   }
   }
  }
  function renderFrame(index){
