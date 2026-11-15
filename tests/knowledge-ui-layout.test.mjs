@@ -8,12 +8,13 @@ const css=readFileSync(new URL("../styles.css",import.meta.url),"utf8");
 const section=html.split('<section id="knowledgePlanner"')[1]
  .split('<div id="lab-upgrades"')[0];
 
-test("Knowledge has four themed sections and all existing functional controls",()=>{
- for(const label of ["1 · Choose your strategy","2 · Prepared Sushi board",
-  "3 · Preparation walkthrough","4 · Projected Knowledge progression"]){
-  if(label.startsWith("2 ·"))assert.ok(ui.includes(label));
-  else assert.ok(section.includes(label));
- }
+test("Knowledge has a concise three-section layout and all functional controls",()=>{
+ for(const label of ["1 · Strategy","2 · Walkthrough",
+  "3 · Knowledge progression"])assert.ok(section.includes(label));
+ assert.doesNotMatch(section,/id="knowledgePlanDesign"/);
+ assert.doesNotMatch(ui,/renderDesignedBoard/);
+ assert.match(ui,/renderFrame/);
+ assert.match(ui,/preparedStep/);
  for(const id of [
   "knowledgePlanMode","knowledgePlanTarget","knowledgePlanProtectPassive",
   "knowledgePlanRun","knowledgePlanCancel","knowledgePlanRounds",
@@ -49,5 +50,20 @@ test("Knowledge styling is isolated within its planner and remains responsive",(
  assert.match(css,/#knowledgePlanner \.lab-kp-progress-table tr\.is-target/);
  assert.match(css,/#knowledgePlanner \.lab-kp-board-legend/);
  assert.match(css,/@media\(max-width:490px\)/);
- assert.match(section,/Modeled EXP · verify in game/);
+ assert.match(section,/lab-kp-estimate-tag">Estimated/);
+});
+
+test("Balanced uses one shared dual-handle slider and EXP chips never scroll",()=>{
+ assert.match(section,/id="knowledgePlanDualRange"/);
+ assert.match(section,/id="knowledgePlanRangeStart"/);
+ assert.match(section,/id="knowledgePlanRangeEnd"/);
+ assert.match(ui,/--kp-start/);
+ assert.match(ui,/--kp-end/);
+ assert.match(ui,/Created · predicted EXP/);
+ assert.match(css,/#knowledgePlanner \.lab-kp-dual-range-track/);
+ const chips=css.split("#knowledgePlanner .lab-kp-created-exp{")[1].split("}")[0];
+ assert.match(chips,/overflow:visible/);
+ assert.doesNotMatch(chips,/overflow:auto/);
+ assert.match(ui,/lab-kp-plan-notes/);
+ assert.match(ui,/lab-kp-formula-details/);
 });
