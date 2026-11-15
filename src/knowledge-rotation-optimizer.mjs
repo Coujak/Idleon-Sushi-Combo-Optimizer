@@ -45,6 +45,13 @@ function startingTiers(economy,guaranteed,options,targetTier,availableSlots=100)
   if(cost>0&&Number.isFinite(cost)&&cost<=cap)valid.push(tier);
  }
  if(!valid.length)return [];
+ // Balanced Start describes the resulting Sushi on the prepared board.
+ // Guaranteed +tier bonuses are subtracted from the cook request so that
+ // selecting T20 genuinely prepares T20 (not a board full of T1/T2).
+ if(options.mode==="balanced"){
+  const requested=options.balancedStartTier-guaranteed;
+  return valid.includes(requested)?[requested]:[];
+ }
  const max=valid.at(-1);
  const cooks=Math.max(1,Math.floor(availableSlots));
  const perCookRegeneration=num(economy.generationPerHour)*
@@ -154,9 +161,25 @@ export function optimizeKnowledgeRotation(save,rawOptions={},onProgress=null){
    ". The selected Balanced end tier T"+balancedEndTier+
    " cannot be created from the designed starting board. Choose an end tier at or above T"+
    (1+originalProfile.guaranteed)+".");
- const bases=startingTiers(economy,originalProfile.guaranteed,options,
+ const minimumResultTier=1+originalProfile.guaranteed;
+ // Preserve a usable default T1–T64 range on accounts that always cook
+ // at least T2. Non-default requested Starts must be honored exactly.
+ if(options.mode==="balanced"&&balancedStartTier<minimumResultTier&&
+    balancedStartTier!==1)
+  return fail("Balanced Start T"+balancedStartTier+
+   " cannot be produced: your guaranteed cooking bonus makes T"+
+   minimumResultTier+" the lowest possible Sushi. Choose Start T"+
+   minimumResultTier+" or higher.");
+ const actualStartTier=options.mode==="balanced"?
+  Math.max(balancedStartTier,minimumResultTier):null;
+ const bases=startingTiers(economy,originalProfile.guaranteed,
+  {...options,balancedStartTier:actualStartTier??balancedStartTier},
   targetTier,design.availableWorkingSlots);
- if(!bases.length)return fail("No directly cookable Sushi tier fits your estimated fuel capacity.");
+ if(!bases.length)return fail(options.mode==="balanced"?
+  "Balanced Start T"+balancedStartTier+
+  " cannot be cooked with your current Fuel capacity or highest unlocked cooking tier. "+
+  "Choose an affordable Start tier or improve those cooking limits.":
+  "No directly cookable Sushi tier fits your estimated fuel capacity.");
  const windCap=num(save?.sushi?.[2]?.[29])>0?Math.max(0,Math.min(58,highestDiscovered-6)):0;
  const chain=windCap>0?25:0;
  const fires=fireAlternatives(save,layout.fires);
@@ -180,11 +203,12 @@ export function optimizeKnowledgeRotation(save,rawOptions={},onProgress=null){
  const t1Feasible=bases.includes(1);
  const recipePatterns=options.mode==="focused"?
   ["uniform","wind","paired","longWind","widePairs"]:
-  // The lowest possible requested cook tier is T1; guaranteed bonuses
-  // can make the result T2 or higher, but do not make T2 the minimum input.
-  t1Feasible?["t1Climb"]:["wind","paired","longWind"];
+  // A chosen Start must stay constant through subsequent refills.
+  // Retain the established T1 recipe for accounts with no cook bonus.
+  actualStartTier===1?["t1Climb"]:["rangeClimb"];
  const recipeVariants=recipePatterns.flatMap(pattern=>
-  (pattern==="uniform"?[0]:options.mode==="focused"?[0,3]:[0,2])
+  (["uniform","rangeClimb","t1Climb"].includes(pattern)?
+   [0]:options.mode==="focused"?[0,3]:[0,2])
    .map(recipeOffset=>({pattern,recipeOffset})));
  // Each permitted recipe/layout combination counts as one evaluation.
  // Messages describe completed work, not elapsed-time estimates.
@@ -353,6 +377,7 @@ export function optimizeKnowledgeRotation(save,rawOptions={},onProgress=null){
  return {
   available:true,mode:options.mode,targetTier,
   balancedStartTier,balancedEndTier,
+  actualBalancedStartTier:actualStartTier,
   balancedTiers:options.mode==="balanced"?balancedTiers:[],
   options,layout,
   importedBoard:layout.tiles.slice(),design,
@@ -443,7 +468,7 @@ export function optimizeKnowledgeRotation(save,rawOptions={},onProgress=null){
   initialBoardMatchesFinal:sustained,
   stranded:rotation.remaining.length,
   considered:candidates,haltReason:rotation.reason,
-  note:"Balanced requests T1 on each refill when feasible; guaranteed cooking bonuses may produce T2 or higher. Balanced ranks actual EXP by its fit to a descending low-to-high-tier staircase, plus tier coverage and active EXP rate, without passive EXP/day. Balanced begins with a full board of the selected starter tier and prioritizes creating missing discovered tiers during later refills. The tier-coverage score counts actual Knowledge EXP events, not just passive EXP/day. Any tiers that remain uncovered are reported explicitly; the planner never invents high-tier creation events. First-fill recipes are screened against a conservative Fuel buffer (a precharged full tank, spending at most half the capacity plus Fuel regenerated during normal cooking); this does not claim uninterrupted sustained refills. The optimizer designs an ingredient board from account cooking limits and available slots; the imported Sushi inventory is NOT assumed to be the optimal preparation. It keeps the highest-tier anchor in its existing position. IMPORTANT: converting the current inventory into this clean design may require legal cleanup merges NOT included in the walkthrough. Once that starting state is achieved, each subsequent cook, move, Wind cascade and merge is replay-validated. Focused ranks actual target creations and prepared target copies; harvest earns EXP for the result tier. This bounded search is not a mathematical proof of optimality."
+  note:"Balanced prepares and refills from the selected Start tier, adjusted for guaranteed cooking bonuses; if Start T1 is impossible, it uses the lowest cookable result and explains why. It does not silently replace a non-default Start with lower-tier Sushi. Balanced ranks actual EXP by its fit to a descending low-to-high-tier staircase, plus tier coverage and active EXP rate, without passive EXP/day. Balanced begins with a full board of the selected starter tier and prioritizes creating missing discovered tiers during later refills. The tier-coverage score counts actual Knowledge EXP events, not just passive EXP/day. Any tiers that remain uncovered are reported explicitly; the planner never invents high-tier creation events. First-fill recipes are screened against a conservative Fuel buffer (a precharged full tank, spending at most half the capacity plus Fuel regenerated during normal cooking); this does not claim uninterrupted sustained refills. The optimizer designs an ingredient board from account cooking limits and available slots; the imported Sushi inventory is NOT assumed to be the optimal preparation. It keeps the highest-tier anchor in its existing position. IMPORTANT: converting the current inventory into this clean design may require legal cleanup merges NOT included in the walkthrough. Once that starting state is achieved, each subsequent cook, move, Wind cascade and merge is replay-validated. Focused ranks actual target creations and prepared target copies; harvest earns EXP for the result tier. This bounded search is not a mathematical proof of optimality."
  };
 }
 
