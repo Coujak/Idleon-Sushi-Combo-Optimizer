@@ -179,6 +179,6 @@ test("Next targeted creation has a bounded search and never falls back to harves
  assert.match(ui,/Cancel search to stop/);
  assert.match(ui,/seekTargetTier:skipToTarget\?previous\.targetTier:0/);
  assert.match(ui,/resume=targetCreation>=0\?targetCreation:/);
- assert.match(ui,/No T"\+plan\.targetTier\+" creation found/);
+ assert.match(ui,/No T"\+plan\.targetTier\+" creation after/);
  assert.match(section,/knowledgePlanNextTargetCreation/);
 });
