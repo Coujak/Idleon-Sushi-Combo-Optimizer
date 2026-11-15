@@ -87,7 +87,8 @@ test("approved transparent Sushi Lab logo is used in the tab and hero",()=>{
  assert.ok(png.includes(Buffer.from("tRNS")),"PNG preserves transparency");
  assert.match(html,/<link rel="icon" type="image\/png"[^>]*sushi-station-lab-logo\.png/);
  assert.match(html,/<link rel="apple-touch-icon"[^>]*sushi-station-lab-logo\.png/);
- assert.match(html,/<div class="hero-visual"[^>]*><img src="assets\/sushi-station-lab-logo\.png\?v=1" alt=""><\/div>/);
+ assert.match(html,/<div class="hero-visual"[^>]*><div class="hero-orbit"><\/div><img src="assets\/sushi-station-lab-logo\.png\?v=1" alt=""><\/div>/);
+ assert.match(css,/\.hero-orbit\{position:absolute;width:192px;height:192px;border-radius:50%/);
  assert.doesNotMatch(html,/<div class="hero-visual"[^>]*>.*?Leviathan/);
  assert.match(css,/\.hero-visual img\{\s*width:170px;height:170px;image-rendering:auto;transform:none/);
 });
