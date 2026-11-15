@@ -1,3 +1,4 @@
+import {createLocalGoogleDeviceAuth} from "./google-device-local-test.mjs?v=1.0.0";
 import {simulateMerge,validateComboReplay,searchStaircaseCombos} from "./optimizer-core.mjs?v=1.9.9";
 import {searchTacticalCombos} from "./tactical-search.mjs?v=1.9.9";
 import {createReplayController} from "./replay-controller.mjs?v=1.7.4";
@@ -308,6 +309,64 @@ function importSave(data,label){
   }
 }
 function error(e){$("importStatus").textContent="Import failed";$("importStatus").classList.remove("success");$("jsonPreview").textContent=String(e.message??e);$("importSummary").classList.add("hidden");$("importError").textContent="JSON import error: "+String(e.message??e);$("importError").classList.remove("hidden");}
+
+const googleDev=createLocalGoogleDeviceAuth();
+const googleButton=$("googleLocalConnect"),googleStatus=$("googleLocalStatus");
+const googleCode=$("googleLocalCode"),googleOpen=$("googleLocalOpen");
+const googleRefresh=$("googleLocalRefresh"),googleDisconnect=$("googleLocalDisconnect");
+const googleSecret=$("googleLocalSecret"),googleClient=$("googleLocalClient");
+let googleAttempt=0,googleTimer=null,googleBusy=false;
+function googleReport(message){googleStatus.textContent=message;}
+function googleStopTimer(){if(googleTimer!==null){clearInterval(googleTimer);googleTimer=null;}}
+function googleControls(){
+ googleButton.disabled=googleBusy;
+ googleRefresh.disabled=googleBusy||!googleDev.isConnected();
+ googleDisconnect.disabled=!googleDev.isConnected()&&!googleBusy;
+}
+async function googleLoad(data,label){
+ importSave(data,label);googleReport("Idleon cloud save loaded successfully · Refreshes every 5 minutes.");
+}
+async function googleRefreshSave(){
+ if(googleBusy||!googleDev.isConnected())return;
+ googleBusy=true;googleControls();googleReport("Refreshing Idleon cloud save…");
+ try{await googleLoad(await googleDev.refresh(),"Google cloud save (refreshed)");}
+ catch(e){googleReport("Refresh failed: "+String(e.message||e));}
+ finally{googleBusy=false;googleControls();}
+}
+googleButton?.addEventListener("click",async()=>{
+ if(googleBusy)return;
+ const clientId=googleClient.value.trim();
+ const secret=googleSecret.value.trim();
+ googleSecret.value=""; // Never retain the secret in the input after starting.
+ googleStopTimer();googleDev.signOut();googleBusy=true;googleControls();
+ googleCode.textContent="";googleOpen.classList.add("hidden");
+ googleReport("Requesting Google device code…");
+ const attempt=++googleAttempt;
+ try{
+  const flow=await googleDev.start(clientId,secret,googleReport);
+  if(attempt!==googleAttempt)return;
+  googleCode.textContent=flow.userCode;
+  googleOpen.href=flow.verificationUrl;
+  googleOpen.classList.remove("hidden");
+  googleReport("Google sign-in code generated. Approve it on google.com/device. Checking automatically…");
+  // The promise continues polling while the user approves on a separate tab.
+  const save=await flow.complete;
+  if(attempt!==googleAttempt||!save)return;
+  await googleLoad(save,"Google cloud save");
+  googleTimer=setInterval(()=>{void googleRefreshSave();},5*60*1000);
+ }catch(e){
+  if(attempt===googleAttempt)googleReport("Google login failed: "+String(e.message||e));
+ }finally{
+  if(attempt===googleAttempt){googleBusy=false;googleControls();}
+ }
+});
+googleRefresh?.addEventListener("click",()=>{void googleRefreshSave();});
+googleDisconnect?.addEventListener("click",()=>{
+ googleAttempt++;googleStopTimer();googleDev.signOut();googleSecret.value="";
+ googleBusy=false;googleCode.textContent="";googleOpen.classList.add("hidden");
+ googleReport("Disconnected. Imported data remains until you clear it.");googleControls();
+});
+googleControls();
 $("pasteToggle").addEventListener("click",()=>{const open=$("pasteArea").classList.toggle("hidden")===false;$("pasteToggle").setAttribute("aria-expanded",String(open));if(open)$("jsonInput").focus();});
 $("parseJson").addEventListener("click",()=>{try{importSave(JSON.parse($("jsonInput").value),"Pasted JSON");}catch(e){error(e);}});
 $("jsonFile").addEventListener("change",async e=>{const f=e.target.files?.[0];if(!f)return;try{importSave(JSON.parse(await f.text()),f.name);}catch(err){error(err);}});
