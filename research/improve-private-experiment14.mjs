@@ -2,8 +2,9 @@
 // Private Experiment 14 merge-order search. Does not publish the board,
 // password, authentication data, or checkpoints. Run on your own computer.
 // node research/improve-private-experiment14.mjs --trials=3000
-import {readFileSync,existsSync} from "node:fs";
-import {createDecipheriv,pbkdf2Sync} from "node:crypto";
+import {readFileSync,existsSync,writeFileSync,mkdirSync} from "node:fs";
+import {dirname} from "node:path";
+import {createDecipheriv,createCipheriv,pbkdf2Sync,randomBytes} from "node:crypto";
 import {stdin,stdout} from "node:process";
 import {simulateMerge,validateComboReplay} from "../src/optimizer-core.mjs";
 import {rolloutEastWind} from "../src/lookahead-search.mjs";
@@ -72,8 +73,7 @@ function choices(board,avoid,maxChoices){
 const encrypted=JSON.parse(readFileSync(path,"utf8"));
 let passphrase=await askHidden("Private Experiment 14 passphrase (not echoed): ");
 let payload;
-try{payload=decrypt(encrypted,passphrase);}
-finally{passphrase="";}
+payload=decrypt(encrypted,passphrase);
 const positions=Array.from({length:100},(_,i)=>i);
 const original=buildPrivateExperiment14Candidate(payload,positions);
 if(!original)throw Error("Experiment 14 decrypt succeeded but the replay is invalid.");
@@ -112,6 +112,24 @@ while(evaluations<trials&&best.score<target){
  if(!found)break;
 }
 const verified=validateComboReplay(board,best.moves,58,25,slots,64);
+if(best.score>original.privateSearch.score){
+ const updated={...payload,score:verified.score,
+  actions:best.moves.map(m=>({kind:"merge",src:m.src,dst:m.dst}))};
+ if(!buildPrivateExperiment14Candidate(updated,positions))
+  throw Error("Improved payload failed Experiment 14 validation.");
+ const salt=randomBytes(16),iv=randomBytes(12),iterations=600000;
+ const key=pbkdf2Sync(passphrase,salt,iterations,32,"sha256");
+ const cipher=createCipheriv("aes-256-gcm",key,iv);
+ const ciphertext=Buffer.concat([cipher.update(JSON.stringify(updated),"utf8"),
+  cipher.final(),cipher.getAuthTag()]);
+ const envelope={version:1,algorithm:"AES-256-GCM",kdf:"PBKDF2-SHA256",
+  iterations,salt:salt.toString("hex"),iv:iv.toString("hex"),ciphertext:ciphertext.toString("hex")};
+ const output=options.output??"private/experiment14-improved.enc.json";
+ mkdirSync(dirname(output),{recursive:true});
+ writeFileSync(output,JSON.stringify(envelope)+"\\n",{mode:0o600});
+ console.log("Encrypted improved replay saved locally: "+output);
+}
+passphrase="";
 console.log("Finished: "+verified.score.toLocaleString()+" / "+target.toLocaleString()+
  " | evaluated "+evaluations+" alternatives | "+(verified.score>=target?"TARGET REACHED":"target not reached"));
-console.log("No private boards, actions, or passphrases were printed or written.");
+console.log("No plaintext boards, actions, or passphrases were printed or written.");
