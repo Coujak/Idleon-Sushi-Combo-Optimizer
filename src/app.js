@@ -1031,7 +1031,7 @@ async function showSolver(signal,foundId=null,savedOnly=false){
   navigation.append(first,previous,playButton,next,nextWind,lastStep);
   controls.append(navigation,indicator);left.append(controls);
   const timeline=document.createElement("div");timeline.className="merge-timeline";
-  const seek=document.createElement("input");seek.type="range";seek.className="merge-seek";seek.min="0";seek.max=String(result.moves.length);seek.step="1";seek.value="0";seek.setAttribute("aria-label","Jump to replay step");
+  const seek=document.createElement("input");seek.type="range";seek.className="merge-seek";seek.min="0";seek.max=String(result.moves.length);seek.step="1";seek.value="0";seek.style.setProperty("--merge-seek-progress","0%");seek.setAttribute("aria-label","Jump to replay step");
   const speedLabel=document.createElement("label");speedLabel.className="merge-speed-label";speedLabel.textContent="Speed";
   const speedSelect=document.createElement("select");speedSelect.setAttribute("aria-label","Playback speed");
   for(const rate of [0.5,0.75,1,1.5,2,3]){
@@ -1146,6 +1146,8 @@ async function showSolver(signal,foundId=null,savedOnly=false){
     selected=Math.max(0,Math.min(result.moves.length,step));
     indicator.textContent="Step "+selected+" / "+result.moves.length;
     seek.value=String(selected);
+    seek.style.setProperty("--merge-seek-progress",
+     (result.moves.length?selected/result.moves.length*100:0)+"%");
     seek.setAttribute("aria-valuetext","Step "+selected+" of "+result.moves.length);
     first.disabled=selected===0;previous.disabled=selected===0;
     next.disabled=selected===result.moves.length;
