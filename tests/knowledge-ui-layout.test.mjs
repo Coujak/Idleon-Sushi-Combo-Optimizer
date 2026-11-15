@@ -161,3 +161,23 @@ test("Focused reset returns to original plan before jumping to another harvest",
  assert.match(ui,/nextKnowledgeTargetCreationStep\(/);
  assert.match(section,/id="knowledgePlanNextTargetCreation"/);
 });
+
+test("Knowledge EXP shows level-up count and overflow without mixing level scales",()=>{
+ assert.match(ui,/projectKnowledgeLevelProgress\(display\.level,display\.xp,exp\)/);
+ assert.match(ui,/projection\.projectedLevel/);
+ assert.match(ui,/projection\.levelUps/);
+ assert.match(ui,/projection\.projectedXp/);
+ assert.match(ui,/display\.overflowWrap\.classList\.toggle\("hidden",!leveled\)/);
+ assert.match(ui,/const additional=leveled\?0:/);
+ assert.match(ui,/display\.overflowBar\.firstChild\.style\.width=pct\+"%"/);
+ assert.match(css,/#knowledgePlanner \.lab-kp-tier-level-status/);
+ assert.match(css,/#knowledgePlanner \.lab-kp-tier-exp-projected-bar/);
+});
+test("Next targeted creation has a bounded search and never falls back to harvest",()=>{
+ assert.match(ui,/const requestedWaves=skipToTarget\?/);
+ assert.match(ui,/Math\.max\(24,Math\.min\(60,additionalWaves\*6\)\)/);
+ assert.match(ui,/seekTargetTier:skipToTarget\?previous\.targetTier:0/);
+ assert.match(ui,/resume=targetCreation>=0\?targetCreation:/);
+ assert.match(ui,/No T"\+plan\.targetTier\+" creation found/);
+ assert.match(section,/knowledgePlanNextTargetCreation/);
+});
