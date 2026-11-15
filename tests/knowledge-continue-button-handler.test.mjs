@@ -169,6 +169,6 @@ test("Next T64 creation lands on actual T64 event even if harvest comes first",(
  h.context.search.onmessage({data:{ok:true,result:{
   available:true,rotations:[{rounds:6}],targetCreationFound:true
  }}});
- assert.equal(h.resumeIndex,5,"Harvest marker is step 3, actual creation step 5");
- assert.match(h.inline,/Next T64 creation at step 5/);
+ assert.equal(h.resumeIndex,4,"Harvest marker is step 2, actual creation step 4");
+ assert.match(h.inline,/Next T64 creation at step 4/);
 });
