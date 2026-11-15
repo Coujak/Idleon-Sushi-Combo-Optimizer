@@ -53,6 +53,17 @@ test("Knowledge styling is isolated within its planner and remains responsive",(
  assert.match(section,/lab-kp-estimate-tag">Estimated/);
 });
 
+test("Passive Sushi checkbox aligns with strategy select and stays at right",()=>{
+ const rule=css.split("/* Align Preserve passive Sushi with the selector's lower control row.")[1];
+ assert.ok(rule,"Right-hand alignment rule is present");
+ assert.match(rule,/grid-column:3/);
+ assert.match(rule,/justify-self:end/);
+ assert.match(rule,/align-self:end/);
+ assert.match(rule,/@media\(max-width:960px\)/);
+ assert.match(rule,/grid-column:2/);
+ assert.match(rule,/@media\(max-width:490px\)/);
+ assert.match(section,/id="knowledgePlanProtectPassive"/);
+});
 test("Balanced uses one shared dual-handle slider and EXP chips never scroll",()=>{
  assert.match(section,/id="knowledgePlanDualRange"/);
  assert.match(section,/id="knowledgePlanRangeStart"/);
