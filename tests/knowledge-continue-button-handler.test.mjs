@@ -147,7 +147,7 @@ test("Next T64 creation searches farther and does not jump to harvest if no T64 
   targetCreationFound:false
  }}});
  assert.equal(h.resumeIndex,1,"No T64 creation must keep the old visible step");
- assert.match(h.inline,/No T64 creation found/);
+ assert.match(h.inline,/No T64 creation after 6 simulated refills/);
  assert.equal(h.context.result.roundsCompleted,106);
  assert.equal(h.context.jumpToNextTargetCreation,false);
 });
