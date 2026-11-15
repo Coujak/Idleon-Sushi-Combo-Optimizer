@@ -1,11 +1,13 @@
 // Sushi Station Lab: lightweight, accessible navigation and account-aware
 // information panels. All imported JSON stays in memory on the user's device.
 import {sushiUpgradeIconPath,sushiTierIconPath,KNOWLEDGE_CATEGORIES} from "./sushi-reference.mjs?v=1.16.6";
+import {UPGRADE_SUBTABS,UPGRADE_TAB_KEY,readSubtab,rememberSubtab} from "./navigation-preferences.mjs?v=1.0.0";
 import {KNOWLEDGE_SORT_OPTIONS,KNOWLEDGE_STATUS_OPTIONS,filterKnowledgeRows,knowledgeOverview,
  KNOWLEDGE_PREFERENCES_KEY,normalizeKnowledgePreferences,nextKnowledgeHeaderSort,knowledgeCheckpoint}
  from "./knowledge-view.mjs?v=1.0.2";
 import {describeKnowledgeBonus,formatKnowledgeBonusValue} from "./knowledge-bonus-format.mjs?v=1.0.2";
-import {initializePerfectoUI} from "./perfecto-ui.mjs?v=1.36.2";
+import {initializePerfectoUI} from "./perfecto-ui.mjs?v=1.36.5";
+import {initializeKnowledgeLevelingUI} from "./knowledge-leveling-ui.mjs?v=1.0.44";
 import {CATALOG_SORT_OPTIONS,CATALOG_STATUS_OPTIONS,upgradeSummary,readableUpgradeDescription,upgradeDescriptionSegments,catalogHasVariableValues,filterSortCatalog,upgradeCatalogDollarValue} from "./upgrade-catalog.mjs?v=1.16.9";
 import {ADVISOR_GOALS,numberText,getSushiSnapshot,getUpgradeRows,
  getKnowledgeRows,advisorUpgrades,getSushiDoublerCounts,sushiUpgradeExtraText,upgradeAffordability} from "./lab-model.mjs?v=1.19.13";
@@ -56,7 +58,7 @@ function openButton(name,target){
 }
 let setTab=()=>{};
 export function initializeSushiLab(getSave){
- let mainTab="overview",upgradeTab="catalog",goal="bucks",doublerGoals=["knowledge"];
+ let mainTab="overview",upgradeTab=readSubtab(UPGRADE_TAB_KEY,UPGRADE_SUBTABS,"catalog"),goal="bucks",doublerGoals=["knowledge"];
  let doublerHideDoubled=false,doublerMenuOpen=false,doublerSort="best";
  let advisorSort="recommended",advisorFilter="all",advisorVisibleCount="all",purchaseView="list";
  let catalogSort="shop",catalogCategory="all",catalogStatus="all";
@@ -81,8 +83,28 @@ export function initializeSushiLab(getSave){
  const expandedUpgradeDetails=new Set();
  const save=()=>getSave();
  const tabs=["overview","planners","upgrades","knowledge"];
+ const hasImportedSave=()=>Boolean(save());
+ const syncNavigationAccess=()=>{
+  const unlocked=hasImportedSave();
+  for(const id of tabs){
+   if(id==="overview")continue;
+   const button=document.querySelector('[data-lab-target="'+id+'"]');
+   button.disabled=!unlocked;
+   button.setAttribute("aria-disabled",String(!unlocked));
+   button.classList.toggle("is-locked",!unlocked);
+   if(unlocked){
+    button.removeAttribute("title");
+    button.removeAttribute("aria-describedby");
+   }else{
+    button.title="Import a Sushi Station JSON save in Overview to unlock";
+    button.setAttribute("aria-describedby","labNavigationHint");
+   }
+  }
+  $("labNavigationHint")?.classList.toggle("hidden",unlocked);
+  if(!unlocked&&mainTab!=="overview")setTab("overview");
+ };
  setTab=(target)=>{
-  if(!tabs.includes(target))return;
+  if(!tabs.includes(target)||(!hasImportedSave()&&target!=="overview"))return;
   mainTab=target;
   for(const id of tabs){
    const page=$("lab-"+id);
@@ -100,8 +122,10 @@ export function initializeSushiLab(getSave){
   button.addEventListener("keydown",event=>{
    if(event.key!=="ArrowLeft"&&event.key!=="ArrowRight")return;
    event.preventDefault();
-   const i=tabs.indexOf(button.dataset.labTarget);
-   const target=tabs[(i+(event.key==="ArrowRight"?1:tabs.length-1))%tabs.length];
+   const available=tabs.filter(id=>id==="overview"||hasImportedSave());
+   const i=available.indexOf(button.dataset.labTarget);
+   if(i<0)return;
+   const target=available[(i+(event.key==="ArrowRight"?1:available.length-1))%available.length];
    document.querySelector('[data-lab-target="'+target+'"]').focus();
    setTab(target);
   });
@@ -110,8 +134,10 @@ export function initializeSushiLab(getSave){
   button.addEventListener("click",()=>setTab(button.dataset.labOpen));
  }
  function setUpgradeTab(name){
+  if(!UPGRADE_SUBTABS.includes(name))return;
   upgradeTab=name;
-  for(const choice of ["catalog","advisor","doubler"]){
+  rememberSubtab(UPGRADE_TAB_KEY,name,UPGRADE_SUBTABS);
+  for(const choice of UPGRADE_SUBTABS){
    const pane=$("lab-upgrade-"+choice);
    const nav=document.querySelector('[data-upgrade-target="'+choice+'"]');
    pane.classList.toggle("hidden",choice!==name);
@@ -1127,6 +1153,7 @@ export function initializeSushiLab(getSave){
   }
  }
  const perfectoUI=initializePerfectoUI(getSave);
+ const knowledgeLevelingUI=initializeKnowledgeLevelingUI(getSave);
  function updateImportTime(){
   const status=$("overviewImportTime");
   status.textContent=save()&&importedAt!==null?
@@ -1137,8 +1164,10 @@ export function initializeSushiLab(getSave){
   $("labSaveStatus").textContent=save()?"Save loaded locally":"No save imported";
  }
  function refresh(){
+  syncNavigationAccess();
   renderOverview();renderCatalog();renderAdvisor();renderDoubler();renderKnowledge();
   perfectoUI.refresh();
+  knowledgeLevelingUI.refresh();
   updateImportTime();
  }
  function markImported(){
@@ -1154,7 +1183,7 @@ export function initializeSushiLab(getSave){
  // The displayed age changes even while the save remains unchanged.
  setInterval(()=>{if(importedAt!==null&&save())updateImportTime();},60000);
  setTab("overview");
- setUpgradeTab("catalog");
+ setUpgradeTab(upgradeTab);
  refresh();
  return {refresh,markImported,clearImported,open:setTab};
 }

@@ -1,6 +1,7 @@
 // Perfecto Planner presentation. Only actionable target/protection controls remain.
 // The optimizer chooses its own final copy count and prepared arrangement.
 import {sushiTierIconPath} from "./sushi-reference.mjs?v=1.16.6";
+import {PLANNER_SUBTABS,PLANNER_TAB_KEY,readSubtab,rememberSubtab} from "./navigation-preferences.mjs?v=1.0.0";
 import {numberText} from "./lab-model.mjs?v=1.19.13";
 import {availablePerfectoTargets,getPerfectoPlanner,perfectoKnowledgeMilestones} from "./perfecto-planner.mjs?v=1.36.0";
 import {perfectoRecipeStages,perfectoFinalMergeIndex,perfectoRecipeIntegrity} from "./perfecto-recipe-guide.mjs?v=1.23.0";
@@ -88,7 +89,7 @@ function perfectoPreparationSteps(result){
  return steps;
 }
 export function initializePerfectoUI(getSave){
- let plannerTab="combo",tierChoice="auto";
+ let plannerTab=readSubtab(PLANNER_TAB_KEY,PLANNER_SUBTABS,"combo"),tierChoice="auto";
  let accountPlan=null,benchmarkPlan=null,hoveredPosition=null,pinnedPosition=null;
  const benchmarkToggle=$("perfectoShowBenchmark");
  const comparisonStatus=$("perfectoComparePosition");
@@ -113,25 +114,44 @@ export function initializePerfectoUI(getSave){
  const cookTierInput=$("perfectoCookTier");
  const summary=$("perfectoTargetSummary");
  function setPlannerTab(target){
-  plannerTab=target==="perfecto"?"perfecto":"combo";
+  if(!PLANNER_SUBTABS.includes(target))return;
+  plannerTab=target;
+  rememberSubtab(PLANNER_TAB_KEY,target,PLANNER_SUBTABS);
   $("solver").classList.toggle("hidden",plannerTab!=="combo");
   $("perfectoPlanner").classList.toggle("hidden",plannerTab!=="perfecto");
   $("perfectoPlanner").setAttribute("aria-hidden",String(plannerTab!=="perfecto"));
+  $("knowledgePlanner").classList.toggle("hidden",plannerTab!=="knowledge");
+  $("knowledgePlanner").setAttribute("aria-hidden",String(plannerTab!=="knowledge"));
   for(const choice of document.querySelectorAll("[data-planner-target]")){
    const selected=choice.dataset.plannerTarget===plannerTab;
    choice.setAttribute("aria-selected",String(selected));
    choice.tabIndex=selected?0:-1;
   }
+  for(const card of document.querySelectorAll("[data-planner-card]")){
+   const selected=card.dataset.plannerCard===plannerTab;
+   card.classList.toggle("is-active",selected);
+   card.setAttribute("aria-pressed",String(selected));
+  }
   if(plannerTab==="perfecto")render();
+ }
+ for(const card of document.querySelectorAll("[data-planner-card]")){
+  card.addEventListener("click",()=>{
+   const target=card.dataset.plannerCard;
+   setPlannerTab(target);
+   const panelId={combo:"solver",perfecto:"perfectoPlanner",
+    knowledge:"knowledgePlanner"}[target];
+   if(panelId)$(panelId)?.scrollIntoView({behavior:"smooth",block:"start"});
+  });
  }
  for(const button of document.querySelectorAll("[data-planner-target]")){
   button.addEventListener("click",()=>setPlannerTab(button.dataset.plannerTarget));
   button.addEventListener("keydown",event=>{
    if(event.key!=="ArrowLeft"&&event.key!=="ArrowRight")return;
    event.preventDefault();
-   const target=plannerTab==="combo"?"perfecto":"combo";
-   document.querySelector('[data-planner-target="'+target+'"]').focus();
-   setPlannerTab(target);
+   const index=PLANNER_SUBTABS.indexOf(plannerTab);
+   const next=PLANNER_SUBTABS[(index+(event.key==="ArrowRight"?1:PLANNER_SUBTABS.length-1))%PLANNER_SUBTABS.length];
+   document.querySelector('[data-planner-target="'+next+'"]').focus();
+   setPlannerTab(next);
   });
  }
  targetSelect.addEventListener("change",()=>{tierChoice=targetSelect.value;render();});
@@ -762,6 +782,6 @@ export function initializePerfectoUI(getSave){
   accountBoardReplay(saved,result,p,account.search,result.target);
   setComparisonVisibility();
  }
- setPlannerTab("combo");
+ setPlannerTab(plannerTab);
  return {refresh:render,activateTab:setPlannerTab};
 }

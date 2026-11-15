@@ -1,0 +1,537 @@
+// Search legal cook/merge/park rotations from freshly DESIGNED preparation
+// scenarios. The imported board provides account constraints, not ingredients.
+import {simulateContinuousKnowledgeRotation} from "./knowledge-continuous-rotation.mjs?v=1.0.19";
+import {estimateKnowledgeRefillFuel} from "./knowledge-fuel-safety.mjs?v=1.0.1";
+import {
+ designKnowledgeStartingBoard,captureKnowledgePreparedBoard
+} from "./knowledge-board-design.mjs?v=1.0.0";
+import {
+ projectPassiveKnowledge,recommendPassiveKnowledgeLayout
+} from "./knowledge-passive-layout.mjs?v=1.0.1";
+import {estimateSushiFuelEconomy,sushiDirectCookFuel} from "./perfecto-fuel.mjs?v=1.16.8";
+import {getKnowledgeRows,getUpgradeRows} from "./lab-model.mjs?v=1.19.13";
+import {getSushiDashboardMetrics} from "./dashboard-metrics.mjs?v=1.0.2";
+import {normalizeKnowledgeCycleOptions} from "./knowledge-cycle-optimizer.mjs?v=1.0.3";
+import {inspectKnowledgePinkFireplaces} from "./knowledge-pink-fireplaces.mjs?v=1.0.0";
+import {calculateKnowledgeCreationExp} from "./knowledge-creation-exp.mjs?v=1.0.1";
+
+export {normalizeKnowledgeCycleOptions};
+const SIZE=120,COLS=15;
+const num=x=>Number.isFinite(Number(x))?Number(x):0;
+const clip=(n,min,max)=>Math.max(min,Math.min(max,n));
+const unique=a=>[...new Set(a)];
+const sum=a=>a.reduce((x,y)=>x+y,0);
+function layoutFromSave(save){
+ const slots=Array.from({length:SIZE},(_,i)=>{
+  const t=save?.slots?.[i],n=Number(t);
+  return t!==undefined&&t!==null&&Number.isInteger(n)&&n>=0&&n<=3?n:-1;
+ });
+ const tiles=Array.from({length:SIZE},(_,i)=>{
+  const t=save?.tiles?.[i],n=Number(t);
+  return slots[i]>=0&&t!==undefined&&t!==null&&Number.isInteger(n)&&n>=0&&n<64?n+1:0;
+ });
+ const fires=Array.from({length:COLS},(_,i)=>{
+  const t=save?.fires?.[i],n=Number(t);
+  return t!==undefined&&t!==null&&Number.isInteger(n)&&n>=0&&n<=4?n:-1;
+ });
+ return {slots,tiles,fires};
+}
+function startingTiers(economy,guaranteed,options,targetTier,availableSlots=100){
+ const upper=Math.min(64-guaranteed,Math.floor(num(economy.maxCookTier)));
+ const cap=num(economy.capacity);
+ const valid=[];
+ for(let tier=1;tier<=upper;tier++){
+  const cost=sushiDirectCookFuel(tier);
+  if(cost>0&&Number.isFinite(cost)&&cost<=cap)valid.push(tier);
+ }
+ if(!valid.length)return [];
+ // Balanced Start describes the resulting Sushi on the prepared board.
+ // Guaranteed +tier bonuses are subtracted from the cook request so that
+ // selecting T20 genuinely prepares T20 (not a board full of T1/T2).
+ if(options.mode==="balanced"){
+  const requested=options.balancedStartTier-guaranteed;
+  return valid.includes(requested)?[requested]:[];
+ }
+ const max=valid.at(-1);
+ const cooks=Math.max(1,Math.floor(availableSlots));
+ const perCookRegeneration=num(economy.generationPerHour)*
+  options.secondsPerCook/3600;
+ // The safe first-preparation tier must be affordable for the FULL board.
+ // Include one conservative precharged half-tank (or less when the imported
+ // current Fuel is lower), distributed across all required new Sushi.
+ const startup=Math.min(cap*.5,Math.max(0,num(economy.currentFuel)));
+ const averageFirstCookBudget=startup/cooks+perCookRegeneration;
+ const safe=valid.filter(t=>sushiDirectCookFuel(t)<=averageFirstCookBudget).at(-1)??1;
+ const sustainable=valid.filter(t=>sushiDirectCookFuel(t)<=perCookRegeneration).at(-1)??1;
+ const requests=options.mode==="focused"?
+  [safe,sustainable,max,max-1,max-3,max-5,max-8,max-12,1,
+   targetTier-guaranteed]:
+  [1,safe,sustainable,max,max-2,max-5,max-9,2];
+ return unique(requests.filter(x=>valid.includes(x))).slice(0,
+  options.mode==="focused"?10:7);
+}
+function expProfile(save,rows,options,fires,metrics){
+ const created=calculateKnowledgeCreationExp({
+  upgradeRows:getUpgradeRows(save),knowledgeRows:rows,options,
+  lithiumUnlocked:num(save?.sushi?.[2]?.[26])>0,
+  searedUnlocked:num(save?.sushi?.[2]?.[13])>0,
+  sparks:save?.sushi?.[4]?.[2]
+ });
+ return {
+  ...created,
+  lithiumEnabled:created.lithiumEnabled,
+  globalMultiplier:created.globalMultiplier,
+  expAt:(_tier,at)=>created.expAt(fires,at),
+  guaranteed:metrics?.cookBonusComplete?
+   clip(Math.floor(num(metrics.guaranteedCookTiers)),0,63):0,
+  fractional:metrics?.cookBonusComplete?num(metrics.fractionalCookChance):null
+ };
+}
+function fireAlternatives(save,fires){
+ const options=[{name:"Imported fireplaces",fires:fires.slice()}];
+ if(num(save?.sushi?.[2]?.[26])>0&&fires.some(x=>x>=0&&x!==3)){
+  options.push({name:"Lithium in all columns",
+   fires:fires.map(x=>x>=0?3:x)});
+  options.push({name:"Alternate Lithium columns",
+   fires:fires.map((x,i)=>x>=0&&i%2===0?3:x)});
+ }
+ return options.filter((choice,i,arr)=>arr.findIndex(x=>
+  x.fires.every((v,j)=>v===choice.fires[j]))===i);
+}
+export function balancedStaircase(gains,seconds,tiers){
+ // Compare actual EXP per tier, not just the number of different tiers hit.
+ // The ideal profile decreases from the lowest discovered tier upward.
+ const ordered=[...tiers].sort((a,b)=>a-b);
+ const rate=3600/seconds;
+ const total=ordered.reduce((n,t)=>n+(gains[t]??0),0);
+ if(total<=0)return {fit:-Infinity,coverage:0,weightedRate:0};
+ const idealWeights=ordered.map((_,i)=>ordered.length-i);
+ const idealTotal=idealWeights.reduce((a,b)=>a+b,0);
+ const fit=ordered.reduce((penalty,t,i)=>
+  penalty+Math.abs((gains[t]??0)/total-idealWeights[i]/idealTotal),0);
+ const inversions=ordered.slice(1).reduce((n,t,i)=>
+  n+Math.max(0,(gains[t]??0)-(gains[ordered[i]]??0))/total,0);
+ const coverage=ordered.filter(t=>(gains[t]??0)>0).length;
+ // Favor a broad descending staircase, then active EXP per elapsed time.
+ return {fit:-(fit+inversions),coverage,
+  weightedRate:ordered.reduce((n,t,i)=>
+   n+Math.log1p((gains[t]??0)*rate)*(ordered.length-i),0)};
+}
+export function optimizeKnowledgeRotation(save,rawOptions={},onProgress=null){
+ const options={...normalizeKnowledgeCycleOptions(rawOptions),
+  preservePassive:rawOptions?.preservePassive===true};
+ const fail=reason=>({available:false,reason,mode:options.mode,options});
+ if(!save?.sushi||!Array.isArray(save?.tiles)||!Array.isArray(save?.slots))
+  return fail("Import a Sushi Station board with slot and Sushi data.");
+ const layout=layoutFromSave(save);
+ const unlocked=layout.slots.filter(x=>x>=0).length;
+ if(unlocked<2)return fail("At least two unlocked Sushi slots are required.");
+ const rows=getKnowledgeRows(save),eligible=rows.filter(x=>x.discovered);
+ if(!eligible.length)return fail("No discovered Sushi tiers are available.");
+ const highestDiscovered=eligible.reduce((n,row)=>Math.max(n,row.tier),0);
+ const balancedStartTier=Math.max(1,Math.min(highestDiscovered,
+  options.balancedStartTier));
+ const balancedEndTier=Math.max(balancedStartTier,
+  Math.min(highestDiscovered,options.balancedEndTier));
+ const balancedTiers=eligible.map(row=>row.tier).filter(t=>
+  t>=balancedStartTier&&t<=balancedEndTier);
+ if(options.mode==="balanced"&&!balancedTiers.length)
+  return fail("No discovered Sushi Knowledge tiers are within this Balanced range.");
+ if(num(save?.sushi?.[2]?.[13])<1)
+  return fail("Unlock Seared Knowledge before estimating active Knowledge EXP.");
+ const targetTier=options.mode==="balanced"?balancedEndTier:
+  eligible.some(x=>x.tier===options.targetTier)?
+  options.targetTier:eligible[0].tier;
+ const economy=estimateSushiFuelEconomy(save,{
+  capacityOverride:options.fuelCapacity,generationOverride:options.fuelGeneration
+ });
+ if(!economy?.capacity||!economy?.generationPerHour)
+  return fail("Fuel capacity or generation is unavailable. Calibrate those readings in the options.");
+ const metrics=getSushiDashboardMetrics(save);
+ // The imported inventory is NOT the seed used by the optimizer.
+ // We retain the highest tier at its actual index (it cannot be discarded),
+ // and optionally existing passive-income plate occupants when requested.
+ const design=designKnowledgeStartingBoard(layout,options);
+ const protectedIndices=design.protectedIndices;
+ const originalProfile=expProfile(save,eligible,options,layout.fires,metrics);
+ if(options.mode==="balanced"&&
+    balancedEndTier<1+originalProfile.guaranteed)
+  return fail("Your guaranteed cooking tier bonus produces at least T"+
+   (1+originalProfile.guaranteed)+
+   ". The selected Balanced end tier T"+balancedEndTier+
+   " cannot be created from the designed starting board. Choose an end tier at or above T"+
+   (1+originalProfile.guaranteed)+".");
+ const minimumResultTier=1+originalProfile.guaranteed;
+ // Preserve a usable default T1–T64 range on accounts that always cook
+ // at least T2. Non-default requested Starts must be honored exactly.
+ if(options.mode==="balanced"&&balancedStartTier<minimumResultTier&&
+    balancedStartTier!==1)
+  return fail("Balanced Start T"+balancedStartTier+
+   " cannot be produced: your guaranteed cooking bonus makes T"+
+   minimumResultTier+" the lowest possible Sushi. Choose Start T"+
+   minimumResultTier+" or higher.");
+ const actualStartTier=options.mode==="balanced"?
+  Math.max(balancedStartTier,minimumResultTier):null;
+ const bases=startingTiers(economy,originalProfile.guaranteed,
+  {...options,balancedStartTier:actualStartTier??balancedStartTier},
+  targetTier,design.availableWorkingSlots);
+ if(!bases.length)return fail(options.mode==="balanced"?
+  "Balanced Start T"+balancedStartTier+
+  " cannot be cooked with your current Fuel capacity or highest unlocked cooking tier. "+
+  "Choose an affordable Start tier or improve those cooking limits.":
+  "No directly cookable Sushi tier fits your estimated fuel capacity.");
+ const windCap=num(save?.sushi?.[2]?.[29])>0?Math.max(0,Math.min(58,highestDiscovered-6)):0;
+ const chain=windCap>0?25:0;
+ const fires=fireAlternatives(save,layout.fires);
+ const baseline=estimateSushiFuelEconomy(save,{capacityOverride:options.fuelCapacity});
+ const baselineRate=baseline?.modeledGenerationPerHour??0;
+ const adjustedRate=(tiles,selectedFires)=>{
+  const e=estimateSushiFuelEconomy({...save,tiles:tiles.map(t=>t>0?t-1:-1),
+   fires:selectedFires},{capacityOverride:options.fuelCapacity});
+  const modeled=e?.modeledGenerationPerHour??0;
+  return options.fuelGeneration!==null&&baselineRate>0?
+   modeled/baselineRate*options.fuelGeneration:modeled;
+ };
+ const continuing=rawOptions?.resumeRecipe&&typeof rawOptions.resumeRecipe==="object"?rawOptions.resumeRecipe:null;
+ const rounds=Math.max(1,continuing?Math.floor(num(rawOptions?.rounds))||6:
+  Math.min(12,Math.floor(num(rawOptions?.rounds))||6));
+ // Compare legal survivor parking and descending East Wind staircases,
+ // without consuming banked target copies during focused preparation.
+ const packingModes=options.mode==="balanced"?
+  ["simple","ascending","descending"]:["simple","descending"];
+ let best=null,candidates=0;
+ const t1Feasible=bases.includes(1);
+ const recipePatterns=options.mode==="focused"?
+  ["uniform","wind","paired","longWind","widePairs"]:
+  // A chosen Start must stay constant through subsequent refills.
+  // Retain the established T1 recipe for accounts with no cook bonus.
+  actualStartTier===1?["t1Climb"]:["rangeClimb"];
+ const recipeVariants=recipePatterns.flatMap(pattern=>
+  (["uniform","rangeClimb","t1Climb"].includes(pattern)?
+   [0]:options.mode==="focused"?[0,3]:[0,2])
+   .map(recipeOffset=>({pattern,recipeOffset})));
+ // Each permitted recipe/layout combination counts as one evaluation.
+ // Messages describe completed work, not elapsed-time estimates.
+ const fireCount=fires.filter(f=>!continuing||
+  f.name===continuing.fireChoice).length;
+ const packingCount=packingModes.filter(mode=>!continuing||
+  mode===continuing.packingMode).length;
+ const searchTotal=bases.reduce((count,cookTier)=>
+  count+recipeVariants.filter(({pattern,recipeOffset})=>
+   (pattern!=="t1Climb"||cookTier===1)&&
+   (!continuing||(cookTier===continuing.cookTier&&
+    pattern===continuing.pattern&&recipeOffset===continuing.recipeOffset))
+  ).length*fireCount*packingCount,0);
+ let evaluated=0,lastReported=-1;
+ const reportProgress=()=>{
+  if(typeof onProgress!=="function"||searchTotal<=0)return;
+  const percent=Math.floor(evaluated/searchTotal*100);
+  if(percent<=lastReported)return;
+  lastReported=percent;
+  onProgress({phase:"search",completed:evaluated,total:searchTotal});
+ };
+ reportProgress();
+ for(const cookTier of bases){
+  for(const {pattern,recipeOffset} of recipeVariants){
+   if(pattern==="t1Climb"&&cookTier!==1)continue;
+   if(continuing&&(cookTier!==continuing.cookTier||
+    pattern!==continuing.pattern||recipeOffset!==continuing.recipeOffset))continue;
+   for(const fire of fires){
+    const xp=expProfile(save,eligible,options,fire.fires,metrics);
+    for(const packingMode of packingModes){
+    if(continuing&&(packingMode!==continuing.packingMode||
+     fire.name!==continuing.fireChoice))continue;
+    // The previous candidate has completed before the next one starts.
+    reportProgress();evaluated++;
+    const rotation=simulateContinuousKnowledgeRotation({
+     startingBoard:design.board,slots:layout.slots,mode:options.mode,targetTier,
+     requestedTier:cookTier,guaranteedBonus:xp.guaranteed,
+     balancedEndTier,windCap,chain,expAt:xp.expAt,
+     cookCost:sushiDirectCookFuel,rounds,pattern,
+     recipeOffset,packingMode,protectedIndices,
+     coverageTiers:options.mode==="balanced"?balancedTiers:eligible.map(row=>row.tier),
+     protectFocusedMilktoast:options.preservePassive,
+     startingContext:"designed",
+     maximumActions:options.mode==="focused"?8000:
+      continuing?Math.min(20000,Math.max(5000,rounds*320)):5000
+    });
+    if(!rotation.valid||rotation.cooks<1)continue;
+    const rateA=adjustedRate(design.board,fire.fires);
+    const rateB=adjustedRate(rotation.finalBoard,fire.fires);
+    const fuelRate=(rateA+rateB)/2;
+    if(!(fuelRate>0))continue;
+    const safeRate=Math.max(1e-12,Math.min(rateA,rateB));
+    const fuelSafety=estimateKnowledgeRefillFuel(rotation.frames,{
+     capacity:economy.capacity,generationPerHour:safeRate,
+     startingFuel:economy.currentFuel,
+     secondsPerCook:options.secondsPerCook,reserveFraction:0.5
+    });
+    const activeSeconds=rotation.cooks*options.secondsPerCook+
+     (rotation.merges+rotation.moves)*options.secondsPerMerge+
+     rotation.windEvents*.25;
+    const fuelWaitSeconds=rotation.fuel*3600/fuelRate;
+    const durationSeconds=Math.max(activeSeconds,fuelWaitSeconds);
+    if(!(durationSeconds>0))continue;
+    const passiveOpts={lithiumUnlocked:xp.lithiumEnabled,
+     lithiumMultiplier:xp.lithium,globalMultiplier:xp.globalMultiplier};
+    const passiveStart=projectPassiveKnowledge(design.board,layout.slots,
+     fire.fires,passiveOpts);
+    const passiveEnd=projectPassiveKnowledge(rotation.finalBoard,layout.slots,
+     fire.fires,passiveOpts);
+    const passivePerDay=passiveStart.expPerDay.map((v,t)=>
+     (v+passiveEnd.expPerDay[t])/2);
+    const focus=rotation.gains[targetTier]||0;
+    const staircase=options.mode==="balanced"?
+     balancedStaircase(rotation.gains,durationSeconds,balancedTiers):null;
+    const score=staircase?.weightedRate??0;
+    // Focused aims to create as many T58 events as possible, then banks
+    // those copies until the board saturates and legally consolidates them.
+    // Passive income remains separate and must not outweigh active target
+    // creations. If T58 is not reached, prefer the highest precursor tier
+    // genuinely created in the preview instead of a cheap T2 EXP loop.
+    const precursor=rotation.frames.reduce((high,frame)=>
+     Math.max(high,...frame.events.filter(e=>e.tier<=targetTier&&
+      ["cook","merge","wind"].includes(e.kind)).map(e=>e.tier),0),0);
+    const rank=options.mode==="focused"?[
+     rotation.targetCreated, rotation.peakTargetCopies,
+     focus, precursor, rotation.harvested,
+     -durationSeconds
+    ]:[
+     // The descending EXP distribution is the primary Balanced objective.
+     staircase.fit,
+     staircase.coverage,
+     staircase.weightedRate,
+     rotation.balancedCycles,
+     -durationSeconds
+    ];
+    const beatsRank=(a,b)=>{
+     for(let i=0;i<a.length;i++)if(a[i]!==b[i])return a[i]>b[i];
+     return false;
+    };
+    candidates++;
+    // A preparation that needs more than half the storage tank plus
+    // naturally generated Fuel during its first full fill is not "safe".
+    // Never let a slow full-T46 board outrank a no-wait candidate.
+    const improved=!best||
+     (fuelSafety.noWait!==best.fuelSafety.noWait?
+      fuelSafety.noWait:
+      !fuelSafety.noWait&&
+       fuelSafety.estimatedWaitSeconds<
+        best.fuelSafety.estimatedWaitSeconds-0.001?
+       true:
+      !fuelSafety.noWait&&
+       fuelSafety.estimatedWaitSeconds>
+        best.fuelSafety.estimatedWaitSeconds+0.001?
+       false:
+      beatsRank(rank,best.rank));
+    if(improved){
+     best={rotation,score,rank,cookTier,pattern,recipeOffset,packingMode,fire,xp,fuelRate,
+      passiveStart,passiveEnd,passivePerDay,fuelSafety,
+      activeSeconds,fuelWaitSeconds,durationSeconds};
+    }
+    }
+   }
+  }
+ }
+ // Include the final evaluation, even if it did not produce a valid plan.
+ reportProgress();
+ if(!best)return fail(continuing?
+  "The selected rotation can no longer be extended with these account settings. Rebuild the planner.":
+  "No feasible legal refill/merge rotation was found with this board and fuel budget.");
+ const rotation=best.rotation;
+ const pinkFireplaces=inspectKnowledgePinkFireplaces({
+  importedFires:layout.fires,proposedFires:best.fire.fires,
+  lithiumUnlocked:best.xp.lithiumEnabled
+ });
+ const preparation=captureKnowledgePreparedBoard(rotation.frames,design.board);
+ const passiveRecommendation=recommendPassiveKnowledgeLayout(
+  layout.tiles,layout.slots,best.fire.fires,{
+   targetTier,lithiumUnlocked:best.xp.lithiumEnabled,
+   lithiumMultiplier:best.xp.lithium,globalMultiplier:best.xp.globalMultiplier
+  });
+ // A pre-existing T64 anchor must not count as progress made by the solver.
+ const initialAnchors=new Set(rotation.initialBoard.flatMap(
+  (tier,i)=>tier===64?[i]:[]));
+ const highestNewTier=rotation.frames.reduce((max,frame)=>
+  Math.max(max,...(frame.events??[]).filter(e=>
+   e.kind==="cook"||e.kind==="merge"||e.kind==="wind")
+   .map(e=>e.tier),0),0);
+ const highestWorkingTier=Math.max(0,...rotation.finalBoard.flatMap(
+  (tier,i)=>!initialAnchors.has(i)&&tier>0?[tier]:[]));
+ const windowExpPerHour=rotation.totalExp*3600/best.durationSeconds;
+ const focusExpPerHour=rotation.gains[targetTier]*3600/best.durationSeconds;
+ const perTier=eligible.map(row=>{
+  const expPerCycle=rotation.gains[row.tier];
+  const activeExpPerHour=expPerCycle*3600/best.durationSeconds;
+  const passiveExpPerDay=best.passivePerDay[row.tier];
+  const expPerHour=activeExpPerHour+passiveExpPerDay/24;
+  const remaining=Number.isFinite(row.xpRemaining)?row.xpRemaining:null;
+  return {tier:row.tier,name:row.name,level:row.level,remaining,
+   xp:row.xp,xpReq:row.xpReq,expPerCycle,
+   activeExpPerHour,passiveExpPerDay,expPerHour,
+   etaHours:remaining===0?0:expPerHour>0&&remaining!==null?
+    remaining/expPerHour:null};
+ });
+ const sustained=rotation.repeatable&&rotation.initialBoard.every(
+  (t,i)=>t===rotation.finalBoard[i]);
+ return {
+  available:true,mode:options.mode,targetTier,
+  balancedStartTier,balancedEndTier,
+  actualBalancedStartTier:actualStartTier,
+  balancedTiers:options.mode==="balanced"?balancedTiers:[],
+  options,layout,
+  importedBoard:layout.tiles.slice(),design,
+  startingBoard:rotation.initialBoard,finalBoard:rotation.finalBoard,
+  preparedBoard:preparation.board,preparedStep:preparation.step,
+  preparedBoardCooks:preparation.cooks,
+  preparedTierCounts:preparation.tiers,
+  boardDesigned:true,scenarioRequiresCleanup:design.requiresManualCleanup,
+  proposedFires:best.fire.fires,fireChoice:best.fire.name,
+  pinkFireplaces,
+  creationXp:{
+   regular:best.xp.regular,pink:best.xp.pink,
+   base:best.xp.base,secondDegree:best.xp.secondDegree,
+   thirdDegree:best.xp.thirdDegree,
+   knowledgeBonus:best.xp.knowledgeBonus,
+   thirdMultiplier:best.xp.thirdMultiplier,
+   knowledgeMultiplier:best.xp.knowledgeMultiplier,
+   pinkMultiplier:best.xp.lithium,
+   fireplaceStrength:best.xp.fireplaceStrength,
+   fireplaceKnowledgeBonus:best.xp.fireplaceKnowledgeBonus,
+   fireplaceSparkBonus:best.xp.fireplaceSparkBonus,
+   fireplaceKnowledgeMultiplier:best.xp.fireplaceKnowledgeMultiplier,
+   fireplaceSparkMultiplier:best.xp.fireplaceSparkMultiplier,
+   sparksKnown:best.xp.sparksKnown,
+   manualLithium:best.xp.manualLithium,
+   lithiumEnabled:best.xp.lithiumEnabled,
+   manuallyCalibrated:best.xp.manuallyCalibrated
+  },
+  // The multiplier is a CONDITIONAL property of the proposed configuration,
+  // not proof the user has switched those fireplaces in-game.
+  pinkMultiplier:best.xp.lithiumEnabled?best.xp.lithium:null,
+  windCap,steps:rotation.frames,
+  startCookTier:best.cookTier,startingPattern:best.pattern,
+  guaranteedCookBonus:best.xp.guaranteed,
+  firstCookResultTier:Math.min(64,best.cookTier+best.xp.guaranteed),
+  balancedT1Feasible:options.mode==="balanced"?t1Feasible:null,
+  balancedStaircaseFit:options.mode==="balanced"?best.rank[0]:null,
+  recipeOffset:best.recipeOffset,packingMode:best.packingMode,
+  highestNewTier,highestWorkingTier,
+  coveredTiers:rotation.coveredTiers,
+  uncoveredTiers:rotation.uncoveredTiers,
+  coverageTotal:rotation.coveredTiers.length,
+  coverageRequested:options.mode==="balanced"?balancedTiers.length:eligible.length,
+  balancedCycles:rotation.balancedCycles,
+  targetCreated:rotation.targetCreated,
+  targetExp:rotation.targetExp,
+  peakTargetCopies:rotation.peakTargetCopies,
+  targetMergedInHarvest:rotation.targetMergedInHarvest,
+  harvestBatches:rotation.harvestBatches,
+  harvestCount:rotation.harvested,
+  targetPreviewIncomplete:options.mode==="focused"&&rotation.targetCreated===0,
+  protectedIndices:rotation.protectedIndices,
+  initialProtectedIndices:protectedIndices,
+  passive: {
+   ...passiveRecommendation,
+   imported:projectPassiveKnowledge(layout.tiles,layout.slots,layout.fires,{
+    lithiumUnlocked:best.xp.lithiumEnabled,
+    lithiumMultiplier:best.xp.lithium,
+    globalMultiplier:best.xp.globalMultiplier
+   }),
+   averageExpPerDay:best.passivePerDay,
+   averageTotalPerDay:best.passivePerDay.slice(1).reduce((a,v)=>a+v,0),
+   averageCovered:best.passivePerDay.slice(1).filter(x=>x>0).length
+  },
+  targetPassiveExpPerDay:best.passivePerDay[targetTier],
+  targetHybridPreviewExpPerHour:focusExpPerHour+best.passivePerDay[targetTier]/24,
+  hybridPreviewExpPerHour:windowExpPerHour+
+   best.passivePerDay.slice(1).reduce((a,n)=>a+n,0)/24,
+  totalExpPerCycle:rotation.totalExp,totalExpPerHour:sustained?windowExpPerHour:null,
+  previewExpPerHour:windowExpPerHour,targetExpPerHour:sustained?focusExpPerHour:null,
+  targetPreviewExpPerHour:focusExpPerHour,
+  expByTier:rotation.gains,perTier,cooks:rotation.cooks,merges:rotation.merges,
+  windEvents:rotation.windEvents,moves:rotation.moves,
+  fuelPerCycle:rotation.fuel,cycleSeconds:best.durationSeconds,
+  activeSeconds:best.activeSeconds,fuelWaitSeconds:best.fuelWaitSeconds,
+  estimatedFuelGeneration:best.fuelRate,estimatedFuelCapacity:economy.capacity,
+  maximumCookTier:economy.maxCookTier,
+  refillFuelSafety:best.fuelSafety,
+  initialFuelEstimate:economy.currentFuel,
+  fuelSafePreparation:best.fuelSafety.noWait,
+  roundsCompleted:rotation.rounds,roundsRequested:rounds,
+  resumeRecipe:{cookTier:best.cookTier,pattern:best.pattern,
+   recipeOffset:best.recipeOffset,packingMode:best.packingMode,
+   fireChoice:best.fire.name},
+  focusCopies:rotation.focusCopies,focusCompressed:rotation.focusCompressed,
+  highestTier:rotation.highestTier,
+  completed:rotation.completed,repeatable:sustained,rotationTerminal:rotation.repeatable,
+  initialBoardMatchesFinal:sustained,
+  stranded:rotation.remaining.length,
+  considered:candidates,haltReason:rotation.reason,
+  note:"Balanced prepares and refills from the selected Start tier, adjusted for guaranteed cooking bonuses; if Start T1 is impossible, it uses the lowest cookable result and explains why. It does not silently replace a non-default Start with lower-tier Sushi. Balanced ranks actual EXP by its fit to a descending low-to-high-tier staircase, plus tier coverage and active EXP rate, without passive EXP/day. Balanced begins with a full board of the selected starter tier, keeps it on refills, and counts only the resulting legal creation events. The tier-coverage score counts actual Knowledge EXP events, not just passive EXP/day. Any tiers that remain uncovered are reported explicitly; the planner never invents high-tier creation events. First-fill recipes are screened against a conservative Fuel buffer (a precharged full tank, spending at most half the capacity plus Fuel regenerated during normal cooking); this does not claim uninterrupted sustained refills. The optimizer designs an ingredient board from account cooking limits and available slots; the imported Sushi inventory is NOT assumed to be the optimal preparation. It keeps the highest-tier anchor in its existing position. IMPORTANT: converting the current inventory into this clean design may require legal cleanup merges NOT included in the walkthrough. Once that starting state is achieved, each subsequent cook, move, Wind cascade and merge is replay-validated. Focused ranks actual target creations and prepared target copies; harvest earns EXP for the result tier. This bounded search is not a mathematical proof of optimality."
+ };
+}
+
+
+/**
+ * Continue an already-selected Knowledge recipe from its REAL last board.
+ * Each worker invocation simulates only a small chunk, so long-running
+ * rotations do not redo tens of thousands of earlier steps.
+ */
+export function continueKnowledgeRotation(save,snapshot,waves=6){
+ const fail=reason=>({available:false,reason});
+ if(!snapshot||!["balanced","focused"].includes(snapshot.mode)||snapshot.completed)
+  return fail("Only unfinished Balanced or Focused rotations can be extended.");
+ if(!save?.sushi||!Array.isArray(save?.slots))
+  return fail("A valid account save is required to continue.");
+ const layout=layoutFromSave(save);
+ if(Array.isArray(snapshot.pinkFireplaces?.imported)&&
+    !layout.fires.every((type,i)=>type===snapshot.pinkFireplaces.imported[i]))
+  return fail("The imported fireplace settings have changed. Rebuild the Knowledge plan to update pink-fireplace EXP and Fuel projections.");
+ const board=snapshot.finalBoard;
+ const protectedIndices=snapshot.protectedIndices;
+ if(!Array.isArray(board)||board.length!==SIZE||
+    !Array.isArray(protectedIndices)||
+    !layout.slots.every((v,i)=>v===snapshot.slots?.[i]))
+  return fail("The board layout changed. Rebuild the Knowledge planner.");
+ const rows=getKnowledgeRows(save).filter(row=>row.discovered);
+ const opts={...normalizeKnowledgeCycleOptions(snapshot.options),
+  preservePassive:snapshot.options?.preservePassive===true};
+ const profile=expProfile(save,rows,opts,snapshot.proposedFires,
+  getSushiDashboardMetrics(save));
+ if(profile.guaranteed!==snapshot.guaranteedCookBonus)
+  return fail("The guaranteed cooking bonus changed. Rebuild your rotation.");
+ const count=Math.max(1,Math.min(12,Math.floor(Number(waves))||6));
+ const requested=Number(snapshot.startCookTier);
+ if(!Number.isInteger(requested)||requested<1||requested>64||
+    !["uniform","t1Climb","t2Climb","rangeClimb","wind","paired","longWind","spread","widePairs"].includes(snapshot.startingPattern)||
+    !Number.isInteger(snapshot.roundsCompleted)||snapshot.roundsCompleted<0)
+  return fail("The previous recipe is incomplete. Rebuild the rotation.");
+ const rotation=simulateContinuousKnowledgeRotation({
+  startingBoard:board,slots:layout.slots,mode:snapshot.mode,
+  targetTier:snapshot.targetTier??64,
+  balancedEndTier:snapshot.balancedEndTier??64,
+  requestedTier:requested,guaranteedBonus:profile.guaranteed,
+  windCap:snapshot.windCap,chain:snapshot.windCap>0?25:0,
+  expAt:profile.expAt,cookCost:sushiDirectCookFuel,rounds:count,
+  pattern:snapshot.startingPattern,
+  recipeOffset:snapshot.recipeOffset??0,
+  packingMode:snapshot.packingMode??"simple",
+  protectedIndices,protectFocusedMilktoast:opts.preservePassive,
+  startingContext:"continuation",
+  coverageTiers:snapshot.mode==="balanced"?
+   rows.map(row=>row.tier).filter(t=>t>=
+    (snapshot.balancedStartTier??1)&&t<=(snapshot.balancedEndTier??64)):
+   rows.map(row=>row.tier),
+  roundOffset:snapshot.roundsCompleted,
+  startingTargetCreated:snapshot.targetCreated??0,
+  maximumActions:5000
+ });
+ if(!rotation.valid||!rotation.frames.length||
+     (!rotation.completed&&!
+      rotation.frames.some(frame=>["cook","merge","move"].includes(frame.kind))))
+  return fail(rotation.reason??"No additional legal rotation progress was possible.");
+ if(!rotation.initialBoard.every((t,i)=>t===board[i]))
+  return fail("The continuation changed the existing starting board.");
+ return {available:true,rotation,requestedWaves:count};
+}

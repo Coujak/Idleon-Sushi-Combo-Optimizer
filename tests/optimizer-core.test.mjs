@@ -112,8 +112,12 @@ test("tactical search honors locked slots and preserves the baseline",()=>{
   assert.equal(validateComboReplay(board,kept.moves,58,25,fullSlots).score,kept.score);
 });
 
-test("Tier 64 protection remains at the legacy limit, but higher-tier merges are supported",()=>{
-  assert.equal(simulateMerge([64,64,63],0,1,70,25),null);
+test("Tier 64 + Tier 64 yields one T64, but higher configured maximum tiers still upgrade",()=>{
+  const capped=simulateMerge([64,64,63],0,1,70,25);
+  assert.deepEqual(capped.board,[0,64,63]);
+  assert.deepEqual(capped.events,[{at:1,tier:64,kind:"merge"}]);
+  assert.equal(capped.score,64);
+  assert.deepEqual(validateComboReplay([64,64,63],[capped],70,25,[0,0,0]).board,[0,64,63]);
   const result=simulateMerge([64,64,63],0,1,70,25,100);
   assert.equal(result.score,129);
   assert.deepEqual(result.board,[0,65,64]);

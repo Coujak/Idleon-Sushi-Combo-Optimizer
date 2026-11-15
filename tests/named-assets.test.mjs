@@ -37,7 +37,9 @@ test("Landing page and UI modules reference the renamed icon paths",()=>{
  const html=get("index.html").toString("utf8");
  const app=get("src/app.js").toString("utf8");
  const lab=get("src/lab-ui.mjs").toString("utf8");
- assert.ok(html.includes("Leviathan%20Roll%20(Tier%2058).png"));
+ assert.ok(html.includes("assets/sushi-station-lab-logo.png?v=1"));
+ assert.deepEqual(get("assets/sushi-station-lab-logo.png").subarray(0,8),
+  Buffer.from("89504e470d0a1a0a","hex"));
  assert.ok(app.includes("sushiTierIconPath(tier)"));
  assert.ok(lab.includes("sushiTierIconPath(tier)"));
  assert.ok(lab.includes("sushiUpgradeIconPath(u.id)"));

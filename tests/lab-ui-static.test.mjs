@@ -59,3 +59,72 @@ test("Combo strategy UI starts in Simple mode with real dual-direction split bar
  assert.match(code,/if\(foundInfo\|\|optimizerMode==="adaptive"\|\|/);
  assert.match(code,/if\(solution.adaptive\)/);
 });
+
+test("Choose a planner cards are full-surface accessible buttons linked to matching panels",()=>{
+ const html=readFileSync(new URL("../index.html",import.meta.url),"utf8");
+ const perfectoUI=readFileSync(new URL("../src/perfecto-ui.mjs",import.meta.url),"utf8");
+ const css=readFileSync(new URL("../styles.css",import.meta.url),"utf8");
+ for(const id of ["combo","perfecto","knowledge"]){
+  assert.match(html,new RegExp('<button type="button" class="lab-planner-card" data-planner-card="'+id+'"'));
+  assert.match(html,new RegExp('data-planner-target="'+id+'"'));
+ }
+ assert.match(perfectoUI,/document\.querySelectorAll\("\[data-planner-card\]"\)/);
+ assert.match(perfectoUI,/card\.addEventListener\("click",/);
+ assert.match(perfectoUI,/setPlannerTab\(target\)/);
+ assert.match(perfectoUI,/card\.setAttribute\("aria-pressed",String\(selected\)\)/);
+ assert.match(perfectoUI,/scrollIntoView\(\{behavior:"smooth",block:"start"\}\)/);
+ assert.match(css,/\.lab-planner-cards button\.lab-planner-card/);
+});
+
+
+test("approved transparent Sushi Lab logo is used in the tab and hero",()=>{
+ const html=readFileSync(new URL("../index.html",import.meta.url),"utf8");
+ const css=readFileSync(new URL("../styles.css",import.meta.url),"utf8");
+ const png=readFileSync(new URL("../assets/sushi-station-lab-logo.png",import.meta.url));
+ assert.equal(png.subarray(0,8).toString("hex"),"89504e470d0a1a0a");
+ assert.equal(png.readUInt32BE(16),160);
+ assert.equal(png.readUInt32BE(20),160);
+ assert.ok(png.includes(Buffer.from("tRNS")),"PNG preserves transparency");
+ assert.match(html,/<link rel="icon" type="image\/png"[^>]*sushi-station-lab-logo\.png/);
+ assert.match(html,/<link rel="apple-touch-icon"[^>]*sushi-station-lab-logo\.png/);
+ assert.match(html,/<div class="hero-visual"[^>]*><div class="hero-orbit"><\/div><img src="assets\/sushi-station-lab-logo\.png\?v=1" alt=""><\/div>/);
+ assert.match(css,/\.hero-orbit\{position:absolute;width:192px;height:192px;border-radius:50%/);
+ assert.doesNotMatch(html,/<div class="hero-visual"[^>]*>.*?Leviathan/);
+ assert.match(css,/\.hero-visual img\{\s*width:170px;height:170px;image-rendering:auto;transform:translateX\(8px\)/);
+ assert.match(css,/@media\(max-width:980px\)\{\s*\.hero-visual img\{width:134px;height:134px;transform:translateX\(6px\)/);
+});
+
+
+test("account-dependent sections stay locked until JSON is successfully imported",()=>{
+ const html=readFileSync(new URL("../index.html",import.meta.url),"utf8");
+ const ui=readFileSync(new URL("../src/lab-ui.mjs",import.meta.url),"utf8");
+ const app=readFileSync(new URL("../src/app.js",import.meta.url),"utf8");
+ const css=readFileSync(new URL("../styles.css",import.meta.url),"utf8");
+ for(const tab of ["planners","upgrades","knowledge"]){
+  const button=html.match(new RegExp('<button[^>]*data-lab-target="'+tab+'"[^>]*>'))?.[0];
+  assert.ok(button,"Missing "+tab+" main tab");
+  assert.match(button,/disabled/);
+  assert.match(button,/aria-disabled="true"/);
+  assert.match(button,/aria-describedby="labNavigationHint"/);
+ }
+ assert.match(html,/id="labNavigationHint"/);
+ assert.match(ui,/const hasImportedSave=\(\)=>Boolean\(save\(\)\)/);
+ assert.match(ui,/const syncNavigationAccess=\(\)=>\{/);
+ assert.match(ui,/button\.disabled=!unlocked/);
+ assert.match(ui,/if\(!tabs\.includes\(target\)\|\|\(!hasImportedSave\(\)&&target!=="overview"\)\)return/);
+ assert.match(ui,/if\(!unlocked&&mainTab!=="overview"\)setTab\("overview"\)/);
+ assert.match(ui,/function refresh\(\)\{\s*syncNavigationAccess\(\)/);
+ assert.match(app,/try\{sushiLab\.markImported\(\);\}/);
+ assert.match(app,/renderPlateBreakdown\(null\);sushiLab\.clearImported\(\)/);
+ assert.match(css,/\.lab-navigation \.lab-nav-button:disabled/);
+});
+test("Planner and Upgrade subtab selection is restored on initialization",()=>{
+ const lab=readFileSync(new URL("../src/lab-ui.mjs",import.meta.url),"utf8");
+ const perfecto=readFileSync(new URL("../src/perfecto-ui.mjs",import.meta.url),"utf8");
+ assert.match(lab,/upgradeTab=readSubtab\(UPGRADE_TAB_KEY,UPGRADE_SUBTABS,"catalog"\)/);
+ assert.match(lab,/rememberSubtab\(UPGRADE_TAB_KEY,name,UPGRADE_SUBTABS\)/);
+ assert.match(lab,/setUpgradeTab\(upgradeTab\)/);
+ assert.match(perfecto,/plannerTab=readSubtab\(PLANNER_TAB_KEY,PLANNER_SUBTABS,"combo"\)/);
+ assert.match(perfecto,/rememberSubtab\(PLANNER_TAB_KEY,target,PLANNER_SUBTABS\)/);
+ assert.match(perfecto,/setPlannerTab\(plannerTab\)/);
+});

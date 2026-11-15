@@ -1,13 +1,14 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Idleon Sushi Station Lab</title><link rel="stylesheet" href="styles.css?v=1.50.16"></head>
-<body><main class="shell"><header class="hero"><div class="hero-copy"><div class="eyebrow hero-eyebrow"><span class="eyebrow-dot"></span> IDLEON · SUSHI STATION TOOLKIT</div><h1>Sushi Station <span>Lab</span></h1><p>Your Sushi Station companion: explore your account, plan the next upgrade, study knowledge tiers, and optimize your Combo Meter.</p><div class="hero-chips"><span>✦ Account overview</span><span>↗ Combo Meter planner</span><span>◈ Upgrade & Knowledge guides</span></div></div><div class="hero-visual" aria-hidden="true"><div class="hero-orbit"></div><img src="assets/sushi/Leviathan%20Roll%20(Tier%2058).png" alt=""><div class="hero-visual-label">TIER 58</div></div></header>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Idleon Sushi Station Lab</title><link rel="icon" type="image/png" sizes="160x160" href="assets/sushi-station-lab-logo.png?v=1"><link rel="apple-touch-icon" href="assets/sushi-station-lab-logo.png?v=1"><link rel="stylesheet" href="styles.css?v=1.50.50"></head>
+<body><main class="shell"><header class="hero"><div class="hero-copy"><div class="eyebrow hero-eyebrow"><span class="eyebrow-dot"></span> IDLEON · SUSHI STATION TOOLKIT</div><h1>Sushi Station <span>Lab</span></h1><p>Your Sushi Station companion: explore your account, plan the next upgrade, study knowledge tiers, and optimize your Combo Meter.</p><div class="hero-chips"><span>✦ Account overview</span><span>↗ Combo Meter planner</span><span>◈ Upgrade & Knowledge guides</span></div></div><div class="hero-visual" aria-hidden="true"><div class="hero-orbit"></div><img src="assets/sushi-station-lab-logo.png?v=1" alt=""></div></header>
 <nav class="lab-navigation" aria-label="Sushi Station sections" role="tablist">
 <button type="button" class="lab-nav-button" role="tab" data-lab-target="overview" aria-controls="lab-overview" aria-selected="true">Overview</button>
-<button type="button" class="lab-nav-button" role="tab" data-lab-target="planners" aria-controls="lab-planners" aria-selected="false">Planners</button>
-<button type="button" class="lab-nav-button" role="tab" data-lab-target="upgrades" aria-controls="lab-upgrades" aria-selected="false">Upgrades</button>
-<button type="button" class="lab-nav-button" role="tab" data-lab-target="knowledge" aria-controls="lab-knowledge" aria-selected="false">Knowledge</button>
+<button type="button" class="lab-nav-button" role="tab" data-lab-target="planners" aria-controls="lab-planners" aria-selected="false" aria-disabled="true" aria-describedby="labNavigationHint" title="Import a Sushi Station JSON save to unlock" disabled>Planners</button>
+<button type="button" class="lab-nav-button" role="tab" data-lab-target="upgrades" aria-controls="lab-upgrades" aria-selected="false" aria-disabled="true" aria-describedby="labNavigationHint" title="Import a Sushi Station JSON save to unlock" disabled>Upgrades</button>
+<button type="button" class="lab-nav-button" role="tab" data-lab-target="knowledge" aria-controls="lab-knowledge" aria-selected="false" aria-disabled="true" aria-describedby="labNavigationHint" title="Import a Sushi Station JSON save to unlock" disabled>Knowledge</button>
 <span class="lab-save-status" id="labSaveStatus">No save imported</span>
 </nav>
+<p id="labNavigationHint" class="lab-navigation-hint" role="status">Import your Sushi Station JSON in Overview to unlock Planners, Upgrades and Knowledge.</p>
 <div id="lab-overview" class="lab-tab-content" role="tabpanel" aria-label="Overview">
 <section class="panel" id="importPanel"><div class="heading"><div><div class="eyebrow">01 · YOUR SAVE</div><h2>Import game data</h2></div><span id="importStatus" class="status" role="status">Waiting for data</span></div>
 <div class="actions"><label class="button secondary" for="jsonFile">Choose JSON file</label><input id="jsonFile" type="file" accept=".json,.txt,application/json,text/plain"><button id="pasteToggle" class="button secondary" type="button" aria-expanded="false">Paste JSON</button><button id="clearImport" class="button quiet" type="button">Clear</button></div>
@@ -44,13 +45,14 @@
 <section class="panel"><div class="heading"><div><div class="eyebrow">02 · SUSHI STATION</div><h2>Your board</h2></div><span id="boardStatus" class="status">Import a save</span></div><p class="hint">The board reflects your imported save. Select any unlocked plate to inspect its sushi, tier, plate type and Perfecto status.</p><div id="boardPlateSummary" class="legend overview-plate-summary" aria-label="Unlocked plates by type"></div><div class="board-scroll"><div id="board" class="board" aria-label="Sushi Station board"></div><div id="fireplaces" aria-label="Fireplaces below the board"></div></div><p id="boardDetails" class="hint">Your imported tiles will appear here.</p><div id="boardSelection" class="overview-board-selection hidden" role="status" aria-live="polite"></div></section>
 </div>
 <div id="lab-planners" class="lab-tab-content hidden" role="tabpanel" aria-label="Planners" aria-hidden="true">
-<section class="panel lab-planner-intro"><div class="heading"><div><div class="eyebrow">SUSHI STATION · PLANNERS</div><h2>Choose a planner</h2></div><span class="status">2 available</span></div>
+<section class="panel lab-planner-intro"><div class="heading"><div><div class="eyebrow">SUSHI STATION · PLANNERS</div><h2>Choose a planner</h2></div><span class="status">3 available</span></div>
 <div class="lab-planner-cards">
-<div class="lab-planner-card"><div><h3>Combo Meter Planner</h3><p class="hint">Adaptive supply/engine strategy search for your unlocked tiers and slots, plus historical T64 score showcases. The original Experiment 13.0 record remains 76,532 simulated points.</p></div><span class="lab-mini-badge">Available</span></div>
-<div class="lab-planner-card"><div><h3>Perfecto Planner</h3><p class="hint">Choose one target sushi tier, prepare copies, compare single versus board-wide Perfecto odds, and plan Pepper Shaker uses.</p></div><span class="lab-mini-badge">New</span></div>
-</div><p class="hint">Knowledge leveling and additional planners will be added separately.</p></section>
-<nav class="lab-subnavigation lab-planner-navigation" role="tablist" aria-label="Choose planner"><button type="button" role="tab" data-planner-target="combo" aria-controls="solver" aria-selected="true">Combo Meter</button><button type="button" role="tab" data-planner-target="perfecto" aria-controls="perfectoPlanner" aria-selected="false">Perfecto</button></nav>
-<section id="solver" class="panel"><div class="heading"><div><div class="eyebrow">03 · COMBO OPTIMIZER</div><h2>Optimized preparation and merge sequence</h2></div><span class="status">Optimizer</span></div><p class="hint">Import JSON to compare different arrangements of your unlocked slots and find a promising sushi layout and merge sequence. Heat cascades through strictly descending tiers to the right, including across row boundaries, up to 25 upgrades per qualifying merge (Wind tier limit follows your selected highest unlocked tier minus six). The adaptive planner compares staged supply/engine preparations at your actual tier, Wind cap and unlocked slot count, including lower working tiers when worthwhile. Historic experiments remain separate reproducible score showcases. Replayed scores are simulations and still require in-game confirmation.</p><div class="actions"><label class="optimizer-mode-select">Optimizer strategy <select id="optimizerMode"><option value="simple" selected>Simple · Descending Cascade</option></select></label><label>Starting base tier <select id="baseTier"><option value="0">Auto (search all)</option><option value="custom">Custom board</option><option value="manual">Enter a tier…</option><option value="31">31</option><option value="32">32</option><option value="33">33</option><option value="34">34</option><option value="35">35</option><option value="36">36</option><option value="37">37</option><option value="38">38</option><option value="39">39</option><option value="40">40</option><option value="41">41</option></select></label><label id="manualBaseTierLabel" class="hidden">Manual starting tier <input id="manualBaseTier" type="number" min="1" step="1" value="31"></label><label>Maximum prepared tier <input id="seedTier" type="number" min="1" step="1" value="64" title="Tier 64 is the current research cap; higher settings preview future sushi tiers"></label><label>Wind tier limit <input id="windCap" type="number" min="0" max="58" step="1" value="58" title="Choose your Heat of the East Wind tier limit"><span id="windCapHint" class="wind-cap-hint">Maximum: 58 (prepared tier − 6)</span></label><label>Maximum wind chain <input id="chainLimit" type="number" min="0" max="25" value="25"></label><label>Combo timeout (s) <input id="comboTimeout" type="number" min="0.1" step="0.1" value="5.5"></label><label>Manual merge time (s) <input id="mergeTime" type="number" min="0.1" step="0.1" value="1.5"></label><label>Reposition time (s) <input id="relocationTime" type="number" min="0.1" step="0.1" value="0.6"></label><label class="custom-optimizer-setting hidden">Split increment <select id="customSplitMode">
+<button type="button" class="lab-planner-card" data-planner-card="combo" aria-pressed="true"><div><h3>Combo Meter Planner</h3><p class="hint">Adaptive supply/engine strategy search for your unlocked tiers and slots, plus historical T64 score showcases. The original Experiment 13.0 record remains 76,532 simulated points.</p></div><span class="lab-mini-badge">Available</span></button>
+<button type="button" class="lab-planner-card" data-planner-card="perfecto" aria-pressed="false"><div><h3>Perfecto Planner</h3><p class="hint">Choose one target sushi tier, prepare copies, compare single versus board-wide Perfecto odds, and plan Pepper Shaker uses.</p></div><span class="lab-mini-badge">Available</span></button>
+<button type="button" class="lab-planner-card" data-planner-card="knowledge" aria-pressed="false"><div><h3>Knowledge Leveling Planner</h3><p class="hint">Prioritize which Sushi Knowledge to level next for your chosen bonus, with imported EXP progress and practical preparation advice.</p></div><span class="lab-mini-badge">Beta</span></button>
+</div></section>
+<nav class="lab-subnavigation lab-planner-navigation" role="tablist" aria-label="Choose planner"><button type="button" role="tab" data-planner-target="combo" aria-controls="solver" aria-selected="true">Combo Meter</button><button type="button" role="tab" data-planner-target="perfecto" aria-controls="perfectoPlanner" aria-selected="false">Perfecto</button><button type="button" role="tab" data-planner-target="knowledge" aria-controls="knowledgePlanner" aria-selected="false">Knowledge Leveling</button></nav>
+<section id="solver" class="panel"><div class="heading"><div><div class="eyebrow">03 · COMBO OPTIMIZER</div><h2>Optimized preparation and merge sequence</h2></div><span class="status">Optimizer</span></div><p class="hint">Import JSON to compare different arrangements of your unlocked slots and find a promising sushi layout and merge sequence. Heat cascades through strictly descending tiers to the right, including across row boundaries, up to 25 upgrades per qualifying merge (Wind tier limit follows your selected highest unlocked tier minus six). The adaptive planner compares staged supply/engine preparations at your actual tier, Wind cap and unlocked slot count, including lower working tiers when worthwhile. Historic experiments remain separate reproducible score showcases. Replayed scores are simulations and still require in-game confirmation.</p><div class="actions"><label class="optimizer-mode-select">Optimizer strategy <select id="optimizerMode"><option value="simple" selected>Simple · Descending Cascade</option></select></label><label>Starting base tier <select id="baseTier"><option value="0">Auto (search all)</option><option value="custom">Custom board</option><option value="manual">Enter a tier…</option></select></label><label id="manualBaseTierLabel" class="hidden">Manual starting tier <input id="manualBaseTier" type="number" min="1" step="1" value="31"></label><label>Maximum prepared tier <input id="seedTier" type="number" min="1" step="1" value="64" title="Tier 64 is the current research cap; higher settings preview future sushi tiers"></label><label>Wind tier limit <input id="windCap" type="number" min="0" max="58" step="1" value="58" title="Choose your Heat of the East Wind tier limit"><span id="windCapHint" class="wind-cap-hint">Maximum: 58 (prepared tier − 6)</span></label><label>Maximum wind chain <input id="chainLimit" type="number" min="0" max="25" value="25"></label><label>Combo timeout (s) <input id="comboTimeout" type="number" min="0.1" step="0.1" value="5.5"></label><label>Manual merge time (s) <input id="mergeTime" type="number" min="0.1" step="0.1" value="1.5"></label><label>Reposition time (s) <input id="relocationTime" type="number" min="0.1" step="0.1" value="0.6"></label><label class="custom-optimizer-setting hidden">Split increment <select id="customSplitMode">
 <option value="optimizer1">Fast · 20%</option>
 <option value="optimizer2">Mid · 10%</option>
 <option value="optimizer3">Slow · 5%</option>
@@ -300,8 +302,124 @@
 
    <p class="hint perfecto-theory-note">Hover or tap the info icon to view later 5-level milestones. Both Knowledge bonuses retain their current Perfecto doubling. Chance assumes the same selected sushi tier and target-copy count as your recommended board; no Salt Shakers or additional rolls are assumed.</p>
   </div>
-  <p class="hint">Tier 50 and Tier 54 boost the chance to Perfecto sushi. Their existing Knowledge levels and Perfecto status are included automatically. Knowledge leveling recommendations belong to the future Knowledge Leveling Planner.</p>
+  <p class="hint">Tier 50 and Tier 54 boost the chance to Perfecto sushi. Their existing Knowledge levels and Perfecto status are included automatically. For farming priorities, see Knowledge Leveling in Planners.</p>
  </div>
+</section>
+<section id="knowledgePlanner" class="panel lab-knowledge-planner hidden" role="tabpanel" aria-label="Knowledge Leveling Planner" aria-hidden="true">
+ <div class="heading"><div><div class="eyebrow">SUSHI STATION · KNOWLEDGE LEVELING</div><h2>Knowledge Leveling Planner</h2></div><span class="status lab-kp-beta-tag">Beta · EXP planner</span></div>
+ <p class="hint lab-kp-intro">Plan Knowledge EXP using your imported Sushi Station save.</p>
+ <div class="lab-kp-section-head lab-kp-strategy-head"><h3>1 · Strategy</h3></div>
+ <div class="lab-kp-controls">
+  <label>EXP strategy<select id="knowledgePlanMode" aria-label="Knowledge EXP strategy"><option value="balanced">Balanced · spread EXP across tiers</option><option value="focused">Focused · prepare and harvest one tier</option></select></label>
+  <label id="knowledgePlanTargetLabel" class="hidden">Target Sushi<select id="knowledgePlanTarget" aria-label="Focused Sushi target"></select></label>
+  <label class="lab-kp-passive-toggle" title="Keep existing Sushi on Cold or Milktoast plates. This reduces available working slots."><input id="knowledgePlanProtectPassive" type="checkbox"> <span>Preserve passive Sushi</span></label>
+ </div>
+ <div id="knowledgePlanBalancedRange" class="lab-kp-balanced-range">
+  <div class="lab-kp-range-heading"><strong>Balanced tier range</strong><span id="knowledgePlanRangeValue" class="lab-kp-range-badge">T1 → T64</span></div>
+  <div id="knowledgePlanDualRange" class="lab-kp-dual-range" style="--kp-start:0%;--kp-end:100%">
+   <div class="lab-kp-dual-range-track" aria-hidden="true"><span></span></div>
+   <input id="knowledgePlanRangeStart" type="range" min="1" max="64" step="1" value="1" aria-label="Balanced starting Knowledge Sushi tier">
+   <input id="knowledgePlanRangeEnd" type="range" min="1" max="64" step="1" value="64" aria-label="Balanced ending Knowledge Sushi tier">
+  </div>
+  <div class="lab-kp-range-endpoints">
+   <label for="knowledgePlanRangeStart">Start <output id="knowledgePlanRangeStartValue" for="knowledgePlanRangeStart">T1</output></label>
+   <label for="knowledgePlanRangeEnd">End <output id="knowledgePlanRangeEndValue" for="knowledgePlanRangeEnd">T64</output></label>
+  </div>
+ </div>
+ <div class="lab-kp-strategy-detail" id="knowledgePlanStrategyDetail" aria-live="polite">Balanced · prioritize a descending staircase of active Knowledge EXP while building toward a new T64.</div>
+ <details class="lab-kp-settings">
+  <summary>Timing &amp; rate calibration (optional)</summary>
+  <div class="lab-kp-settings-grid">
+   <label>Seconds per cook<input id="knowledgePlanCookSeconds" type="number" min="0.2" max="60" step="0.1" value="2"></label>
+   <label>Seconds per merge<input id="knowledgePlanMergeSeconds" type="number" min="0.2" max="60" step="0.1" value="1.5"></label>
+   <label>Refill waves to simulate<input id="knowledgePlanRounds" type="number" min="1" max="12" step="1" value="6"></label>
+   <label>Fuel generation/hr<input id="knowledgePlanFuelRate" type="text" inputmode="decimal" placeholder="Estimated from JSON"></label>
+   <label>Fuel capacity<input id="knowledgePlanFuelCap" type="text" inputmode="decimal" placeholder="Estimated from JSON"></label>
+   <label>Base EXP per creation<input id="knowledgePlanXpPerCreation" type="text" inputmode="decimal" placeholder="Estimated from JSON"></label>
+  </div>
+  <p class="hint">Changing fireplaces or Plate positions requires manual in-game setup. All EXP rates are projections.</p>
+ </details>
+ <div class="lab-kp-run-line">
+  <button id="knowledgePlanRun" type="button" class="button primary">Generate Knowledge plan</button>
+  <button id="knowledgePlanCancel" type="button" class="button secondary hidden">Cancel search</button>
+  <p id="knowledgePlanStatus" role="status" aria-live="polite">Import a Sushi Station save in Overview to generate a Knowledge plan.</p>
+ </div>
+ <div id="knowledgePlanLoading" class="lab-kp-loading hidden" role="status" aria-live="polite">
+  <div class="lab-kp-loading-head"><strong>Optimizing Knowledge…</strong><span id="knowledgePlanLoadingText">Preparing search…</span></div>
+  <progress id="knowledgePlanLoadingBar" max="100" aria-label="Knowledge optimization progress"></progress>
+ </div>
+ <div id="knowledgePlanFeatured" class="hidden"></div>
+ <div id="knowledgePlanRotation" class="hidden">
+  <div class="lab-kp-section-head"><h3>2 · Walkthrough</h3></div>
+  <div class="lab-kp-replay-shell">
+   <div class="lab-kp-replay-heading">
+    <div class="lab-kp-replay-actions" role="group" aria-label="Knowledge replay controls">
+     <div class="lab-kp-replay-group lab-kp-replay-group-navigation">
+      <button id="knowledgePlanReset" type="button" class="button secondary">Step 0</button>
+      <button id="knowledgePlanPrepared" type="button" class="button secondary">Prepared</button>
+      <button id="knowledgePlanNextRefill" type="button" class="button secondary">Next refill</button>
+      <button id="knowledgePlanNextHarvest" type="button" class="button secondary hidden">Next harvest</button>
+       <button id="knowledgePlanNextTargetCreation" type="button" class="button secondary hidden" title="Jump to the next creation of your selected tier">Next target creation</button>
+       <button id="knowledgePlanTargetCancel" type="button" class="button secondary hidden" title="Stop searching and keep your previous walkthrough">Cancel</button>
+      <button id="knowledgePlanEnd" type="button" class="button secondary">Final step</button>
+     </div>
+     <div class="lab-kp-replay-group lab-kp-replay-group-playback">
+      <button id="knowledgePlanPrev" type="button" class="button secondary" aria-label="Previous step">Previous</button>
+      <button id="knowledgePlanPlay" type="button" class="button secondary">Play</button>
+      <button id="knowledgePlanNext" type="button" class="button secondary" aria-label="Next step">Next</button>
+      <label class="lab-kp-speed-label" for="knowledgePlanSpeed">Speed
+        <select id="knowledgePlanSpeed" aria-label="Replay speed">
+         <option value="3600">0.5×</option>
+         <option value="2400">0.75×</option>
+         <option value="1800" selected>1×</option>
+         <option value="1200">1.5×</option>
+         <option value="900">2×</option>
+         <option value="600">3×</option>
+        </select>
+       </label>
+     </div>
+     <div class="lab-kp-replay-group lab-kp-replay-group-continue">
+      <button id="knowledgePlanContinue" type="button" class="button primary hidden" title="Click for 5% more refills; hold to repeat, release to stop">Continue rotation</button>
+     </div>
+    </div>
+   </div>
+   <p id="knowledgePlanContinueStatus" class="hint hidden lab-kp-continue-status" role="status" aria-live="polite"></p>
+   <div class="lab-kp-step-head"><p id="knowledgePlanStepTitle" class="lab-kp-step-title" aria-live="polite">Step 0 · Start cycle</p><span id="knowledgePlanStepKind" class="lab-kp-step-kind">START</span></div>
+   <p id="knowledgePlanStepDetail" class="hint"></p>
+   <div id="knowledgePlanCreatedXp" class="lab-kp-created-exp hidden" aria-label="Knowledge EXP from Sushi created in this step"></div>
+   <progress id="knowledgePlanReplayProgress" class="lab-kp-replay-progress" max="1" value="0" aria-label="Walkthrough step progress"></progress>
+   <div class="lab-kp-board-legend" aria-label="Sushi plate color legend">
+    <span><i class="lab-kp-legend-swatch slot-0"></i>Regular</span>
+    <span><i class="lab-kp-legend-swatch slot-1"></i>Hot</span>
+    <span><i class="lab-kp-legend-swatch slot-2"></i>Cold</span>
+    <span><i class="lab-kp-legend-swatch slot-3"></i>Milktoast</span>
+    <span><i class="lab-kp-legend-swatch protected"></i>Protected</span>
+    <span><i class="lab-kp-legend-swatch affected"></i>Current step</span>
+   </div>
+  <div class="lab-kp-board-wrap"><div id="knowledgePlanBoard" class="lab-kp-board" role="img" aria-label="Optimized Sushi rotation board"></div></div>
+  <div class="lab-kp-replay-footer">
+   <span id="knowledgePlanStepCount">Step 0</span>
+   <span id="knowledgePlanFocusProgress" class="hidden"></span>
+   <span id="knowledgePlanStepXp">EXP in step: —</span>
+   <span id="knowledgePlanFrameXp">Cycle EXP so far: —</span>
+  </div>
+  </div>
+  <div class="lab-kp-section-head"><h3>3 · Knowledge progression</h3><span class="lab-kp-estimate-tag">Estimated</span></div>
+  <p class="hint lab-kp-projection-note">Active EXP follows the selected step. Total EXP/hr and Next level are estimates from the full preview, including modeled passive EXP. Passive details remain in Plate setup.</p>
+  <div class="lab-kp-progression-controls">
+   <label class="lab-kp-show-zero"><input id="knowledgePlanShowZero" type="checkbox"> Show zero-EXP tiers</label>
+   <div class="lab-kp-exp-legend" aria-label="Knowledge EXP progress colors">
+    <span><i class="is-current"></i> Current</span><span><i class="is-gained"></i> Gained by step</span>
+   </div>
+   <span id="knowledgePlanLevelCount" class="lab-kp-tier-count">—</span>
+  </div>
+  <p id="knowledgePlanLevelEmpty" class="hint hidden">No tiers gain EXP in this preview. Show zero-EXP tiers to see all.</p>
+  <div class="lab-table-wrap"><table class="lab-data-table lab-kp-progress-table"><thead><tr>
+   <th scope="col">Sushi tier</th><th scope="col">Active EXP · to step</th><th scope="col">Total EXP/hr · est.</th><th scope="col">Next level · est.</th>
+  </tr></thead><tbody id="knowledgePlanLevelRows"></tbody></table></div>
+ </div>
+ <div id="knowledgePlanPassive" class="hidden"></div>
+ <details class="lab-kp-guide"><summary>Included mechanics and limitations</summary><ul id="knowledgePlanTips"></ul></details>
 </section>
 
 </div>
@@ -446,4 +564,4 @@
  <p id="labKnowledgeEmpty" class="hint lab-empty-state hidden">No Sushi tiers match the selected filters.</p>
  <p class="hint lab-disclaimer">Permanent tier rewards appear beneath each Sushi name. Knowledge Bonus shows the current effect with its value and the projected next-level effect, including the 2× Perfecto effect where unlocked. The original Perfecto icon marks Perfectos; undiscovered tiers show a base Lv 1 preview only. “Ready to level” means imported EXP reaches the next-level requirement, not an automatic level-up. Missing save data remains unavailable.</p>
 </section></div>
-</main><script type="module" src="src/app.js?v=1.50.15"></script></body></html>
+</main><script type="module" src="src/app.js?v=1.50.62"></script></body></html>

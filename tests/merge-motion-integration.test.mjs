@@ -33,3 +33,35 @@ test("Playback speed and reduced motion are applied to every step",()=>{
  assert.ok(app.includes("finishFlight();\n    player.reschedule()"));
  assert.ok(app.includes('if(document.hidden){player.pause();finishFlight();}'));
 });
+
+test("Combo interactive merge seek bar reflects replay progress with themed thumb",()=>{
+ assert.match(app,/seek\.style\.setProperty\("--merge-seek-progress","0%"\)/);
+ assert.match(app,/selected\/result\.moves\.length\*100/);
+ assert.match(css,/#solver \.merge-timeline input\.merge-seek::-webkit-slider-runnable-track/);
+ assert.match(css,/#solver \.merge-timeline input\.merge-seek::-moz-range-track/);
+ assert.match(css,/#solver \.merge-timeline input\.merge-seek::-webkit-slider-thumb/);
+ assert.match(css,/--merge-seek-progress/);
+ assert.match(app,/seek\.addEventListener\("input",\(\)=>player\.goTo\(Number\(seek\.value\)\)\)/);
+});
+
+test("Combo checklist keeps its heading visible and scrolls only the step rows",()=>{
+ assert.match(app,/const listHeader=document\.createElement\("div"\);listHeader\.className="merge-step-list-heading"/);
+ assert.match(app,/const listBody=document\.createElement\("div"\);listBody\.className="merge-step-items"/);
+ assert.match(app,/right\.append\(listHeader,listBody\)/);
+ assert.match(app,/listBody\.append\(button\);stepButtons\.push\(button\)/);
+ assert.match(app,/listBody\.scrollTop\+=itemBounds/);
+ assert.doesNotMatch(app,/right\.scrollTop\+=itemBounds/);
+ assert.match(css,/#solver \.merge-step-items\{[\s\S]*?overflow-y:auto/);
+ assert.match(css,/#solver \.merge-step-list\{[\s\S]*?overflow:hidden/);
+});
+test("Combo checklist aligns step numbers, instructions, and live completion badges",()=>{
+ assert.match(app,/number\.className="merge-step-number"/);
+ assert.match(app,/content\.className="merge-step-content"/);
+ assert.match(app,/marker\.className="merge-step-status"/);
+ assert.match(app,/marker\.textContent=current\?"CURRENT":completed\?"✓":nextUp\?"NEXT":""/);
+ assert.match(app,/listProgress\.textContent=selected\+" \/ "\+result\.moves\.length\+" steps"/);
+ assert.match(app,/button\.addEventListener\("click",\(\)=>player\.goTo\(index\)\)/);
+ assert.match(css,/#solver \.merge-step\{\s*display:grid;grid-template-columns/);
+ assert.match(css,/#solver \.merge-step\.completed:before,/);
+ assert.match(css,/#solver \.merge-step\.up-next:after\{content:none;display:none\}/);
+});
