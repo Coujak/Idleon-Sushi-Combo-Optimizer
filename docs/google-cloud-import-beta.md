@@ -46,14 +46,22 @@ cooperation from the game developer / an authorized integration.
 
 ## Testing
 
-1. Open the development preview page.
-2. Expand **Google cloud import · DEV TEST**.
-3. Click **Try Google sign-in** (no setup needed).
-4. If it succeeds, check your sushi values against a fresh Idleon Toolbox
-   export; try **Clear** and manual JSON import.
+1. Open the development branch on GitHub, choose **Code → Download ZIP**,
+   and extract the archive on Windows.
+2. Double-click **start-preview.bat** in the extracted project folder.
+   It starts a local Python web server and opens `http://localhost:8765`.
+   (If Python 3 isn't installed, the launcher explains what is needed.)
+3. Expand **Google cloud import · DEV TEST** and click
+   **Try Google sign-in**. No Google Cloud setup or app identifiers are needed.
+4. If the Firebase project allows the popup, check your sushi values
+   against a fresh Idleon Toolbox export; try **Clear** and manual JSON import.
 5. If it fails, share only the displayed generic error text. **Never**
    share a Google password, Firebase token, OAuth code, account ID,
    access token, or a full network request/response.
+
+The public website is unchanged. An attempt to deploy a separate GitHub Pages
+beta preview was blocked by repository deployment restrictions, so this
+local preview is the current testing method.
 
 This attempt does not guarantee a successful sign-in. Its immediate
 purpose is to verify, with a real browser and user click, whether the
