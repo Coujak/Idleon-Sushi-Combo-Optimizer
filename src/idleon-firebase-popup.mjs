@@ -78,6 +78,22 @@ export async function signInAndFetchIdleonSave(){
  }
 }
 
+// Device-code approval returns a Google ID token from an authorized OAuth client.
+// Firebase still decides independently whether to accept that client/audience.
+export async function signInWithDeviceIdTokenAndFetchIdleonSave(googleIdToken){
+ if(typeof googleIdToken!=="string"||googleIdToken.length<16)
+  throw Error("A valid Google ID token is required for Firebase sign-in.");
+ const {auth,authModule}=await preloadIdleonPopup();
+ try{
+  const credential=authModule.GoogleAuthProvider.credential(googleIdToken);
+  await authModule.signInWithCredential(auth,credential);
+  return await refreshSignedInIdleonSave();
+ }catch(error){
+  try{await authModule.signOut(auth);}catch{}
+  throw error;
+ }
+}
+
 export async function endIdleonSession(){
  if(!pending)return;
  try{
