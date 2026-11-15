@@ -41,6 +41,7 @@ export function combineKnowledgeContinuation(previous,chunk,requestedWaves=6){
  const originalAnchors=new Set(previous.startingBoard.flatMap((tier,i)=>
   tier===64?[i]:[]));
  const highestNew=Math.max(safeNumber(previous.highestNewTier),
+  safeNumber(chunk.highestNewTier),
   ...chunk.frames.flatMap(frame=>(frame.events??[]).filter(event=>
    ["cook","merge","wind"].includes(event.kind)).map(event=>event.tier)),0);
  const highestWorking=Math.max(0,...chunk.finalBoard.flatMap((tier,i)=>
