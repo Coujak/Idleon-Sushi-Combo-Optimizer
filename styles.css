@@ -4943,3 +4943,25 @@ details summary{cursor:pointer;font-size:12px;font-weight:700;color:#9eb7c9}
  background:#152e31;color:#b5d8cc;font-size:12px;line-height:1.55;
 }
 .lab-navigation-hint:before{content:"🔒";font-size:13px;}
+
+
+/* Experimental Google cloud import — hidden behind an explicit details panel. */
+.google-idleon-panel{
+ margin:14px 0;padding:12px 15px;border:1px solid #34505b;
+ border-radius:12px;background:#142732;
+}
+.google-idleon-panel>summary{
+ display:list-item;cursor:pointer;font-size:13px;font-weight:800;color:#cae9e1;
+}
+.google-idleon-beta{
+ display:inline-block;margin-left:8px;padding:2px 6px;font-size:10px;
+ border:1px solid #697f8e;border-radius:6px;background:#203542;color:#bdd3e0;
+ letter-spacing:.045em;vertical-align:middle;
+}
+.google-idleon-body{padding:12px 0 2px;display:flex;flex-direction:column;align-items:flex-start;gap:9px}
+.google-idleon-body p{margin:0;font-size:12px;line-height:1.65;color:#b9cad5}
+.google-idleon-body #googleIdleonStatus{color:#a7cad2}
+.google-idleon-body #googleIdleonStatus[data-state="ok"]{color:#8de2b0}
+.google-idleon-body #googleIdleonStatus[data-state="error"]{color:#f1b9a8}
+.google-idleon-body #googleIdleonStatus[data-state="busy"]{color:#fff1bc}
+.google-idleon-body .google-idleon-privacy{font-size:11px;color:#8fa6b7}
