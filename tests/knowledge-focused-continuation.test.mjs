@@ -259,3 +259,58 @@ test("Next T64 creation search reports no match and stays bounded when only harv
  assert.equal(ctx.output.targetCreationFound,false);
  assert.equal(ctx.output.completedWaves,24);
 });
+
+test("One Next T64 click continues past old 60-refill cap until T64 is really created",()=>{
+ const src=readFileSync(new URL("../src/knowledge-cycle-worker.mjs",import.meta.url),"utf8");
+ const start=src.indexOf("function extendKnowledgeInBatches(");
+ const end=src.indexOf("\nself.onmessage=event=>",start);
+ let calls=0;const messages=[];
+ const ctx={
+  save:{},snapshot:{completed:false,finalBoard:[0],roundsCompleted:400},
+  self:{postMessage:m=>messages.push(m)},
+  continueKnowledgeRotation(_save,prior,batch){
+   calls++;
+   return {available:true,rotation:{
+    frames:[{kind:"start",board:prior.finalBoard},
+     {kind:"stage",phase:"harvest",title:"Harvest prepared T64 Sushi"},
+     {kind:"merge",events:[{kind:"merge",tier:calls===19?64:63,at:0}]}],
+    rounds:batch,completed:false,finalBoard:[calls],
+    protectedIndices:[],targetCreated:0}};
+  }
+ };
+ runInNewContext(src.slice(start,end)+
+  "\nthis.output=extendKnowledgeInBatches(save,snapshot,2400,64);",
+  ctx,{timeout:1000});
+ assert.equal(calls,19);
+ assert.equal(ctx.output.targetCreationFound,true);
+ assert.equal(ctx.output.completedWaves,114);
+ assert.equal(ctx.output.rotations.length,19);
+ assert.equal(ctx.output.searchLimitReached,false);
+ assert.equal(messages.at(-1).targetCreationFound,true);
+});
+test("One-click search has a truthful safety ceiling when target is unreachable",()=>{
+ const src=readFileSync(new URL("../src/knowledge-cycle-worker.mjs",import.meta.url),"utf8");
+ const start=src.indexOf("function extendKnowledgeInBatches(");
+ const end=src.indexOf("\nself.onmessage=event=>",start);
+ let calls=0;
+ const ctx={
+  save:{},snapshot:{completed:false,finalBoard:[0],roundsCompleted:0},
+  self:{postMessage(){}},
+  continueKnowledgeRotation(_save,previous,batch){
+   calls++;
+   return {available:true,rotation:{
+    frames:[{kind:"start",board:previous.finalBoard},
+     {kind:"stage",phase:"harvest",title:"Harvest prepared T64 Sushi"}],
+    rounds:batch,completed:false,finalBoard:[calls],
+    protectedIndices:[],targetCreated:0}};
+  }
+ };
+ runInNewContext(src.slice(start,end)+
+  "\nthis.output=extendKnowledgeInBatches(save,snapshot,2400,64);",
+  ctx,{timeout:1000});
+ assert.equal(calls,400);
+ assert.equal(ctx.output.completedWaves,2400);
+ assert.equal(ctx.output.targetCreationFound,false);
+ assert.equal(ctx.output.searchLimitReached,true);
+ assert.match(ctx.output.haltReason,/refill safety limit/);
+});
