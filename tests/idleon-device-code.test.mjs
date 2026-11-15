@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import {
  DEVICE_CODE_ENDPOINT,DEVICE_TOKEN_ENDPOINT,DEVICE_SCOPES,
  DEVICE_MIN_POLL_MS,validateDeviceOAuthClient,validateDeviceOAuthConfig,DeviceAuthError,
- requestGoogleDeviceCode,pollGoogleDeviceToken,awaitGoogleDeviceApproval,waitDevicePoll
+ requestGoogleDeviceCode,describeDeviceCodeRejection,pollGoogleDeviceToken,awaitGoogleDeviceApproval,waitDevicePoll
 } from "../src/idleon-device-code.mjs";
 
 const config={
@@ -57,6 +57,31 @@ test("Device authorization requests only basic Google sign-in scopes and validat
  await assert.rejects(requestGoogleDeviceCode(config,{fetcher:async()=>mock(401,{
   error:"invalid_client"
  })}),{code:"invalid_client"});
+});
+
+test("Google device-code failures show a specific safe code and status",async()=>{
+ const rejected=describeDeviceCodeRejection({
+  error:"invalid_client",
+  error_description:"unsafe user supplied value never shown"
+ },401);
+ assert.equal(rejected.code,"invalid_client");
+ assert.match(rejected.message,/Google error: invalid_client \(HTTP 401\)/);
+ assert.match(rejected.message,/TVs and Limited Input devices/);
+ assert.doesNotMatch(rejected.message,/unsafe user supplied/);
+
+ const quota=describeDeviceCodeRejection({error_code:"rate_limit_exceeded"},403);
+ assert.equal(quota.code,"rate_limit_exceeded");
+ assert.match(quota.message,/request limit/);
+ const scope=describeDeviceCodeRejection({error:"invalid_scope"},400);
+ assert.equal(scope.code,"invalid_scope");
+ assert.match(scope.message,/scopes/);
+ const unexpected=describeDeviceCodeRejection({error:"sensitive injected: abc secret"},400);
+ assert.equal(unexpected.code,"unknown_error");
+ assert.doesNotMatch(unexpected.message,/sensitive injected/);
+
+ await assert.rejects(requestGoogleDeviceCode(config,{
+  fetcher:async()=>mock(401,{error:"invalid_client"})
+ }),error=>error.code==="invalid_client"&&/HTTP 401/.test(error.message));
 });
 
 test("Token poll reports pending, slowdown, and approval without caching refresh tokens",async()=>{
