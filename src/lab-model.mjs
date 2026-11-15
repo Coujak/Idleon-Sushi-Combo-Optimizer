@@ -145,6 +145,51 @@ export function getUpgradeRows(save){
    estimatedNextCost:atMax?null:baseNextCost*discounts.factor,costBreakdown:discounts};
  });
 }
+// Shared Knowledge EXP thresholds used by the Knowledge overview and
+// the leveling walkthrough. Costs are based on the current Knowledge level.
+export function knowledgeXpRequirement(level){
+ if(!Number.isInteger(level)||level<0)return null;
+ const amount=(3+(level+Math.pow(level,1.5)))*
+  Math.pow(1.5,Math.max(0,level-2));
+ return Number.isFinite(amount)&&amount>0?amount:null;
+}
+
+// Apply active EXP to the current Knowledge level with real overflow carry.
+// This models EXP earned in the walkthrough, not passive EXP or purchases.
+export function projectKnowledgeLevelProgress(level,xp,activeGain=0){
+ if(!Number.isInteger(level)||level<0||
+  !Number.isFinite(xp)||xp<0||
+  !Number.isFinite(activeGain)||activeGain<0)return null;
+ const originalRequired=knowledgeXpRequirement(level);
+ if(originalRequired===null)return null;
+ const currentPercent=Math.max(0,Math.min(100,xp/originalRequired*100));
+ if(activeGain===0)return {
+  currentLevel:level,currentXp:xp,currentRequired:originalRequired,currentPercent,
+  projectedLevel:level,projectedXp:xp,projectedRequired:originalRequired,
+  projectedPercent:currentPercent,levelUps:0,complete:true
+ };
+ let projectedLevel=level,remaining=xp+activeGain;
+ if(!Number.isFinite(remaining))return null;
+ let required=originalRequired,levelUps=0;
+ // Prevent pathological imports from freezing the browser.
+ while(remaining>=required&&levelUps<1000){
+  remaining-=required;projectedLevel++;levelUps++;
+  required=knowledgeXpRequirement(projectedLevel);
+  if(required===null)return {
+   currentLevel:level,currentXp:xp,currentRequired:originalRequired,currentPercent,
+   projectedLevel,projectedXp:remaining,projectedRequired:null,
+   projectedPercent:null,levelUps,complete:false
+  };
+ }
+ const complete=remaining<required;
+ return {
+  currentLevel:level,currentXp:xp,currentRequired:originalRequired,currentPercent,
+  projectedLevel,projectedXp:remaining,projectedRequired:required,
+  projectedPercent:complete?Math.max(0,Math.min(100,remaining/required*100)):null,
+  levelUps,complete
+ };
+}
+
 export function getKnowledgeRows(save){
  const s=getSushiSnapshot(save);
  return SUSHI_KNOWLEDGE.map(entry=>{
@@ -158,8 +203,7 @@ export function getKnowledgeRows(save){
   const levelKnown=levelValue!==undefined&&levelValue!==null&&levelValue!==""&&
    Number.isFinite(Number(levelValue))&&Number(levelValue)>=0;
   const xp=xpKnown?Number(xpValue):null;
-  const xpReq=levelKnown?(3+(level+Math.pow(level,1.5)))*
-   Math.pow(1.5,Math.max(0,level-2)):null;
+  const xpReq=levelKnown?knowledgeXpRequirement(level):null;
   // The EXP formula can overflow at very high levels. Keep missing or
   // unrepresentable progress unknown, never pass Infinity/NaN to the DOM.
   const hasXpProgress=discovered&&xpKnown&&levelKnown&&Number.isFinite(xpReq)&&xpReq>0;
