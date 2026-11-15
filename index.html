@@ -374,7 +374,16 @@
       <button id="knowledgePlanPrev" type="button" class="button secondary" aria-label="Previous step">Previous</button>
       <button id="knowledgePlanPlay" type="button" class="button secondary">Play</button>
       <button id="knowledgePlanNext" type="button" class="button secondary" aria-label="Next step">Next</button>
-      <label>Speed <select id="knowledgePlanSpeed" aria-label="Replay speed"><option value="1800">1×</option><option value="900">2×</option><option value="3600">0.5×</option></select></label>
+      <label class="lab-kp-speed-label" for="knowledgePlanSpeed">Speed
+        <select id="knowledgePlanSpeed" aria-label="Replay speed">
+         <option value="3600">0.5×</option>
+         <option value="2400">0.75×</option>
+         <option value="1800" selected>1×</option>
+         <option value="1200">1.5×</option>
+         <option value="900">2×</option>
+         <option value="600">3×</option>
+        </select>
+       </label>
      </div>
      <div class="lab-kp-replay-group lab-kp-replay-group-continue">
       <button id="knowledgePlanContinue" type="button" class="button primary hidden" title="Click for 5% more refills; hold to repeat, release to stop">Continue rotation</button>
@@ -403,7 +412,7 @@
   </div>
   </div>
   <div class="lab-kp-section-head"><h3>3 · Knowledge progression</h3><span class="lab-kp-estimate-tag">Estimated</span></div>
-  <p class="hint lab-kp-projection-note">Active EXP follows the selected step. Hourly rates and level estimates use the full preview.</p>
+  <p class="hint lab-kp-projection-note">Active EXP follows the selected step. Total EXP/hr and Next level are estimates from the full preview, including modeled passive EXP. Passive details remain in Plate setup.</p>
   <div class="lab-kp-progression-controls">
    <label class="lab-kp-show-zero"><input id="knowledgePlanShowZero" type="checkbox"> Show zero-EXP tiers</label>
    <div class="lab-kp-exp-legend" aria-label="Knowledge EXP progress colors">
@@ -413,7 +422,7 @@
   </div>
   <p id="knowledgePlanLevelEmpty" class="hint hidden">No tiers gain EXP in this preview. Show zero-EXP tiers to see all.</p>
   <div class="lab-table-wrap"><table class="lab-data-table lab-kp-progress-table"><thead><tr>
-   <th scope="col">Sushi tier</th><th scope="col">Active EXP · to step</th><th scope="col">Passive / day</th><th scope="col">Total / hr · est.</th><th scope="col">Next level · est.</th>
+   <th scope="col">Sushi tier</th><th scope="col">Active EXP · to step</th><th scope="col">Total EXP/hr · est.</th><th scope="col">Next level · est.</th>
   </tr></thead><tbody id="knowledgePlanLevelRows"></tbody></table></div>
  </div>
  <div id="knowledgePlanPassive" class="hidden"></div>
