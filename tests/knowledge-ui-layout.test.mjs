@@ -194,3 +194,20 @@ test("Knowledge +X Lv. badge sits inline with the green EXP bubble, not below it
  assert.match(css,/#knowledgePlanner \.lab-kp-exp-badges\{[\s\S]*?flex-wrap:nowrap/);
  assert.match(css,/#knowledgePlanner \.lab-kp-tier-level-status\{[\s\S]*?white-space:nowrap/);
 });
+
+
+test("target-creation search can be canceled beside the walkthrough board",()=>{
+ const navigation=section.split('class="lab-kp-replay-group lab-kp-replay-group-navigation"')[1]
+  .split('class="lab-kp-replay-group lab-kp-replay-group-playback"')[0];
+ assert.match(navigation,/id="knowledgePlanNextTargetCreation"/);
+ assert.match(navigation,/id="knowledgePlanTargetCancel"/);
+ assert.match(navigation,/Cancel target search/);
+ assert.match(ui,/const targetCancelButton=\$\("knowledgePlanTargetCancel"\)/);
+ assert.match(ui,/if\(skipToTarget\)showTargetSearch\(previous\.targetTier\)/);
+ assert.match(ui,/targetCancelButton\.addEventListener\("click",\(\)=>cancelButton\.click\(\)\)/);
+ assert.match(ui,/const hideTargetSearch=\(\)=>\{/);
+ assert.match(ui,/hideTargetSearch\(\);\s*hideProgress\(\)/);
+ assert.match(ui,/msg\.completedWaves\+" refills checked"/);
+ assert.match(css,/#knowledgePlanner #knowledgePlanTargetCancel\{/);
+ assert.match(css,/lab-kp-continue-status\.is-target-search/);
+});
