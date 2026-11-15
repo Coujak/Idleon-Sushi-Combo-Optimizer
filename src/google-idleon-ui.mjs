@@ -3,7 +3,7 @@
 import {
  preloadIdleonPopup,signInAndFetchIdleonSave,refreshSignedInIdleonSave,
  endIdleonSession,describeIdleonPopupError
-} from "./idleon-firebase-popup.mjs?v=1.0.2";
+} from "./idleon-firebase-popup.mjs?v=1.0.3";
 import {
  CLOUD_SAVE_REFRESH_INTERVAL_MS,formatRefreshCountdown,startCloudSaveRefresh
 } from "./idleon-refresh-schedule.mjs?v=1.0.1";
