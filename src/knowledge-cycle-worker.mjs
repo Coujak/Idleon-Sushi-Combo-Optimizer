@@ -1,6 +1,6 @@
 // Browser-local, cancelable optimizer search. The imported account JSON never
 // leaves the user's device; no network requests are made by this worker.
-import {optimizeKnowledgeRotation,continueKnowledgeRotation} from "./knowledge-rotation-optimizer.mjs?v=1.0.20";
+import {optimizeKnowledgeRotation,continueKnowledgeRotation} from "./knowledge-rotation-optimizer.mjs?v=1.0.21";
 
 function extendKnowledgeInBatches(save,snapshot,requestedWaves){
  const total=Math.max(1,Math.floor(Number(requestedWaves))||1);
