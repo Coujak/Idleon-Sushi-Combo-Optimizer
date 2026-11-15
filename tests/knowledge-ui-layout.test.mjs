@@ -175,7 +175,8 @@ test("Knowledge EXP shows level-up count and overflow without mixing level scale
 });
 test("Next targeted creation has a bounded search and never falls back to harvest",()=>{
  assert.match(ui,/const requestedWaves=skipToTarget\?/);
- assert.match(ui,/Math\.max\(24,Math\.min\(60,additionalWaves\*6\)\)/);
+ assert.match(ui,/const requestedWaves=skipToTarget\?2400:additionalWaves/);
+ assert.match(ui,/Cancel search to stop/);
  assert.match(ui,/seekTargetTier:skipToTarget\?previous\.targetTier:0/);
  assert.match(ui,/resume=targetCreation>=0\?targetCreation:/);
  assert.match(ui,/No T"\+plan\.targetTier\+" creation found/);
