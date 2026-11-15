@@ -8,8 +8,8 @@ function extendKnowledgeInBatches(save,snapshot,requestedWaves,seekTargetTier=0)
  // unlimited memory. The user can terminate this browser-local worker.
  const targetSeek=Number.isInteger(seekTargetTier)&&seekTargetTier>=1&&seekTargetTier<=64;
  const MAX_TARGET_REFILLS=2400,MAX_TARGET_FRAMES=60000;
- const total=Math.max(1,Math.min(targetSeek?MAX_TARGET_REFILLS:100000,
-  Math.floor(Number(requestedWaves))||1));
+ const requested=Math.max(1,Math.floor(Number(requestedWaves))||1);
+ const total=targetSeek?Math.min(requested,MAX_TARGET_REFILLS):requested;
  const rotations=[];
  let current={...snapshot};
  let remaining=total,completedWaves=0,haltReason="",targetCreationFound=false,
