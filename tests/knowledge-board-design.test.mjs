@@ -94,15 +94,15 @@ test("Designed Focused preparation cooks a distinct legal ingredient board",()=>
   board=step.board;
  }
 });
-test("User-facing Knowledge planner has a standalone designed-board preview",()=>{
+test("User-facing Knowledge planner shows preparation through replay without a duplicate board",()=>{
  const html=readFileSync(new URL("../index.html",import.meta.url),"utf8");
  const ui=readFileSync(new URL("../src/knowledge-leveling-ui.mjs",import.meta.url),"utf8");
- assert.match(html,/id="knowledgePlanDesign"/);
- assert.match(ui,/Recommended preparation/);
- assert.match(ui,/renderDesignedBoard\(plan\)/);
+ assert.doesNotMatch(html,/id="knowledgePlanDesign"/);
+ assert.doesNotMatch(ui,/renderDesignedBoard/);
+ assert.match(html,/id="knowledgePlanPrepared"/);
  assert.match(ui,/scenarioRequiresCleanup/);
- assert.match(ui,/p\.preparedBoard\[i\]/);
  assert.match(ui,/p\.preparedStep/);
+ assert.match(ui,/p\.pinkFireplaces/);
 });
 
 test("Different candidate ingredient offsets give distinct, legally cookable prepared boards",()=>{
