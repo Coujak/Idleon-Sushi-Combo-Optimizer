@@ -15,6 +15,21 @@ function account(){
 }
 const options={mode:"balanced",targetTier:2,rounds:2,
  fuelGeneration:1e9,fuelCapacity:10000,secondsPerCook:2,secondsPerMerge:1.5};
+test("Candidate progress reports completed evaluations with a real final total",()=>{
+ const readings=[];
+ const p=optimizeKnowledgeRotation(account(),options,x=>readings.push(x));
+ assert.equal(p.available,true,p.reason);
+ assert.ok(readings.length>1);
+ assert.equal(readings[0].completed,0);
+ const last=readings.at(-1);
+ assert.equal(last.phase,"search");
+ assert.equal(last.completed,last.total);
+ assert.ok(last.total>=p.considered);
+ for(let i=1;i<readings.length;i++){
+  assert.ok(readings[i].completed>=readings[i-1].completed);
+  assert.equal(readings[i].total,last.total);
+ }
+});
 test("Integrated Knowledge optimizer designs its own preparation without copying the imported board",()=>{
  const save=account(),p=optimizeKnowledgeRotation(save,options);
  assert.equal(p.available,true,p.reason);
