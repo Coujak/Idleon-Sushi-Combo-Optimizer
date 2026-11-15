@@ -38,6 +38,25 @@ async function parseResponse(response){
   throw new DeviceAuthError("invalid_response","Google returned an unreadable authorization response.");
  }
 }
+export function describeDeviceCodeRejection(json,status){
+ // Only Google error codes and HTTP status are displayed. Never echo
+ // arbitrary descriptions, tokens, credentials, or response bodies.
+ const raw=String(json?.error??json?.error_code??"");
+ const code=/^[a-z][a-z0-9_]{0,63}$/.test(raw)?raw:"unknown_error";
+ const http=Number.isInteger(status)&&status>=400&&status<=599?status:0;
+ const details="Google error: "+code+(http?" (HTTP "+http+")":"")+". ";
+ const reasons={
+  invalid_client:"Google rejected this OAuth client ID. Check that its application type is TVs and Limited Input devices; a Web application client cannot use this endpoint.",
+  unauthorized_client:"This OAuth client is not allowed to request device sign-in codes. Check the Google Cloud client type and authorization settings.",
+  invalid_scope:"Google rejected the requested scopes. The device client must support Google sign-in scopes.",
+  invalid_request:"Google rejected the device-code request. Check the OAuth client's configuration.",
+  org_internal:"This OAuth app is restricted to accounts in its organization.",
+  rate_limit_exceeded:"Google's device-code request limit was reached. Don't repeatedly retry; try later.",
+  access_denied:"Google has denied the device-code request."
+ };
+ return new DeviceAuthError(code,details+(reasons[code]??"Google rejected this device-code request. Check the Google Cloud OAuth client's application type and settings."));
+}
+
 export async function requestGoogleDeviceCode(config,{fetcher=fetch,signal}={}){
  const settings=validateDeviceOAuthClient(config);
  if(!settings.ready)throw new DeviceAuthError("not_configured",settings.reason);
@@ -56,8 +75,7 @@ export async function requestGoogleDeviceCode(config,{fetcher=fetch,signal}={}){
   if(error instanceof DeviceAuthError)throw error;
   throw new DeviceAuthError("network","Google's device-code service could not be reached.");
  }
- if(!response.ok)throw new DeviceAuthError(String(json?.error??"device_request_failed"),
-  "Google could not start device sign-in. Check that this is an authorized TV/limited-input OAuth client.");
+ if(!response.ok)throw describeDeviceCodeRejection(json,response.status);
  const userCode=String(json?.user_code??"");
  const deviceCode=String(json?.device_code??"");
  const verificationUrl=String(json?.verification_url??json?.verification_uri??"");
