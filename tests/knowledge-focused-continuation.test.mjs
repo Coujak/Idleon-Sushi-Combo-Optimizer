@@ -206,3 +206,56 @@ test("Prepared restores original Focused plan and cancels in-flight extensions",
  assert.equal(context.stopped,true);
  assert.equal(context.continueButton.disabled,false);
 });
+
+test("Next T64 creation search stops only on a verified T64 event, not harvest stage",()=>{
+ const src=readFileSync(new URL("../src/knowledge-cycle-worker.mjs",import.meta.url),"utf8");
+ const start=src.indexOf("function extendKnowledgeInBatches(");
+ const end=src.indexOf("\nself.onmessage=event=>",start);
+ assert.ok(start>=0&&end>start);
+ let calls=0;
+ const messages=[];
+ const ctx={
+  save:{},snapshot:{completed:false,finalBoard:[0],roundsCompleted:0},
+  self:{postMessage:message=>messages.push(message)},
+  continueKnowledgeRotation(_save,snapshot,count){
+   calls++;
+   const frames=[{kind:"start",board:snapshot.finalBoard},
+    {kind:"stage",phase:"harvest",title:"Harvest prepared T64 Sushi"},
+    {kind:"merge",events:[{kind:"merge",tier:calls===3?64:63,at:0}]}];
+   return {available:true,rotation:{valid:true,frames,
+    rounds:count,completed:false,finalBoard:[calls],
+    protectedIndices:[],targetCreated:0}};
+  }
+ };
+ runInNewContext(src.slice(start,end)+
+  "\nthis.output=extendKnowledgeInBatches(save,snapshot,60,64);",ctx,{timeout:1000});
+ assert.equal(calls,3,"A T64 harvest marker must not count as target creation");
+ assert.equal(ctx.output.targetCreationFound,true);
+ assert.equal(ctx.output.completedWaves,18);
+ assert.equal(ctx.output.rotations.length,3);
+ assert.equal(ctx.output.seekTargetTier,64);
+ assert.equal(messages.at(-1).targetCreationFound,true);
+});
+test("Next T64 creation search reports no match and stays bounded when only harvests occur",()=>{
+ const src=readFileSync(new URL("../src/knowledge-cycle-worker.mjs",import.meta.url),"utf8");
+ const start=src.indexOf("function extendKnowledgeInBatches(");
+ const end=src.indexOf("\nself.onmessage=event=>",start);
+ let calls=0;
+ const ctx={
+  save:{},snapshot:{completed:false,finalBoard:[0],roundsCompleted:0},
+  self:{postMessage(){}},
+  continueKnowledgeRotation(_save,snapshot,count){
+   calls++;
+   return {available:true,rotation:{valid:true,
+    frames:[{kind:"start"},{kind:"stage",phase:"harvest",
+     title:"Harvest prepared T64 Sushi"}],
+    rounds:count,completed:false,finalBoard:[calls],
+    protectedIndices:[],targetCreated:0}};
+  }
+ };
+ runInNewContext(src.slice(start,end)+
+  "\nthis.output=extendKnowledgeInBatches(save,snapshot,24,64);",ctx,{timeout:1000});
+ assert.equal(calls,4);
+ assert.equal(ctx.output.targetCreationFound,false);
+ assert.equal(ctx.output.completedWaves,24);
+});
