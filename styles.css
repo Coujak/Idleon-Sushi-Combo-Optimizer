@@ -4901,3 +4901,20 @@ details summary{cursor:pointer;font-size:12px;font-weight:700;color:#9eb7c9}
  background:#1d4640;border-color:#8fdfb6;
  box-shadow:inset 3px 0 0 #7ddeb3;
 }
+
+
+/* Keep target-creation cancellation visible where the user watches the board. */
+#knowledgePlanner #knowledgePlanTargetCancel{
+ background:#593538;border:1px solid #b87876;color:#ffe2de;
+ font-weight:800;
+}
+#knowledgePlanner #knowledgePlanTargetCancel:hover:not(:disabled){
+ background:#784344;border-color:#edaaa1;
+}
+#knowledgePlanner #knowledgePlanTargetCancel:focus-visible{
+ outline:2px solid #ffd0bb;outline-offset:2px;
+}
+#knowledgePlanner .lab-kp-continue-status.is-target-search{
+ border-color:#7b8e83;background:#24393d;color:#eff9ec;
+ font-weight:700;
+}
