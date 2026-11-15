@@ -1,83 +1,84 @@
-# Google sign-in: development-only test
+# Google device-code sign-in (development branch only)
 
-**Status: locally tested Google sign-in, with development-only automatic refresh not yet user-verified.** The public `main` site remains
-unchanged; JSON upload and paste remain the reliable options.
+**Status:** Working device-code implementation and test UI; **not yet verified with
+a real Google/Idleon sign-in**. The public `main` website has been restored
+to the known-good manual JSON importer. Do not release this integration to
+`main` until it authenticates successfully on GitHub Pages and the data
+matches the player's save.
 
-## Findings from real Idleon companion projects
+## Why device code?
 
-- Idleon Toolbox's published Firebase app config uses the game project
-  `idlemmo` and `idlemmo.firebaseapp.com`. Its Google sign-in uses a
-  **Google device-code flow** followed by Firebase `signInWithCredential`.
-- Corgan's public optimizer also implements device-code Google sign-in.
-- Idleoneer describes Google device-code approval and live account syncing
-  in its published release notes.
-- These examples explain why a random new Google OAuth Web client ID is
-  unlikely to work with Idleon's Firebase credentials: the Google ID token
-  must be accepted by the game project's Firebase authentication provider.
+Our prior Firebase Google popup succeeded at `localhost` but failed on
+`coujak.github.io` because the game's Firebase project does not authorize
+that website as a popup origin. Idleon Toolbox and Corgan use a
+Google OAuth **device authorization** flow instead, followed by a Firebase
+credential exchange. This is a different authorization method; it does not
+guarantee that Firebase will accept every OAuth client.
 
-The other projects' **OAuth client identifiers and client secrets are not
-our credentials**. Their availability in a public repository does not
-give Sushi Station Lab permission to reuse them.
+Google's device-code flow is intended for **TVs and Limited Input devices**.
+Google's documentation specifies a matching device client ID **and**
+client secret for the polling request. It is not interchangeable with
+a Google OAuth **Web application** client.
 
-## What the development preview does
+The user supplied the **public client ID**
+`1010237426756-l184h7psanvrhhss1hk2qcu8690kcj8d.apps.googleusercontent.com`
+for development testing. **The client's application type and authorization
+by Idleon's Firebase are not verified.** No matching client secret has
+been supplied, committed, or requested in chat.
 
-The **Sign in with Google** button sits alongside **Choose JSON file**,
-**Paste JSON**, and **Clear** in the account import panel.
+## What is implemented
 
-On a user click, it attempts `signInWithPopup` through Idleon's publicly
-published Firebase configuration. If permitted, it reads only
-`_data/<signed-in uid>` and imports the result into the existing JSON parser.
+- **Sign in with Google** appears among the import buttons in the
+  development build and opens an inline device-code form.
+- Client ID is prefilled from the user's supplied public identifier.
+  The device-client secret must be entered by the owner **locally in the
+  browser, never in chat or source control**. It is cleared on completion,
+  cancellation, failure, or Clear. No credentials are saved to browser storage.
+- **Generate sign-in code** requests a temporary code from Google's official
+  `device/code` endpoint with only `openid email profile` scopes.
+- A **Copy code** button and an official
+  [google.com/device](https://www.google.com/device) link let the user
+  approve the pending request. The app polls Google's official token endpoint,
+  respecting `interval`, `slow_down`, expiration, and cancellation.
+- Upon approval, only Google's **ID token** is passed to Firebase's
+  `signInWithCredential`. Firebase must still accept the OAuth audience and
+  authorize reading the signed-in user's own `_data/<uid>` save.
+- When successful, cloud data uses the existing JSON import parser and
+  the in-memory Firebase session can refresh every five minutes. The
+  Refresh countdown, Pause/Resume, unchanged-save detection, and Clear
+  controls are retained.
+- Google access and refresh tokens are **discarded**, and Firebase Auth
+  uses `inMemoryPersistence` so closing the tab ends the session.
+  No user passwords or OAuth access tokens are requested from the user.
 
-**Like Corgan:** After successful login, the button changes into
-**Refresh (5:00)** with a countdown, automatically re-reads the current
-cloud save every five minutes while the tab remains open, and offers
-**Pause auto-refresh / Resume auto-refresh** beneath the buttons.
-A manual click refreshes immediately. Manual JSON import or **Clear** ends
-the connection and stops the timer.
+## Testing — development branch only
 
-The Firebase Auth SDK uses **in-memory persistence**: it keeps a temporary
-session solely to permit recurring refreshes while the tab is open.
-The feature does not save tokens or passwords to localStorage, sessionStorage,
-URL parameters, or GitHub. Closing the tab discards the session.
-We do **not** use Corgan's OAuth client secret or token cache.
+1. In the development branch, **Code → Download ZIP**, extract,
+   then double-click `start-preview.bat` on Windows (requires Python 3).
+2. In **Import game data**, click **Sign in with Google**.
+3. Check that your OAuth client is of type **TVs and Limited Input devices**.
+   The supplied client ID should already be filled in.
+4. **Only in your local copy** of the preview, enter the matching
+   device-client secret, then click **Generate sign-in code**.
+   **Never** send the secret, tokens, user account identifiers, device code,
+   network requests/responses, or passwords in chat.
+5. Copy the generated Google code, open Google's approval page, approve
+   your own account, then check whether Idleon's Firebase accepts it.
+6. Verify the imported account information, five-minute refresh, Pause,
+   Resume, manual JSON import, and Clear. Share only the generic status or
+   error message if the test fails.
 
-**Likely blocker:** Idleon's Firebase project may reject
-`coujak.github.io` (or `localhost`) as an unauthorized authentication
-origin. If the page reports `auth/unauthorized-domain`, this is not a
-bug to bypass by copying credentials from a competitor. We need a
-legitimate OAuth device-code client registered for use with Idleon or
-cooperation from the game developer / an authorized integration.
+The user code is a short-lived approval code, not a password. It is shown
+only in the local browser session. If the OAuth client type is wrong,
+Google may reject the device-code request with `invalid_client`. If the
+audience is not accepted by Idleon's Firebase, login may still fail after
+Google approval. **Do not bypass authorization or reuse another website's
+OAuth client secret.**
 
-## Testing
+## References
 
-1. Open the development branch on GitHub, choose **Code → Download ZIP**,
-   and extract the archive on Windows.
-2. Double-click **start-preview.bat** in the extracted project folder.
-   It starts a local Python web server and opens `http://localhost:8765`.
-   (If Python 3 isn't installed, the launcher explains what is needed.)
-3. In **Import game data**, click **Sign in with Google**. No Google
-   Cloud setup or app identifiers are needed.
-4. If the popup succeeds, verify the save against Idleon Toolbox. The
-   button becomes **Refresh (5:00)** and counts down, updating every five
-   minutes. Test **Pause auto-refresh**, **Resume auto-refresh**, **Clear**,
-   and manual JSON import.
-5. If it fails, share only the displayed generic error text. **Never**
-   share a Google password, Firebase token, OAuth code, account ID,
-   access token, or a full network request/response.
-
-The public website is unchanged. An attempt to deploy a separate GitHub Pages
-beta preview was blocked by repository deployment restrictions, so this
-local preview is the current testing method.
-
-This attempt does not guarantee a successful sign-in. Its immediate
-purpose is to verify, with a real browser and user click, whether the
-Firebase project authorizes our website. We will not claim production
-readiness or promote the feature to `main` until that is confirmed.
-
-## Public references
-
-- [Idleon Toolbox public authentication implementation](https://github.com/Morta1/IdleonToolbox/tree/main/services/auth)
-- [Idleon Toolbox Firebase SDK configuration](https://github.com/Morta1/IdleonToolbox/blob/main/firebase/config.js)
-- [Corgan's published authentication implementation](https://github.com/Corgan/idleon-research-optimizer/tree/main/js/auth)
-- [Idleoneer release notes](https://idleoneer.com/patch-notes)
-- [Firebase: Google authentication for web](https://firebase.google.com/docs/auth/web/google-signin)
+- [Google Sign-In on TVs and Limited Input Devices](https://developers.google.com/identity/gsi/web/guides/devices)
+- [Google OAuth Device Authorization](https://developers.google.com/identity/protocols/oauth2/limited-input-device)
+- [Idleon Toolbox OAuth implementation](https://github.com/Morta1/IdleonToolbox/tree/main/services/auth)
+- [Corgan's device authentication](https://github.com/Corgan/idleon-research-optimizer/blob/main/js/auth/device-auth.js)
+- [Firebase Google credential sign-in](https://firebase.google.com/docs/auth/web/google-signin)
