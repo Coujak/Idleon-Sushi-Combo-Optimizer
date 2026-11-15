@@ -59,3 +59,19 @@ test("Combo strategy UI starts in Simple mode with real dual-direction split bar
  assert.match(code,/if\(foundInfo\|\|optimizerMode==="adaptive"\|\|/);
  assert.match(code,/if\(solution.adaptive\)/);
 });
+
+test("Choose a planner cards are full-surface accessible buttons linked to matching panels",()=>{
+ const html=readFileSync(new URL("../index.html",import.meta.url),"utf8");
+ const perfectoUI=readFileSync(new URL("../src/perfecto-ui.mjs",import.meta.url),"utf8");
+ const css=readFileSync(new URL("../styles.css",import.meta.url),"utf8");
+ for(const id of ["combo","perfecto","knowledge"]){
+  assert.match(html,new RegExp('<button type="button" class="lab-planner-card" data-planner-card="'+id+'"'));
+  assert.match(html,new RegExp('data-planner-target="'+id+'"'));
+ }
+ assert.match(perfectoUI,/document\.querySelectorAll\("\[data-planner-card\]"\)/);
+ assert.match(perfectoUI,/card\.addEventListener\("click",/);
+ assert.match(perfectoUI,/setPlannerTab\(target\)/);
+ assert.match(perfectoUI,/card\.setAttribute\("aria-pressed",String\(selected\)\)/);
+ assert.match(perfectoUI,/scrollIntoView\(\{behavior:"smooth",block:"start"\}\)/);
+ assert.match(css,/\.lab-planner-cards button\.lab-planner-card/);
+});
