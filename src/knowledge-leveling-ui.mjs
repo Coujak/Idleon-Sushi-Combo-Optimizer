@@ -750,7 +750,11 @@ export function initializeKnowledgeLevelingUI(getSave){
  function rewindKnowledgeReplay(prepared=false){
   if(!result||!controller)return;
   continueHold?.stop();
-  if(worker)stopSearch(); // Discard an in-flight continuation before rewinding.
+  if(worker){
+   stopSearch(); // Discard an in-flight continuation before rewinding.
+   continueButton.disabled=false;
+   continueButton.textContent=knowledgeContinueButtonLabel(result.roundsCompleted);
+  }
   jumpToNextRefill=false;jumpToNextHarvest=false;
   jumpToNextTargetCreation=false;
   if(result.mode==="focused"&&initialFocusedPlan&&
