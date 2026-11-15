@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {readFileSync} from "node:fs";
 import {
- validateGoogleImportConfig,unpackFirestoreValue,unpackFirestoreFields,
+ validateGoogleImportConfig,validateFirebaseProject,unpackFirestoreValue,unpackFirestoreFields,
  exchangeGoogleForIdleon,fetchAuthorizedIdleonSave,importGoogleIdleonSave
 } from "../src/google-idleon-import.mjs";
 import {GOOGLE_IDLEON_CONFIG} from "../src/google-idleon-config.mjs";
@@ -13,6 +13,7 @@ const response=(status,data)=>({ok:status>=200&&status<300,status,json:async()=>
 test("Google/Firebase integration is disabled until explicitly configured",()=>{
  assert.equal(validateGoogleImportConfig(GOOGLE_IDLEON_CONFIG).ready,false);
  assert.equal(validateGoogleImportConfig(valid).ready,true);
+ assert.equal(validateFirebaseProject({apiKey:valid.firebaseApiKey,projectId:"idlemmo"}).ready,true);
  assert.equal(validateGoogleImportConfig({...valid,clientId:""}).ready,false);
  assert.equal(validateGoogleImportConfig({...valid,firebaseApiKey:""}).ready,false);
  assert.equal(validateGoogleImportConfig({...valid,projectId:"../unsafe"}).ready,false);
@@ -82,17 +83,33 @@ test("No read is attempted after invalid Firebase credential or denied Firestore
  await assert.rejects(fetchAuthorizedIdleonSave("uid","id-token",valid,forbidden),/did not authorize access/);
  await assert.rejects(fetchAuthorizedIdleonSave("uid","id-token",valid,async()=>response(200,{fields:{Other:{integerValue:"1"}}})),/no readable Sushi Station data/);
 });
-test("Import UI remains explicit opt-in without credentials or persistent tokens",()=>{
+test("Google sign-in preview starts with one click and retains JSON fallback",()=>{
  const ui=readFileSync(new URL("../src/google-idleon-ui.mjs",import.meta.url),"utf8");
+ const popup=readFileSync(new URL("../src/idleon-firebase-popup.mjs",import.meta.url),"utf8");
  const html=readFileSync(new URL("../index.html",import.meta.url),"utf8");
  const app=readFileSync(new URL("../src/app.js",import.meta.url),"utf8");
- assert.match(ui,/scope:"openid email profile"/);
- assert.match(ui,/importGoogleIdleonSave\(response\.access_token,config\)/);
- assert.match(ui,/requestAccessToken\(\{prompt:"select_account"\}\)/);
+ assert.match(ui,/preloadIdleonPopup\(\)/);
+ assert.match(ui,/signInAndFetchIdleonSave\(\)/);
  assert.doesNotMatch(ui,/localStorage|sessionStorage|client_secret|refreshToken/);
+ assert.match(popup,/signInWithPopup\(auth,provider\)/);
+ assert.match(popup,/inMemoryPersistence/);
+ assert.match(popup,/signOut\(auth\)/);
+ assert.match(popup,/authDomain:"idlemmo.firebaseapp.com"/);
+ assert.doesNotMatch(popup,/localStorage|sessionStorage|client_secret|refreshToken/);
  assert.match(html,/id="googleIdleonPanel"/);
  assert.match(html,/id="googleIdleonConnect"[^>]*disabled/);
- assert.match(html,/DEV PREVIEW/);
+ assert.match(html,/DEV TEST/);
+ assert.match(html,/Try Google sign-in/);
+ assert.doesNotMatch(html,/googleIdleonClientId|googleIdleonApiKey/);
  assert.match(app,/initializeGoogleIdleonUI\(\(data,label\)=>importSave\(data,label\)\)/);
  assert.match(app,/googleImportUI\.clear\(\)/);
+});
+test("Popup errors explain account authorization clearly",async()=>{
+ const {describeIdleonPopupError,IDLEON_FIREBASE_PROJECT}=await import("../src/idleon-firebase-popup.mjs");
+ assert.equal(IDLEON_FIREBASE_PROJECT.projectId,"idlemmo");
+ assert.match(describeIdleonPopupError({code:"auth/unauthorized-domain"}),/not authorized this website/);
+ assert.match(describeIdleonPopupError({code:"auth/popup-blocked"}),/blocked/);
+ assert.match(describeIdleonPopupError({code:"auth/popup-closed-by-user"}),/canceled/);
+ assert.match(describeIdleonPopupError({code:"auth/invalid-credential"}),/refused/);
+ assert.match(describeIdleonPopupError({message:"PERMISSION_DENIED"}),/did not authorize/);
 });
