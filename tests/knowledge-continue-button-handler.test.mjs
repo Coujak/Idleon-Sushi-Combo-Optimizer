@@ -2,7 +2,8 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {readFileSync} from "node:fs";
 import {runInNewContext} from "node:vm";
-import {knowledgeContinuationResumeStep}
+import {knowledgeContinuationResumeStep,nextKnowledgeTargetCreationStep,
+ nextKnowledgeHarvestStep}
  from "../src/knowledge-rotation-extension.mjs";
 import {knowledgeContinueWaveCount,knowledgeContinueButtonLabel}
  from "../src/knowledge-refill-scale.mjs";
@@ -53,7 +54,9 @@ function makeHarness(refills=100){
   },
   beginProgress(){},updateProgress(){},hideProgress(){},
   renderSummary(){},renderPassive(){},showProgress(){},
-  knowledgeContinuationResumeStep,
+  knowledgeContinuationResumeStep,nextKnowledgeTargetCreationStep,
+  nextKnowledgeHarvestStep,
+  controller:{step:1},
   createReplay(plan,step){resumeIndex=step;context.result=plan;}
  };
  runInNewContext(handlerSource,context,{timeout:1000});
@@ -128,4 +131,44 @@ test("Render failures cannot leave Continue permanently disabled",()=>{
  }}});
  assert.equal(h.button.disabled,false);
  assert.match(h.inline,/Synthetic render error/);
+});
+
+test("Next T64 creation searches farther and does not jump to harvest if no T64 is made",()=>{
+ const h=makeHarness();
+ h.context.result.mode="focused";
+ h.context.result.targetTier=64;
+ h.context.jumpToNextTargetCreation=true;
+ h.button.handler();
+ assert.equal(h.context.search.payload.seekTargetTier,64);
+ assert.ok(h.context.search.payload.waves>=24);
+ h.context.search.onmessage({data:{ok:true,result:{
+  available:true,rotations:[{rounds:6}],completedWaves:6,
+  targetCreationFound:false
+ }}});
+ assert.equal(h.resumeIndex,1,"No T64 creation must keep the old visible step");
+ assert.match(h.inline,/No T64 creation found/);
+ assert.equal(h.context.result.roundsCompleted,106);
+ assert.equal(h.context.jumpToNextTargetCreation,false);
+});
+test("Next T64 creation lands on actual T64 event even if harvest comes first",()=>{
+ const h=makeHarness();
+ h.context.result.mode="focused";
+ h.context.result.targetTier=64;
+ h.context.jumpToNextTargetCreation=true;
+ h.context.combineKnowledgeContinuation=(prior,chunk)=>{
+  const steps=prior.steps.slice(0,-1).concat([
+   {kind:"stage",phase:"harvest",title:"Harvest prepared T64 Sushi"},
+   {kind:"merge",events:[{kind:"merge",tier:63,at:1}]},
+   {kind:"merge",events:[{kind:"merge",tier:64,at:1}]},
+   {kind:"partial"}
+  ]);
+  return {...prior,steps,roundsCompleted:prior.roundsCompleted+chunk.rounds,
+   highestNewTier:64};
+ };
+ h.button.handler();
+ h.context.search.onmessage({data:{ok:true,result:{
+  available:true,rotations:[{rounds:6}],targetCreationFound:true
+ }}});
+ assert.equal(h.resumeIndex,5,"Harvest marker is step 3, actual creation step 5");
+ assert.match(h.inline,/Next T64 creation at step 5/);
 });
