@@ -275,14 +275,14 @@ export function simulateContinuousKnowledgeRotation({
   // A full starter board is the foundation of Balanced, just like
   // Focused. On subsequent refills, cover missing discovered tiers
   // that can be cooked without exceeding the chosen safe base.
-  const pending=mode==="balanced"&&!["t1Climb","t2Climb"].includes(pattern)&&coverageMode==="recover"&&round>1?
+  const pending=mode==="balanced"&&!["t1Climb","t2Climb","rangeClimb"].includes(pattern)&&coverageMode==="recover"&&round>1?
    discoveredCoverage.filter(t=>gains[t]<=0&&t>guaranteedBonus&&
     t-guaranteedBonus<=requestedTier).slice(0,Math.floor(available.length/2)):[];
   record("refill","Refill "+round,
    "Carry forward "+occupied(board)+" existing Sushi; fill "+available.length+
    " empty slots without overwriting any."+
-   (mode==="balanced"&&(pattern==="t1Climb"||pattern==="t2Climb")?
-    " Lowest-tier climb: cook T"+(pattern==="t1Climb"?1:2)+" in every free slot and merge upward.":
+   (mode==="balanced"&&["t1Climb","t2Climb","rangeClimb"].includes(pattern)?
+    " Fixed-tier climb: cook T"+(pattern==="t1Climb"?1:pattern==="t2Climb"?2:requestedTier)+" in every free slot and merge upward.":
     mode==="balanced"&&round===1?
     " Starter preparation: fill every available cell with the base Sushi.":
     pending.length?" Coverage recovery: "+pending.length+
@@ -293,8 +293,8 @@ export function simulateContinuousKnowledgeRotation({
    if(i!==last+1)segment=0;
    const phase=segment+Math.max(0,Math.floor(Number(recipeOffset)||0));
    let tier=requestedTier;
-   if(mode==="balanced"&&(pattern==="t1Climb"||pattern==="t2Climb")){
-    tier=pattern==="t1Climb"?1:2;
+   if(mode==="balanced"&&["t1Climb","t2Climb","rangeClimb"].includes(pattern)){
+    tier=pattern==="t1Climb"?1:pattern==="t2Climb"?2:requestedTier;
    }else if(mode==="balanced"&&coverageUsed<pending.length*2){
     // Prepare pairs, not unique singletons; otherwise a packed board can
     // become permanently unmergeable even though it has plenty of EXP.
