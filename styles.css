@@ -4601,7 +4601,7 @@ details summary{cursor:pointer;font-size:12px;font-weight:700;color:#9eb7c9}
 }
 @media(max-width:960px){
  #knowledgePlanner .lab-kp-controls .lab-kp-passive-toggle{
-  grid-column:1/-1;
+  grid-column:2;
   justify-self:end;
  }
 }
