@@ -38,10 +38,10 @@ let customBoard=null;
 let replayCleanup=()=>{};
 let preparedOutlineCleanup=()=>{};
 let activeSearch=null;
-const PRIVATE_EXPERIMENT_14=Object.freeze({
- id:"experimental14",number:14,name:"Experiment 14.0 · Private",private:true
-});
-const selectableExperiments=[...FOUND_CONFIGURATIONS,PRIVATE_EXPERIMENT_14];
+const PRIVATE_EXPERIMENTS=Object.freeze([14,15,16].map(number=>Object.freeze({
+ id:"experimental"+number,number,name:"Experiment "+number+".0 · Private",private:true
+})));
+const selectableExperiments=[...FOUND_CONFIGURATIONS,...PRIVATE_EXPERIMENTS];
 let unlockedExperiment14=null;
 let privateReplayVisible=false;
 // The same score bubble shows provisional best scores and the final
@@ -502,7 +502,7 @@ async function showSolver(signal,foundId=null,savedOnly=false){
   const mode="descending domino";
   const foundInfo=foundId?selectableExperiments.find(config=>config.id===foundId):null;
   const privateFound=foundInfo?.private===true;
-  if(privateFound&&!unlockedExperiment14)throw Error("Unlock Experiment 14.0 before replaying.");
+  if(privateFound&&!unlockedExperiment14)throw Error("Unlock the selected private Experiment before replaying.");
   if(foundId&&!foundInfo)throw Error("Unknown found configuration");
   const optimizerMode=foundInfo?foundInfo.id:getModeInfo($("optimizerMode").value).id;
   const optimizerModeLabel=foundInfo?"Found configuration · "+foundInfo.name:
@@ -566,7 +566,7 @@ async function showSolver(signal,foundId=null,savedOnly=false){
     }else{
       prepared=foundInfo?
        [privateFound?(maxTier===64&&cap===58&&chain===25&&protectTier64?
-        buildPrivateExperiment14Candidate(unlockedExperiment14,layoutPositions):null):
+        buildPrivateExperiment14Candidate(unlockedExperiment14,layoutPositions,foundInfo.number):null):
         buildFoundConfiguration(foundId,layoutPositions,maxTier,cap,chain,protectTier64)].filter(Boolean):
        getModeCandidates(layoutPositions,maxTier,cap,selectedBase,chain,protectTier64,optimizerMode,customSettings);
     }
@@ -1434,7 +1434,8 @@ initModePicker();
 $("optimizerMode").addEventListener("change",updateOptimizerModeHint);
 $("customSplitMode").addEventListener("change",updateOptimizerModeHint);
 $("customPerSplit").addEventListener("input",updateOptimizerModeHint);
-const privateFoundSelected=()=>$("foundConfiguration").value===PRIVATE_EXPERIMENT_14.id;
+const selectedPrivateExperiment=()=>PRIVATE_EXPERIMENTS.find(item=>item.id===$("foundConfiguration").value)||null;
+const privateFoundSelected=()=>Boolean(selectedPrivateExperiment());
 function clearPrivateExperiment14(){
  unlockedExperiment14=null;
  $("privateExperiment14Password").value="";
