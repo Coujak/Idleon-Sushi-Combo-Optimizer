@@ -25,7 +25,7 @@ import {BOARD_COLUMNS,BOARD_CELLS,normalizeBoardData,layoutOptions} from "./boar
 import {windTierMaximum,clampWindTier,windTierAfterPreparedChange} from "./wind-limit.mjs?v=1.9.10";
 import {detectSushiProgress} from "./sushi-progression.mjs?v=1.17.0";
 import {initializeSushiLab} from "./lab-ui.mjs?v=1.50.58";
-import {initializeGoogleIdleonUI} from "./google-idleon-ui.mjs?v=1.0.4";
+import {initializeGoogleIdleonUI} from "./google-idleon-ui.mjs?v=1.0.5";
 import {formatCompactNumber} from "./number-format.mjs?v=1.0.1";
 import {parseSushiCurrencyExternal} from "./sushi-currency-external.mjs?v=1.0.0";
 import {sushiTierIconPath} from "./sushi-reference.mjs?v=1.16.6";
