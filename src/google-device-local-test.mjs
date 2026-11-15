@@ -59,7 +59,7 @@ export function createLocalGoogleDeviceAuth({fetcher=fetch,sleep=delay,clock=()=
   async start(clientId,clientSecret,onStatus=()=>{}){
    const seq=++generation;
    session=null;
-   if(!/^[\\w-]+\\.apps\\.googleusercontent\\.com$/.test(clientId))throw Error("Invalid Google OAuth Client ID.");
+   if(!/^[A-Za-z0-9_-]+[.]apps[.]googleusercontent[.]com$/.test(clientId))throw Error("Invalid Google OAuth Client ID.");
    if(!clientSecret?.trim())throw Error("Client Secret is needed for this local device-code test.");
    const data=await codeRequest(clientId);
    const deadline=clock()+Number(data.expires_in||1800)*1000;
