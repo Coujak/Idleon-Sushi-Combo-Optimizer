@@ -67,3 +67,32 @@ test("Balanced uses one shared dual-handle slider and EXP chips never scroll",()
  assert.match(ui,/lab-kp-plan-notes/);
  assert.match(ui,/lab-kp-formula-details/);
 });
+
+test("Knowledge can hide zero-EXP Sushi while preserving step history",()=>{
+ assert.match(section,/id="knowledgePlanShowZero" type="checkbox"/);
+ assert.doesNotMatch(section,/id="knowledgePlanShowZero"[^>]*checked/);
+ assert.match(ui,/showZero\?\.checked\|\|entry\.expPerCycle>0\|\|entry\.passiveExpPerDay>0/);
+ assert.match(ui,/showZero\?\.addEventListener\("change"/);
+ assert.match(ui,/renderVisibleActiveExp\(controller\?\.step\?\?0\)/);
+ assert.match(section,/id="knowledgePlanLevelCount"/);
+ assert.match(section,/id="knowledgePlanLevelEmpty"/);
+});
+test("Knowledge search progress and EXP overlays are tied to real data",()=>{
+ assert.match(section,/id="knowledgePlanLoadingBar"/);
+ assert.match(section,/id="knowledgePlanLoadingText"/);
+ assert.match(ui,/msg\.phase==="search"/);
+ assert.match(ui,/updateProgress\(msg\.completed,msg\.total\)/);
+ assert.match(ui,/updateProgress\(msg\.completedWaves,msg\.requestedWaves,"refills"\)/);
+ assert.match(ui,/loadBar\.removeAttribute\("value"\)/);
+ assert.match(ui,/entry\.xp\/entry\.xpReq/);
+ assert.match(ui,/display\.projected\.style\.width=additional/);
+ assert.match(section,/is-current/);
+ assert.match(section,/is-gained/);
+ assert.match(css,/lab-kp-tier-exp-new/);
+});
+test("Balanced defaults to T1–T64 even with old persisted preferences",()=>{
+ assert.match(ui,/state\.balancedStartTier=1;state\.balancedEndTier=64/);
+ assert.match(ui,/const maxTier=64/);
+ assert.match(section,/id="knowledgePlanRangeStart"[^>]*value="1"/);
+ assert.match(section,/id="knowledgePlanRangeEnd"[^>]*value="64"/);
+});
