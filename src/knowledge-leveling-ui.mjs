@@ -68,6 +68,7 @@ export function initializeKnowledgeLevelingUI(getSave){
  const board=$("knowledgePlanBoard"),tips=$("knowledgePlanTips");
  const continueButton=$("knowledgePlanContinue");
  const continueStatus=$("knowledgePlanContinueStatus");
+ const targetCancelButton=$("knowledgePlanTargetCancel");
  const announceContinuation=message=>{
   // A cached older index.html might not yet contain this optional status
   // element. Never allow a missing status label to break the action.
@@ -98,6 +99,15 @@ export function initializeKnowledgeLevelingUI(getSave){
    preservePassive:passiveToggle.checked
   }));}catch{/* Browser-local settings are optional. */}
  };
+ const hideTargetSearch=()=>{
+  targetCancelButton.classList.add("hidden");
+  continueStatus?.classList.remove("is-target-search");
+ };
+ const showTargetSearch=tier=>{
+  targetCancelButton.textContent="Cancel T"+tier+" search";
+  targetCancelButton.classList.remove("hidden");
+  continueStatus?.classList.add("is-target-search");
+ };
  const hideProgress=()=>{
   loadBox?.classList.add("hidden");
   if(loadBar){loadBar.max=100;loadBar.value=0;}
@@ -119,6 +129,7 @@ export function initializeKnowledgeLevelingUI(getSave){
  const stopSearch=()=>{
   worker?.terminate();worker=null;
   cancelButton.classList.add("hidden");
+  hideTargetSearch();
   hideProgress();
   build.disabled=!getSave();
  };
@@ -720,7 +731,7 @@ export function initializeKnowledgeLevelingUI(getSave){
    nextTarget.title="Jump to the next T"+result.targetTier+
     " creation from cooking, merging or Wind";
   }
-  nextTarget.disabled=!focused||
+  nextTarget.disabled=Boolean(worker&&jumpToNextTargetCreation)||!focused||
    nextKnowledgeTargetCreationStep(result.steps,index,result.targetTier)<0&&!canContinue;
   $("knowledgePlanPrev").disabled=index===0;
   $("knowledgePlanNext").disabled=index===result.steps.length-1&&
@@ -884,6 +895,7 @@ export function initializeKnowledgeLevelingUI(getSave){
     (error?.message??String(error));
   }
  });
+ targetCancelButton.addEventListener("click",()=>cancelButton.click());
  cancelButton.addEventListener("click",()=>{
   continueHold?.stop();
   if(worker){
@@ -939,6 +951,7 @@ export function initializeKnowledgeLevelingUI(getSave){
    "Finding next T"+previous.targetTier+" creation…":
    "Simulating +"+additionalWaves+" refills…";
   cancelButton.classList.remove("hidden");
+  if(skipToTarget)showTargetSearch(previous.targetTier);
   beginProgress(skipToTarget?
    "Searching for the next T"+previous.targetTier+" creation…":
    "Simulating additional refills…");
@@ -972,7 +985,9 @@ export function initializeKnowledgeLevelingUI(getSave){
      const message=skipToTarget?
       "Searching for T"+previous.targetTier+" creation · "+
        msg.completedWaves+" refills checked"+
-       (msg.targetCreationFound?" · Target created!":" · Cancel to stop"):
+       (msg.targetCreationFound?" · Target created!":
+        " · Use Cancel T"+previous.targetTier+" search beside Next T"+
+        previous.targetTier+" creation to stop"):
       "Simulating "+msg.completedWaves+" / "+
        msg.requestedWaves+" refills · current total "+
        msg.totalRefills+(msg.completed?
