@@ -528,7 +528,7 @@ export function initializeKnowledgeLevelingUI(getSave){
    activeContent.append(activeHeading);
    // Green is saved Knowledge EXP; blue is active EXP earned by this step.
    let expBar=null,projected=null,initialPct=0;
-   let levelStatus=null,overflowWrap=null,overflowLabel=null,overflowBar=null;
+   let levelStatus=null;
    if(Number.isFinite(entry.xp)&&Number.isFinite(entry.xpReq)&&entry.xpReq>0){
     initialPct=Math.max(0,Math.min(100,entry.xp/entry.xpReq*100));
     const progressWrap=elem("div","lab-kp-tier-exp");
@@ -547,16 +547,7 @@ export function initializeKnowledgeLevelingUI(getSave){
     projected=elem("span","lab-kp-tier-exp-new");
     projected.style.width="0%";
     expBar.append(saved,projected);
-    overflowWrap=elem("div","lab-kp-tier-exp-overflow hidden");
-    overflowLabel=elem("small","lab-kp-tier-exp-projected-label");
-    overflowBar=elem("div","lab-kp-tier-exp-projected-bar");
-    overflowBar.setAttribute("role","progressbar");
-    overflowBar.setAttribute("aria-valuemin","0");
-    overflowBar.setAttribute("aria-valuemax","100");
-    const overflowFill=elem("span","lab-kp-tier-exp-new");
-    overflowBar.append(overflowFill);
-    overflowWrap.append(overflowLabel,overflowBar);
-    progressWrap.append(levelStatus,label,expBar,overflowWrap);
+    progressWrap.append(levelStatus,label,expBar);
     activeContent.append(progressWrap);
    }
    active.append(activeContent);
@@ -564,7 +555,7 @@ export function initializeKnowledgeLevelingUI(getSave){
     "Full-preview T"+entry.tier+" EXP: "+compact(entry.expPerCycle)+
     ". Actual in-game EXP must be measured separately.";
    activeExpDisplays.set(entry.tier,{gained,created,expBar,projected,
-    levelStatus,overflowWrap,overflowLabel,overflowBar,
+    levelStatus,
     initialPct,xpReq:entry.xpReq,xp:entry.xp,level:entry.level});
    const totalRate=elem("td","",rate(entry.expPerHour));
    totalRate.title="Estimated active EXP/hr plus modeled passive EXP/hr";
@@ -585,26 +576,22 @@ export function initializeKnowledgeLevelingUI(getSave){
     const projection=projectKnowledgeLevelProgress(display.level,display.xp,exp);
     if(!projection)continue;
     const leveled=projection.levelUps>0;
-    const additional=leveled?0:Math.max(0,Math.min(100-display.initialPct,
-     (projection.projectedPercent??display.initialPct)-display.initialPct));
+    // Keep exactly one bar: after crossing the next-level threshold it
+    // remains at 100% while the +X Lv. badge shows total levels earned.
+    const additional=leveled?100-display.initialPct:
+     Math.max(0,Math.min(100-display.initialPct,
+      (projection.projectedPercent??display.initialPct)-display.initialPct));
     display.projected.style.width=additional+"%";
     display.expBar.setAttribute("aria-valuenow",
      String(Math.round((display.initialPct+additional)*10)/10));
     display.levelStatus.classList.toggle("hidden",!leveled);
-    display.overflowWrap.classList.toggle("hidden",!leveled);
     if(leveled){
-     display.levelStatus.textContent="Lv "+display.level+" → Lv "+
-      projection.projectedLevel+" (+"+projection.levelUps+
-      " level"+(projection.levelUps===1?"":"s")+")";
-     display.overflowLabel.textContent="Projected Lv "+projection.projectedLevel+
+     display.levelStatus.textContent="+"+projection.levelUps+" Lv.";
+     display.levelStatus.title="Imported Lv "+display.level+
+      " → projected Lv "+projection.projectedLevel+
       " · "+compact(projection.projectedXp)+" / "+
-      (projection.projectedRequired===null?"—":
-       compact(projection.projectedRequired))+" EXP";
-     const pct=projection.projectedPercent??0;
-     display.overflowBar.firstChild.style.width=pct+"%";
-     display.overflowBar.setAttribute("aria-valuenow",String(Math.round(pct*10)/10));
-     display.overflowBar.setAttribute("aria-label",
-      "Projected Knowledge Lv "+projection.projectedLevel+" EXP");
+      (projection.projectedRequired===null?"unknown":
+       compact(projection.projectedRequired))+" EXP carried into the projected level";
     }
     display.expBar.title="Imported Lv "+display.level+": "+
      compact(display.xp)+" / "+compact(display.xpReq)+" EXP · "+
