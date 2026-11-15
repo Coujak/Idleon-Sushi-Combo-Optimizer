@@ -4587,3 +4587,28 @@ details summary{cursor:pointer;font-size:12px;font-weight:700;color:#9eb7c9}
  #knowledgePlanner .lab-kp-tier-count{margin-left:0}
  #knowledgePlanner .lab-kp-progression-controls{gap:10px 14px}
 }
+
+/* Align Preserve passive Sushi with the selector's lower control row.
+   Reserve the right-hand grid column instead of auto-placing it beside the
+   strategy select; earlier align-self:center made the checkbox float higher. */
+#knowledgePlanner .lab-kp-controls .lab-kp-passive-toggle{
+ grid-column:3;
+ justify-self:end;
+ align-self:end;
+ width:min(100%,235px);
+ min-height:43px;
+ margin:0;
+}
+@media(max-width:960px){
+ #knowledgePlanner .lab-kp-controls .lab-kp-passive-toggle{
+  grid-column:1/-1;
+  justify-self:end;
+ }
+}
+@media(max-width:490px){
+ #knowledgePlanner .lab-kp-controls .lab-kp-passive-toggle{
+  grid-column:1;
+  justify-self:stretch;
+  width:100%;
+ }
+}
