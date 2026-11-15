@@ -4852,3 +4852,15 @@ details summary{cursor:pointer;font-size:12px;font-weight:700;color:#9eb7c9}
  #solver .merge-step{grid-template-columns:29px minmax(0,1fr) auto;column-gap:7px;padding:9px}
  #solver .merge-step-number{width:28px}
 }
+
+/* Focused Knowledge replay: jump directly to the next target-tier creation. */
+#knowledgePlanner #knowledgePlanNextTargetCreation{
+ background:#19493d;
+ border:1px solid #4e9475;
+ color:#c8f5da;
+}
+#knowledgePlanner #knowledgePlanNextTargetCreation:hover:not(:disabled){
+ background:#24624f;
+ border-color:#86d8ae;
+}
+#knowledgePlanner #knowledgePlanNextTargetCreation:disabled{opacity:.45}
