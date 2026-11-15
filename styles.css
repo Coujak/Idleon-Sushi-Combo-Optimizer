@@ -4631,15 +4631,13 @@ details summary{cursor:pointer;font-size:12px;font-weight:700;color:#9eb7c9}
  table-layout:fixed;
 }
 #knowledgePlanner .lab-kp-progress-table th:first-child,
-#knowledgePlanner .lab-kp-progress-table td:first-child{width:29%}
+#knowledgePlanner .lab-kp-progress-table td:first-child{width:28%}
 #knowledgePlanner .lab-kp-progress-table th:nth-child(2),
-#knowledgePlanner .lab-kp-progress-table td:nth-child(2){width:31%}
+#knowledgePlanner .lab-kp-progress-table td:nth-child(2){width:40%}
 #knowledgePlanner .lab-kp-progress-table th:nth-child(3),
-#knowledgePlanner .lab-kp-progress-table td:nth-child(3){width:13%}
+#knowledgePlanner .lab-kp-progress-table td:nth-child(3){width:17%}
 #knowledgePlanner .lab-kp-progress-table th:nth-child(4),
-#knowledgePlanner .lab-kp-progress-table td:nth-child(4){width:14%}
-#knowledgePlanner .lab-kp-progress-table th:nth-child(5),
-#knowledgePlanner .lab-kp-progress-table td:nth-child(5){width:13%}
+#knowledgePlanner .lab-kp-progress-table td:nth-child(4){width:15%}
 #knowledgePlanner .lab-kp-progress-table td{
  display:table-cell;
  vertical-align:middle;
@@ -4672,4 +4670,72 @@ details summary{cursor:pointer;font-size:12px;font-weight:700;color:#9eb7c9}
 }
 #knowledgePlanner .lab-kp-active-content .lab-kp-tier-exp-bar{
  box-sizing:border-box;
+}
+
+/* Knowledge playback speed: ascending numeric choices in a matched control. */
+#knowledgePlanner .lab-kp-replay-actions .lab-kp-speed-label{
+ display:inline-flex;flex-direction:row;align-items:center;gap:8px;
+ flex:0 0 auto;min-height:35px;padding:0 3px;
+ color:#b6d5d4;font-size:11px;font-weight:750;white-space:nowrap;
+}
+#knowledgePlanner .lab-kp-replay-actions #knowledgePlanSpeed{
+ box-sizing:border-box;appearance:auto;min-width:86px;min-height:35px;
+ margin:0;padding:6px 9px;border:1px solid #4b807a;
+ border-radius:8px;background:#193f3e;color:#e1f9e9;
+ font:inherit;font-size:12px;font-weight:750;
+ font-variant-numeric:tabular-nums;cursor:pointer;
+}
+#knowledgePlanner #knowledgePlanSpeed option{
+ background:#17333e;color:#e3f7ef;
+}
+#knowledgePlanner #knowledgePlanSpeed:focus-visible{
+ outline:2px solid #8ee9c7;outline-offset:2px;
+}
+
+/* Combo Meter: modern scrubber with a selected-step fill, same green family
+   as the Knowledge range but only one native, accessible input thumb. */
+#solver .merge-timeline{
+ padding:12px 14px;gap:13px;border:1px solid #375f65;
+ border-radius:12px;background:linear-gradient(125deg,#122b38,#14362f);
+}
+#solver .merge-timeline input.merge-seek{
+ -webkit-appearance:none;appearance:none;
+ min-width:95px;width:100%;height:34px;padding:0;margin:0;
+ border:0;outline-offset:3px;background:transparent;
+ --merge-seek-progress:0%;
+}
+#solver .merge-timeline input.merge-seek::-webkit-slider-runnable-track{
+ height:9px;border:1px solid #426a68;border-radius:999px;
+ background:linear-gradient(to right,#52c6a0 0%,#76dfb2 var(--merge-seek-progress),
+ #223c49 var(--merge-seek-progress),#223c49 100%);
+}
+#solver .merge-timeline input.merge-seek::-moz-range-track{
+ height:9px;border:1px solid #426a68;border-radius:999px;
+ background:linear-gradient(to right,#52c6a0 0%,#76dfb2 var(--merge-seek-progress),
+ #223c49 var(--merge-seek-progress),#223c49 100%);
+}
+#solver .merge-timeline input.merge-seek::-webkit-slider-thumb{
+ -webkit-appearance:none;appearance:none;width:20px;height:20px;
+ margin-top:-6px;border-radius:50%;border:3px solid #99edc5;
+ background:#245946;box-shadow:0 2px 6px #0008;
+ cursor:grab;
+}
+#solver .merge-timeline input.merge-seek::-moz-range-thumb{
+ width:14px;height:14px;border-radius:50%;border:3px solid #99edc5;
+ background:#245946;box-shadow:0 2px 6px #0008;cursor:grab;
+}
+#solver .merge-timeline input.merge-seek:active::-webkit-slider-thumb{cursor:grabbing}
+#solver .merge-timeline input.merge-seek:active::-moz-range-thumb{cursor:grabbing}
+#solver .merge-timeline input.merge-seek:focus-visible::-webkit-slider-thumb{
+ box-shadow:0 0 0 4px #82d9b66b;
+}
+#solver .merge-timeline input.merge-seek:focus-visible::-moz-range-thumb{
+ box-shadow:0 0 0 4px #82d9b66b;
+}
+@media(max-width:740px){
+ #solver .merge-timeline{flex-wrap:wrap;gap:10px 13px}
+ #solver .merge-timeline input.merge-seek{flex:1 0 100%}
+}
+@media(prefers-reduced-motion:reduce){
+ #solver .merge-timeline input.merge-seek{scroll-behavior:auto}
 }
