@@ -915,9 +915,9 @@ export function initializeKnowledgeLevelingUI(getSave){
   const skipToRefill=jumpToNextRefill;
   const skipToHarvest=jumpToNextHarvest;
   const skipToTarget=jumpToNextTargetCreation;
-  // One click searches successive refills until a verified target creation,
-  // a genuine stop, or the worker's memory/refill safety boundary.
-  const requestedWaves=skipToTarget?2400:additionalWaves;
+  // No arbitrary refill ceiling for Next target creation. A deterministic
+  // repeated state or lack of legal progress ends the search instead.
+  const requestedWaves=skipToTarget?null:additionalWaves;
   const nextRounds=previous.roundsCompleted+requestedWaves;
   const failContinuation=reason=>{
    continueHold?.stop();hideProgress();
@@ -942,9 +942,9 @@ export function initializeKnowledgeLevelingUI(getSave){
    "Simulating additional refills…");
   build.disabled=true;
   announceContinuation(skipToTarget?
-   "Searching successive refills for the next actual T"+
-    previous.targetTier+" creation (safety limit "+requestedWaves+
-    "). Cancel search to stop.":
+   "Searching consecutive refills for the next actual T"+
+    previous.targetTier+" creation, without a fixed refill limit. "+
+    "Cancel search to stop.":
    "Simulating +"+additionalWaves+" refills (5%) from the current board, through refill "+nextRounds+"…");
   status.textContent=skipToTarget?
    "Searching for the next T"+previous.targetTier+" creation…":
@@ -960,7 +960,13 @@ export function initializeKnowledgeLevelingUI(getSave){
     // Progress messages do not end the worker. A single +5% click can
     // contain many short, validated refill batches.
     if(msg?.progress){
-     updateProgress(msg.completedWaves,msg.requestedWaves,"refills");
+     if(skipToTarget){
+      // No fixed total means the search progress is intentionally
+      // indeterminate; display actual completed refills instead of %.
+      if(loadText)loadText.textContent=msg.completedWaves+
+       " refills checked · searching for T"+previous.targetTier+
+       (msg.targetCreationFound?" · creation found":" · cancel anytime");
+     }else updateProgress(msg.completedWaves,msg.requestedWaves,"refills");
      const message=skipToTarget?
       "Searching for T"+previous.targetTier+" creation · "+
        msg.completedWaves+" refills checked"+
@@ -984,6 +990,9 @@ export function initializeKnowledgeLevelingUI(getSave){
       msg.result.rotations:msg.result.rotation?[msg.result.rotation]:[];
      if(!rotations.length)throw Error("No valid refill batches were generated");
      let plan=previous;
+     if(msg.result.checkpoint)
+      plan=combineKnowledgeContinuation(plan,msg.result.checkpoint,
+       msg.result.checkpoint.rounds);
      for(const chunk of rotations)
       plan=combineKnowledgeContinuation(plan,chunk,chunk.rounds);
      if(plan.steps.length<=previous.steps.length)
@@ -1033,7 +1042,7 @@ export function initializeKnowledgeLevelingUI(getSave){
        "No T"+plan.targetTier+" creation after "+progressed+
         " simulated refills. The replay position has been preserved. "+
         (msg.result.searchLimitReached?
-         "The safety limit was reached; click again to continue searching.":
+         "Search was stopped for resource safety; you may continue searching.":
          "The simulation stopped: "+(msg.result.haltReason??plan.haltReason??"no further legal actions.")):
       message;
      announceContinuation(finalMessage);
