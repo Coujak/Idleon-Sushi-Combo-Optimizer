@@ -1051,11 +1051,22 @@ async function showSolver(signal,foundId=null,savedOnly=false){
   const shortcuts=document.createElement("p");shortcuts.className="hint merge-shortcuts";
   shortcuts.textContent="Keyboard: focus the replay panel, then ← / → = previous / next, Space = play or pause, W = next Wind. Click a step on the right to jump directly.";
   left.append(shortcuts);
-  const right=document.createElement("div");right.className="merge-step-list";right.setAttribute("aria-label","Merge steps");
+  const right=document.createElement("section");
+  right.className="merge-step-list";
+  right.setAttribute("aria-label","Merge step checklist");
   const listHeader=document.createElement("div");listHeader.className="merge-step-list-heading";
+  const listTitleGroup=document.createElement("div");listTitleGroup.className="merge-step-list-title";
   const listTitle=document.createElement("strong");listTitle.textContent="Step checklist";
-  const copySteps=document.createElement("button");copySteps.type="button";copySteps.className="button quiet";copySteps.textContent="Copy steps";
-  listHeader.append(listTitle,copySteps);right.append(listHeader);
+  const listProgress=document.createElement("small");listProgress.className="merge-step-list-progress";
+  listProgress.textContent="0 / "+result.moves.length+" steps";
+  listTitleGroup.append(listTitle,listProgress);
+  const copySteps=document.createElement("button");
+  copySteps.type="button";copySteps.className="button quiet";copySteps.textContent="Copy steps";
+  const listBody=document.createElement("div");listBody.className="merge-step-items";
+  listBody.setAttribute("role","group");
+  listBody.setAttribute("aria-label","Choose a merge step");
+  listHeader.append(listTitleGroup,copySteps);
+  right.append(listHeader,listBody);
   layout.append(left,right);root.append(layout);
   const cumulative=[0];for(const m of result.moves)cumulative.push(cumulative[cumulative.length-1]+m.score);
   const replayGuide=buildReplayGuide(solution.board,result.moves,COLUMNS);
@@ -1205,36 +1216,56 @@ async function showSolver(signal,foundId=null,savedOnly=false){
         },timing.travelMs);
       }
     }
+    listProgress.textContent=selected+" / "+result.moves.length+" steps";
     stepButtons.forEach((button,i)=>{
-      button.classList.toggle("selected",i===selected);
-      button.classList.toggle("completed",i>0&&i<selected);
-      button.classList.toggle("up-next",i===selected+1);
-      button.setAttribute("aria-current",i===selected?"step":"false");
+      const current=i===selected,completed=i>0&&i<selected,nextUp=i===selected+1;
+      button.classList.toggle("selected",current);
+      button.classList.toggle("completed",completed);
+      button.classList.toggle("up-next",nextUp);
+      button.setAttribute("aria-current",current?"step":"false");
+      const marker=button.querySelector(".merge-step-status");
+      if(marker)marker.textContent=current?"CURRENT":completed?"✓":nextUp?"NEXT":"";
     });
-    // Only scroll the checklist, not the entire page while autoplay runs.
+    // Keep the selected checklist item visible without moving the page.
     const active=stepButtons[selected];
     if(active){
-      const listBounds=right.getBoundingClientRect();
+      const listBounds=listBody.getBoundingClientRect();
       const itemBounds=active.getBoundingClientRect();
-      if(itemBounds.top<listBounds.top+45)
-        right.scrollTop+=itemBounds.top-listBounds.top-70;
-      else if(itemBounds.bottom>listBounds.bottom)
-        right.scrollTop+=itemBounds.bottom-listBounds.bottom+12;
+      if(itemBounds.top<listBounds.top+8)
+        listBody.scrollTop+=itemBounds.top-listBounds.top-8;
+      else if(itemBounds.bottom>listBounds.bottom-8)
+        listBody.scrollTop+=itemBounds.bottom-listBounds.bottom+8;
     }
   }
-  function addStep(title,detail,index){
-    const button=document.createElement("button");button.type="button";button.className="merge-step";
+  function addStep(title,detail,index,{wind=false,risk=false}={}){
+    const button=document.createElement("button");
+    button.type="button";button.className="merge-step";
+    button.dataset.step=String(index);
+    if(wind)button.classList.add("has-wind");
+    if(risk)button.classList.add("has-timing-risk");
+    const number=document.createElement("span");
+    number.className="merge-step-number";number.textContent=String(index);
+    const content=document.createElement("span");content.className="merge-step-content";
     const name=document.createElement("strong");name.textContent=title;
-    const description=document.createElement("span");description.textContent=detail;
-    button.append(name,description);button.addEventListener("click",()=>player.goTo(index));
-    right.append(button);stepButtons.push(button);
+    const description=document.createElement("span");
+    description.className="merge-step-detail";description.textContent=detail;
+    content.append(name,description);
+    const marker=document.createElement("span");
+    marker.className="merge-step-status";
+    marker.setAttribute("aria-hidden","true");
+    button.append(number,content,marker);
+    button.addEventListener("click",()=>player.goTo(index));
+    listBody.append(button);stepButtons.push(button);
   }
-  addStep("Step 0 · Prepared board","All sushi positioned; combo not started",0);
+  addStep("Prepared board","All Sushi positioned · combo not started",0);
   replayGuide.forEach((item,i)=>{
-    addStep("Step "+item.step+" · "+item.action+" · "+item.short,
-      "+"+formatCompactNumber(item.score)+" pts · "+item.windUpgrades+
-      " Wind · Total "+formatCompactNumber(cumulative[i+1])+
-      " · "+(timing.events[i].safe?"Timing OK":"Timeout risk"),item.step);
+    const risk=!timing.events[i].safe;
+    addStep(item.action+" · "+item.short,
+      "+"+formatCompactNumber(item.score)+" pts · "+
+      (item.windUpgrades?item.windUpgrades+" Wind · ":"")+
+      "Total "+formatCompactNumber(cumulative[i+1])+
+      (risk?" · Timeout risk":""),
+      item.step,{wind:item.windUpgrades>0,risk});
   });
   function showPlaybackState(playing){
     playButton.textContent=playing?"⏸ Pause":"▶ Play";
