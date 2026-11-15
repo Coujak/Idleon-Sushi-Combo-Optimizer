@@ -5,7 +5,7 @@ import {
  refreshSignedInIdleonSave,endIdleonSession,describeIdleonPopupError
 } from "./idleon-firebase-popup.mjs?v=1.0.4";
 import {
- requestGoogleDeviceCode,awaitGoogleDeviceApproval,validateDeviceOAuthConfig
+ requestGoogleDeviceCode,awaitGoogleDeviceApproval,validateDeviceOAuthClient,validateDeviceOAuthConfig
 } from "./idleon-device-code.mjs?v=1.0.0";
 import {
  CLOUD_SAVE_REFRESH_INTERVAL_MS,formatRefreshCountdown,startCloudSaveRefresh
@@ -26,7 +26,7 @@ export function initializeGoogleIdleonUI(onSave){
 
  let ready=false,busy=false,connected=false,paused=false,generation=0;
  let remaining=CLOUD_SAVE_REFRESH_INTERVAL_MS,lastSaveVersion=null;
- let stopRefresh=()=>{},authorizationController=null;
+ let stopRefresh=()=>{},authorizationController=null,pendingDevice=null;
  const versionOf=save=>save.updatedAt||JSON.stringify(save.data);
 
  const update=(message,state="idle")=>{
@@ -38,6 +38,9 @@ export function initializeGoogleIdleonUI(onSave){
  const stopAuthorization=()=>{
   authorizationController?.abort();
   authorizationController=null;
+  pendingDevice=null;
+  start.textContent="Generate sign-in code";
+  copy.textContent="Copy code";
   clientInput.value=clientInput.defaultValue;
   secretInput.value="";
   code.textContent="";
@@ -126,31 +129,34 @@ export function initializeGoogleIdleonUI(onSave){
 
  start.addEventListener("click",async()=>{
   if(!ready||busy||connected)return;
-  const config={
-   clientId:clientInput.value.trim(),clientSecret:secretInput.value.trim()
-  };
-  const verdict=validateDeviceOAuthConfig(config);
-  if(!verdict.ready){
-   update(verdict.reason,"error");
-   return;
-  }
+  const config={clientId:clientInput.value.trim(),clientSecret:secretInput.value.trim()};
+  const verdict=pendingDevice?validateDeviceOAuthConfig(config):validateDeviceOAuthClient(config);
+  if(!verdict.ready){update(verdict.reason,"error");return;}
   const requestId=++generation;
   authorizationController?.abort();
   const controller=new AbortController();
   authorizationController=controller;
   busy=true;
   render();
-  update("Requesting a temporary code directly from Google…","busy");
-  waiting.textContent="Waiting for Google approval…";
   try{
-   const device=await requestGoogleDeviceCode(config,{signal:controller.signal});
-   if(requestId!==generation)return;
-   // Never keep the client secret in a DOM element after initiating sign-in.
+   if(!pendingDevice){
+    // Google's device-code request needs only the public client ID.
+    update("Requesting a temporary sign-in code directly from Google…","busy");
+    const device=await requestGoogleDeviceCode(config,{signal:controller.signal});
+    if(requestId!==generation)return;
+    pendingDevice=device;
+    code.textContent=device.userCode;
+    approval.classList.remove("hidden");
+    start.textContent="Check approval and connect";
+    waiting.textContent="Approve the code on Google, then enter the matching device-client secret above and click Check approval and connect.";
+    update("Google sign-in code generated. Approve it on google.com/device.","ok");
+    return;
+   }
+   // Polling for approval requires a matching device-client secret. Never persist it.
+   const device=pendingDevice;
    secretInput.value="";
-   code.textContent=device.userCode;
-   setup.classList.add("hidden");
-   approval.classList.remove("hidden");
-   update("Approve the code on google.com/device to continue.","busy");
+   start.textContent="Checking Google approval…";
+   update("Waiting for Google to approve the sign-in code…","busy");
    const googleIdToken=await awaitGoogleDeviceApproval(config,device,{
     signal:controller.signal,
     onProgress:({remainingMs})=>{
@@ -176,9 +182,9 @@ export function initializeGoogleIdleonUI(onSave){
    const message=error?.name==="DeviceAuthError"?
     error.message:describeIdleonPopupError(error);
    update(message,"error");
-   setup.classList.remove("hidden");
+   pendingDevice=null;
+   start.textContent="Generate sign-in code";
    approval.classList.add("hidden");
-   // Failure requires a fresh code; no token or client secret is cached.
    secretInput.value="";
    code.textContent="";
   }finally{
