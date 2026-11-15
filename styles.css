@@ -3554,3 +3554,44 @@ details summary{cursor:pointer;font-size:12px;font-weight:700;color:#9eb7c9}
  font-weight:650;
 }
 #lab-knowledge .lab-knowledge-row-checkpoint td:first-child{box-shadow:inset 3px 0 0 #6ea5b5}
+
+
+/* Google device sign-in: matched to Sushi Station Lab dark panels. */
+.google-local-panel{margin-top:14px;padding:18px 20px;border:1px solid #315164;border-radius:12px;background:linear-gradient(150deg,#162735,#14212e 72%);color:#e2f3f5}
+.google-local-heading{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap}
+.google-local-heading h3{margin:4px 0 5px;font-size:18px;letter-spacing:-.02em}
+.google-local-lead{margin:0;color:#a9c5d3;font-size:12px;line-height:1.5}
+.google-local-state{border-radius:999px;border:1px solid #3d5967;background:#203341;padding:5px 11px;color:#bdd1dc;font-weight:700;font-size:11px;white-space:nowrap}
+.google-local-state[data-state=waiting]{background:#254035;border-color:#537e68;color:#b8efd4}
+.google-local-state[data-state=success]{background:#174c3c;border-color:#4b9978;color:#c4ffe3}
+.google-local-state[data-state=error]{background:#472d33;border-color:#96545b;color:#ffc0c0}
+.google-local-form{display:flex;align-items:flex-end;flex-wrap:wrap;gap:10px;margin-top:18px}
+.google-local-field{display:flex;flex-direction:column;gap:7px;flex:1 1 220px;min-width:0;font-size:11px;font-weight:700;color:#bad0df}
+.google-local-field:first-child{flex:2 1 310px}
+.google-local-field small{font-weight:500;color:#8fa9b7}
+.google-local-field input{box-sizing:border-box;min-height:38px;width:100%;padding:8px 10px;border:1px solid #3d5768;border-radius:7px;background:#11212c;color:#e8f7fb;font-size:12px;outline:none}
+.google-local-field input:focus-visible{border-color:#68d7ba;box-shadow:0 0 0 2px #68d7ba30}
+.google-local-form>.button{min-height:38px;flex:0 0 auto}
+.google-local-code-card{display:flex;flex-direction:column;gap:10px;border:1px solid #356556;background:#182e2d;border-radius:10px;padding:16px;margin-top:17px}
+.google-local-code-card.hidden{display:none}
+.google-local-step-heading{display:flex;gap:10px;align-items:flex-start;margin-top:4px}
+.google-local-step-heading strong{font-size:12px;color:#e4f7f0}
+.google-local-step-heading p{margin:4px 0 0;font-size:11px;line-height:1.5;color:#a8c9c4}
+.google-local-step-number{height:23px;width:23px;flex:0 0 23px;display:grid;place-items:center;border-radius:50%;border:1px solid #4b9276;background:#234f40;color:#beffde;font-weight:800;font-size:12px}
+.google-local-code-row{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;padding:10px 12px;margin:2px 0 8px 33px;background:#0e2527;border:1px solid #4b8773;border-radius:8px}
+#googleLocalCode{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:22px;letter-spacing:.1em;color:#d3ffe8;user-select:all;overflow-wrap:anywhere}
+#googleLocalCopy.is-copied{border-color:#4b9978;color:#b7ffd8}
+#googleLocalOpen{align-self:flex-start;margin:0 0 6px 33px;text-decoration:none}
+.google-local-feedback{display:flex;align-items:flex-start;gap:10px;margin-top:14px;border:1px solid #36505f;background:#192b39;border-radius:8px;padding:10px 12px;color:#c4dce3}
+.google-local-feedback p{margin:0;font-size:12px;line-height:1.55;overflow-wrap:anywhere}
+.google-local-indicator{flex:0 0 8px;height:8px;border-radius:50%;margin-top:5px;background:#869da9}
+.google-local-feedback[data-state=waiting]{border-color:#477761;background:#1c352d;color:#d2f5dd}
+.google-local-feedback[data-state=waiting] .google-local-indicator{background:#70d7a5;box-shadow:0 0 0 4px #70d7a522}
+.google-local-feedback[data-state=success]{border-color:#4d8f70;background:#1a382e;color:#c4ffdc}
+.google-local-feedback[data-state=success] .google-local-indicator{background:#72eab2}
+.google-local-feedback[data-state=error]{border-color:#90535a;background:#3b272e;color:#ffd3d3}
+.google-local-feedback[data-state=error] .google-local-indicator{background:#f99ba3}
+.google-local-footer{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-top:12px;color:#9ab8c4;font-size:11px}
+.google-local-tools{display:flex;gap:8px;flex-wrap:wrap}
+.google-local-privacy{border-top:1px solid #2d4655;margin:15px 0 0;padding-top:12px;color:#87a9b6;font-size:10.5px;line-height:1.55}
+@media(max-width:680px){.google-local-panel{padding:14px}.google-local-form>.button{width:100%}.google-local-code-row{margin-left:0}#googleLocalCode{font-size:18px}#googleLocalOpen{margin-left:0}.google-local-tools{width:100%}}
