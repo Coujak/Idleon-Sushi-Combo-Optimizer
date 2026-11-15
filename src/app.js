@@ -315,47 +315,93 @@ const googleButton=$("googleLocalConnect"),googleStatus=$("googleLocalStatus");
 const googleCode=$("googleLocalCode"),googleOpen=$("googleLocalOpen");
 const googleRefresh=$("googleLocalRefresh"),googleDisconnect=$("googleLocalDisconnect");
 const googleSecret=$("googleLocalSecret"),googleClient=$("googleLocalClient");
+const googleCopy=$("googleLocalCopy"),googleCard=$("googleLocalCodeCard");
+const googleBadge=$("googleLocalBadge"),googleFeedback=$("googleLocalFeedback");
 let googleAttempt=0,googleTimer=null,googleBusy=false;
-function googleReport(message){googleStatus.textContent=message;}
+function googleReport(message,explicitState){
+ googleStatus.textContent=message;
+ const state=explicitState||
+  (/failed|rejected|expired|denied|error|unavailable/i.test(message)?"error":
+   /successfully|connected|updated/i.test(message)?"success":
+   /waiting|requesting|checking|approved|refreshing|poll/i.test(message)?"waiting":"idle");
+ googleFeedback.dataset.state=state;
+ googleBadge.dataset.state=state;
+ googleBadge.textContent=state==="success"?"Connected":state==="waiting"?"Connecting…":
+  state==="error"?"Connection failed":"Not connected";
+}
 function googleStopTimer(){if(googleTimer!==null){clearInterval(googleTimer);googleTimer=null;}}
 function googleControls(){
  googleButton.disabled=googleBusy;
+ googleButton.textContent=googleBusy?"Connecting…":"Sign in with Google";
  googleRefresh.disabled=googleBusy||!googleDev.isConnected();
  googleDisconnect.disabled=!googleDev.isConnected()&&!googleBusy;
 }
+function googleResetCode(){
+ googleCode.textContent="";
+ googleCopy.disabled=true;googleCopy.textContent="Copy code";
+ googleCard.classList.add("hidden");
+ googleOpen.classList.add("hidden");
+}
+googleCopy?.addEventListener("click",async()=>{
+ const code=googleCode.textContent.trim();
+ if(!code)return;
+ try{
+  if(navigator.clipboard?.writeText)await navigator.clipboard.writeText(code);
+  else{
+   const temp=document.createElement("textarea");
+   temp.value=code;temp.setAttribute("readonly","");
+   temp.style.position="fixed";temp.style.opacity="0";
+   document.body.appendChild(temp);temp.select();
+   const copied=document.execCommand("copy");temp.remove();
+   if(!copied)throw Error("Clipboard unavailable");
+  }
+  googleCopy.textContent="Copied!";
+  googleCopy.classList.add("is-copied");
+  // Reset on the next generated code, rather than an arbitrary timeout.
+ }catch{
+  googleCopy.textContent="Select code to copy";
+  const selection=window.getSelection();
+  const range=document.createRange();
+  range.selectNodeContents(googleCode);selection.removeAllRanges();selection.addRange(range);
+ }
+});
 async function googleLoad(data,label){
- importSave(data,label);googleReport("Idleon cloud save loaded successfully · Refreshes every 5 minutes.");
+ importSave(data,label);
+ googleReport("Idleon cloud save loaded successfully · Refreshes every 5 minutes.","success");
 }
 async function googleRefreshSave(){
  if(googleBusy||!googleDev.isConnected())return;
- googleBusy=true;googleControls();googleReport("Refreshing Idleon cloud save…");
+ googleBusy=true;googleControls();googleReport("Refreshing Idleon cloud save…","waiting");
  try{await googleLoad(await googleDev.refresh(),"Google cloud save (refreshed)");}
- catch(e){googleReport("Refresh failed: "+String(e.message||e));}
+ catch(e){googleReport("Refresh failed: "+String(e.message||e),"error");}
  finally{googleBusy=false;googleControls();}
 }
 googleButton?.addEventListener("click",async()=>{
  if(googleBusy)return;
  const clientId=googleClient.value.trim();
  const secret=googleSecret.value.trim();
- googleSecret.value=""; // Never retain the secret in the input after starting.
+ googleSecret.value="";
  googleStopTimer();googleDev.signOut();googleBusy=true;googleControls();
- googleCode.textContent="";googleOpen.classList.add("hidden");
- googleReport("Requesting Google device code…");
+ googleResetCode();googleCopy.classList.remove("is-copied");
+ googleReport("Requesting a sign-in code from Google…","waiting");
  const attempt=++googleAttempt;
  try{
-  const flow=await googleDev.start(clientId,secret,googleReport);
+  const flow=await googleDev.start(clientId,secret,message=>{
+   if(attempt===googleAttempt)googleReport(message,"waiting");
+  });
   if(attempt!==googleAttempt)return;
   googleCode.textContent=flow.userCode;
+  googleCopy.disabled=false;
+  googleCard.classList.remove("hidden");
   googleOpen.href=flow.verificationUrl;
   googleOpen.classList.remove("hidden");
-  googleReport("Google sign-in code generated. Approve it on google.com/device. Checking automatically…");
-  // The promise continues polling while the user approves on a separate tab.
+  googleReport("Code ready. Approve it at google.com/device — checking automatically…","waiting");
   const save=await flow.complete;
   if(attempt!==googleAttempt||!save)return;
   await googleLoad(save,"Google cloud save");
   googleTimer=setInterval(()=>{void googleRefreshSave();},5*60*1000);
  }catch(e){
-  if(attempt===googleAttempt)googleReport("Google login failed: "+String(e.message||e));
+  if(attempt===googleAttempt)googleReport("Google login failed: "+String(e.message||e),"error");
  }finally{
   if(attempt===googleAttempt){googleBusy=false;googleControls();}
  }
@@ -363,8 +409,9 @@ googleButton?.addEventListener("click",async()=>{
 googleRefresh?.addEventListener("click",()=>{void googleRefreshSave();});
 googleDisconnect?.addEventListener("click",()=>{
  googleAttempt++;googleStopTimer();googleDev.signOut();googleSecret.value="";
- googleBusy=false;googleCode.textContent="";googleOpen.classList.add("hidden");
- googleReport("Disconnected. Imported data remains until you clear it.");googleControls();
+ googleBusy=false;googleResetCode();
+ googleReport("Disconnected. Imported data remains until you clear it.","idle");
+ googleControls();
 });
 googleControls();
 $("pasteToggle").addEventListener("click",()=>{const open=$("pasteArea").classList.toggle("hidden")===false;$("pasteToggle").setAttribute("aria-expanded",String(open));if(open)$("jsonInput").focus();});
