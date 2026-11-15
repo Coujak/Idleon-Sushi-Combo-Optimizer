@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Idleon Sushi Station Lab</title><link rel="stylesheet" href="styles.css?v=1.50.16"></head>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Idleon Sushi Station Lab</title><link rel="stylesheet" href="styles.css?v=1.50.17"></head>
 <body><main class="shell"><header class="hero"><div class="hero-copy"><div class="eyebrow hero-eyebrow"><span class="eyebrow-dot"></span> IDLEON · SUSHI STATION TOOLKIT</div><h1>Sushi Station <span>Lab</span></h1><p>Your Sushi Station companion: explore your account, plan the next upgrade, study knowledge tiers, and optimize your Combo Meter.</p><div class="hero-chips"><span>✦ Account overview</span><span>↗ Combo Meter planner</span><span>◈ Upgrade & Knowledge guides</span></div></div><div class="hero-visual" aria-hidden="true"><div class="hero-orbit"></div><img src="assets/sushi/Leviathan%20Roll%20(Tier%2058).png" alt=""><div class="hero-visual-label">TIER 58</div></div></header>
 <nav class="lab-navigation" aria-label="Sushi Station sections" role="tablist">
 <button type="button" class="lab-nav-button" role="tab" data-lab-target="overview" aria-controls="lab-overview" aria-selected="true">Overview</button>
@@ -12,17 +12,28 @@
 <section class="panel" id="importPanel"><div class="heading"><div><div class="eyebrow">01 · YOUR SAVE</div><h2>Import game data</h2></div><span id="importStatus" class="status" role="status">Waiting for data</span></div>
 <div class="actions"><label class="button secondary" for="jsonFile">Choose JSON file</label><input id="jsonFile" type="file" accept=".json,.txt,application/json,text/plain"><button id="pasteToggle" class="button secondary" type="button" aria-expanded="false">Paste JSON</button><button id="clearImport" class="button quiet" type="button">Clear</button></div>
 <div id="pasteArea" class="paste-area hidden"><textarea id="jsonInput" spellcheck="false" placeholder="Paste your game save / raw game JSON here…"></textarea><button id="parseJson" class="button primary" type="button">Import JSON</button></div>
-<details class="google-local-test" style="margin-top:12px"><summary>Google device sign-in · Local development test</summary>
-<p class="hint">Experimental browser-only device authorization. The Client Secret is used in this browser session, never saved or committed. Do not use a production secret on an untrusted page. Idleon Firebase may still reject the account.</p>
-<div class="actions" style="align-items:flex-end;flex-wrap:wrap">
-<label style="display:grid;gap:5px">OAuth Client ID<input id="googleLocalClient" style="min-width:290px;max-width:100%" autocomplete="off" value="28283905383-j3n3genb5rour1tcpkqjjc0v6f27c2p8.apps.googleusercontent.com"></label>
-<label style="display:grid;gap:5px">OAuth Client Secret (runtime only)<input id="googleLocalSecret" type="password" autocomplete="off" spellcheck="false" placeholder="Paste local test secret"></label>
-<button id="googleLocalConnect" type="button" class="button secondary">Sign in with Google</button>
-<button id="googleLocalRefresh" type="button" class="button quiet" disabled>Refresh save</button>
-<button id="googleLocalDisconnect" type="button" class="button quiet" disabled>Disconnect</button></div>
-<p><strong id="googleLocalCode" style="font-family:monospace;letter-spacing:0.12em"></strong> <a id="googleLocalOpen" class="hidden" href="https://www.google.com/device" rel="noopener noreferrer" target="_blank">Open google.com/device</a></p>
-<p id="googleLocalStatus" role="status" aria-live="polite">Not connected</p>
-</details><p id="importError" class="timing-bad hidden" role="alert"></p><div id="importSummary" class="summary hidden"></div><p class="privacy">🔒 JSON imports are processed locally in your browser. Your save is not uploaded.</p><details><summary>Raw data / parser diagnostics</summary><pre id="jsonPreview">No JSON imported yet.</pre></details></section>
+<section class="google-local-panel" aria-labelledby="googleLocalTitle">
+<div class="google-local-heading">
+ <div><div class="eyebrow">OPTIONAL · EXPERIMENTAL</div><h3 id="googleLocalTitle">Connect with Google</h3>
+ <p class="google-local-lead">Import your Sushi Station save with a device code. No need to paste JSON after connecting.</p></div>
+ <span class="google-local-state" id="googleLocalBadge" data-state="idle">Not connected</span>
+</div>
+<div class="google-local-form">
+ <label class="google-local-field"><span>OAuth Client ID</span><input id="googleLocalClient" autocomplete="off" spellcheck="false" value="28283905383-j3n3genb5rour1tcpkqjjc0v6f27c2p8.apps.googleusercontent.com"></label>
+ <label class="google-local-field"><span>OAuth Client Secret <small>Local test only</small></span><input id="googleLocalSecret" type="password" autocomplete="off" spellcheck="false" placeholder="Enter client secret for this session"></label>
+ <button id="googleLocalConnect" type="button" class="button primary">Sign in with Google</button>
+</div>
+<div class="google-local-code-card hidden" id="googleLocalCodeCard">
+ <div class="google-local-step-heading"><span class="google-local-step-number">1</span><div><strong>Copy your sign-in code</strong><p>Use this code on Google's secure device authorization page.</p></div></div>
+ <div class="google-local-code-row"><strong id="googleLocalCode" aria-label="Google device authorization code"></strong><button id="googleLocalCopy" type="button" class="button secondary" disabled>Copy code</button></div>
+ <div class="google-local-step-heading"><span class="google-local-step-number">2</span><div><strong>Approve your Google account</strong><p>Open Google's website, enter your code, then return here.</p></div></div>
+ <a id="googleLocalOpen" class="button secondary hidden" href="https://www.google.com/device" rel="noopener noreferrer" target="_blank">Open google.com/device ↗</a>
+ <div class="google-local-step-heading"><span class="google-local-step-number">3</span><div><strong>Automatic confirmation</strong><p>The website checks for approval every few seconds. No extra button needed.</p></div></div>
+</div>
+<div class="google-local-feedback" id="googleLocalFeedback" data-state="idle"><span class="google-local-indicator" aria-hidden="true"></span><p id="googleLocalStatus" role="status" aria-live="polite">Not connected. Your JSON import options above remain available.</p></div>
+<div class="google-local-footer"><span>Refreshes every 5 minutes after connecting</span><div class="google-local-tools"><button id="googleLocalRefresh" type="button" class="button quiet" disabled>Refresh now</button><button id="googleLocalDisconnect" type="button" class="button quiet" disabled>Disconnect</button></div></div>
+<p class="google-local-privacy">Local development test. OAuth credentials and tokens are not saved by this feature. Idleon's Firebase may reject an OAuth client that is not authorized for its project.</p>
+</section><p id="importError" class="timing-bad hidden" role="alert"></p><div id="importSummary" class="summary hidden"></div><p class="privacy">🔒 JSON imports are processed locally in your browser. Your save is not uploaded.</p><details><summary>Raw data / parser diagnostics</summary><pre id="jsonPreview">No JSON imported yet.</pre></details></section>
 <section class="panel lab-welcome-panel"><div class="heading"><div><div class="eyebrow">SUSHI STATION · OVERVIEW</div><h2>Account dashboard</h2></div><span id="overviewImportTime" class="status" title="Shows when the JSON was imported into this browser">No save imported</span></div>
 <section class="lab-dashboard-section lab-dashboard-production" aria-labelledby="labProductionTitle">
  <div class="lab-dashboard-section-heading"><h3 id="labProductionTitle">Sushi production & tier chances</h3>
@@ -456,4 +467,4 @@
  <p id="labKnowledgeEmpty" class="hint lab-empty-state hidden">No Sushi tiers match the selected filters.</p>
  <p class="hint lab-disclaimer">Permanent tier rewards appear beneath each Sushi name. Knowledge Bonus shows the current effect with its value and the projected next-level effect, including the 2× Perfecto effect where unlocked. The original Perfecto icon marks Perfectos; undiscovered tiers show a base Lv 1 preview only. “Ready to level” means imported EXP reaches the next-level requirement, not an automatic level-up. Missing save data remains unavailable.</p>
 </section></div>
-</main><script type="module" src="src/app.js?v=1.50.15"></script></body></html>
+</main><script type="module" src="src/app.js?v=1.50.17"></script></body></html>
