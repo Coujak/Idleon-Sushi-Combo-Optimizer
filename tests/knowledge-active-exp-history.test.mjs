@@ -87,3 +87,19 @@ test("UI labels the active table as modeled EXP through the selected step",()=>{
  assert.match(ui,/activeExpHistory\.atStep\(tier,step\)/);
  assert.match(ui,/Full-preview T/);
 });
+
+test("Compact search checkpoints retain exact Active EXP and creation totals",()=>{
+ const history=buildKnowledgeActiveExpHistory([
+  frame("start"),
+  frame("checkpoint",[
+   {kind:"search-summary",tier:58,creations:152},
+   {kind:"search-summary",tier:63,creations:41}
+  ],{58:1520000,63:410000}),
+  frame("merge",[{kind:"merge",tier:58,at:7}],{58:10000}),
+  frame("partial")
+ ]);
+ assert.deepEqual(history.atStep(58,1),{exp:1520000,creations:152});
+ assert.deepEqual(history.atStep(58,2),{exp:1530000,creations:153});
+ assert.deepEqual(history.atStep(63,3),{exp:410000,creations:41});
+ assert.equal(history.finalCreations[58],153);
+});
