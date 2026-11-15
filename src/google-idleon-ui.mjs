@@ -6,7 +6,7 @@ import {
 } from "./idleon-firebase-popup.mjs?v=1.0.4";
 import {
  requestGoogleDeviceCode,awaitGoogleDeviceApproval,validateDeviceOAuthClient,validateDeviceOAuthConfig
-} from "./idleon-device-code.mjs?v=1.0.0";
+} from "./idleon-device-code.mjs?v=1.0.1";
 import {
  CLOUD_SAVE_REFRESH_INTERVAL_MS,formatRefreshCountdown,startCloudSaveRefresh
 } from "./idleon-refresh-schedule.mjs?v=1.0.1";
