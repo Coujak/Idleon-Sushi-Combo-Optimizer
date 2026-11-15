@@ -1,33 +1,59 @@
-// One-click Firebase Google sign-in, with five-minute cloud-save refresh.
-// The Firebase session exists in browser memory only while this page is connected.
+// Google sign-in and Corgan-style five-minute cloud save refresh.
+// OAuth/Firebase tokens stay in memory only while this tab is connected.
 import {
  preloadIdleonPopup,signInAndFetchIdleonSave,refreshSignedInIdleonSave,
  endIdleonSession,describeIdleonPopupError
 } from "./idleon-firebase-popup.mjs?v=1.0.2";
-import {startCloudSaveRefresh} from "./idleon-refresh-schedule.mjs?v=1.0.0";
+import {
+ CLOUD_SAVE_REFRESH_INTERVAL_MS,formatRefreshCountdown,startCloudSaveRefresh
+} from "./idleon-refresh-schedule.mjs?v=1.0.1";
 
 const $=id=>document.getElementById(id);
 
 export function initializeGoogleIdleonUI(onSave){
  const button=$("googleIdleonConnect"),status=$("googleIdleonStatus");
+ const pauseButton=$("googleIdleonAutoRefreshToggle");
  if(!button||!status)return {clear(){}};
- let ready=false,busy=false,connected=false,generation=0;
+
+ let ready=false,busy=false,connected=false,paused=false,generation=0;
+ let remaining=CLOUD_SAVE_REFRESH_INTERVAL_MS;
  let stopRefresh=()=>{};
+
  const update=(message,state="idle")=>{
   status.textContent=message;
   status.dataset.state=state;
   status.classList.toggle("hidden",state==="idle");
  };
- const resetRefresh=()=>{
+ const stopTimer=()=>{
   stopRefresh();
   stopRefresh=()=>{};
  };
- const sessionExpired=error=>/auth\/(?:requires-recent-login|user-token-expired|invalid-user-token|user-disabled)|PERMISSION_DENIED|UNAUTHENTICATED|403/.test(
+ const sessionExpired=error=>/auth\/(?:requires-recent-login|user-token-expired|invalid-user-token|user-disabled)|PERMISSION_DENIED|UNAUTHENTICATED|403|did not authorize access/i.test(
   String(error?.code??error?.message??""));
- const setIdleButton=()=>{
+ const render=()=>{
   button.disabled=!ready||busy;
-  button.textContent=connected?"Refresh Google save":"Sign in with Google";
+  if(!busy){
+   button.textContent=connected?
+    (paused?"Refresh Google save":"Refresh ("+formatRefreshCountdown(remaining)+")"):
+    "Sign in with Google";
+  }
+  if(pauseButton){
+   pauseButton.classList.toggle("hidden",!connected);
+   pauseButton.disabled=busy;
+   pauseButton.textContent=paused?"Resume auto-refresh":"Pause auto-refresh";
+  }
  };
+ function startTimer(){
+  stopTimer();
+  if(!connected||paused)return;
+  remaining=CLOUD_SAVE_REFRESH_INTERVAL_MS;
+  stopRefresh=startCloudSaveRefresh(()=>{void refreshSave();},{
+   onTick:ms=>{
+    remaining=ms;
+    render();
+   }
+  });
+ }
 
  async function refreshSave(){
   if(!connected||busy)return;
@@ -35,26 +61,30 @@ export function initializeGoogleIdleonUI(onSave){
   busy=true;
   button.disabled=true;
   button.textContent="Refreshing…";
+  render();
   update("Refreshing your Idleon cloud save…","busy");
   try{
    const save=await refreshSignedInIdleonSave();
    if(requestId!==generation)return;
    onSave(save,"Google cloud save");
-   update("Cloud save updated · Automatically refreshes every 5 minutes while this tab is open.","ok");
+   update(paused?"Cloud save updated · Auto-refresh paused.":
+    "Cloud save updated · Automatically refreshes every 5 minutes.","ok");
   }catch(error){
    if(requestId!==generation)return;
    if(sessionExpired(error)){
-    resetRefresh();
+    stopTimer();
     connected=false;
+    paused=false;
     void endIdleonSession();
     update(describeIdleonPopupError(error),"error");
    }else{
-    update("Cloud refresh failed; retrying in 5 minutes. "+describeIdleonPopupError(error),"error");
+    update((paused?"Manual refresh failed. ":"Cloud refresh failed; retrying in 5 minutes. ")+
+     describeIdleonPopupError(error),"error");
    }
   }finally{
    if(requestId===generation){
     busy=false;
-    setIdleButton();
+    render();
    }
   }
  }
@@ -63,11 +93,11 @@ export function initializeGoogleIdleonUI(onSave){
  update("Preparing Google sign-in…","busy");
  preloadIdleonPopup().then(()=>{
   ready=true;
-  setIdleButton();
+  render();
   update("","idle");
  }).catch(error=>{
   ready=false;
-  setIdleButton();
+  render();
   update("Google sign-in could not load. "+describeIdleonPopupError(error),"error");
  });
 
@@ -81,6 +111,7 @@ export function initializeGoogleIdleonUI(onSave){
   busy=true;
   button.disabled=true;
   button.textContent="Signing in…";
+  render();
   update("Opening Google sign-in through Idleon's Firebase project…","busy");
   try{
    const save=await signInAndFetchIdleonSave();
@@ -90,27 +121,41 @@ export function initializeGoogleIdleonUI(onSave){
    }
    onSave(save,"Google cloud save");
    connected=true;
-   resetRefresh();
-   stopRefresh=startCloudSaveRefresh(()=>{void refreshSave();});
-   update("Cloud save connected · Automatically refreshes every 5 minutes while this tab is open.","ok");
+   paused=false;
+   startTimer();
+   update("Cloud save connected · Automatically refreshes every 5 minutes.","ok");
   }catch(error){
    if(requestId===generation)update(describeIdleonPopupError(error),"error");
   }finally{
    if(requestId===generation){
     busy=false;
-    setIdleButton();
+    render();
    }
   }
+ });
+ pauseButton?.addEventListener("click",()=>{
+  if(!connected||busy)return;
+  paused=!paused;
+  if(paused){
+   stopTimer();
+   update("Google save connected · Auto-refresh paused. Use Refresh to update now.","ok");
+  }else{
+   startTimer();
+   update("Google save connected · Auto-refresh resumed every 5 minutes.","ok");
+  }
+  render();
  });
 
  return {
   clear(){
    generation++;
-   resetRefresh();
+   stopTimer();
    connected=false;
+   paused=false;
    busy=false;
+   remaining=CLOUD_SAVE_REFRESH_INTERVAL_MS;
    void endIdleonSession();
-   setIdleButton();
+   render();
    update("","idle");
   }
  };
