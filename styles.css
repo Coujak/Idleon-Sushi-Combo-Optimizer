@@ -4976,3 +4976,33 @@ details summary{cursor:pointer;font-size:12px;font-weight:700;color:#9eb7c9}
  min-height:28px;
  padding:4px 9px;
 }
+
+
+/* Device-code preview: aligned with the Sushi Station Lab dark import panel. */
+.google-device-panel{
+ display:flex;flex-direction:column;gap:12px;margin-top:12px;
+ padding:15px;border:1px solid #466077;border-radius:12px;
+ background:#142832;color:#d7e9e8;
+}
+.google-device-panel.hidden{display:none}
+.google-device-heading{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.google-device-heading strong{font-size:14px;color:#e7faf8}
+.google-device-panel p{margin:0;font-size:12px;line-height:1.6;color:#b7cdd3}
+.google-device-setup{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.google-device-setup.hidden,.google-device-approval.hidden{display:none}
+.google-device-setup label{display:flex;flex-direction:column;gap:6px;font-size:12px;color:#b8d9de;min-width:0}
+.google-device-setup input{
+ display:block;width:100%;box-sizing:border-box;border:1px solid #537086;
+ border-radius:9px;background:#0a1d29;padding:11px 12px;color:#e8f5f7;
+ font:inherit;font-size:12px;
+}
+.google-device-setup button,.google-device-setup .google-device-privacy{grid-column:1/-1}
+.google-device-approval{display:flex;flex-direction:column;gap:12px}
+.google-device-code-box{display:flex;flex-wrap:wrap;align-items:center;gap:12px}
+.google-device-code-box code{
+ font-size:22px;letter-spacing:.12em;color:#dcf6ec;user-select:all;
+ border:1px solid #4a7669;background:#162f2d;border-radius:9px;padding:10px 14px;
+}
+.google-device-approval>a{color:#9bdeec;font-weight:700;text-decoration:underline}
+.google-device-approval #googleIdleonDeviceWait{color:#e1d7ae}
+@media(max-width:680px){.google-device-setup{grid-template-columns:1fr}}
