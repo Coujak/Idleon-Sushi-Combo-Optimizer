@@ -13,8 +13,13 @@ export function buildKnowledgeActiveExpHistory(frames,maxTier=64){
   const gains=frame.gains??[];
   const counts=Array(maxTier+1).fill(0);
   for(const event of frame.events??[]){
-   if(Number.isInteger(event.tier)&&event.tier>=1&&event.tier<=maxTier)
-    counts[event.tier]++;
+   if(Number.isInteger(event.tier)&&event.tier>=1&&event.tier<=maxTier){
+    // Search checkpoints summarize discarded validated creation events.
+    // The number is exact, and a checkpoint is NOT itself a cook or merge.
+    const amount=event.kind==="search-summary"?
+     Math.max(0,Math.floor(Number(event.creations)||0)):1;
+    counts[event.tier]+=amount;
+   }
   }
   for(let tier=1;tier<=maxTier;tier++){
    const gain=Number(gains[tier]??0);
