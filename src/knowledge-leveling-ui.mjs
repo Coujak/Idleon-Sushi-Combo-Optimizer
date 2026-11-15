@@ -928,9 +928,9 @@ export function initializeKnowledgeLevelingUI(getSave){
   const skipToRefill=jumpToNextRefill;
   const skipToHarvest=jumpToNextHarvest;
   const skipToTarget=jumpToNextTargetCreation;
-  // Search farther for a real creation; keep the visible board if none appears.
-  const requestedWaves=skipToTarget?
-   Math.max(24,Math.min(60,additionalWaves*6)):additionalWaves;
+  // One click searches successive refills until a verified target creation,
+  // a genuine stop, or the worker's memory/refill safety boundary.
+  const requestedWaves=skipToTarget?2400:additionalWaves;
   const nextRounds=previous.roundsCompleted+requestedWaves;
   const failContinuation=reason=>{
    continueHold?.stop();hideProgress();
@@ -955,8 +955,9 @@ export function initializeKnowledgeLevelingUI(getSave){
    "Simulating additional refills…");
   build.disabled=true;
   announceContinuation(skipToTarget?
-   "Searching up to "+requestedWaves+" refills for an actual T"+
-    previous.targetTier+" creation…":
+   "Searching successive refills for the next actual T"+
+    previous.targetTier+" creation (safety limit "+requestedWaves+
+    "). Cancel search to stop.":
    "Simulating +"+additionalWaves+" refills (5%) from the current board, through refill "+nextRounds+"…");
   status.textContent=skipToTarget?
    "Searching for the next T"+previous.targetTier+" creation…":
@@ -973,12 +974,17 @@ export function initializeKnowledgeLevelingUI(getSave){
     // contain many short, validated refill batches.
     if(msg?.progress){
      updateProgress(msg.completedWaves,msg.requestedWaves,"refills");
-     const message="Simulating "+msg.completedWaves+" / "+
-      msg.requestedWaves+" refills · current total "+
-      msg.totalRefills+(msg.completed?
-       " · T"+(previous.balancedEndTier??64)+" created!":"");
-     continueButton.textContent="Simulating "+msg.completedWaves+
-      "/"+msg.requestedWaves+"…";
+     const message=skipToTarget?
+      "Searching for T"+previous.targetTier+" creation · "+
+       msg.completedWaves+" refills checked"+
+       (msg.targetCreationFound?" · Target created!":" · Cancel to stop"):
+      "Simulating "+msg.completedWaves+" / "+
+       msg.requestedWaves+" refills · current total "+
+       msg.totalRefills+(msg.completed?
+        " · T"+(previous.balancedEndTier??64)+" created!":"");
+     continueButton.textContent=skipToTarget?
+      "Searching T"+previous.targetTier+" · "+msg.completedWaves+" refills…":
+      "Simulating "+msg.completedWaves+"/"+msg.requestedWaves+"…";
      announceContinuation(message);
      status.textContent=message;
      return;
@@ -1037,9 +1043,11 @@ export function initializeKnowledgeLevelingUI(getSave){
       targetCreation>=0?
        "Next T"+plan.targetTier+" creation at step "+targetCreation+
         " after "+progressed+" extra refills.":
-       "No T"+plan.targetTier+" creation found in "+progressed+
-        " simulated refills. The replay board has not jumped. "+
-        "Click Next T"+plan.targetTier+" creation again to search farther.":
+       "No T"+plan.targetTier+" creation after "+progressed+
+        " simulated refills. The replay position has been preserved. "+
+        (msg.result.searchLimitReached?
+         "The safety limit was reached; click again to continue searching.":
+         "The simulation stopped: "+(msg.result.haltReason??plan.haltReason??"no further legal actions.")):
       message;
      announceContinuation(finalMessage);
      status.textContent=finalMessage;
