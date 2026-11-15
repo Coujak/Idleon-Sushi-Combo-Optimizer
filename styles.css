@@ -4739,3 +4739,116 @@ details summary{cursor:pointer;font-size:12px;font-weight:700;color:#9eb7c9}
 @media(prefers-reduced-motion:reduce){
  #solver .merge-timeline input.merge-seek{scroll-behavior:auto}
 }
+
+/* Combo Meter: stable, readable checklist aligned with its merge replay. */
+#solver .merge-step-list{
+ display:flex;flex-direction:column;min-width:0;
+ gap:0;padding:0;overflow:hidden;
+ max-height:min(650px,76vh);
+ border:1px solid #385967;border-radius:13px;
+ background:linear-gradient(145deg,#112735,#101d2b);
+}
+#solver .merge-step-list-heading{
+ position:relative;top:auto;z-index:1;
+ display:flex;align-items:center;justify-content:space-between;
+ gap:12px;padding:13px 14px;margin:0;
+ background:#183340;border-bottom:1px solid #385d64;
+}
+#solver .merge-step-list-title{
+ display:flex;flex-direction:column;gap:2px;min-width:0;
+}
+#solver .merge-step-list-title strong{font-size:13px;line-height:1.4;color:#e5f8ed}
+#solver .merge-step-list-progress{
+ color:#a7c9cb;font-size:11px;font-weight:700;
+ font-variant-numeric:tabular-nums;white-space:nowrap;
+}
+#solver .merge-step-list-heading .button{
+ flex:0 0 auto;min-height:34px;padding:6px 11px;
+ border:1px solid #4e7b72;background:#1f4a44;
+ border-radius:8px;color:#c9f5e0;
+}
+#solver .merge-step-items{
+ flex:1 1 auto;display:flex;flex-direction:column;
+ min-height:0;overflow-y:auto;overflow-x:hidden;
+ gap:7px;padding:10px;
+ scrollbar-color:#497b76 #132c37;scrollbar-width:thin;
+ overscroll-behavior:contain;
+}
+#solver .merge-step{
+ display:grid;grid-template-columns:33px minmax(0,1fr) auto;
+ align-items:start;column-gap:10px;row-gap:4px;
+ width:100%;min-width:0;min-height:61px;
+ padding:10px 11px;margin:0;
+ border:1px solid #365566;border-radius:10px;
+ background:#182f3e;color:#dcebe9;
+ text-align:left;box-shadow:none;
+ font:inherit;cursor:pointer;
+ transition:border-color .16s,background .16s,box-shadow .16s;
+}
+#solver .merge-step:hover{border-color:#62a6a0;background:#214340}
+#solver .merge-step:focus-visible{
+ outline:2px solid #8ae3bc;outline-offset:-2px;
+}
+#solver .merge-step-number{
+ display:flex;align-items:center;justify-content:center;
+ width:31px;min-height:29px;border:1px solid #50717c;
+ border-radius:8px;background:#224052;color:#d5e7eb;
+ font-weight:850;font-size:11px;line-height:1.2;
+ font-variant-numeric:tabular-nums;
+}
+#solver .merge-step-content{
+ display:flex;flex-direction:column;gap:4px;
+ min-width:0;
+}
+#solver .merge-step-content strong{
+ font-size:11.5px;font-weight:800;line-height:1.4;
+ color:#e3f4ee;overflow-wrap:anywhere;
+}
+#solver .merge-step-content .merge-step-detail{
+ font-size:10.5px;line-height:1.5;font-weight:550;
+ color:#aac7cf;overflow-wrap:anywhere;
+}
+#solver .merge-step-status{
+ display:inline-flex;align-items:center;justify-content:center;
+ min-width:0;min-height:21px;padding:2px 0;
+ font-size:9px;line-height:1.25;font-weight:850;
+ color:#9ab8c1;white-space:nowrap;
+}
+#solver .merge-step.completed{opacity:.79;border-color:#365d57}
+#solver .merge-step.completed .merge-step-number{
+ background:#24473e;color:#aaf0d0;border-color:#45896c;
+}
+#solver .merge-step.completed .merge-step-status{
+ font-size:15px;color:#8fe3b5;
+}
+#solver .merge-step.selected{
+ opacity:1;border-color:#77d6af;
+ background:#204b41;box-shadow:inset 3px 0 0 #8be9bc;
+}
+#solver .merge-step.selected .merge-step-number{
+ background:#33755a;border-color:#83ddb1;color:#f4fff9;
+}
+#solver .merge-step.selected .merge-step-status{color:#b9f9d9}
+#solver .merge-step.up-next{
+ border-color:#588caf;background:#1a3c50;
+ box-shadow:inset 3px 0 0 #80b9ec;
+}
+#solver .merge-step.up-next .merge-step-status{color:#a5d3ff}
+#solver .merge-step.has-wind:not(.selected):not(.up-next) .merge-step-number{
+ border-color:#8568a3;color:#dfc7fc;
+}
+#solver .merge-step.has-timing-risk:not(.selected):not(.up-next){
+ border-color:#926c54;
+}
+#solver .merge-step.completed:before,
+#solver .merge-step.up-next:after{content:none;display:none}
+@media(max-width:1050px){
+ #solver .merge-step-list{max-height:370px}
+ #solver .merge-step-items{max-height:300px}
+}
+@media(max-width:450px){
+ #solver .merge-step-list-heading{padding:10px}
+ #solver .merge-step-items{padding:8px}
+ #solver .merge-step{grid-template-columns:29px minmax(0,1fr) auto;column-gap:7px;padding:9px}
+ #solver .merge-step-number{width:28px}
+}
