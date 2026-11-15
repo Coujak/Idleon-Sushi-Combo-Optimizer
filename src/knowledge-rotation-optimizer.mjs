@@ -504,7 +504,7 @@ export function continueKnowledgeRotation(save,snapshot,waves=6){
  const count=Math.max(1,Math.min(12,Math.floor(Number(waves))||6));
  const requested=Number(snapshot.startCookTier);
  if(!Number.isInteger(requested)||requested<1||requested>64||
-    !["uniform","t1Climb","t2Climb","wind","paired","longWind","spread","widePairs"].includes(snapshot.startingPattern)||
+    !["uniform","t1Climb","t2Climb","rangeClimb","wind","paired","longWind","spread","widePairs"].includes(snapshot.startingPattern)||
     !Number.isInteger(snapshot.roundsCompleted)||snapshot.roundsCompleted<0)
   return fail("The previous recipe is incomplete. Rebuild the rotation.");
  const rotation=simulateContinuousKnowledgeRotation({
