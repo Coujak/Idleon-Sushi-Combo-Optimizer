@@ -113,3 +113,29 @@ export function knowledgeContinuationResumeStep(oldSteps,newSteps,previousIndex,
   ["cook","merge","move","refill"].includes(frame.kind));
  return action>=0?action:newSteps.length-1;
 }
+
+
+/**
+ * Replay navigation searches strictly after the currently displayed frame.
+ * Rewinding to Step 0 or Prepared therefore visits the FIRST harvest again,
+ * rather than retaining the last visited harvest's position.
+ */
+export function nextKnowledgeHarvestStep(steps,after=-1){
+ if(!Array.isArray(steps))return -1;
+ return steps.findIndex((frame,index)=>
+  index>after&&frame?.kind==="stage"&&frame.phase==="harvest"&&
+  frame.title?.startsWith("Harvest prepared"));
+}
+
+/**
+ * Each creation is recorded as an event on its replay frame. This includes
+ * cooking, ordinary merges and East Wind cascades, but not harvests that
+ * consume the target tier into a different Sushi.
+ */
+export function nextKnowledgeTargetCreationStep(steps,after=-1,targetTier=0){
+ if(!Array.isArray(steps)||!Number.isInteger(targetTier)||
+  targetTier<1||targetTier>64)return -1;
+ return steps.findIndex((frame,index)=>
+  index>after&&(frame?.events??[]).some(event=>
+   event.tier===targetTier&&["cook","merge","wind"].includes(event.kind)));
+}
