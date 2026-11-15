@@ -523,16 +523,18 @@ export function initializeKnowledgeLevelingUI(getSave){
    const activeContent=elem("div","lab-kp-active-content");
    const activeHeading=elem("div","lab-kp-active-heading");
    const gained=elem("span","lab-kp-exp-value is-empty","0");
+   const levelStatus=elem("small","lab-kp-tier-level-status hidden");
+   const expBadges=elem("span","lab-kp-exp-badges");
+   expBadges.append(gained,levelStatus);
    const created=elem("small","lab-kp-creation-count","0 creations");
-   activeHeading.append(gained,created);
+   activeHeading.append(expBadges,created);
    activeContent.append(activeHeading);
    // Green is saved Knowledge EXP; blue is active EXP earned by this step.
    let expBar=null,projected=null,initialPct=0;
-   let levelStatus=null;
    if(Number.isFinite(entry.xp)&&Number.isFinite(entry.xpReq)&&entry.xpReq>0){
     initialPct=Math.max(0,Math.min(100,entry.xp/entry.xpReq*100));
     const progressWrap=elem("div","lab-kp-tier-exp");
-    levelStatus=elem("small","lab-kp-tier-level-status hidden");
+
     const label=elem("small","lab-kp-tier-exp-current",
      "Current Lv "+entry.level+" · "+compact(entry.xp)+
      " / "+compact(entry.xpReq)+" EXP");
@@ -547,7 +549,7 @@ export function initializeKnowledgeLevelingUI(getSave){
     projected=elem("span","lab-kp-tier-exp-new");
     projected.style.width="0%";
     expBar.append(saved,projected);
-    progressWrap.append(levelStatus,label,expBar);
+    progressWrap.append(label,expBar);
     activeContent.append(progressWrap);
    }
    active.append(activeContent);
