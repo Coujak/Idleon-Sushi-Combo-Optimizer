@@ -162,22 +162,22 @@ test("Focused reset returns to original plan before jumping to another harvest",
  assert.match(section,/id="knowledgePlanNextTargetCreation"/);
 });
 
-test("Knowledge EXP shows level-up count and overflow without mixing level scales",()=>{
+test("Knowledge EXP has one bar that stays full with compact +X Lv. badge",()=>{
  assert.match(ui,/projectKnowledgeLevelProgress\(display\.level,display\.xp,exp\)/);
  assert.match(ui,/projection\.projectedLevel/);
  assert.match(ui,/projection\.levelUps/);
- assert.match(ui,/projection\.projectedXp/);
- assert.match(ui,/display\.overflowWrap\.classList\.toggle\("hidden",!leveled\)/);
- assert.match(ui,/const additional=leveled\?0:/);
- assert.match(ui,/display\.overflowBar\.firstChild\.style\.width=pct\+"%"/);
+ assert.match(ui,/const additional=leveled\?100-display\.initialPct:/);
+ assert.match(ui,/display\.levelStatus\.textContent="\+"\+projection\.levelUps\+" Lv\."/);
+ assert.doesNotMatch(ui,/elem\("div","lab-kp-tier-exp-projected-bar"\)/);
+ assert.doesNotMatch(ui,/display\.overflowWrap\.classList/);
  assert.match(css,/#knowledgePlanner \.lab-kp-tier-level-status/);
- assert.match(css,/#knowledgePlanner \.lab-kp-tier-exp-projected-bar/);
 });
-test("Next targeted creation has a bounded search and never falls back to harvest",()=>{
- assert.match(ui,/const requestedWaves=skipToTarget\?/);
- assert.match(ui,/const requestedWaves=skipToTarget\?2400:additionalWaves/);
+test("Next targeted creation has no fixed refill cap and preserves truthful checkpoints",()=>{
+ assert.match(ui,/const requestedWaves=skipToTarget\?null:additionalWaves/);
+ assert.match(ui,/No arbitrary refill ceiling/);
  assert.match(ui,/Cancel search to stop/);
  assert.match(ui,/seekTargetTier:skipToTarget\?previous\.targetTier:0/);
+ assert.match(ui,/msg\.result\.checkpoint/);
  assert.match(ui,/resume=targetCreation>=0\?targetCreation:/);
  assert.match(ui,/No T"\+plan\.targetTier\+" creation after/);
  assert.match(section,/knowledgePlanNextTargetCreation/);
