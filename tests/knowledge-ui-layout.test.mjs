@@ -107,3 +107,18 @@ test("Balanced defaults to T1–T64 even with old persisted preferences",()=>{
  assert.match(section,/id="knowledgePlanRangeStart"[^>]*value="1"/);
  assert.match(section,/id="knowledgePlanRangeEnd"[^>]*value="64"/);
 });
+
+test("Knowledge EXP bars stay inside aligned table cells",()=>{
+ assert.match(ui,/const nameContent=elem\("div","lab-kp-tier-content"\)/);
+ assert.match(ui,/name\.append\(nameContent\)/);
+ assert.match(ui,/const activeContent=elem\("div","lab-kp-active-content"\)/);
+ assert.match(ui,/const activeHeading=elem\("div","lab-kp-active-heading"\)/);
+ assert.match(ui,/activeHeading\.append\(gained,created\)/);
+ assert.match(ui,/activeContent\.append\(progressWrap\)/);
+ assert.match(ui,/active\.append\(activeContent\)/);
+ assert.match(css,/#knowledgePlanner \.lab-kp-tier\{display:table-cell\}/);
+ assert.doesNotMatch(css,/#knowledgePlanner \.lab-kp-tier\{display:flex/);
+ assert.match(css,/#knowledgePlanner \.lab-kp-progress-table td\{\s*display:table-cell/);
+ assert.match(css,/#knowledgePlanner \.lab-kp-active-heading\{/);
+ assert.match(css,/#knowledgePlanner \.lab-kp-progress-table\{\s*width:100%;\s*min-width:880px;\s*table-layout:fixed/);
+});
