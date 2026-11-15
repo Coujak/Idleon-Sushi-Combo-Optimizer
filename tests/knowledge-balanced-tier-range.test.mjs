@@ -123,3 +123,24 @@ test("Balanced Start/End sliders and fireplace status are rendered",()=>{
  assert.match(ui,/balancedEndTier:state.balancedEndTier/);
  assert.match(ui,/p.pinkFireplaces/);
 });
+
+test("Balanced T20–T40 prepares T20, not T1/T2, including guaranteed cooking bonuses",()=>{
+ const slots=Array.from({length:120},(_,i)=>i<100?0:-1);
+ const board=Array(120).fill(0);
+ board[99]=64; // permanent highest-tier anchor
+ const rotation=simulateContinuousKnowledgeRotation({
+  startingBoard:board,slots,mode:"balanced",targetTier:40,balancedEndTier:40,
+  requestedTier:19,guaranteedBonus:1,
+  rounds:3,pattern:"rangeClimb",recipeOffset:0,packingMode:"simple",
+  protectedIndices:[99],expAt:()=>1,cookCost:()=>1,maximumActions:5000
+ });
+ assert.equal(rotation.valid,true,rotation.reason);
+ const cooks=rotation.frames.filter(frame=>frame.kind==="cook");
+ assert.ok(cooks.length>=99,"Full prepared board must be filled with fresh Sushi");
+ assert.ok(cooks.every(frame=>frame.requestedTier===19));
+ assert.ok(cooks.every(frame=>frame.events[0].tier===20));
+ const first=rotation.frames.slice(0,rotation.frames.findIndex(
+  frame=>frame.kind==="refill"&&frame.title==="Refill 2"));
+ assert.ok(first.some(frame=>frame.kind==="cook"&&frame.board.filter(x=>x===20).length===99));
+ assert.ok(rotation.frames.every(frame=>frame.board[99]===64));
+});
