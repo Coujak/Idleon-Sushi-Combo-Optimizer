@@ -839,6 +839,7 @@ export function initializeKnowledgeLevelingUI(getSave){
   continueHold?.stop();
   if(worker){
    stopSearch();jumpToNextRefill=false;jumpToNextHarvest=false;
+   jumpToNextTargetCreation=false;
    continueButton.disabled=false;
    continueButton.textContent=result?knowledgeContinueButtonLabel(result.roundsCompleted):"Continue rotation";
    announceContinuation("Continuation canceled. Your previous walkthrough remains available.");
@@ -867,6 +868,7 @@ export function initializeKnowledgeLevelingUI(getSave){
   const nextRounds=previous.roundsCompleted+additionalWaves;
   const skipToRefill=jumpToNextRefill;
   const skipToHarvest=jumpToNextHarvest;
+  const skipToTarget=jumpToNextTargetCreation;
   const failContinuation=reason=>{
    continueHold?.stop();hideProgress();
    const message="Unable to continue: "+reason;
@@ -875,6 +877,7 @@ export function initializeKnowledgeLevelingUI(getSave){
    continueButton.textContent=knowledgeContinueButtonLabel(previous.roundsCompleted);
    continueButton.disabled=false;
    jumpToNextRefill=false;jumpToNextHarvest=false;
+   jumpToNextTargetCreation=false;
   };
   // Keep the physical button enabled during an active hold so browsers
   // continue delivering pointer release events. The worker guard prevents
@@ -927,13 +930,16 @@ export function initializeKnowledgeLevelingUI(getSave){
      let resume=knowledgeContinuationResumeStep(
       previous.steps,plan.steps,previous.steps.length-1,skipToRefill);
      if(skipToHarvest){
-      const harvest=plan.steps.findIndex((frame,i)=>
-       i>=previous.steps.length-1&&frame.kind==="stage"&&
-       frame.phase==="harvest"&&frame.title.startsWith("Harvest prepared"));
+      const harvest=nextKnowledgeHarvestStep(
+       plan.steps,previous.steps.length-2);
       if(harvest>=0)resume=harvest;
      }
+     const targetCreation=skipToTarget?nextKnowledgeTargetCreationStep(
+      plan.steps,previous.steps.length-2,plan.targetTier):-1;
+     if(targetCreation>=0)resume=targetCreation;
      createReplay(plan,resume);
      jumpToNextRefill=false;jumpToNextHarvest=false;
+     jumpToNextTargetCreation=false;
      continueButton.disabled=false;
      continueButton.textContent=knowledgeContinueButtonLabel(plan.roundsCompleted);
      const progressed=plan.roundsCompleted-previous.roundsCompleted;
@@ -950,8 +956,12 @@ export function initializeKnowledgeLevelingUI(getSave){
       (msg.result.haltReason?
        " · Stopped early: "+msg.result.haltReason:
        " · next increment "+knowledgeContinueWaveCount(plan.roundsCompleted));
-     announceContinuation(message);
-     status.textContent=message;
+     const finalMessage=skipToTarget&&targetCreation<0?
+      message+" · No new T"+plan.targetTier+
+       " creation in these refills; click Next T"+plan.targetTier+
+       " creation again to search farther.":message;
+     announceContinuation(finalMessage);
+     status.textContent=finalMessage;
      // While still physically held, schedule another +5% only AFTER
      // this validated worker result and replay state were committed.
      if(progressed>0&&!msg.result.haltReason)continueHold?.afterCompletion();
