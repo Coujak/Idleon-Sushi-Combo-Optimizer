@@ -4864,3 +4864,30 @@ details summary{cursor:pointer;font-size:12px;font-weight:700;color:#9eb7c9}
  border-color:#86d8ae;
 }
 #knowledgePlanner #knowledgePlanNextTargetCreation:disabled{opacity:.45}
+
+/* Knowledge EXP can cross multiple levels: show imported green progress,
+   followed by a separate blue bar for overflow into the projected level.
+   The two levels must not share a percentage scale after a level-up. */
+#knowledgePlanner .lab-kp-tier-level-status{
+ display:inline-block;align-self:flex-start;
+ margin:0 0 6px;padding:3px 8px;border-radius:7px;
+ background:#2c4763;border:1px solid #5689ad;color:#bde5ff;
+ font-size:11px;font-weight:850;line-height:1.5;
+ font-variant-numeric:tabular-nums;
+}
+#knowledgePlanner .lab-kp-tier-exp-overflow{margin-top:9px}
+#knowledgePlanner .lab-kp-tier-exp-projected-label{
+ display:block;margin:0 0 5px;color:#aacff4;
+ font-size:10px;font-weight:650;line-height:1.4;
+ overflow-wrap:anywhere;
+}
+#knowledgePlanner .lab-kp-tier-exp-projected-bar{
+ width:100%;height:12px;box-sizing:border-box;
+ display:flex;overflow:hidden;background:#0b2230;
+ border:1px solid #5981a0;border-radius:8px;
+ box-shadow:inset 0 1px 4px #0008;
+}
+#knowledgePlanner .lab-kp-tier-exp-projected-bar .lab-kp-tier-exp-new{
+ display:block;height:100%;min-width:0;flex:0 0 auto;
+ transition:width .12s ease;background:linear-gradient(90deg,#558dd6,#8dc4fa);
+}
