@@ -92,3 +92,38 @@ test("approved transparent Sushi Lab logo is used in the tab and hero",()=>{
  assert.doesNotMatch(html,/<div class="hero-visual"[^>]*>.*?Leviathan/);
  assert.match(css,/\.hero-visual img\{\s*width:170px;height:170px;image-rendering:auto;transform:none/);
 });
+
+
+test("account-dependent sections stay locked until JSON is successfully imported",()=>{
+ const html=readFileSync(new URL("../index.html",import.meta.url),"utf8");
+ const ui=readFileSync(new URL("../src/lab-ui.mjs",import.meta.url),"utf8");
+ const app=readFileSync(new URL("../src/app.js",import.meta.url),"utf8");
+ const css=readFileSync(new URL("../styles.css",import.meta.url),"utf8");
+ for(const tab of ["planners","upgrades","knowledge"]){
+  const button=html.match(new RegExp('<button[^>]*data-lab-target="'+tab+'"[^>]*>'))?.[0];
+  assert.ok(button,"Missing "+tab+" main tab");
+  assert.match(button,/disabled/);
+  assert.match(button,/aria-disabled="true"/);
+  assert.match(button,/aria-describedby="labNavigationHint"/);
+ }
+ assert.match(html,/id="labNavigationHint"/);
+ assert.match(ui,/const hasImportedSave=\(\)=>Boolean\(save\(\)\)/);
+ assert.match(ui,/const syncNavigationAccess=\(\)=>\{/);
+ assert.match(ui,/button\.disabled=!unlocked/);
+ assert.match(ui,/if\(!tabs\.includes\(target\)\|\|\(!hasImportedSave\(\)&&target!=="overview"\)\)return/);
+ assert.match(ui,/if\(!unlocked&&mainTab!=="overview"\)setTab\("overview"\)/);
+ assert.match(ui,/function refresh\(\)\{\s*syncNavigationAccess\(\)/);
+ assert.match(app,/try\{sushiLab\.markImported\(\);\}/);
+ assert.match(app,/renderPlateBreakdown\(null\);sushiLab\.clearImported\(\)/);
+ assert.match(css,/\.lab-navigation \.lab-nav-button:disabled/);
+});
+test("Planner and Upgrade subtab selection is restored on initialization",()=>{
+ const lab=readFileSync(new URL("../src/lab-ui.mjs",import.meta.url),"utf8");
+ const perfecto=readFileSync(new URL("../src/perfecto-ui.mjs",import.meta.url),"utf8");
+ assert.match(lab,/upgradeTab=readSubtab\(UPGRADE_TAB_KEY,UPGRADE_SUBTABS,"catalog"\)/);
+ assert.match(lab,/rememberSubtab\(UPGRADE_TAB_KEY,name,UPGRADE_SUBTABS\)/);
+ assert.match(lab,/setUpgradeTab\(upgradeTab\)/);
+ assert.match(perfecto,/plannerTab=readSubtab\(PLANNER_TAB_KEY,PLANNER_SUBTABS,"combo"\)/);
+ assert.match(perfecto,/rememberSubtab\(PLANNER_TAB_KEY,target,PLANNER_SUBTABS\)/);
+ assert.match(perfecto,/setPlannerTab\(plannerTab\)/);
+});
