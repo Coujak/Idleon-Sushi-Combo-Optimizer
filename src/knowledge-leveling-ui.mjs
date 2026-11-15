@@ -1,6 +1,6 @@
 // Knowledge EXP cycle optimizer UI. The imported save is never mutated.
 // The account-dependent search only runs on an explicit Build button click.
-import {getKnowledgeRows,numberText} from "./lab-model.mjs?v=1.19.13";
+import {getKnowledgeRows,numberText,projectKnowledgeLevelProgress} from "./lab-model.mjs?v=1.19.14";
 import {sushiTierIconPath} from "./sushi-reference.mjs?v=1.16.6";
 import {parseGameQuantity} from "./progression-calibration.mjs?v=1.17.1";
 import {normalizeKnowledgeCycleOptions}
@@ -528,14 +528,17 @@ export function initializeKnowledgeLevelingUI(getSave){
    activeContent.append(activeHeading);
    // Green is saved Knowledge EXP; blue is active EXP earned by this step.
    let expBar=null,projected=null,initialPct=0;
+   let levelStatus=null,overflowWrap=null,overflowLabel=null,overflowBar=null;
    if(Number.isFinite(entry.xp)&&Number.isFinite(entry.xpReq)&&entry.xpReq>0){
     initialPct=Math.max(0,Math.min(100,entry.xp/entry.xpReq*100));
     const progressWrap=elem("div","lab-kp-tier-exp");
+    levelStatus=elem("small","lab-kp-tier-level-status hidden");
     const label=elem("small","lab-kp-tier-exp-current",
-     compact(entry.xp)+" / "+compact(entry.xpReq)+" EXP");
+     "Current Lv "+entry.level+" · "+compact(entry.xp)+
+     " / "+compact(entry.xpReq)+" EXP");
     expBar=elem("div","lab-kp-tier-exp-bar");
     expBar.setAttribute("role","progressbar");
-    expBar.setAttribute("aria-label","Knowledge EXP toward next level for T"+entry.tier);
+    expBar.setAttribute("aria-label","Imported Knowledge EXP for T"+entry.tier);
     expBar.setAttribute("aria-valuemin","0");
     expBar.setAttribute("aria-valuemax","100");
     expBar.setAttribute("aria-valuenow",String(Math.round(initialPct*10)/10));
@@ -544,7 +547,16 @@ export function initializeKnowledgeLevelingUI(getSave){
     projected=elem("span","lab-kp-tier-exp-new");
     projected.style.width="0%";
     expBar.append(saved,projected);
-    progressWrap.append(label,expBar);
+    overflowWrap=elem("div","lab-kp-tier-exp-overflow hidden");
+    overflowLabel=elem("small","lab-kp-tier-exp-projected-label");
+    overflowBar=elem("div","lab-kp-tier-exp-projected-bar");
+    overflowBar.setAttribute("role","progressbar");
+    overflowBar.setAttribute("aria-valuemin","0");
+    overflowBar.setAttribute("aria-valuemax","100");
+    const overflowFill=elem("span","lab-kp-tier-exp-new");
+    overflowBar.append(overflowFill);
+    overflowWrap.append(overflowLabel,overflowBar);
+    progressWrap.append(levelStatus,label,expBar,overflowWrap);
     activeContent.append(progressWrap);
    }
    active.append(activeContent);
@@ -552,7 +564,8 @@ export function initializeKnowledgeLevelingUI(getSave){
     "Full-preview T"+entry.tier+" EXP: "+compact(entry.expPerCycle)+
     ". Actual in-game EXP must be measured separately.";
    activeExpDisplays.set(entry.tier,{gained,created,expBar,projected,
-    initialPct,xpReq:entry.xpReq,xp:entry.xp});
+    levelStatus,overflowWrap,overflowLabel,overflowBar,
+    initialPct,xpReq:entry.xpReq,xp:entry.xp,level:entry.level});
    const totalRate=elem("td","",rate(entry.expPerHour));
    totalRate.title="Estimated active EXP/hr plus modeled passive EXP/hr";
    const nextLevel=elem("td","",formatHours(entry.etaHours));
@@ -569,17 +582,35 @@ export function initializeKnowledgeLevelingUI(getSave){
    display.gained.classList.toggle("is-empty",exp===0);
    display.created.textContent=creations?creations+" creation"+(creations===1?"":"s"):"";
    if(display.expBar&&display.projected){
-    const additional=Math.max(0,Math.min(100-display.initialPct,
-     exp/display.xpReq*100));
+    const projection=projectKnowledgeLevelProgress(display.level,display.xp,exp);
+    if(!projection)continue;
+    const leveled=projection.levelUps>0;
+    const additional=leveled?0:Math.max(0,Math.min(100-display.initialPct,
+     (projection.projectedPercent??display.initialPct)-display.initialPct));
     display.projected.style.width=additional+"%";
-    const projectedPercent=display.initialPct+additional;
     display.expBar.setAttribute("aria-valuenow",
-     String(Math.round(projectedPercent*10)/10));
-    display.expBar.title="Current: "+compact(display.xp)+
-     " EXP · Modeled active gain: +"+compact(exp)+
-     " EXP · Next Knowledge level: "+compact(display.xpReq)+" EXP"+
-     (exp>display.xpReq-display.xp?
-      " · Extra EXP beyond the current level threshold is not shown on this bar":"");
+     String(Math.round((display.initialPct+additional)*10)/10));
+    display.levelStatus.classList.toggle("hidden",!leveled);
+    display.overflowWrap.classList.toggle("hidden",!leveled);
+    if(leveled){
+     display.levelStatus.textContent="Lv "+display.level+" → Lv "+
+      projection.projectedLevel+" (+"+projection.levelUps+
+      " level"+(projection.levelUps===1?"":"s")+")";
+     display.overflowLabel.textContent="Projected Lv "+projection.projectedLevel+
+      " · "+compact(projection.projectedXp)+" / "+
+      (projection.projectedRequired===null?"—":
+       compact(projection.projectedRequired))+" EXP";
+     const pct=projection.projectedPercent??0;
+     display.overflowBar.firstChild.style.width=pct+"%";
+     display.overflowBar.setAttribute("aria-valuenow",String(Math.round(pct*10)/10));
+     display.overflowBar.setAttribute("aria-label",
+      "Projected Knowledge Lv "+projection.projectedLevel+" EXP");
+    }
+    display.expBar.title="Imported Lv "+display.level+": "+
+     compact(display.xp)+" / "+compact(display.xpReq)+" EXP · "+
+     "active gain +"+compact(exp)+" EXP"+
+     (leveled?" · projected Lv "+projection.projectedLevel+
+      " with "+compact(projection.projectedXp)+" overflow EXP":"");
    }
   }
  }
