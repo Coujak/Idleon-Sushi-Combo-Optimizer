@@ -7,14 +7,19 @@ export const DEVICE_TOKEN_ENDPOINT="https://oauth2.googleapis.com/token";
 export const DEVICE_SCOPES="openid email profile";
 export const DEVICE_MIN_POLL_MS=5000;
 
-export function validateDeviceOAuthConfig(config){
+export function validateDeviceOAuthClient(config){
  const clientId=String(config?.clientId??"").trim();
- const clientSecret=String(config?.clientSecret??"").trim();
  if(!/^[a-zA-Z0-9_-]+\.apps\.googleusercontent\.com$/.test(clientId))
-  return {ready:false,reason:"This preview requires an authorized Google OAuth device client ID."};
+  return {ready:false,reason:"A registered Google OAuth device client ID is required."};
+ return {ready:true,clientId};
+}
+export function validateDeviceOAuthConfig(config){
+ const client=validateDeviceOAuthClient(config);
+ if(!client.ready)return client;
+ const clientSecret=String(config?.clientSecret??"").trim();
  if(!clientSecret||clientSecret.length<8)
-  return {ready:false,reason:"This preview requires the matching device-client secret; it must not be borrowed from another app."};
- return {ready:true,clientId,clientSecret};
+  return {ready:false,reason:"The matching Google device-client secret is required to check approval. Enter it only on this local test page."};
+ return {...client,clientSecret};
 }
 
 export class DeviceAuthError extends Error{
@@ -34,7 +39,7 @@ async function parseResponse(response){
  }
 }
 export async function requestGoogleDeviceCode(config,{fetcher=fetch,signal}={}){
- const settings=validateDeviceOAuthConfig(config);
+ const settings=validateDeviceOAuthClient(config);
  if(!settings.ready)throw new DeviceAuthError("not_configured",settings.reason);
  abortCheck(signal);
  let response,json;
