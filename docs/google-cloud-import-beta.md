@@ -42,9 +42,7 @@ References:
 2. Confirm that your OAuth app is permitted to authenticate with the game's
    Firebase identity provider. Obtain the public Firebase Web API key from
    an authorized source. Do not copy another website's client secret.
-3. Fill only the `clientId` and `firebaseApiKey` fields in
-   `src/google-idleon-config.mjs`. These are public app identifiers; never
-   enter passwords, OAuth client secrets, OAuth tokens, or refresh tokens.
+3. Open the Google cloud import section on the development page. Enter the\n   **Google OAuth Web client ID** and **public Idleon Firebase Web API key**\n   in the test-configuration fields, then click **Use test configuration**.\n   Alternatively, configure their defaults in \`src/google-idleon-config.mjs\`.\n   The test fields exist only in memory and are not saved across reloads.\n   Never enter passwords, OAuth client secrets, OAuth tokens, or refresh tokens.
 4. Serve the **development branch** through a local HTTP server from the
    project root; the popup flow requires an allowed origin.
 5. Import using a **test account that you control**, verify the decoded
