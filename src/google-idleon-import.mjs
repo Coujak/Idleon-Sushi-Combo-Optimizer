@@ -101,7 +101,7 @@ export async function fetchAuthorizedIdleonSave(uid,firebaseIdToken,config,fetch
  if(!response.ok||!json?.fields)throw googleImportError(Error(json?.error?.message??String(response.status)),"firestore");
  const data=unpackFirestoreFields(json.fields);
  if(!data.Sushi)throw Error("This Idleon cloud save contains no readable Sushi Station data. Import an Idleon Toolbox JSON instead.");
- return {data};
+ return {data,updatedAt:typeof json.updateTime==="string"?json.updateTime:null};
 }
 export async function importGoogleIdleonSave(accessToken,config,fetcher=fetch){
  const {uid,idToken}=await exchangeGoogleForIdleon(accessToken,config,fetcher);
