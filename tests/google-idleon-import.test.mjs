@@ -90,7 +90,10 @@ test("Google sign-in preview starts with one click and retains JSON fallback",()
  const html=readFileSync(new URL("../index.html",import.meta.url),"utf8");
  const app=readFileSync(new URL("../src/app.js",import.meta.url),"utf8");
  assert.match(ui,/preloadIdleonPopup\(\)/);
- assert.match(ui,/signInAndFetchIdleonSave\(\)/);
+ assert.match(ui,/requestGoogleDeviceCode\(config/);
+ assert.match(ui,/awaitGoogleDeviceApproval\(config,device/);
+ assert.match(ui,/signInWithDeviceIdTokenAndFetchIdleonSave\(googleIdToken\)/);
+ assert.doesNotMatch(ui,/signInAndFetchIdleonSave\(\)/);
  assert.doesNotMatch(ui,/localStorage|sessionStorage|client_secret|refreshToken/);
  assert.match(popup,/signInWithPopup\(auth,provider\)/);
  assert.match(popup,/inMemoryPersistence/);
@@ -100,6 +103,15 @@ test("Google sign-in preview starts with one click and retains JSON fallback",()
  assert.match(html,/id="googleIdleonConnect"[^>]*disabled/);
  assert.match(html,/id="googleIdleonAutoRefreshToggle"/);
  assert.match(html,/Sign in with Google/);
+ assert.match(html,/id="googleIdleonDevicePanel"/);
+ assert.match(html,/id="googleIdleonDeviceCode"/);
+ assert.match(html,/id="googleIdleonDeviceClientSecret"/);
+ assert.match(html,/id="googleIdleonDeviceClose"/);
+ assert.match(html,/id="googleIdleonDeviceCopy"/);
+ assert.match(html,/1010237426756-l184h7psanvrhhss1hk2qcu8690kcj8d.apps.googleusercontent.com/);
+ assert.doesNotMatch(html,/value="GOCSPX-/);
+ assert.match(ui,/authorizationController\?\.abort\(\)/);
+ assert.match(ui,/secretInput.value=""/);
  assert.match(html,/refresh every 5 minutes/);
  assert.doesNotMatch(html,/id="googleIdleonPanel"/);
  assert.match(ui,/startCloudSaveRefresh/);
@@ -112,6 +124,8 @@ test("Google sign-in preview starts with one click and retains JSON fallback",()
  assert.match(ui,/lastSaveVersion=null/);
  assert.match(popup,/refreshSignedInIdleonSave/);
  assert.match(popup,/endIdleonSession/);
+ assert.match(popup,/GoogleAuthProvider.credential\(googleIdToken\)/);
+ assert.match(popup,/signInWithCredential\(auth,credential\)/);
  assert.doesNotMatch(html,/googleIdleonClientId|googleIdleonApiKey/);
  assert.match(app,/initializeGoogleIdleonUI\(\(data,label\)=>importSave\(data,label\)\)/);
  assert.match(app,/googleImportUI\.clear\(\)/);
