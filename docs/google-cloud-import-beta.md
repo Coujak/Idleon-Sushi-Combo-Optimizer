@@ -1,68 +1,69 @@
-# Experimental Google cloud import (development branch only)
+# Google sign-in: development-only test
 
-**Status: prototype / not ready for production.** The public `main` branch continues
-to use manual JSON imports. This work is gated behind an empty configuration so visitors
-cannot accidentally start a broken sign-in. No passwords or OAuth secrets belong here.
+**Status: one-click prototype, not a verified integration.** The public `main` site remains
+unchanged; JSON upload and paste remain the reliable options.
 
-## Research findings
+## Findings from real Idleon companion projects
 
-Corgan's public Idleon optimizer uses a Google OAuth **device-code** flow followed by
-Firebase sign-in and a Firestore `_data/<uid>` lookup in project `idlemmo`.
-It also persists Firebase refresh tokens and full saves to browser storage.
-Those are observations about the reference implementation, **not** a recommendation
-to reuse its OAuth client ID, client secret, API key or token storage.
+- Idleon Toolbox's published Firebase app config uses the game project
+  `idlemmo` and `idlemmo.firebaseapp.com`. Its Google sign-in uses a
+  **Google device-code flow** followed by Firebase `signInWithCredential`.
+- Corgan's public optimizer also implements device-code Google sign-in.
+- Idleoneer describes Google device-code approval and live account syncing
+  in its published release notes.
+- These examples explain why a random new Google OAuth Web client ID is
+  unlikely to work with Idleon's Firebase credentials: the Google ID token
+  must be accepted by the game project's Firebase authentication provider.
 
-Sushi Station Lab instead experiments with Google's supported browser
-**Google Identity Services** OAuth client. The user initiates the popup and
-grants only `openid email profile`. The returned Google access token is passed
-to Firebase Identity Toolkit's documented `accounts:signInWithIdp` endpoint
-and the temporary Firebase ID token is used to read that user's own Firestore
-`_data/<uid>` document. Successful data is converted to the same shape used by
-the existing JSON parser. The preview **does not** retain OAuth or Firebase
-tokens, refresh tokens, or imported game JSON in localStorage.
+The other projects' **OAuth client identifiers and client secrets are not
+our credentials**. Their availability in a public repository does not
+give Sushi Station Lab permission to reuse them.
 
-**Important blocker:** Google sign-in and access to Idleon's Firebase save are
-distinct steps. An arbitrary Google OAuth client may be rejected by the game's
-Identity Platform provider (`INVALID_IDP_RESPONSE`), even when Google sign-in
-succeeds. Using a Google access token instead of an ID token is an **untested**
-experiment, not proof of compatibility. We cannot bypass or guarantee the
-game project's authentication or Firestore rules.
+## What the new development preview does
 
-References:
-- https://developers.google.com/identity/oauth2/web/guides/migration-to-gis
-- https://developers.google.com/identity/oauth2/web/guides/how-user-authz-works
-- https://firebase.google.com/docs/reference/rest/auth
-- https://firebase.google.com/docs/auth/web/google-signin
+The collapsed **Google cloud import · DEV TEST** section has a
+**Try Google sign-in** button. It loads the official Firebase browser SDK
+using the publicly published `idlemmo` Firebase configuration.
 
-## Testing setup (only with proper authorization)
+On a user click, it attempts `signInWithPopup` via Google's identity
+provider. If the game authorizes this website's domain and the account
+can read its own cloud save, the temporary Firebase ID token is used to
+retrieve only `_data/<signed-in uid>`. We then feed the result through
+the same parser used for manual JSON imports.
 
-1. Create a **Google OAuth Web application** client that you own. Under the
-   Google Cloud project's JavaScript origins, authorize the exact origin
-   used for testing (for example `http://localhost:8000`).
-2. Confirm that your OAuth app is permitted to authenticate with the game's
-   Firebase identity provider. Obtain the public Firebase Web API key from
-   an authorized source. Do not copy another website's client secret.
-3. Open the Google cloud import section on the development page. Enter the\n   **Google OAuth Web client ID** and **public Idleon Firebase Web API key**\n   in the test-configuration fields, then click **Use test configuration**.\n   Alternatively, configure their defaults in \`src/google-idleon-config.mjs\`.\n   The test fields exist only in memory and are not saved across reloads.\n   Never enter passwords, OAuth client secrets, OAuth tokens, or refresh tokens.
-4. Serve the **development branch** through a local HTTP server from the
-   project root; the popup flow requires an allowed origin.
-5. Import using a **test account that you control**, verify the decoded
-   Sushi Station values against a fresh Idleon Toolbox export, test denied
-   access and cancelled sign-in, and check that Clear removes account data.
+The Firebase Auth SDK uses **in-memory persistence**; this feature does
+not copy tokens into localStorage, sessionStorage, URL parameters, or GitHub.
+It signs out from Firebase after each attempt. Google sign-in is optional;
+manual JSON import is unaffected. It does not ask for the user's password
+or game tokens.
 
-The configuration ships empty on purpose. Do not commit live credentials or
-test-user information. Google's client ID and Firebase Web API key are public
-identifiers, but they must still be configured for valid origins and authorized
-project access.
+**Likely blocker:** Idleon's Firebase project may reject
+`coujak.github.io` (or `localhost`) as an unauthorized authentication
+origin. If the page reports `auth/unauthorized-domain`, this is not a
+bug to bypass by copying credentials from a competitor. We need a
+legitimate OAuth device-code client registered for use with Idleon or
+cooperation from the game developer / an authorized integration.
 
-## Security and release gates
+## Testing
 
-- Keep the opt-in preview **development-only** until it works end-to-end in a
-  real browser and uses only access explicitly authorized for the user's own account.
-- Keep manual file upload / JSON paste completely functional.
-- No client secret in browser or GitHub Pages, no credentials from Corgan's repo.
-- No OAuth or Firebase token persistence, and no automatic background polling.
-- Fail closed if configuration is missing, credentials are rejected, the save
-  lacks Sushi Station data, or the browser blocks the request.
-- Compare the cloud import's account values to the same user's local IT JSON.
-- If a backend is later chosen, use a server-side OAuth authorization-code flow,
-  protected credentials, validated session state, and rate-limited APIs.
+1. Open the development preview page.
+2. Expand **Google cloud import · DEV TEST**.
+3. Click **Try Google sign-in** (no setup needed).
+4. If it succeeds, check your sushi values against a fresh Idleon Toolbox
+   export; try **Clear** and manual JSON import.
+5. If it fails, share only the displayed generic error text. **Never**
+   share a Google password, Firebase token, OAuth code, account ID,
+   access token, or a full network request/response.
+
+This attempt does not guarantee a successful sign-in. Its immediate
+purpose is to verify, with a real browser and user click, whether the
+Firebase project authorizes our website. We will not claim production
+readiness or promote the feature to `main` until that is confirmed.
+
+## Public references
+
+- [Idleon Toolbox public authentication implementation](https://github.com/Morta1/IdleonToolbox/tree/main/services/auth)
+- [Idleon Toolbox Firebase SDK configuration](https://github.com/Morta1/IdleonToolbox/blob/main/firebase/config.js)
+- [Corgan's published authentication implementation](https://github.com/Corgan/idleon-research-optimizer/tree/main/js/auth)
+- [Idleoneer release notes](https://idleoneer.com/patch-notes)
+- [Firebase: Google authentication for web](https://firebase.google.com/docs/auth/web/google-signin)
