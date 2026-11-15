@@ -4891,3 +4891,22 @@ details summary{cursor:pointer;font-size:12px;font-weight:700;color:#9eb7c9}
  display:block;height:100%;min-width:0;flex:0 0 auto;
  transition:width .12s ease;background:linear-gradient(90deg,#558dd6,#8dc4fa);
 }
+
+/* The complete Choose a planner card is an interactive, keyboard-accessible
+   button; the selected card stays in sync with the existing planner tabs. */
+.lab-planner-cards button.lab-planner-card{
+ display:flex;width:100%;box-sizing:border-box;
+ min-width:0;min-height:100%;cursor:pointer;
+ font:inherit;text-align:left;color:inherit;
+ transition:border-color .15s,background .15s,box-shadow .15s;
+}
+.lab-planner-cards button.lab-planner-card:hover{
+ background:#1a4045;border-color:#74bda8;
+}
+.lab-planner-cards button.lab-planner-card:focus-visible{
+ outline:2px solid #a0e6ce;outline-offset:3px;
+}
+.lab-planner-cards button.lab-planner-card.is-active{
+ background:#1d4640;border-color:#8fdfb6;
+ box-shadow:inset 3px 0 0 #7ddeb3;
+}
