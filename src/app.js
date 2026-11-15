@@ -24,7 +24,6 @@ import {BOARD_COLUMNS,BOARD_CELLS,normalizeBoardData,layoutOptions} from "./boar
 import {windTierMaximum,clampWindTier,windTierAfterPreparedChange} from "./wind-limit.mjs?v=1.9.10";
 import {detectSushiProgress} from "./sushi-progression.mjs?v=1.17.0";
 import {initializeSushiLab} from "./lab-ui.mjs?v=1.50.58";
-import {initializeGoogleIdleonUI} from "./google-idleon-ui.mjs?v=1.0.4";
 import {formatCompactNumber} from "./number-format.mjs?v=1.0.1";
 import {parseSushiCurrencyExternal} from "./sushi-currency-external.mjs?v=1.0.0";
 import {sushiTierIconPath} from "./sushi-reference.mjs?v=1.16.6";
@@ -280,7 +279,6 @@ function renderBoard(tiles,perfecto,slots,fires){
 }
 function importSave(data,label){
   const parsed=decodeSave(data);
-  if(label!=="Google cloud save")googleImportUI.clear();
   cancelRunningSearch();
   disposeReplay();
   imported=parsed;customBoard=null;applyImportedLimits();$("importError").classList.add("hidden");
@@ -313,9 +311,7 @@ function error(e){$("importStatus").textContent="Import failed";$("importStatus"
 $("pasteToggle").addEventListener("click",()=>{const open=$("pasteArea").classList.toggle("hidden")===false;$("pasteToggle").setAttribute("aria-expanded",String(open));if(open)$("jsonInput").focus();});
 $("parseJson").addEventListener("click",()=>{try{importSave(JSON.parse($("jsonInput").value),"Pasted JSON");}catch(e){error(e);}});
 $("jsonFile").addEventListener("change",async e=>{const f=e.target.files?.[0];if(!f)return;try{importSave(JSON.parse(await f.text()),f.name);}catch(err){error(err);}});
-const googleImportUI=initializeGoogleIdleonUI((data,label)=>importSave(data,label));
 function clearImportedSave(){
- googleImportUI.clear();
  cancelRunningSearch();disposeReplay();imported=null;customBoard=null;
  $("solver").classList.add("hidden");
  $("jsonInput").value="";$("jsonFile").value="";

@@ -4943,36 +4943,3 @@ details summary{cursor:pointer;font-size:12px;font-weight:700;color:#9eb7c9}
  background:#152e31;color:#b5d8cc;font-size:12px;line-height:1.55;
 }
 .lab-navigation-hint:before{content:"🔒";font-size:13px;}
-
-
-/* Google cloud import lives beside the JSON import actions. */
-.google-idleon-button{display:inline-flex;align-items:center;justify-content:center}
-.google-idleon-refresh-note{
- margin:9px 0 0;
- color:#98b4c0;
- font-size:12px;
- line-height:1.5;
-}
-.google-idleon-status{
- margin:9px 0 0;
- font-size:12px;
- line-height:1.6;
- color:#a7cad2;
-}
-.google-idleon-status[data-state="ok"]{color:#8de2b0}
-.google-idleon-status[data-state="error"]{color:#f1b9a8}
-.google-idleon-status[data-state="busy"]{color:#fff1bc}
-
-.google-idleon-status-row{
- display:flex;
- align-items:center;
- flex-wrap:wrap;
- gap:10px;
- margin-top:9px;
-}
-.google-idleon-status-row .google-idleon-status{margin:0;flex:0 1 auto}
-.google-idleon-auto-refresh{
- font-size:11px;
- min-height:28px;
- padding:4px 9px;
-}
