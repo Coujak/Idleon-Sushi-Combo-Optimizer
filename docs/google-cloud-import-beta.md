@@ -1,6 +1,6 @@
 # Google sign-in: development-only test
 
-**Status: one-click prototype, not a verified integration.** The public `main` site remains
+**Status: locally tested Google sign-in, with development-only automatic refresh not yet user-verified.** The public `main` site remains
 unchanged; JSON upload and paste remain the reliable options.
 
 ## Findings from real Idleon companion projects
@@ -19,23 +19,27 @@ The other projects' **OAuth client identifiers and client secrets are not
 our credentials**. Their availability in a public repository does not
 give Sushi Station Lab permission to reuse them.
 
-## What the new development preview does
+## What the development preview does
 
-The collapsed **Google cloud import · DEV TEST** section has a
-**Try Google sign-in** button. It loads the official Firebase browser SDK
-using the publicly published `idlemmo` Firebase configuration.
+The **Sign in with Google** button sits alongside **Choose JSON file**,
+**Paste JSON**, and **Clear** in the account import panel.
 
-On a user click, it attempts `signInWithPopup` via Google's identity
-provider. If the game authorizes this website's domain and the account
-can read its own cloud save, the temporary Firebase ID token is used to
-retrieve only `_data/<signed-in uid>`. We then feed the result through
-the same parser used for manual JSON imports.
+On a user click, it attempts `signInWithPopup` through Idleon's publicly
+published Firebase configuration. If permitted, it reads only
+`_data/<signed-in uid>` and imports the result into the existing JSON parser.
 
-The Firebase Auth SDK uses **in-memory persistence**; this feature does
-not copy tokens into localStorage, sessionStorage, URL parameters, or GitHub.
-It signs out from Firebase after each attempt. Google sign-in is optional;
-manual JSON import is unaffected. It does not ask for the user's password
-or game tokens.
+**Like Corgan:** After successful login, the button changes into
+**Refresh (5:00)** with a countdown, automatically re-reads the current
+cloud save every five minutes while the tab remains open, and offers
+**Pause auto-refresh / Resume auto-refresh** beneath the buttons.
+A manual click refreshes immediately. Manual JSON import or **Clear** ends
+the connection and stops the timer.
+
+The Firebase Auth SDK uses **in-memory persistence**: it keeps a temporary
+session solely to permit recurring refreshes while the tab is open.
+The feature does not save tokens or passwords to localStorage, sessionStorage,
+URL parameters, or GitHub. Closing the tab discards the session.
+We do **not** use Corgan's OAuth client secret or token cache.
 
 **Likely blocker:** Idleon's Firebase project may reject
 `coujak.github.io` (or `localhost`) as an unauthorized authentication
@@ -51,10 +55,12 @@ cooperation from the game developer / an authorized integration.
 2. Double-click **start-preview.bat** in the extracted project folder.
    It starts a local Python web server and opens `http://localhost:8765`.
    (If Python 3 isn't installed, the launcher explains what is needed.)
-3. Expand **Google cloud import · DEV TEST** and click
-   **Try Google sign-in**. No Google Cloud setup or app identifiers are needed.
-4. If the Firebase project allows the popup, check your sushi values
-   against a fresh Idleon Toolbox export; try **Clear** and manual JSON import.
+3. In **Import game data**, click **Sign in with Google**. No Google
+   Cloud setup or app identifiers are needed.
+4. If the popup succeeds, verify the save against Idleon Toolbox. The
+   button becomes **Refresh (5:00)** and counts down, updating every five
+   minutes. Test **Pause auto-refresh**, **Resume auto-refresh**, **Clear**,
+   and manual JSON import.
 5. If it fails, share only the displayed generic error text. **Never**
    share a Google password, Firebase token, OAuth code, account ID,
    access token, or a full network request/response.
