@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
  DEVICE_CODE_ENDPOINT,DEVICE_TOKEN_ENDPOINT,DEVICE_SCOPES,
- DEVICE_MIN_POLL_MS,validateDeviceOAuthConfig,DeviceAuthError,
+ DEVICE_MIN_POLL_MS,validateDeviceOAuthClient,validateDeviceOAuthConfig,DeviceAuthError,
  requestGoogleDeviceCode,pollGoogleDeviceToken,awaitGoogleDeviceApproval,waitDevicePoll
 } from "../src/idleon-device-code.mjs";
 
@@ -22,7 +22,9 @@ test("Device OAuth requires a correctly formatted registered client and matching
  assert.equal(validateDeviceOAuthConfig(config).ready,true);
  assert.equal(validateDeviceOAuthConfig({...config,clientId:""}).ready,false);
  assert.equal(validateDeviceOAuthConfig({...config,clientSecret:""}).ready,false);
- await assert.rejects(requestGoogleDeviceCode({clientId:config.clientId}),{
+ assert.equal(validateDeviceOAuthClient({clientId:config.clientId}).ready,true);
+ assert.equal(validateDeviceOAuthClient({clientId:""}).ready,false);
+ await assert.rejects(requestGoogleDeviceCode({clientId:""}),{
   name:"DeviceAuthError",code:"not_configured"
  });
 });
@@ -44,6 +46,9 @@ test("Device authorization requests only basic Google sign-in scopes and validat
  assert.equal(result.userCode,"TEST-CODE");
  assert.equal(result.verificationUrl,"https://www.google.com/device");
  assert.equal(result.pollIntervalMs,DEVICE_MIN_POLL_MS);
+ const idOnly=await requestGoogleDeviceCode({clientId:config.clientId},{fetcher});
+ assert.equal(idOnly.userCode,sample.user_code);
+ assert.equal(calls.length,2);
  assert.deepEqual(Object.keys(result).sort(),
   ["userCode","deviceCode","verificationUrl","expiresIn","pollIntervalMs"].sort());
  await assert.rejects(requestGoogleDeviceCode(config,{fetcher:async()=>mock(200,{
