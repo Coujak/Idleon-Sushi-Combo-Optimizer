@@ -31,11 +31,14 @@ been supplied, committed, or requested in chat.
 - **Sign in with Google** appears among the import buttons in the
   development build and opens an inline device-code form.
 - Client ID is prefilled from the user's supplied public identifier.
-  The device-client secret must be entered by the owner **locally in the
-  browser, never in chat or source control**. It is cleared on completion,
-  cancellation, failure, or Clear. No credentials are saved to browser storage.
-- **Generate sign-in code** requests a temporary code from Google's official
-  `device/code` endpoint with only `openid email profile` scopes.
+  **Generate sign-in code** uses that public ID alone. If it is not a
+  registered TV/limited-input client, Google will reject it.
+- Once a code is shown, approval polling requires the matching device-client
+  secret, entered by the owner **locally in the browser, never in chat or
+  source control**. The secret is cleared on completion, cancellation,
+  failure, or Clear. No credentials are saved to browser storage.
+- **Generate sign-in code** contacts Google's official `device/code`
+  endpoint with only `openid email profile` scopes.
 - A **Copy code** button and an official
   [google.com/device](https://www.google.com/device) link let the user
   approve the pending request. The app polls Google's official token endpoint,
@@ -58,15 +61,17 @@ been supplied, committed, or requested in chat.
 2. In **Import game data**, click **Sign in with Google**.
 3. Check that your OAuth client is of type **TVs and Limited Input devices**.
    The supplied client ID should already be filled in.
-4. **Only in your local copy** of the preview, enter the matching
-   device-client secret, then click **Generate sign-in code**.
-   **Never** send the secret, tokens, user account identifiers, device code,
-   network requests/responses, or passwords in chat.
-5. Copy the generated Google code, open Google's approval page, approve
-   your own account, then check whether Idleon's Firebase accepts it.
-6. Verify the imported account information, five-minute refresh, Pause,
-   Resume, manual JSON import, and Clear. Share only the generic status or
-   error message if the test fails.
+4. Click **Generate sign-in code**. This first step requires
+   only the supplied public client ID. If Google rejects the request,
+   check the OAuth client application type in Google Cloud.
+5. If a code appears, copy it, open the official `google.com/device`
+   page, and approve your own account.
+6. **Only on your local preview**, enter the matching device-client secret,
+   then click **Check approval and connect**. The secret is required for
+   polling, but is never stored; **never share it in chat**.
+7. Verify your imported account information, five-minute refresh, Pause,
+   Resume, manual JSON import, and Clear. If sign-in fails, share only
+   the generic status or error message, never credentials or network data.
 
 The user code is a short-lived approval code, not a password. It is shown
 only in the local browser session. If the OAuth client type is wrong,
