@@ -3743,8 +3743,18 @@ details summary{cursor:pointer;font-size:12px;font-weight:700;color:#9eb7c9}
 #knowledgePlanner .lab-kp-progress-table{min-width:640px}
 #knowledgePlanner .lab-kp-progress-table td:not(:first-child),
 #knowledgePlanner .lab-kp-progress-table th:not(:first-child){text-align:right}
-#knowledgePlanner .lab-kp-tier{display:flex;gap:9px;align-items:center}
-#knowledgePlanner .lab-kp-tier img{height:28px;width:28px;object-fit:contain}
+/* Table cells retain their native display; flex only the inner contents.
+   A flex <td> breaks row backgrounds and detaches the EXP bars vertically. */
+#knowledgePlanner .lab-kp-tier{display:table-cell}
+#knowledgePlanner .lab-kp-tier-content{
+ display:flex;gap:9px;align-items:center;min-width:0;
+}
+#knowledgePlanner .lab-kp-tier-content img{
+ display:block;height:28px;width:28px;flex:0 0 28px;object-fit:contain;
+}
+#knowledgePlanner .lab-kp-tier-content span{
+ min-width:0;overflow-wrap:anywhere;line-height:1.4;
+}
 #knowledgePlanner .lab-kp-progress-table td{vertical-align:middle}
 @media(max-width:760px){
  #knowledgePlanner .lab-kp-settings-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
@@ -4611,4 +4621,55 @@ details summary{cursor:pointer;font-size:12px;font-weight:700;color:#9eb7c9}
   justify-self:stretch;
   width:100%;
  }
+}
+
+/* Knowledge progression: a single compact, consistent table row per tier.
+   The value/count and the current+gained EXP bar share one real table cell. */
+#knowledgePlanner .lab-kp-progress-table{
+ width:100%;
+ min-width:880px;
+ table-layout:fixed;
+}
+#knowledgePlanner .lab-kp-progress-table th:first-child,
+#knowledgePlanner .lab-kp-progress-table td:first-child{width:29%}
+#knowledgePlanner .lab-kp-progress-table th:nth-child(2),
+#knowledgePlanner .lab-kp-progress-table td:nth-child(2){width:31%}
+#knowledgePlanner .lab-kp-progress-table th:nth-child(3),
+#knowledgePlanner .lab-kp-progress-table td:nth-child(3){width:13%}
+#knowledgePlanner .lab-kp-progress-table th:nth-child(4),
+#knowledgePlanner .lab-kp-progress-table td:nth-child(4){width:14%}
+#knowledgePlanner .lab-kp-progress-table th:nth-child(5),
+#knowledgePlanner .lab-kp-progress-table td:nth-child(5){width:13%}
+#knowledgePlanner .lab-kp-progress-table td{
+ display:table-cell;
+ vertical-align:middle;
+ box-sizing:border-box;
+}
+#knowledgePlanner .lab-kp-progress-table td.lab-kp-active-gain-cell{
+ text-align:left;
+}
+#knowledgePlanner .lab-kp-active-content{
+ display:flex;flex-direction:column;gap:8px;
+ min-width:0;width:100%;
+}
+#knowledgePlanner .lab-kp-active-heading{
+ display:flex;align-items:center;justify-content:space-between;
+ flex-wrap:wrap;gap:5px 9px;min-width:0;
+}
+#knowledgePlanner .lab-kp-active-heading .lab-kp-creation-count{
+ display:inline-block;margin:0;white-space:nowrap;
+ text-align:right;line-height:1.35;
+}
+#knowledgePlanner .lab-kp-active-heading .lab-kp-exp-value{
+ min-width:0;max-width:100%;box-sizing:border-box;
+}
+#knowledgePlanner .lab-kp-active-content .lab-kp-tier-exp{
+ width:100%;min-width:0;margin:0;
+}
+#knowledgePlanner .lab-kp-active-content .lab-kp-tier-exp-current{
+ text-align:left;line-height:1.35;margin-bottom:5px;
+ overflow-wrap:anywhere;white-space:normal;
+}
+#knowledgePlanner .lab-kp-active-content .lab-kp-tier-exp-bar{
+ box-sizing:border-box;
 }
