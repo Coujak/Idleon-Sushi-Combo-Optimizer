@@ -140,7 +140,8 @@ test("Next T64 creation searches farther and does not jump to harvest if no T64 
  h.context.jumpToNextTargetCreation=true;
  h.button.handler();
  assert.equal(h.context.search.payload.seekTargetTier,64);
- assert.ok(h.context.search.payload.waves>=24);
+ assert.equal(h.context.search.payload.waves,2400,
+  "Single-click target seek must search far beyond the former 60-refill window");
  h.context.search.onmessage({data:{ok:true,result:{
   available:true,rotations:[{rounds:6}],completedWaves:6,
   targetCreationFound:false
