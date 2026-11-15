@@ -80,7 +80,7 @@ test("Sparse EXP history handles long hold-to-continue previews efficiently",()=
 test("UI labels the active table as modeled EXP through the selected step",()=>{
  const html=readFileSync(new URL("../index.html",import.meta.url),"utf8");
  const ui=readFileSync(new URL("../src/knowledge-leveling-ui.mjs",import.meta.url),"utf8");
- assert.match(html,/Active EXP gained · to step/);
+ assert.match(html,/Active EXP · to step/);
  assert.match(html,/Hybrid EXP \/ hr · preview/);
  assert.match(ui,/buildKnowledgeActiveExpHistory\(p\.steps\)/);
  assert.match(ui,/renderVisibleActiveExp\(index\)/);
