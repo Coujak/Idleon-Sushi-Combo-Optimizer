@@ -236,30 +236,32 @@ test("Next T64 creation search stops only on a verified T64 event, not harvest s
  assert.equal(ctx.output.seekTargetTier,64);
  assert.equal(messages.at(-1).targetCreationFound,true);
 });
-test("Next T64 creation search reports no match and stays bounded when only harvests occur",()=>{
+test("Next T64 creation terminates on a repeating board rather than an arbitrary refill count",()=>{
  const src=readFileSync(new URL("../src/knowledge-cycle-worker.mjs",import.meta.url),"utf8");
  const start=src.indexOf("function extendKnowledgeInBatches(");
  const end=src.indexOf("\nself.onmessage=event=>",start);
  let calls=0;
  const ctx={
-  save:{},snapshot:{completed:false,finalBoard:[0],roundsCompleted:0},
+  save:{},snapshot:{completed:false,finalBoard:[0],protectedIndices:[],roundsCompleted:0},
   self:{postMessage(){}},
   continueKnowledgeRotation(_save,snapshot,count){
    calls++;
    return {available:true,rotation:{valid:true,
-    frames:[{kind:"start"},{kind:"stage",phase:"harvest",
-     title:"Harvest prepared T64 Sushi"}],
-    rounds:count,completed:false,finalBoard:[calls],
+    frames:[{kind:"start",board:snapshot.finalBoard},
+     {kind:"stage",phase:"harvest",title:"Harvest prepared T64 Sushi"}],
+    rounds:count,completed:false,finalBoard:[calls%2],
     protectedIndices:[],targetCreated:0}};
   }
  };
  runInNewContext(src.slice(start,end)+
-  "\nthis.output=extendKnowledgeInBatches(save,snapshot,24,64);",ctx,{timeout:1000});
- assert.equal(calls,4);
+  "\nthis.output=extendKnowledgeInBatches(save,snapshot,null,64);",
+  ctx,{timeout:1000});
+ assert.equal(calls,2,"Two repeatable board states prove no future T64 creation");
  assert.equal(ctx.output.targetCreationFound,false);
- assert.equal(ctx.output.completedWaves,24);
+ assert.equal(ctx.output.completedWaves,12);
+ assert.match(ctx.output.haltReason,/repeating cycle/);
+ assert.equal(ctx.output.requestedWaves,null,"No fixed refill horizon");
 });
-
 test("One Next T64 click continues past old 60-refill cap until T64 is really created",()=>{
  const src=readFileSync(new URL("../src/knowledge-cycle-worker.mjs",import.meta.url),"utf8");
  const start=src.indexOf("function extendKnowledgeInBatches(");
@@ -288,29 +290,71 @@ test("One Next T64 click continues past old 60-refill cap until T64 is really cr
  assert.equal(ctx.output.searchLimitReached,false);
  assert.equal(messages.at(-1).targetCreationFound,true);
 });
-test("One-click search has a truthful safety ceiling when target is unreachable",()=>{
+test("Long T64 searches retain only three detailed chunks and one honest checkpoint",()=>{
  const src=readFileSync(new URL("../src/knowledge-cycle-worker.mjs",import.meta.url),"utf8");
  const start=src.indexOf("function extendKnowledgeInBatches(");
  const end=src.indexOf("\nself.onmessage=event=>",start);
- let calls=0;
- const ctx={
-  save:{},snapshot:{completed:false,finalBoard:[0],roundsCompleted:0},
+ let calls=0;const ctx={
+  save:{},snapshot:{completed:false,finalBoard:[0],protectedIndices:[],
+   roundsCompleted:250,slots:[0]},
   self:{postMessage(){}},
-  continueKnowledgeRotation(_save,previous,batch){
+  continueKnowledgeRotation(_save,snapshot,count){
    calls++;
+   const tier=calls===101?64:63;
    return {available:true,rotation:{
-    frames:[{kind:"start",board:previous.finalBoard},
-     {kind:"stage",phase:"harvest",title:"Harvest prepared T64 Sushi"}],
-    rounds:batch,completed:false,finalBoard:[calls],
-    protectedIndices:[],targetCreated:0}};
+    frames:[{kind:"start",board:snapshot.finalBoard},
+     {kind:"merge",events:[{kind:"merge",tier,at:0}]}],
+    rounds:count,completed:false,finalBoard:[calls],
+    protectedIndices:[],targetCreated:tier===64?1:0,
+    gains:Array.from({length:65},(_,i)=>i===tier?1:0),
+    cooks:0,merges:1,moves:0,windEvents:0,fuel:1,
+    harvested:0,focusCopies:0,harvestBatches:[],peakTargetCopies:0
+   }};
   }
  };
  runInNewContext(src.slice(start,end)+
-  "\nthis.output=extendKnowledgeInBatches(save,snapshot,2400,64);",
+  "\nthis.output=extendKnowledgeInBatches(save,snapshot,null,64);",
   ctx,{timeout:1000});
- assert.equal(calls,400);
- assert.equal(ctx.output.completedWaves,2400);
+ assert.equal(calls,101);
+ assert.equal(ctx.output.completedWaves,606);
+ assert.equal(ctx.output.targetCreationFound,true);
+ assert.equal(ctx.output.rotations.length,3);
+ assert.equal(ctx.output.checkpoint.rounds,588);
+ assert.equal(ctx.output.checkpoint.initialBoard[0],0);
+ assert.equal(ctx.output.checkpoint.finalBoard[0],98);
+ assert.equal(ctx.output.checkpoint.gains[63],98);
+ assert.equal(ctx.output.checkpoint.harvestBatches.length,0);
+ assert.equal(ctx.output.checkpoint.frames.length,2);
+ assert.equal(ctx.output.checkpoint.frames[1].kind,"checkpoint");
+ assert.match(ctx.output.checkpoint.frames[1].detail,/Individual earlier actions are summarized/);
+ assert.deepEqual(Array.from(ctx.output.checkpoint.frames[1].events).map(e=>
+  [e.tier,e.creations]),[[63,98]]);
+ assert.equal(ctx.output.requestedWaves,null,"No arbitrary refill ceiling");
+ assert.equal(ctx.output.searchLimitReached,false);
+});
+test("Deep target search stops when no additional legal progress is possible",()=>{
+ const src=readFileSync(new URL("../src/knowledge-cycle-worker.mjs",import.meta.url),"utf8");
+ const start=src.indexOf("function extendKnowledgeInBatches(");
+ const end=src.indexOf("\nself.onmessage=event=>",start);
+ let calls=0;const ctx={
+  save:{},snapshot:{completed:false,finalBoard:[0],
+   protectedIndices:[],roundsCompleted:0},
+  self:{postMessage(){}},
+  continueKnowledgeRotation(_save,prior,batch){
+   calls++;
+   if(calls===3)return {available:false,reason:"No legal Sushi moves"};
+   return {available:true,rotation:{
+    frames:[{kind:"start"},{kind:"refill",events:[]}],
+    rounds:batch,completed:false,finalBoard:[calls],protectedIndices:[],
+    targetCreated:0,gains:Array(65).fill(0)
+   }};
+  }
+ };
+ runInNewContext(src.slice(start,end)+
+  "\nthis.output=extendKnowledgeInBatches(save,snapshot,null,64);",
+  ctx,{timeout:1000});
+ assert.equal(calls,3);
+ assert.equal(ctx.output.completedWaves,12);
  assert.equal(ctx.output.targetCreationFound,false);
- assert.equal(ctx.output.searchLimitReached,true);
- assert.match(ctx.output.haltReason,/refill safety limit/);
+ assert.match(ctx.output.haltReason,/No legal Sushi moves/);
 });
