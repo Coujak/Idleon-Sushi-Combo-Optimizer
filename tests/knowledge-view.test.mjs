@@ -1,7 +1,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {readFileSync} from "node:fs";
-import {getKnowledgeRows} from "../src/lab-model.mjs";
+import {getKnowledgeRows,knowledgeXpRequirement,projectKnowledgeLevelProgress}
+ from "../src/lab-model.mjs";
 import {formatKnowledgeBonusValue} from "../src/knowledge-bonus-format.mjs";
 import {describeKnowledgeBonus} from "../src/knowledge-bonus-format.mjs";
 import {filterKnowledgeRows,knowledgeOverview,KNOWLEDGE_SORT_OPTIONS,KNOWLEDGE_STATUS_OPTIONS,
@@ -271,4 +272,43 @@ test("Knowledge 5-level checkpoint hints are only near a real upcoming level and
  const ui=readFileSync(new URL("../src/lab-ui.mjs",import.meta.url),"utf8");
  assert.match(ui,/lab-knowledge-checkpoint/);
  assert.match(ui,/not an extra in-game reward/);
+});
+
+test("Knowledge projection carries active EXP through multiple exact level thresholds",()=>{
+ const l=27,req=knowledgeXpRequirement(l),
+  reqNext=knowledgeXpRequirement(l+1),
+  reqNext2=knowledgeXpRequirement(l+2);
+ assert.ok(req>0&&reqNext>req&&reqNext2>reqNext);
+ const starting=req-100;
+ const gain=100+reqNext+reqNext2*.25;
+ const result=projectKnowledgeLevelProgress(l,starting,gain);
+ assert.equal(result.levelUps,2);
+ assert.equal(result.projectedLevel,l+2);
+ assert.ok(Math.abs(result.projectedXp-reqNext2*.25)<1e-6*reqNext2);
+ assert.ok(Math.abs(result.projectedPercent-25)<1e-6);
+ assert.equal(result.currentRequired,req);
+ assert.equal(result.projectedRequired,reqNext2);
+ assert.equal(result.complete,true);
+});
+test("Knowledge projection keeps green baseline separate from blue overflow",()=>{
+ const level=27,req=knowledgeXpRequirement(level);
+ const noExp=projectKnowledgeLevelProgress(level,req*.4,0);
+ assert.equal(noExp.levelUps,0);
+ assert.equal(noExp.projectedPercent,40);
+ const small=projectKnowledgeLevelProgress(level,req*.4,req*.25);
+ assert.equal(small.levelUps,0);
+ assert.ok(Math.abs(small.projectedPercent-65)<1e-8);
+ const exactlyNext=projectKnowledgeLevelProgress(level,req*.4,req*.6);
+ assert.equal(exactlyNext.levelUps,1);
+ assert.equal(exactlyNext.projectedXp,0);
+ assert.equal(exactlyNext.projectedLevel,level+1);
+ assert.equal(exactlyNext.projectedPercent,0);
+});
+test("Knowledge projection rejects unknown levels and overflows safely",()=>{
+ assert.equal(projectKnowledgeLevelProgress(-1,100,10),null);
+ assert.equal(projectKnowledgeLevelProgress(0,NaN,10),null);
+ assert.equal(projectKnowledgeLevelProgress(1,10,-5),null);
+ assert.equal(projectKnowledgeLevelProgress(1,Infinity,1),null);
+ assert.equal(knowledgeXpRequirement(-1),null);
+ assert.equal(knowledgeXpRequirement(5000),null);
 });
