@@ -1,7 +1,7 @@
 // Experimental sign-in through Idleon's publicly published Firebase project.
 // The app never asks for a password, copies another site's OAuth client or persists tokens.
 // This only succeeds if the game's Firebase configuration authorizes this origin.
-import {fetchAuthorizedIdleonSave} from "./google-idleon-import.mjs?v=1.0.1";
+import {fetchAuthorizedIdleonSave} from "./google-idleon-import.mjs?v=1.0.2";
 
 const FIREBASE_PROJECT=Object.freeze({
  apiKey:"AIzaSyAU62kOE6xhSrFqoXQPv6_WHxYilmoUxDk",
