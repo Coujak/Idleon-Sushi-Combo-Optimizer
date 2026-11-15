@@ -110,7 +110,7 @@ export function balancedStaircase(gains,seconds,tiers){
   weightedRate:ordered.reduce((n,t,i)=>
    n+Math.log1p((gains[t]??0)*rate)*(ordered.length-i),0)};
 }
-export function optimizeKnowledgeRotation(save,rawOptions={}){
+export function optimizeKnowledgeRotation(save,rawOptions={},onProgress=null){
  const options={...normalizeKnowledgeCycleOptions(rawOptions),
   preservePassive:rawOptions?.preservePassive===true};
  const fail=reason=>({available:false,reason,mode:options.mode,options});
@@ -186,6 +186,27 @@ export function optimizeKnowledgeRotation(save,rawOptions={}){
  const recipeVariants=recipePatterns.flatMap(pattern=>
   (pattern==="uniform"?[0]:options.mode==="focused"?[0,3]:[0,2])
    .map(recipeOffset=>({pattern,recipeOffset})));
+ // Each permitted recipe/layout combination counts as one evaluation.
+ // Messages describe completed work, not elapsed-time estimates.
+ const fireCount=fires.filter(f=>!continuing||
+  f.name===continuing.fireChoice).length;
+ const packingCount=packingModes.filter(mode=>!continuing||
+  mode===continuing.packingMode).length;
+ const searchTotal=bases.reduce((count,cookTier)=>
+  count+recipeVariants.filter(({pattern,recipeOffset})=>
+   (pattern!=="t1Climb"||cookTier===1)&&
+   (!continuing||(cookTier===continuing.cookTier&&
+    pattern===continuing.pattern&&recipeOffset===continuing.recipeOffset))
+  ).length*fireCount*packingCount,0);
+ let evaluated=0,lastReported=-1;
+ const reportProgress=()=>{
+  if(typeof onProgress!=="function"||searchTotal<=0)return;
+  const percent=Math.floor(evaluated/searchTotal*100);
+  if(percent<=lastReported)return;
+  lastReported=percent;
+  onProgress({phase:"search",completed:evaluated,total:searchTotal});
+ };
+ reportProgress();
  for(const cookTier of bases){
   for(const {pattern,recipeOffset} of recipeVariants){
    if(pattern==="t1Climb"&&cookTier!==1)continue;
@@ -196,6 +217,8 @@ export function optimizeKnowledgeRotation(save,rawOptions={}){
     for(const packingMode of packingModes){
     if(continuing&&(packingMode!==continuing.packingMode||
      fire.name!==continuing.fireChoice))continue;
+    // The previous candidate has completed before the next one starts.
+    evaluated++;reportProgress();
     const rotation=simulateContinuousKnowledgeRotation({
      startingBoard:design.board,slots:layout.slots,mode:options.mode,targetTier,
      requestedTier:cookTier,guaranteedBonus:xp.guaranteed,
@@ -286,6 +309,8 @@ export function optimizeKnowledgeRotation(save,rawOptions={}){
    }
   }
  }
+ // Include the final evaluation, even if it did not produce a valid plan.
+ reportProgress();
  if(!best)return fail(continuing?
   "The selected rotation can no longer be extended with these account settings. Rebuild the planner.":
   "No feasible legal refill/merge rotation was found with this board and fuel budget.");
@@ -317,7 +342,8 @@ export function optimizeKnowledgeRotation(save,rawOptions={}){
   const passiveExpPerDay=best.passivePerDay[row.tier];
   const expPerHour=activeExpPerHour+passiveExpPerDay/24;
   const remaining=Number.isFinite(row.xpRemaining)?row.xpRemaining:null;
-  return {tier:row.tier,name:row.name,level:row.level,remaining,expPerCycle,
+  return {tier:row.tier,name:row.name,level:row.level,remaining,
+   xp:row.xp,xpReq:row.xpReq,expPerCycle,
    activeExpPerHour,passiveExpPerDay,expPerHour,
    etaHours:remaining===0?0:expPerHour>0&&remaining!==null?
     remaining/expPerHour:null};
