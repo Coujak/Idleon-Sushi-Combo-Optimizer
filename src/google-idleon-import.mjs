@@ -5,17 +5,22 @@ const AUTH_ENDPOINT="https://identitytoolkit.googleapis.com/v1/accounts:signInWi
 const FIRESTORE_HOST="https://firestore.googleapis.com";
 const DEFAULT_PROJECT="idlemmo";
 
-export function validateGoogleImportConfig(config){
- const clientId=String(config?.clientId??"").trim();
- const firebaseApiKey=String(config?.firebaseApiKey??"").trim();
+export function validateFirebaseProject(config){
+ const firebaseApiKey=String(config?.firebaseApiKey??config?.apiKey??"").trim();
  const projectId=String(config?.projectId??DEFAULT_PROJECT).trim();
- if(!/^[a-zA-Z0-9_-]+\.apps\.googleusercontent\.com$/.test(clientId))
-  return {ready:false,reason:"Configure an authorized Google OAuth Web client ID before using this preview."};
  if(!/^[a-zA-Z0-9_-]{20,}$/.test(firebaseApiKey))
-  return {ready:false,reason:"Configure the game's verified public Firebase API key before testing."};
+  return {ready:false,reason:"A valid public Firebase API key is required."};
  if(!/^[a-z][a-z0-9-]{3,63}$/.test(projectId))
   return {ready:false,reason:"The Firebase project ID is invalid."};
- return {ready:true,clientId,firebaseApiKey,projectId};
+ return {ready:true,firebaseApiKey,projectId};
+}
+export function validateGoogleImportConfig(config){
+ const project=validateFirebaseProject(config);
+ if(!project.ready)return project;
+ const clientId=String(config?.clientId??"").trim();
+ if(!/^[a-zA-Z0-9_-]+\.apps\.googleusercontent\.com$/.test(clientId))
+  return {ready:false,reason:"Configure an authorized Google OAuth Web client ID before using this preview."};
+ return {...project,clientId};
 }
 export function googleImportError(error,stage){
  const code=String(error?.message??error??"").trim().slice(0,180);
@@ -84,7 +89,7 @@ export async function exchangeGoogleForIdleon(googleAccessToken,config,fetcher=f
 export async function fetchAuthorizedIdleonSave(uid,firebaseIdToken,config,fetcher=fetch){
  if(typeof uid!=="string"||!uid||typeof firebaseIdToken!=="string"||!firebaseIdToken)
   throw Error("Authorized Firebase session is missing.");
- const settings=validateGoogleImportConfig(config);
+ const settings=validateFirebaseProject(config);
  if(!settings.ready)throw Error(settings.reason);
  const url=FIRESTORE_HOST+"/v1/projects/"+encodeURIComponent(settings.projectId)+
   "/databases/(default)/documents/_data/"+encodeURIComponent(uid);
