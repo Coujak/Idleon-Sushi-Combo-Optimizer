@@ -35,7 +35,8 @@ export async function unlockPrivateExperiment14(envelope,password){
  return payload;
 }
 
-export function buildPrivateExperiment14Candidate(payload,positions){
+export function buildPrivateExperiment14Candidate(payload,positions,experimentNumber=14){
+ if(![14,15,16].includes(experimentNumber))return null;
  if(payload?.version!==1||typeof payload.split!=="string"||
   payload.split.split("/").length!==2||
   !Number.isSafeInteger(payload.score)||payload.score<1||
@@ -68,7 +69,7 @@ export function buildPrivateExperiment14Candidate(payload,positions){
  if(score!==payload.score)return null;
  const remaining=board.filter(t=>t>0).length;
  return {
-  name:"Experimental 14.0 · Private",foundExperiment:14,privateExperiment:true,
+  name:"Experiment "+experimentNumber+".0 · Private",foundExperiment:experimentNumber,privateExperiment:true,
   foundBenchmark:null,base:Math.min(...payload.board.filter(t=>t<64)),
   shape:"private encrypted "+payload.split+" preparation",
   board:start,foundSplit:payload.split,
