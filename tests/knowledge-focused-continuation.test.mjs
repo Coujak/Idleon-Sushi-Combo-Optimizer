@@ -286,7 +286,9 @@ test("One Next T64 click continues past old 60-refill cap until T64 is really cr
  assert.equal(calls,19);
  assert.equal(ctx.output.targetCreationFound,true);
  assert.equal(ctx.output.completedWaves,114);
- assert.equal(ctx.output.rotations.length,19);
+ assert.equal(ctx.output.rotations.length,3);
+ assert.equal(ctx.output.checkpoint.rounds,96);
+ assert.equal(ctx.output.checkpoint.frames[1].kind,"checkpoint");
  assert.equal(ctx.output.searchLimitReached,false);
  assert.equal(messages.at(-1).targetCreationFound,true);
 });
