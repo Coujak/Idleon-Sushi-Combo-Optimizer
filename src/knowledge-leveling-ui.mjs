@@ -507,14 +507,19 @@ export function initializeKnowledgeLevelingUI(getSave){
    if(p.mode==="balanced")
     tr.classList.add(inRange(entry.tier)?"is-balanced-range":"is-outside-range");
    const name=elem("td","lab-kp-tier");
+   const nameContent=elem("div","lab-kp-tier-content");
    const img=elem("img");
    img.src=sushiTierIconPath(entry.tier);img.alt="";img.loading="lazy";
    img.onerror=()=>img.remove();
-   name.append(img,elem("span","","T"+entry.tier+" · "+entry.name));
+   nameContent.append(img,elem("span","","T"+entry.tier+" · "+entry.name));
+   name.append(nameContent);
    const active=elem("td","lab-kp-active-gain-cell");
+   const activeContent=elem("div","lab-kp-active-content");
+   const activeHeading=elem("div","lab-kp-active-heading");
    const gained=elem("span","lab-kp-exp-value is-empty","0");
    const created=elem("small","lab-kp-creation-count","0 creations");
-   active.append(gained,created);
+   activeHeading.append(gained,created);
+   activeContent.append(activeHeading);
    // Green is saved Knowledge EXP; blue is active EXP earned by this step.
    let expBar=null,projected=null,initialPct=0;
    if(Number.isFinite(entry.xp)&&Number.isFinite(entry.xpReq)&&entry.xpReq>0){
@@ -534,8 +539,9 @@ export function initializeKnowledgeLevelingUI(getSave){
     projected.style.width="0%";
     expBar.append(saved,projected);
     progressWrap.append(label,expBar);
-    active.append(progressWrap);
+    activeContent.append(progressWrap);
    }
+   active.append(activeContent);
    active.title="Simulated gain to the selected walkthrough step. "+
     "Full-preview T"+entry.tier+" EXP: "+compact(entry.expPerCycle)+
     ". Actual in-game EXP must be measured separately.";
