@@ -104,7 +104,7 @@ export function initializeKnowledgeLevelingUI(getSave){
   continueStatus?.classList.remove("is-target-search");
  };
  const showTargetSearch=tier=>{
-  targetCancelButton.textContent="Cancel T"+tier+" search";
+  targetCancelButton.textContent="Cancel";
   targetCancelButton.classList.remove("hidden");
   continueStatus?.classList.add("is-target-search");
  };
@@ -959,7 +959,7 @@ export function initializeKnowledgeLevelingUI(getSave){
   announceContinuation(skipToTarget?
    "Searching consecutive refills for the next actual T"+
     previous.targetTier+" creation, without a fixed refill limit. "+
-    "Use Cancel T"+previous.targetTier+" search beside Next T"+
+    "Click Cancel beside Next T"+
     previous.targetTier+" creation to stop.":
    "Simulating +"+additionalWaves+" refills (5%) from the current board, through refill "+nextRounds+"…");
   status.textContent=skipToTarget?
@@ -987,7 +987,7 @@ export function initializeKnowledgeLevelingUI(getSave){
       "Searching for T"+previous.targetTier+" creation · "+
        msg.completedWaves+" refills checked"+
        (msg.targetCreationFound?" · Target created!":
-        " · Use Cancel T"+previous.targetTier+" search beside Next T"+
+        " · Click Cancel beside Next T"+
         previous.targetTier+" creation to stop"):
       "Simulating "+msg.completedWaves+" / "+
        msg.requestedWaves+" refills · current total "+
