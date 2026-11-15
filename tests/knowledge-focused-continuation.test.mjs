@@ -1,3 +1,7 @@
+import {readFileSync} from "node:fs";
+import {runInNewContext} from "node:vm";
+import {nextKnowledgeHarvestStep}
+ from "../src/knowledge-rotation-extension.mjs";
 import test from "node:test";
 import assert from "node:assert/strict";
 import {simulateContinuousKnowledgeRotation}
@@ -114,4 +118,91 @@ test("Focused continuation contains only legal moves and real target EXP events"
 test("Focused uses the same five-percent refill scale as Balanced",()=>{
  assert.equal(knowledgeContinueWaveCount(100),5);
  assert.equal(knowledgeContinueWaveCount(1000),50);
+});
+
+test("Step 0 restores the original Focused T58 plan after multiple continuations",()=>{
+ const ui=readFileSync(new URL("../src/knowledge-leveling-ui.mjs",import.meta.url),"utf8");
+ const start=ui.indexOf(' function rewindKnowledgeReplay(prepared=false){');
+ const end=ui.indexOf(' showZero?.addEventListener("change"',start);
+ assert.ok(start>=0&&end>start);
+ const resetHandler=ui.slice(start,end);
+ const original={
+  mode:"focused",targetTier:58,preparedStep:1,
+  steps:[
+   {kind:"start",board:[0,0]},
+   {kind:"cook",board:[58,0]},
+   {kind:"stage",phase:"harvest",title:"Harvest prepared T58 Sushi",
+    board:[58,58]},
+   {kind:"partial",board:[59,0]}
+  ],
+  finalBoard:[59,0],roundsCompleted:6
+ };
+ const extended={
+  ...original,steps:original.steps.slice(0,-1).concat([
+   {kind:"refill",board:[59,58]},
+   {kind:"stage",phase:"harvest",title:"Harvest prepared T58 Sushi",
+    board:[59,58]},
+   {kind:"partial",board:[59,59]}
+  ]),
+  finalBoard:[59,59],roundsCompleted:16
+ };
+ const context={
+  result:extended,initialFocusedPlan:original,
+  controller:{step:5,goTo(i){context.visibleStep=i;}},
+  continueHold:{stop(){context.stopped=true;}},
+  worker:null,jumpToNextRefill:true,jumpToNextHarvest:true,
+  jumpToNextTargetCreation:true,
+  renderSummary(p){context.summary=p;},
+  renderPassive(p){context.passive=p;},
+  showProgress(p){context.progress=p;},
+  createReplay(p,index){context.result=p;context.visibleStep=index;},
+  stopSearch(){context.worker=null;},
+  continueButton:{disabled:false,textContent:""},
+  knowledgeContinueButtonLabel:()=>"Continue",
+  status:{textContent:""},announceContinuation(msg){context.message=msg;}
+ };
+ runInNewContext(resetHandler+"\nrewindKnowledgeReplay(false);",context,{timeout:1000});
+ assert.equal(context.result,original);
+ assert.equal(context.visibleStep,0);
+ assert.equal(context.summary,original);
+ assert.equal(context.passive,original);
+ assert.equal(context.progress,original);
+ assert.equal(context.jumpToNextHarvest,false);
+ assert.equal(context.jumpToNextTargetCreation,false);
+ assert.equal(nextKnowledgeHarvestStep(context.result.steps,context.visibleStep),2,
+  "Next Harvest after Step 0 must revisit the earliest harvest from original board");
+ assert.match(context.message,/original preparation/);
+ assert.equal(extended.finalBoard[0],59,"Extended final board remains unused");
+});
+
+test("Prepared restores original Focused plan and cancels in-flight extensions",()=>{
+ const ui=readFileSync(new URL("../src/knowledge-leveling-ui.mjs",import.meta.url),"utf8");
+ const start=ui.indexOf(' function rewindKnowledgeReplay(prepared=false){');
+ const end=ui.indexOf(' showZero?.addEventListener("change"',start);
+ const resetHandler=ui.slice(start,end);
+ const original={mode:"focused",targetTier:58,preparedStep:3,
+  steps:Array.from({length:5},(_,i)=>({kind:"stage",board:[i]})),
+  roundsCompleted:6};
+ const later={...original,steps:original.steps.concat([{kind:"partial"}]),
+  roundsCompleted:12};
+ const context={
+  result:later,initialFocusedPlan:original,
+  controller:{step:5,goTo(index){context.visibleStep=index;}},
+  continueHold:{stop(){context.stopped=true;}},
+  worker:{},jumpToNextRefill:true,jumpToNextHarvest:true,
+  jumpToNextTargetCreation:true,
+  renderSummary(){},renderPassive(){},showProgress(){},
+  createReplay(p,index){context.result=p;context.visibleStep=index;},
+  stopSearch(){context.worker=null;context.canceled=true;},
+  continueButton:{disabled:true,textContent:""},
+  knowledgeContinueButtonLabel:()=>"Continue rotation",
+  status:{textContent:""},announceContinuation(){}
+ };
+ runInNewContext(resetHandler+"\nrewindKnowledgeReplay(true);",context,{timeout:1000});
+ assert.equal(context.result,original);
+ assert.equal(context.visibleStep,3);
+ assert.equal(context.worker,null);
+ assert.equal(context.canceled,true);
+ assert.equal(context.stopped,true);
+ assert.equal(context.continueButton.disabled,false);
 });
