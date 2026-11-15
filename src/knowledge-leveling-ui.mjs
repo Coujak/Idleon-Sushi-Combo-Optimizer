@@ -745,6 +745,31 @@ export function initializeKnowledgeLevelingUI(getSave){
   ];
   for(const note of bullets)tips.append(elem("li","",note));
  }
+ // Step 0 and Prepared are true restarts for Focused, discarding the
+ // extra replay and finalBoard produced by later Next Harvest searches.
+ function rewindKnowledgeReplay(prepared=false){
+  if(!result||!controller)return;
+  continueHold?.stop();
+  if(worker)stopSearch(); // Discard an in-flight continuation before rewinding.
+  jumpToNextRefill=false;jumpToNextHarvest=false;
+  jumpToNextTargetCreation=false;
+  if(result.mode==="focused"&&initialFocusedPlan&&
+   result!==initialFocusedPlan){
+   const original=initialFocusedPlan;
+   renderSummary(original);
+   renderPassive(original);
+   showProgress(original);
+   createReplay(original,prepared?original.preparedStep??0:0);
+   const message="Focused T"+original.targetTier+
+    " restarted from the original preparation. Additional simulated refills were reset.";
+   status.textContent=message;
+   announceContinuation(message);
+  }else{
+   const index=prepared?Math.min(result.preparedStep??0,
+    result.steps.length-1):0;
+   controller.goTo(index);
+  }
+ }
  showZero?.addEventListener("change",()=>{
   if(!result)return;
   showProgress(result);
@@ -1012,10 +1037,8 @@ export function initializeKnowledgeLevelingUI(getSave){
   }
  });
 
- $("knowledgePlanReset").addEventListener("click",()=>controller?.goTo(0));
- $("knowledgePlanPrepared").addEventListener("click",()=>{
-  if(result)controller?.goTo(Math.min(result.preparedStep??0,result.steps.length-1));
- });
+ $("knowledgePlanReset").addEventListener("click",()=>rewindKnowledgeReplay(false));
+ $("knowledgePlanPrepared").addEventListener("click",()=>rewindKnowledgeReplay(true));
  $("knowledgePlanNextRefill").addEventListener("click",()=>{
   if(!result||!controller)return;
   const next=result.steps.findIndex((frame,i)=>i>controller.step&&frame.kind==="refill");
@@ -1031,12 +1054,21 @@ export function initializeKnowledgeLevelingUI(getSave){
  });
  $("knowledgePlanNextHarvest").addEventListener("click",()=>{
   if(!result||!controller)return;
-  const next=result.steps.findIndex((f,i)=>i>controller.step&&
-   f.kind==="stage"&&f.phase==="harvest"&&f.title.startsWith("Harvest prepared"));
+  const next=nextKnowledgeHarvestStep(result.steps,controller.step);
   if(next>=0)controller.goTo(next);
   else if(result.mode==="focused"&&canExtendBalancedRotation(result)&&
    !continueButton.disabled){
    jumpToNextHarvest=true;
+   continueButton.click();
+  }
+ });
+ $("knowledgePlanNextTargetCreation").addEventListener("click",()=>{
+  if(!result||!controller||result.mode!=="focused")return;
+  const next=nextKnowledgeTargetCreationStep(
+   result.steps,controller.step,result.targetTier);
+  if(next>=0)controller.goTo(next);
+  else if(canExtendBalancedRotation(result)&&!continueButton.disabled){
+   jumpToNextTargetCreation=true;
    continueButton.click();
   }
  });
