@@ -107,7 +107,7 @@ test("Knowledge worker uses the continuous account-based optimizer and UI expose
  const worker=readFileSync(new URL("../src/knowledge-cycle-worker.mjs",import.meta.url),"utf8");
  const ui=readFileSync(new URL("../src/knowledge-leveling-ui.mjs",import.meta.url),"utf8");
  const html=readFileSync(new URL("../index.html",import.meta.url),"utf8");
- assert.match(worker,/optimizeKnowledgeRotation\(save,options\)/);
+ assert.match(worker,/optimizeKnowledgeRotation\(save,options,progress=>/);
  assert.match(ui,/knowledgePlanNextRefill/);
  assert.match(ui,/targetCreated/);
  assert.match(ui,/peakTargetCopies/);
