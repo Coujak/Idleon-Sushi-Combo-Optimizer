@@ -59,7 +59,6 @@ export function initializeKnowledgeLevelingUI(getSave){
  const build=$("knowledgePlanRun"),cancelButton=$("knowledgePlanCancel");
  const status=$("knowledgePlanStatus");
  const summary=$("knowledgePlanFeatured"),replay=$("knowledgePlanRotation");
- const recommendedBoard=$("knowledgePlanDesign");
  const passiveBox=$("knowledgePlanPassive"),passiveToggle=$("knowledgePlanProtectPassive");
  const board=$("knowledgePlanBoard"),tips=$("knowledgePlanTips");
  const continueButton=$("knowledgePlanContinue");
@@ -106,7 +105,6 @@ export function initializeKnowledgeLevelingUI(getSave){
   continueButton.classList.add("hidden");continueButton.disabled=false;
   continueButton.textContent="Continue rotation";
   summary.replaceChildren();board.replaceChildren();
-  recommendedBoard.replaceChildren();recommendedBoard.classList.add("hidden");
   passiveBox.replaceChildren();
   $("knowledgePlanLevelRows").replaceChildren();
   summary.classList.add("hidden");passiveBox.classList.add("hidden");
@@ -119,10 +117,15 @@ export function initializeKnowledgeLevelingUI(getSave){
    " → T"+state.balancedEndTier;
   const detail=$("knowledgePlanStrategyDetail");
   if(detail&&mode.value==="balanced")
-   detail.textContent="Balanced · prioritize active EXP from T"+
-    state.balancedStartTier+" through T"+state.balancedEndTier+
-    ". A full rotation ends when a NEW T"+state.balancedEndTier+
-    " is created. The original protected Sushi never counts.";
+   detail.textContent="Earn EXP across T"+state.balancedStartTier+"–T"+
+    state.balancedEndTier+" · finish by creating a new T"+state.balancedEndTier+".";
+  const slider=$("knowledgePlanDualRange");
+  if(slider){
+   const max=Number(rangeStart.max)||64;
+   slider.style.setProperty("--kp-start",((state.balancedStartTier-1)/(max-1)*100)+"%");
+   slider.style.setProperty("--kp-end",((state.balancedEndTier-1)/(max-1)*100)+"%");
+   rangeStart.style.zIndex=state.balancedStartTier===state.balancedEndTier?"3":"2";
+  }
  }
  function updateTargets(){
   const candidates=getKnowledgeRows(getSave()).filter(x=>x.discovered);
@@ -146,7 +149,7 @@ export function initializeKnowledgeLevelingUI(getSave){
   renderRangeValues();
   const strategyDetail=$("knowledgePlanStrategyDetail");
   if(strategyDetail&&mode.value==="focused")
-   strategyDetail.textContent="Focused · build and bank copies of the selected Sushi tier, then harvest when space runs out. Continue as long as legal preparation is possible.";
+   strategyDetail.textContent="Create T"+state.targetTier+" repeatedly · harvest copies to free space.";
  }
  function calibration(){
   const options={
@@ -172,27 +175,27 @@ export function initializeKnowledgeLevelingUI(getSave){
  }
  function renderSummary(p){
   const metricsOpen=summary.querySelector(".lab-kp-more-metrics")?.open??false;
+  const notesOpen=summary.querySelector(".lab-kp-plan-notes")?.open??false;
   summary.replaceChildren();summary.classList.remove("hidden");
   const heading=elem("div","lab-kp-headline");
   heading.append(elem("h3","",p.mode==="focused"?
    "Focused target-building rotation · T"+p.targetTier:
    "Balanced · T"+(p.balancedStartTier??1)+" → T"+(p.balancedEndTier??64)),
-   elem("p","",p.roundsCompleted+" refill waves · designed preparation · "+
-    "starting T"+p.startCookTier+" · "+p.cooks+" cooks · "+p.merges+" merges · "+p.moves+" Sushi moves · "+
-    p.windEvents+" Wind upgrades"));
+   elem("p","",p.roundsCompleted+" refills · start T"+p.startCookTier+
+    " · "+p.cooks+" cooks · "+p.windEvents+" Wind upgrades"));
   summary.append(heading);
   // Match Perfecto's result hierarchy: four primary KPIs, with the
   // supporting diagnostics still available but out of the main visual flow.
   const primary=p.mode==="focused"?[
-   ["T"+p.targetTier+" created · full preview",compact(p.targetCreated)],
-   ["T"+p.targetTier+" EXP · full preview",compact(p.targetExp)],
+   ["T"+p.targetTier+" creations",compact(p.targetCreated)],
+   ["T"+p.targetTier+" active EXP",compact(p.targetExp)],
    ["Peak copies on board",compact(p.peakTargetCopies)],
    ["Batch harvests",compact(p.harvestCount)]
   ]:[
    ["Range EXP coverage",p.coverageTotal+" / "+p.coverageRequested],
-   ["Active EXP / preview",compact(p.totalExpPerCycle)],
+   ["Active EXP",compact(p.totalExpPerCycle)],
    ["Highest newly created","T"+p.highestNewTier],
-   ["Refills simulated",compact(p.roundsCompleted)]
+   ["Refills",compact(p.roundsCompleted)]
   ];
   const primaryGrid=elem("div","lab-kp-stats lab-kp-primary-stats");
   primary.forEach(([label,value],i)=>{
@@ -204,16 +207,18 @@ export function initializeKnowledgeLevelingUI(getSave){
   if(p.creationXp){
    const xp=p.creationXp,section=elem("section","lab-kp-creation-xp");
    const header=elem("div","lab-kp-creation-xp-header");
-   header.append(elem("h4","","Calculated Knowledge EXP per sushi created"),
+   header.append(elem("h4","","EXP per creation"),
     elem("span","lab-kp-formula-tag",
-     xp.manuallyCalibrated?"Manual base override":"Imported account bonuses"));
+     xp.manuallyCalibrated?"Manual override":"Account-calculated"));
    section.append(header);
    const values=elem("div","lab-kp-creation-xp-values");
    values.append(metric("Normal fireplace",compact(xp.regular)),
     metric("Pink Lithium fireplace",
      xp.lithiumEnabled?compact(xp.pink):"Not unlocked"));
    section.append(values);
-   addNote(section,"Base "+compact(xp.base)+
+   const formula=elem("details","lab-kp-formula-details");
+   formula.append(elem("summary","","Formula and assumptions"));
+   addNote(formula,"Base "+compact(xp.base)+
     " × 3rd Degree Searing "+compact(xp.thirdMultiplier)+
     " × Knowledge bonuses "+compact(xp.knowledgeMultiplier)+
     (xp.lithiumEnabled?
@@ -228,6 +233,9 @@ export function initializeKnowledgeLevelingUI(getSave){
      "the pink fireplace estimate may be too low.":"")+
     " Calculated from imported stats; verify against the in-game EXP value.",
     "lab-kp-creation-xp-explanation");
+   section.append(formula);
+   if(xp.lithiumEnabled&&!xp.sparksKnown&&!xp.manualLithium)
+    addNote(section,"Sparks missing from import · pink EXP may be underestimated.","lab-kp-warning");
    summary.append(section);
   }
   const secondary=[
@@ -262,38 +270,44 @@ export function initializeKnowledgeLevelingUI(getSave){
   secondary.forEach(([label,value])=>grid.append(metric(label,value)));
   more.append(grid);
   summary.append(more);
+  const extra=elem("details","lab-kp-plan-notes");
+  extra.open=notesOpen;
+  const extraBody=elem("div","lab-kp-plan-notes-body");
+  extra.append(elem("summary","","Plan notes and assumptions"),extraBody);
+  const planNote=(text,cls="lab-kp-note")=>
+   addNote(cls==="lab-kp-warning"?summary:extraBody,text,cls);
   if(p.mode==="balanced"){
-   addNote(summary,"Balanced target range: T"+(p.balancedStartTier??1)+
+   planNote("Balanced target range: T"+(p.balancedStartTier??1)+
     " → T"+(p.balancedEndTier??64)+
     ". EXP outside this range is still tracked in the progression table, but is not part of the Balanced scoring priority.","lab-kp-note");
    if(p.startingPattern==="t1Climb"){
     const actual=p.firstCookResultTier??p.startCookTier;
-    addNote(summary,actual===1?
+    planNote(actual===1?
      "Balanced cooks T1 (the lowest Sushi tier) on every refill, then merges upward. Lower tiers are prioritized for the EXP staircase.":
      "Balanced requests T1, but your guaranteed cooking tier bonus makes the lowest possible resulting Sushi T"+actual+". The walkthrough starts at that actual tier; lower tiers cannot be directly cooked with the present guaranteed bonus.",
      actual===1?"lab-kp-note":"lab-kp-warning");
    }else if(p.balancedT1Feasible===false)
-    addNote(summary,"T1 could not be cooked within the modeled Fuel capacity. Balanced used an alternative recipe.","lab-kp-warning");
+    planNote("T1 could not be cooked within the modeled Fuel capacity. Balanced used an alternative recipe.","lab-kp-warning");
   }
   if(!p.fuelSafePreparation)
-   addNote(summary,"Fuel warning: preparing this full board is estimated "+
+   planNote("Fuel warning: preparing this full board is estimated "+
     "to require "+formatHours(p.refillFuelSafety.estimatedWaitSeconds/3600)+
     " of extra regeneration beyond the initial Fuel buffer. "+
     "The selected cooking tier was the least-waiting tested candidate, "+
     "not an instant full-board recipe.","lab-kp-warning");
-  else addNote(summary,"Fuel-safe first fill: the chosen recipe fits within "+
+  else planNote("Fuel-safe first fill: the chosen recipe fits within "+
    "the imported Fuel balance (up to half of max capacity reserved for the "+
    "first fill) plus regeneration during cooking. Later refills may "+
    "require additional waiting.","lab-kp-note");
   if(p.mode==="balanced"){
    if(p.uncoveredTiers.length)
-    addNote(summary,p.uncoveredTiers.length+" discovered tiers still "+
+    planNote(p.uncoveredTiers.length+" discovered tiers still "+
      "lack ACTIVE Knowledge EXP in the modeled preview: "+
      p.uncoveredTiers.map(t=>"T"+t).join(", ")+
      ". Tiers above the safe cooking range need additional merges/Wind "+
      "or further refills; no EXP is claimed until a legal creation occurs.",
      "lab-kp-warning");
-   else addNote(summary,"All "+p.coverageRequested+
+   else planNote("All "+p.coverageRequested+
     " discovered Sushi tiers gained active EXP within this preview.",
     "lab-kp-lithium");
   }
@@ -313,24 +327,24 @@ export function initializeKnowledgeLevelingUI(getSave){
   const pink=p.pinkFireplaces;
   if(pink){
    if(!pink.lithiumUnlocked)
-    addNote(summary,"Pink Lithium fireplaces are not unlocked in the imported save. The planner cannot apply their EXP multiplier.","lab-kp-warning");
+    planNote("Pink Lithium fireplaces are not unlocked in the imported save. The planner cannot apply their EXP multiplier.","lab-kp-warning");
    else if(pink.requiresPinkActivation)
-    addNote(summary,"FIREPLACE SETUP REQUIRED: your imported save has "+
+    planNote("FIREPLACE SETUP REQUIRED: your imported save has "+
      pink.importedPinkCount+" active pink fireplaces, but this plan ASSUMES "+
      pink.proposedPinkCount+" pink fireplaces. Manually switch columns "+
      pink.switchToPink.map(col=>col+1).join(", ")+" to pink before following the plan. "+
      "The displayed EXP projections are conditional on those changes.","lab-kp-warning");
    else if(pink.requiresFireplaceChanges)
-    addNote(summary,"This proposal changes the imported fireplace layout. "+
+    planNote("This proposal changes the imported fireplace layout. "+
      "Check the prepared-board fireplace row and apply the proposed setup "+
      "manually; the displayed EXP and Fuel estimates assume that setup.","lab-kp-warning");
    else
-    addNote(summary,pink.importedPinkCount+" pink Lithium fireplaces are "+
+    planNote(pink.importedPinkCount+" pink Lithium fireplaces are "+
      "already selected in the imported save. No fireplace changes are "+
      "required for this proposed layout.","lab-kp-lithium");
   }
   if(p.mode==="focused"&&p.targetPreviewIncomplete)
-   addNote(summary,"No NEW T"+p.targetTier+" was created within "+
+   planNote("No NEW T"+p.targetTier+" was created within "+
     p.roundsCompleted+" preview refill waves. "+
     (p.harvestCount?
      "Only copies already on the board could be consolidated; "+
@@ -338,138 +352,39 @@ export function initializeKnowledgeLevelingUI(getSave){
      "This is precursor preparation only, not a target-tier harvest."),
     "lab-kp-warning");
   else if(p.mode==="focused"&&!p.harvestCount)
-   addNote(summary,"T"+p.targetTier+" copies are banked; the board has "+
+   planNote("T"+p.targetTier+" copies are banked; the board has "+
     "not yet reached a harvest point. Continue preparation rather than "+
     "merging them prematurely.","lab-kp-note");
   else if(p.mode==="focused")
-   addNote(summary,p.harvestCount+" batch harvest(s) recover space "+
+   planNote(p.harvestCount+" batch harvest(s) recover space "+
     "only after preparing T"+p.targetTier+" copies. Harvest merges "+
     "create higher tiers and do not award additional T"+p.targetTier+
     " EXP (except capped T64).","lab-kp-note");
   if(p.scenarioRequiresCleanup)
-   addNote(summary,"PREPARATION REQUIRED: "+p.design.omittedCount+
+   planNote("PREPARATION REQUIRED: "+p.design.omittedCount+
     " Sushi from your current board are not part of this designed "+
     "starting scenario. They must be dealt with using legal gameplay. "+
     "The optimizer has NOT verified a route from your current inventory "+
     "to this setup, and cannot delete Sushi.","lab-kp-warning");
-  addNote(summary,p.note);
-  addNote(summary,"Final board: "+p.stranded+" Sushi · highest working tier T"+p.highestWorkingTier+
+  planNote(p.note);
+  planNote("Final board: "+p.stranded+" Sushi · highest working tier T"+p.highestWorkingTier+
    (p.mode==="focused"?" · T"+p.targetTier+" copies: "+p.focusCopies:"")+
    ". "+p.haltReason,"lab-kp-note");
-  if(p.rotationTerminal)addNote(summary,
+  if(p.rotationTerminal)planNote(
    "Full Balanced rotation complete: a NEW T"+(p.balancedEndTier??64)+
    " was created by a legal cook, merge, or East Wind cascade. The original protected Sushi was not counted.",
    "lab-kp-lithium");
-  else addNote(summary,
-   "This is a continuing rotation preview. Leftover Sushi stay on the board for the next refill. EXP/hr is a projection over this finite window, not a verified long-term rate.",
-   "lab-kp-warning");
- }
- function renderDesignedBoard(p){
-  recommendedBoard.replaceChildren();
-  recommendedBoard.classList.remove("hidden");
-  const sectionHead=elem("div","lab-kp-section-head");
-  sectionHead.append(elem("h3","","2 · Prepared Sushi board"),
-   elem("span","lab-kp-section-tag","Account-specific candidate"));
-  recommendedBoard.append(sectionHead);
-  if(p.pinkFireplaces){
-   const fireStatus=elem("div","lab-kp-fireplace-status");
-   const pink=p.pinkFireplaces;
-   const current=elem("div","lab-kp-fireplace-status-item");
-   current.append(elem("span","","Currently selected · imported JSON"),
-    elem("strong","",pink.importedPinkCount+" / "+pink.availableCount+" pink"));
-   const planned=elem("div","lab-kp-fireplace-status-item"+
-    (pink.requiresPinkActivation?" requires-switch":""));
-   planned.append(elem("span","","Recommended · proposed plan"),
-    elem("strong","",pink.proposedPinkCount+" / "+
-     pink.proposedAvailableCount+" pink"));
-   fireStatus.append(current,planned);
-   const text=pink.requiresPinkActivation?
-    "Switch fireplaces in columns "+pink.switchToPink.map(col=>col+1).join(", ")+
-    " to PINK before following this plan. Proposed EXP values are NOT your current in-game rates.":
-    pink.requiresFireplaceChanges?
-    "The proposed fireplace layout differs from your imported setup; apply the displayed changes manually.":
-    "The proposed fireplace arrangement matches your imported setup.";
-   const note=elem("p",pink.requiresFireplaceChanges?
-    "lab-kp-fireplace-alert":"lab-kp-fireplace-confirm",text);
-   fireStatus.append(note);
-   recommendedBoard.append(fireStatus);
-  }
-  const area=elem("section","lab-kp-design-panel");
-  area.append(elem("h3","","Recommended preparation"),
-   elem("p","hint","This is the strongest candidate recipe found by the bounded "+
-    "search, NOT your current inventory. Sushi ingredients are cooked into "+
-    "empty cells in the walkthrough; the highest-tier existing Sushi stays "+
-    "at its original position. The solver tested "+compact(p.considered)+
-    " candidate rotations using your account's unlocked slots, cooking "+
-    "limits and East Wind. This is a best-found candidate, not a proof "+
-    "of global optimality."));
-  const stats=elem("div","lab-kp-design-details");
-  stats.append(
-   metric("Starting cook tier","T"+p.startCookTier),
-   metric("Maximum cookable","T"+p.maximumCookTier),
-   metric("Ingredient layout",p.startingPattern+
-    (p.recipeOffset?" · offset "+p.recipeOffset:"")),
-   metric("Prepared ingredients",compact(p.preparedBoardCooks)),
-   metric("Unlocked board slots",compact(p.design.unlockedCount)));
-  area.append(stats);
-  if(p.scenarioRequiresCleanup)
-   addNote(area,"This candidate assumes a clean working board after legal "+
-    "cleanup of "+p.design.omittedCount+" existing Sushi. "+
-    "The cleanup transition from your current board is NOT included or "+
-    "claimed possible automatically. No Sushi can be deleted to obtain "+
-    "the design.","lab-kp-warning");
-  if(p.design.anchor!==null)
-   addNote(area,"Required highest-tier anchor: T"+p.design.anchorTier+
-    " at R"+(Math.floor(p.design.anchor/15)+1)+"C"+
-    (p.design.anchor%15+1)+" (unchanged from your import).");
-  const outer=elem("div","lab-kp-board-wrap");
-  const grid=elem("div","lab-kp-board");
-  grid.setAttribute("role","img");
-  grid.setAttribute("aria-label","Designed Sushi ingredient preparation board");
-  for(let i=0;i<120;i++){
-   const slot=p.layout.slots[i],tier=p.preparedBoard[i];
-   const tile=elem("div","lab-kp-tile slot-"+slot);
-   if(slot<0)tile.classList.add("locked");
-   if(i===p.design.anchor)tile.classList.add("is-protected");
-   if(tier===p.targetTier&&p.mode==="focused")
-    tile.classList.add("is-focus-target");
-   tile.title="Row "+(Math.floor(i/15)+1)+" column "+(i%15+1)+
-    " · "+(tier?"T"+tier:"Empty");
-   if(tier>0){
-    const img=elem("img","lab-kp-tile-icon");
-    img.src=sushiTierIconPath(tier);img.alt="";img.loading="lazy";
-    img.onerror=()=>img.remove();
-    tile.append(img,elem("strong","",String(tier)));
-   }
-   grid.append(tile);
-  }
-  const fireRow=elem("div","lab-kp-fire-row");
-  for(let col=0;col<15;col++){
-   const type=p.proposedFires[col]??-1;
-   const fire=elem("span","lab-kp-fire fire-"+type);
-   fire.title="Column "+(col+1)+" · "+
-    (FIREPLACE_NAMES[type]??"Locked")+" fireplace";
-   if(type>=0&&FIREPLACE_IMAGES[type]){
-    const img=elem("img","lab-kp-fire-art");
-    img.src="assets/campfires/"+encodeURIComponent(FIREPLACE_IMAGES[type]);
-    img.alt=FIREPLACE_NAMES[type]+" fireplace";img.loading="lazy";
-    img.onerror=()=>img.remove();fire.append(img);
-   }
-   fireRow.append(fire);
-  }
-  grid.append(fireRow);
-  outer.append(grid);area.append(outer);
-  addNote(area,"See Prepared board in the replay for the exact legal "+
-   "cooks that produce this recipe from the designed anchor-only start. "+
-   "Those steps do not clear your original account inventory.");
-  recommendedBoard.append(area);
+  else planNote(
+   "Continuing preview · EXP/hr is modeled over the visible rotation, not a verified long-term rate.",
+   "lab-kp-note");
+  summary.append(extra);
  }
   function renderPassive(p){
   const model=p.passive;
   passiveBox.replaceChildren();
   passiveBox.classList.remove("hidden");
   const block=elem("details","lab-kp-passive-panel");
-  block.append(elem("summary","","Optional · Passive Knowledge and suggested Plate setup"),
+  block.append(elem("summary","","Passive EXP · Plate setup"),
    elem("p","hint","Imported EXP/day uses your actual Sushi, Plates and fireplaces. "+
     "The suggested EXP/day assumes "+p.fireChoice+" fireplaces and the proposed Plate placement. "+
     "Only Sushi and Plates already on the board are used; the layout is a manual guide, never an automatic replay step."));
@@ -477,8 +392,8 @@ export function initializeKnowledgeLevelingUI(getSave){
   for(const [label,value] of [
    ["Imported passive coverage",model.imported.covered+" / 64 tiers"],
    ["Suggested passive coverage",model.recommended.covered+" / 64 tiers"],
-   ["Imported passive EXP/day",compact(model.imported.totalDaily)],
-   ["Suggested passive EXP/day",compact(model.recommended.totalDaily)]
+   ["Current EXP/day",compact(model.imported.totalDaily)],
+   ["Suggested EXP/day",compact(model.recommended.totalDaily)]
   ])cards.append(metric(label,value));
   if(p.mode==="focused"){
    cards.append(metric("T"+p.targetTier+" · imported passive/day",
@@ -584,7 +499,7 @@ export function initializeKnowledgeLevelingUI(getSave){
    const {exp,creations}=activeExpHistory.atStep(tier,step);
    display.gained.textContent=compact(exp);
    display.gained.classList.toggle("is-empty",exp===0);
-   display.created.textContent=creations+" creation"+(creations===1?"":"s");
+   display.created.textContent=creations?creations+" creation"+(creations===1?"":"s"):"";
   }
  }
  function renderFrame(index){
@@ -661,7 +576,7 @@ export function initializeKnowledgeLevelingUI(getSave){
    createdXp.classList.toggle("hidden",created.length===0);
    if(created.length){
     createdXp.append(elem("span","lab-kp-created-exp-label",
-     "Created this step · calculated Knowledge EXP"));
+     "Created · predicted EXP"));
     for(const event of created){
      const pink=result.proposedFires[event.at%15]===3;
      const chip=elem("span","lab-kp-created-exp-chip"+
@@ -669,7 +584,7 @@ export function initializeKnowledgeLevelingUI(getSave){
      chip.append(elem("strong","","T"+event.tier+" +"+
       compact(event.knowledgeExp)),
       elem("small","",(event.kind==="wind"?"Wind":event.kind)+
-       " · column "+(event.at%15+1)+(pink?" · pink":"")));
+       " · C"+(event.at%15+1)+(pink?" · pink":"")));
      chip.title="Calculated EXP for this individual T"+event.tier+
       " creation: "+event.knowledgeExp;
      createdXp.append(chip);
@@ -792,7 +707,7 @@ export function initializeKnowledgeLevelingUI(getSave){
     }
     const plan=msg.result;
     if(!plan.available){status.textContent=plan.reason;return;}
-    renderSummary(plan);renderDesignedBoard(plan);
+    renderSummary(plan);
     renderPassive(plan);showProgress(plan);createReplay(plan);
     status.textContent=(plan.mode==="focused"?
      "Focused T"+plan.targetTier+" · "+compact(plan.targetCreated)+
@@ -902,7 +817,6 @@ export function initializeKnowledgeLevelingUI(getSave){
      if(plan.steps.length<=previous.steps.length)
       throw Error("No new replay steps were generated");
      renderSummary(plan);
-     renderDesignedBoard(plan);
      renderPassive(plan);
      showProgress(plan);
      // Continue always enters the first newly generated action.
