@@ -4661,6 +4661,13 @@ details summary{cursor:pointer;font-size:12px;font-weight:700;color:#9eb7c9}
 #knowledgePlanner .lab-kp-active-heading .lab-kp-exp-value{
  min-width:0;max-width:100%;box-sizing:border-box;
 }
+#knowledgePlanner .lab-kp-exp-badges{
+ display:inline-flex;align-items:center;gap:7px;
+ flex:0 1 auto;flex-wrap:nowrap;min-width:0;max-width:100%;
+}
+#knowledgePlanner .lab-kp-exp-badges .lab-kp-exp-value{
+ flex:0 1 auto;min-width:0;
+}
 #knowledgePlanner .lab-kp-active-content .lab-kp-tier-exp{
  width:100%;min-width:0;margin:0;
 }
@@ -4868,8 +4875,9 @@ details summary{cursor:pointer;font-size:12px;font-weight:700;color:#9eb7c9}
 /* A single imported+earned EXP bar caps at 100% after a level-up.
    The compact badge shows the number of projected Knowledge levels gained. */
 #knowledgePlanner .lab-kp-tier-level-status{
- display:inline-block;align-self:flex-start;
- margin:0 0 6px;padding:3px 8px;border-radius:7px;
+ display:inline-flex;align-items:center;justify-content:center;
+ flex:0 0 auto;align-self:center;white-space:nowrap;
+ margin:0;padding:3px 7px;border-radius:7px;
  background:#2c4763;border:1px solid #5689ad;color:#bde5ff;
  font-size:11px;font-weight:850;line-height:1.5;
  font-variant-numeric:tabular-nums;
