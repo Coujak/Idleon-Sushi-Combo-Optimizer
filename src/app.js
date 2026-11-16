@@ -38,7 +38,7 @@ let customBoard=null;
 let replayCleanup=()=>{};
 let preparedOutlineCleanup=()=>{};
 let activeSearch=null;
-const PRIVATE_EXPERIMENTS=Object.freeze([14,15,16].map(number=>Object.freeze({
+const PRIVATE_EXPERIMENTS=Object.freeze([14,15,16,17].map(number=>Object.freeze({
  id:"experimental"+number,number,name:"Experiment "+number+".0 · Private",private:true
 })));
 const selectableExperiments=[...FOUND_CONFIGURATIONS,...PRIVATE_EXPERIMENTS];
