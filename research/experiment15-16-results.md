@@ -40,3 +40,24 @@ The best complete simulator replay in this research pass reached **77,882**, an 
 - Compatible with the PBKDF2-SHA256 / AES-256-GCM envelope and the existing private replay candidate loader; uses the same passphrase as Experiments 15–17.
 
 Explored random starting-board mutations, continuation-policy searches, legal mid-replay relocations, alternative merge orders including 3-deviation branches, and mutations preserving the original sequence. None of the subsequent tested candidates reached 78,000. These are bounded heuristic searches, not an optimality proof. No private board/replay or passphrase is committed here.
+
+## Additional 78K investigation — replay structure and search status
+
+The working record remains **77,882**. No validated 78,000-point board has been found in this pass.
+
+Independent experiments using the complete 77,882 board/replay included:
+
+- Complete enumeration of **159,712** single-tile relocation candidates at every replay boundary; 16,384 retained a legal complete suffix, none scored higher.
+- Complete enumeration of **156,814** occupied-tile pair swaps across replay boundaries; 2,983 retained a legal complete suffix, none scored higher.
+- **5 million** randomized swaps of two merge actions (only a small portion remained legal), without improvement.
+- About **35,861** attempts to insert a different merge and repair the remainder with deterministic continuation policies, without improvement.
+- Tens of thousands of randomized continuation trials, and beam searches of alternate merges and selected relocation-assisted Wind repairs. No replay exceeding 77,882 was validated.
+- Search of alternative historic split winners from the earlier 21-split checkpoint. Their evaluated refinements remained below the working record.
+
+### Structural insight
+
+A weighted union-find analysis of the 77,882 fixed replay's tier equality constraints—same-tier merges and strictly descending East Wind sequences—connects **all 99 non-T64 initial sushi** in one tier-offset component. Raising that component by one point changes a Wind-triggering T58 merge into a T59 merge, which exceeds the T58 Wind cap and removes the cascade. The original replay then fails at its next action. This explains why simply increasing tier values while preserving the same move sequence does not cross 78K.
+
+Thus the next step is **jointly optimizing the starting board and the complete merge order**, particularly stage boundaries and transitions, instead of merely mutating tiles while retaining most of the 77,882 replay. These bounded evaluations are not a proof that 78,000 is impossible.
+
+The detailed plaintext checkpoint remains private; this report publishes no board, move sequence, or passphrase.
