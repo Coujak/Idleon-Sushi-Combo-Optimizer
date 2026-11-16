@@ -28,3 +28,15 @@ The existing private research runner may read an encrypted file as `--file=priva
 - Broaden board-level mutation around Experiment 17's 77,801-point configuration.
 - Jointly search new board layouts and non-greedy merge sequences.
 - Investigate coordinated legal relocations that preserve East Wind engines.
+
+## Continued 78,000 search — current working record 77,882
+
+The best complete simulator replay in this research pass reached **77,882**, an 81-point improvement over Experiment 17.0 (77,801); the 78,000 goal is **not yet met**. This is a **working checkpoint**, not a new numbered Experiment.
+
+- Board: 100 filled slots (23 supply / 77 Wind engine), one protected T64.
+- Replay: 93 legal merges, 1,883 East Wind upgrades, and at most 25 upgrades per merge.
+- Independently revalidated with an implementation of the repository's replay rules.
+- Private working ciphertext: `experiment17_77882_working.enc.json` in `Sushi_Combo_77882_Working_Encrypted.zip`, saved to the user's private file Library (not GitHub).
+- Compatible with the PBKDF2-SHA256 / AES-256-GCM envelope and the existing private replay candidate loader; uses the same passphrase as Experiments 15–17.
+
+Explored random starting-board mutations, continuation-policy searches, legal mid-replay relocations, alternative merge orders including 3-deviation branches, and mutations preserving the original sequence. None of the subsequent tested candidates reached 78,000. These are bounded heuristic searches, not an optimality proof. No private board/replay or passphrase is committed here.
