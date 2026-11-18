@@ -238,6 +238,14 @@ export function initializeKnowledgeLevelingUI(getSave){
     (p.mode==="balanced"?p.firstCookResultTier:p.startCookTier)+
     " · "+p.cooks+" cooks · "+p.windEvents+" Wind upgrades"));
   summary.append(heading);
+  if(p.usesCurrentBoard){
+   const imported=p.design?.initialOccupied??p.startingBoard.filter(tier=>tier>0).length;
+   addNote(summary,"CURRENT BOARD · Starting from all "+imported+
+    " Sushi in the imported positions. No free cleanup or deletion is assumed. "+
+    "Existing Sushi earn no new creation EXP simply for being on the board. "+
+    "Apply the proposed pink fireplace setup before following this EXP estimate.",
+    "lab-kp-lithium");
+  }
   // Match Perfecto's result hierarchy: four primary KPIs, with the
   // supporting diagnostics still available but out of the main visual flow.
   const primary=p.mode==="focused"?[
@@ -352,14 +360,14 @@ export function initializeKnowledgeLevelingUI(getSave){
      "lab-kp-warning");
   }
   if(!p.fuelSafePreparation)
-   planNote("Fuel warning: preparing this full board is estimated "+
+   planNote("Fuel warning: cooking the planned Sushi is estimated "+
     "to require "+formatHours(p.refillFuelSafety.estimatedWaitSeconds/3600)+
     " of extra regeneration beyond the initial Fuel buffer. "+
     (p.mode==="balanced"?
      "Your selected Start tier is kept; the optimizer does not lower it to skip Fuel waits.":
      "The selected cooking tier was the least-waiting tested candidate, not an instant full-board recipe."),
     "lab-kp-warning");
-  else planNote("Fuel-safe first fill: the chosen recipe fits within "+
+  else planNote((p.usesCurrentBoard?"Fuel-safe initial actions: ":"Fuel-safe first fill: ")+"the chosen recipe fits within "+
    "the imported Fuel balance (up to half of max capacity reserved for the "+
    "first fill) plus regeneration during cooking. Later refills may "+
    "require additional waiting.","lab-kp-note");
@@ -424,6 +432,7 @@ export function initializeKnowledgeLevelingUI(getSave){
     "only after preparing T"+p.targetTier+" copies. Harvest merges "+
     "create higher tiers and do not award additional T"+p.targetTier+
     " EXP (except capped T64).","lab-kp-note");
+  if(p.usesCurrentBoard)planNote(p.design.preparationNote,"lab-kp-lithium");
   if(p.scenarioRequiresCleanup)
    planNote("PREPARATION REQUIRED: "+p.design.omittedCount+
     " Sushi from your current board are not part of this designed "+
@@ -752,44 +761,7 @@ export function initializeKnowledgeLevelingUI(getSave){
   if(focused){
    nextTarget.textContent="Next T"+result.targetTier+" creation";
    nextTarget.title="Jump to the next T"+result.targetTier+
-    " creation from cooking, merging or Wind";
-  }
-  nextTarget.disabled=Boolean(worker&&jumpToNextTargetCreation)||!focused||
-   nextKnowledgeTargetCreationStep(result.steps,index,result.targetTier)<0&&!canContinue;
-  $("knowledgePlanPrev").disabled=index===0;
-  $("knowledgePlanNext").disabled=index===result.steps.length-1&&
-   !canExtendBalancedRotation(result);
- }
- function createReplay(p,resumeIndex=null){
-  controller?.dispose();
-  result=p;replay.classList.remove("hidden");
-  activeExpHistory=buildKnowledgeActiveExpHistory(p.steps);
-  p.cumulativeExp=[];
-  let running=0;
-  for(const frame of p.steps)p.cumulativeExp.push(running+=frame.exp);
-  controller=createReplayController({
-   totalSteps:p.steps.length-1,
-   onStep:renderFrame,
-   onPlayStateChange:playing=>{
-    $("knowledgePlanPlay").textContent=playing?"Pause":"Play";
-   },
-   getDelay:()=>Number(speed.value)
-  });
-  // Balanced with stacking and Focused both support multiple target creations.
-  continueButton.classList.toggle("hidden",!canExtendBalancedRotation(p));
-  continueButton.textContent=knowledgeContinueButtonLabel(p.roundsCompleted);
-  continueButton.title="Click for +5% of current refills. Hold to repeat; release to stop after the current validated increment.";
-  continueButton.disabled=false;
-  const initial=Math.min(resumeIndex??p.preparedStep??0,p.steps.length-1);
-  if(initial>0)controller.goTo(initial);
-  else renderFrame(0);
- }
- function renderNotes(){
-  tips.replaceChildren();
-  const bullets=[
-   "The optimizer uses the Combo Meter legal merge engine, including up to 25 East Wind upgrades when unlocked. Each verified creation event awards EXP to the created Sushi tier.",
-   "Knowledge leveling always plans all unlocked fireplace columns as pink Lithium. Apply any required switches in-game before comparing EXP and Fuel predictions.",
-   "The optimizer chooses a NEW prepared Sushi board rather than copying the imported inventory. It retains your highest-tier Sushi at its original location. Clearing other current Sushi to reach this preparation is a separate, unsolved task.",
+    "Use current board to keep every imported Sushi in its exact position while finding legal cooks, moves and merges. Leave it unticked to design a clean preparation, which may require separate manual cleanup.",
    "Balanced spreads EXP through the selected range. With Stack end-tier enabled, it banks End-tier copies and only harvests when the board fills. Click Continue for another 5% of refills, or hold to repeat.",
    "Focused: produce and bank the selected tier, then harvest pairs only when necessary to recover space. Click Continue to extend by 5%, or hold it down to repeat until release (an in-flight increment finishes). Focused does not stop when a T64 is created; its goal is continued target EXP.",
    "Moving Sushi into a vacant slot is a separate action. Movement Mittens toggles dragging to plates; disable it for Sushi repositioning.",
