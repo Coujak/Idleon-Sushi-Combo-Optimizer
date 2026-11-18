@@ -4,19 +4,19 @@ import {getKnowledgeRows,numberText,projectKnowledgeLevelProgress} from "./lab-m
 import {sushiTierIconPath} from "./sushi-reference.mjs?v=1.16.6";
 import {parseGameQuantity} from "./progression-calibration.mjs?v=1.17.1";
 import {normalizeKnowledgeCycleOptions}
- from "./knowledge-cycle-optimizer.mjs?v=1.0.3";
+ from "./knowledge-cycle-optimizer.mjs?v=1.0.4";
 import {createReplayController} from "./replay-controller.mjs";
 import {
  combineKnowledgeContinuation,knowledgeContinuationResumeStep,
  nextKnowledgeHarvestStep,nextKnowledgeTargetCreationStep
-} from "./knowledge-rotation-extension.mjs?v=1.0.7";
+} from "./knowledge-rotation-extension.mjs?v=1.0.8";
 import {canExtendBalancedRotation} from "./knowledge-rotation-continuation-eligibility.mjs?v=1.0.1";
 import {knowledgeContinueWaveCount,knowledgeContinueButtonLabel} from "./knowledge-refill-scale.mjs?v=1.0.0";
 import {installKnowledgeContinueHold} from "./knowledge-continue-hold.mjs?v=1.0.0";
-import {buildKnowledgeActiveExpHistory} from "./knowledge-active-exp-history.mjs?v=1.0.1";
+import {buildKnowledgeActiveExpHistory} from "./knowledge-active-exp-history.mjs?v=1.0.2";
 
 const $=id=>document.getElementById(id);
-const createKnowledgeWorker=()=>new Worker(new URL("./knowledge-cycle-worker.mjs?v=1.0.30",
+const createKnowledgeWorker=()=>new Worker(new URL("./knowledge-cycle-worker.mjs?v=1.0.31",
  import.meta.url),{type:"module"});
 const elem=(tag,cls="",value)=>{
  const node=document.createElement(tag);
@@ -59,6 +59,7 @@ export function initializeKnowledgeLevelingUI(getSave){
  const targetLabel=$("knowledgePlanTargetLabel");
  const rangeBox=$("knowledgePlanBalancedRange");
  const rangeStart=$("knowledgePlanRangeStart"),rangeEnd=$("knowledgePlanRangeEnd");
+ const stackEndToggle=$("knowledgePlanStackEndTier");
  const build=$("knowledgePlanRun"),cancelButton=$("knowledgePlanCancel");
  const status=$("knowledgePlanStatus");
  const loadBox=$("knowledgePlanLoading"),loadBar=$("knowledgePlanLoadingBar");
@@ -79,7 +80,7 @@ export function initializeKnowledgeLevelingUI(getSave){
  const speed=$("knowledgePlanSpeed");
  let state={mode:"balanced",targetTier:null};
  let result=null,controller=null,worker=null;
- let initialFocusedPlan=null; // The first validated simulation, before extensions
+ let initialKnowledgePlan=null; // The first validated simulation, before extensions
  let activeExpHistory=null,activeExpDisplays=new Map();
  let jumpToNextRefill=false,jumpToNextHarvest=false,jumpToNextTargetCreation=false;
  let continueHold=null;
@@ -90,6 +91,7 @@ export function initializeKnowledgeLevelingUI(getSave){
  // Open at the complete range, regardless of the previous local selection.
  state.balancedStartTier=1;state.balancedEndTier=64;
  mode.value=state.mode;
+ stackEndToggle.checked=state.stackEndTier!==false;
  passiveToggle.checked=state.preservePassive;
  const persist=()=>{
   try{window.localStorage.setItem(preferenceKey,JSON.stringify({
@@ -137,7 +139,7 @@ export function initializeKnowledgeLevelingUI(getSave){
   continueHold?.stop();
   stopSearch();
   controller?.dispose();controller=null;
-  result=null;initialFocusedPlan=null;
+  result=null;initialKnowledgePlan=null;
   activeExpHistory=null;activeExpDisplays.clear();
   jumpToNextRefill=false;jumpToNextHarvest=false;jumpToNextTargetCreation=false;
   announceContinuation("");
@@ -177,8 +179,9 @@ export function initializeKnowledgeLevelingUI(getSave){
   if(state.targetTier!==null)target.value=String(state.targetTier);
   targetLabel.classList.toggle("hidden",mode.value!=="focused");
   rangeBox.classList.toggle("hidden",mode.value!=="balanced");
-  $("knowledgePlanNextHarvest").classList.toggle("hidden",mode.value!=="focused");
-  $("knowledgePlanNextTargetCreation").classList.toggle("hidden",mode.value!=="focused");
+  const banking=mode.value==="focused"||(mode.value==="balanced"&&stackEndToggle.checked);
+  $("knowledgePlanNextHarvest").classList.toggle("hidden",!banking);
+  $("knowledgePlanNextTargetCreation").classList.toggle("hidden",!banking);
   const maxTier=64;
   rangeStart.max=rangeEnd.max=String(maxTier);
   state.balancedStartTier=Math.max(1,Math.min(maxTier,
@@ -788,9 +791,9 @@ export function initializeKnowledgeLevelingUI(getSave){
   }
   jumpToNextRefill=false;jumpToNextHarvest=false;
   jumpToNextTargetCreation=false;
-  if(result.mode==="focused"&&initialFocusedPlan&&
-   result!==initialFocusedPlan){
-   const original=initialFocusedPlan;
+  if(result.mode==="focused"&&initialKnowledgePlan&&
+   result!==initialKnowledgePlan){
+   const original=initialKnowledgePlan;
    renderSummary(original);
    renderPassive(original);
    showProgress(original);
@@ -868,7 +871,7 @@ export function initializeKnowledgeLevelingUI(getSave){
     }
     const plan=msg.result;
     if(!plan.available){status.textContent=plan.reason;return;}
-    if(plan.mode==="focused")initialFocusedPlan=plan;
+    initialKnowledgePlan=plan;
     renderSummary(plan);
     renderPassive(plan);showProgress(plan);createReplay(plan);
     status.textContent=(plan.mode==="focused"?
@@ -1135,14 +1138,14 @@ export function initializeKnowledgeLevelingUI(getSave){
   if(!result||!controller)return;
   const next=nextKnowledgeHarvestStep(result.steps,controller.step);
   if(next>=0)controller.goTo(next);
-  else if(result.mode==="focused"&&canExtendBalancedRotation(result)&&
+  else if((result.mode==="focused"||result.stackEndTier)&&canExtendBalancedRotation(result)&&
    !continueButton.disabled){
    jumpToNextHarvest=true;
    continueButton.click();
   }
  });
  $("knowledgePlanNextTargetCreation").addEventListener("click",()=>{
-  if(!result||!controller||result.mode!=="focused")return;
+  if(!result||!controller||!(result.mode==="focused"||result.stackEndTier))return;
   const next=nextKnowledgeTargetCreationStep(
    result.steps,controller.step,result.targetTier);
   if(next>=0)controller.goTo(next);
