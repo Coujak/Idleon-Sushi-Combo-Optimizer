@@ -57,6 +57,14 @@ The **Knowledge** section is a read-only account overview for all 64 Sushi tiers
 
 The Knowledge tab remains a read-only progression tracker. In the Knowledge Planner, **Preserve existing passive-source Sushi** is unchecked by default and optional. The active recommendation is a preparation goal, not the imported board; no Sushi are silently removed to achieve it. Full-board Fuel safety uses a conservative planning allowance (up to one half of the maximum Fuel capacity, further bounded by the imported current balance) plus per-cook estimated regeneration. This explicitly avoids claiming that hundreds of expensive Tier 46 cooks can happen instantly just because one Tier 46 fits into the cap. **Only the first fill is certified against that buffer**; later rounds may still require regeneration waits and the projected finite-window EXP/hr is not a proven sustained value. Balanced tries to award active EXP to as many discovered tiers as possible, but higher tiers must still be made by legal merges or Wind; any tier with no verified creation in the preview is listed as uncovered. The simulated walkthrough can stop when the requested refill limit, an action limit, or genuine lack of legal moves is reached; its precise reason and final state remain visible. Passive Cold/Milktoast/Lithium setup is optional and separate from the active recipe.
 
+### Current imported board (Balanced and Focused)
+
+**Use my current Sushi board** (unchecked by default) begins Knowledge Leveling with every Sushi already in the imported JSON at its exact plate. The solver searches legal cooks, merges, Wind events and relocations without silently deleting or replacing Sushi. It protects the original highest-tier anchor and optionally protects existing passive Sushi when **Preserve passive Sushi** is selected. If no feasible action sequence exists, the solver reports that rather than clearing the board.
+
+Unchecked, the original designed-board optimizer remains available. That proposal can require separate manual cleanup, which is disclosed. Both starting modes still assume all available fireplaces will be set to pink Lithium before following predicted Knowledge EXP.
+
+Regression checks: `tests/knowledge-current-board.test.mjs`.
+
 ## Knowledge Leveling Planner · all-pink and Balanced stacking (2026-11-18)
 
 - **All available fireplace columns are planned as pink Lithium** for both Balanced and Focused Knowledge Leveling. This is a **preparation requirement**, not a mutation of the imported save. Non-pink imported columns are prominently flagged for manual switching, and projections are conditional on the prepared layout.
