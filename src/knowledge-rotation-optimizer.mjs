@@ -335,7 +335,9 @@ export function optimizeKnowledgeRotation(save,rawOptions={},onProgress=null){
  reportProgress();
  if(!best)return fail(continuing?
   "The selected rotation can no longer be extended with these account settings. Rebuild the planner.":
-  "No feasible legal refill/merge rotation was found with this board and fuel budget.");
+  options.useCurrentBoard?
+   "No workable legal cook or merge sequence was found from your imported board. No Sushi was removed or overwritten. Try a different target/range or merge matching Sushi in-game and reimport.":
+   "No feasible legal refill/merge rotation was found with this board and fuel budget.");
  const rotation=best.rotation;
  const pinkFireplaces=inspectKnowledgePinkFireplaces({
   importedFires:layout.fires,proposedFires:best.fire.fires,
