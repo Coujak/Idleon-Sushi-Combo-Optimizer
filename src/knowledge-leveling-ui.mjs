@@ -98,6 +98,7 @@ export function initializeKnowledgeLevelingUI(getSave){
    mode:mode.value,targetTier:state.targetTier,
    balancedStartTier:state.balancedStartTier,
    balancedEndTier:state.balancedEndTier,
+   stackEndTier:stackEndToggle.checked,
    preservePassive:passiveToggle.checked
   }));}catch{/* Browser-local settings are optional. */}
  };
@@ -160,7 +161,10 @@ export function initializeKnowledgeLevelingUI(getSave){
   if(detail&&mode.value==="balanced")
    detail.textContent="Earn EXP across T"+state.balancedStartTier+"–T"+
     state.balancedEndTier+" · start with T"+state.balancedStartTier+
-    " Sushi and finish by creating a new T"+state.balancedEndTier+".";
+    (stackEndToggle.checked?" Sushi, then keep stacking T"+state.balancedEndTier+
+     " and harvest when full.":" Sushi and finish at the first T"+state.balancedEndTier+".");
+  const stackLabel=stackEndToggle.closest("label")?.querySelector("span");
+  if(stackLabel)stackLabel.textContent="Stack end-tier Sushi · keep creating T"+state.balancedEndTier;
   const slider=$("knowledgePlanDualRange");
   if(slider){
    const max=Number(rangeStart.max)||64;
@@ -201,6 +205,7 @@ export function initializeKnowledgeLevelingUI(getSave){
    targetTier:state.targetTier,
    balancedStartTier:state.balancedStartTier,
    balancedEndTier:state.balancedEndTier,
+   stackEndTier:stackEndToggle.checked,
    preservePassive:passiveToggle.checked,
    fuelGeneration:quantityInput("knowledgePlanFuelRate"),
    fuelCapacity:quantityInput("knowledgePlanFuelCap"),
@@ -377,7 +382,7 @@ export function initializeKnowledgeLevelingUI(getSave){
    if(!pink.lithiumUnlocked)
     planNote("Pink Lithium fireplaces are not unlocked in the imported save. The planner cannot apply their EXP multiplier.","lab-kp-warning");
    else if(pink.requiresPinkActivation)
-    planNote("FIREPLACE SETUP REQUIRED: your imported save has "+
+    planNote("ALL-PINK FIREPLACE SETUP REQUIRED: your imported save has "+
      pink.importedPinkCount+" active pink fireplaces, but this plan ASSUMES "+
      pink.proposedPinkCount+" pink fireplaces. Manually switch columns "+
      pink.switchToPink.map(col=>col+1).join(", ")+" to pink before following the plan. "+
@@ -416,7 +421,7 @@ export function initializeKnowledgeLevelingUI(getSave){
     "to this setup, and cannot delete Sushi.","lab-kp-warning");
   planNote(p.note);
   planNote("Final board: "+p.stranded+" Sushi · highest working tier T"+p.highestWorkingTier+
-   (p.mode==="focused"?" · T"+p.targetTier+" copies: "+p.focusCopies:"")+
+   (p.mode==="focused"||p.stackEndTier?" · T"+p.targetTier+" copies: "+p.focusCopies:"")+
    ". "+p.haltReason,"lab-kp-note");
   if(p.rotationTerminal)planNote(
    "Full Balanced rotation complete: a NEW T"+(p.balancedEndTier??64)+
@@ -567,9 +572,9 @@ export function initializeKnowledgeLevelingUI(getSave){
     activeContent.append(progressWrap);
    }
    active.append(activeContent);
-   active.title="Simulated gain to the selected walkthrough step. "+
+   active.title="Simulated gain from EVERY creation since Step 0, including initial preparation cooks. "+
     "Full-preview T"+entry.tier+" EXP: "+compact(entry.expPerCycle)+
-    ". Actual in-game EXP must be measured separately.";
+    ". This is not the EXP gained since the Prepared checkpoint. Apply the proposed all-pink fireplaces in game; actual EXP should be tested separately.";
    activeExpDisplays.set(entry.tier,{gained,created,expBar,projected,
     levelStatus,
     initialPct,xpReq:entry.xpReq,xp:entry.xp,level:entry.level});
@@ -713,8 +718,9 @@ export function initializeKnowledgeLevelingUI(getSave){
    reduce((s,x)=>s+x.exp,0);
   $("knowledgePlanFrameXp").textContent="Preview EXP so far: "+compact(earned);
   const progress=$("knowledgePlanFocusProgress");
-  progress.classList.toggle("hidden",result.mode!=="focused");
-  if(result.mode==="focused")progress.textContent=
+  const banking=result.mode==="focused"||(result.mode==="balanced"&&result.stackEndTier);
+  progress.classList.toggle("hidden",!banking);
+  if(banking)progress.textContent=
    (frame.phase==="harvest"?"HARVEST":"PREPARE")+" T"+result.targetTier+
    " · "+frame.targetCreated+" created · "+frame.targetCopies+" banked";
   $("knowledgePlanNextRefill").title=result.steps.some((f,i)=>
@@ -723,11 +729,12 @@ export function initializeKnowledgeLevelingUI(getSave){
    canExtendBalancedRotation(result)?
     "Continue from this board by "+knowledgeContinueWaveCount(result.roundsCompleted)+" refill waves (5%)":
     "No further legal refill; "+result.haltReason;
-  const focused=result.mode==="focused";
+  const focused=result.mode==="focused"||(result.mode==="balanced"&&result.stackEndTier);
   const canContinue=focused&&canExtendBalancedRotation(result);
   $("knowledgePlanNextHarvest").disabled=
    nextKnowledgeHarvestStep(result.steps,index)<0&&!canContinue;
   const nextTarget=$("knowledgePlanNextTargetCreation");
+  $("knowledgePlanNextHarvest").classList.toggle("hidden",!focused);
   nextTarget.classList.toggle("hidden",!focused);
   if(focused){
    nextTarget.textContent="Next T"+result.targetTier+" creation";
@@ -791,14 +798,13 @@ export function initializeKnowledgeLevelingUI(getSave){
   }
   jumpToNextRefill=false;jumpToNextHarvest=false;
   jumpToNextTargetCreation=false;
-  if(result.mode==="focused"&&initialKnowledgePlan&&
-   result!==initialKnowledgePlan){
+  if(initialKnowledgePlan&&result!==initialKnowledgePlan){
    const original=initialKnowledgePlan;
    renderSummary(original);
    renderPassive(original);
    showProgress(original);
    createReplay(original,prepared?original.preparedStep??0:0);
-   const message="Focused T"+original.targetTier+
+   const message=(original.mode==="focused"?"Focused":"Balanced")+" T"+original.targetTier+
     " restarted from the original preparation. Additional simulated refills were reset.";
    status.textContent=message;
    announceContinuation(message);
@@ -821,6 +827,9 @@ export function initializeKnowledgeLevelingUI(getSave){
    "Import a Sushi Station save in Overview before optimizing.";
   renderNotes();
  };
+ stackEndToggle.addEventListener("change",()=>{
+  state.stackEndTier=stackEndToggle.checked;persist();clearAndPrompt();
+ });
  mode.addEventListener("change",()=>{
   state.mode=mode.value;persist();clearAndPrompt();
  });
@@ -1099,7 +1108,7 @@ export function initializeKnowledgeLevelingUI(getSave){
     roundsCompleted:previous.roundsCompleted,targetTier:previous.targetTier,
     balancedStartTier:previous.balancedStartTier,
     balancedEndTier:previous.balancedEndTier,
-    targetCreated:previous.targetCreated
+    targetCreated:previous.targetCreated,stackEndTier:previous.stackEndTier
    }});
   }catch(error){
    stopSearch();
