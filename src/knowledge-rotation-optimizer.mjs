@@ -88,15 +88,10 @@ function expProfile(save,rows,options,fires,metrics){
  };
 }
 function fireAlternatives(save,fires){
- const options=[{name:"Imported fireplaces",fires:fires.slice()}];
- if(num(save?.sushi?.[2]?.[26])>0&&fires.some(x=>x>=0&&x!==3)){
-  options.push({name:"Lithium in all columns",
-   fires:fires.map(x=>x>=0?3:x)});
-  options.push({name:"Alternate Lithium columns",
-   fires:fires.map((x,i)=>x>=0&&i%2===0?3:x)});
- }
- return options.filter((choice,i,arr)=>arr.findIndex(x=>
-  x.fires.every((v,j)=>v===choice.fires[j]))===i);
+ // Require all available fireplace columns to use pink Lithium for the
+ // Knowledge Leveling Planner. The suggested layout is separate from imported.
+ if(num(save?.sushi?.[2]?.[26])<=0)return [];
+ return [{name:"All pink Lithium fireplaces",fires:fires.map(x=>x>=0?3:x)}];
 }
 export function balancedStaircase(gains,seconds,tiers){
  // Compare actual EXP per tier, not just the number of different tiers hit.
@@ -183,6 +178,7 @@ export function optimizeKnowledgeRotation(save,rawOptions={},onProgress=null){
  const windCap=num(save?.sushi?.[2]?.[29])>0?Math.max(0,Math.min(58,highestDiscovered-6)):0;
  const chain=windCap>0?25:0;
  const fires=fireAlternatives(save,layout.fires);
+ if(!fires.length)return fail("Knowledge Leveling requires Lithium Firelighter: unlock pink fireplaces before planning an all-pink setup.");
  const baseline=estimateSushiFuelEconomy(save,{capacityOverride:options.fuelCapacity});
  const baselineRate=baseline?.modeledGenerationPerHour??0;
  const adjustedRate=(tiles,selectedFires)=>{
@@ -246,7 +242,8 @@ export function optimizeKnowledgeRotation(save,rawOptions={},onProgress=null){
     const rotation=simulateContinuousKnowledgeRotation({
      startingBoard:design.board,slots:layout.slots,mode:options.mode,targetTier,
      requestedTier:cookTier,guaranteedBonus:xp.guaranteed,
-     balancedEndTier,windCap,chain,expAt:xp.expAt,
+     balancedEndTier,stackEndTier:options.mode==="balanced"&&options.stackEndTier,
+     windCap,chain,expAt:xp.expAt,
      cookCost:sushiDirectCookFuel,rounds,pattern,
      recipeOffset,packingMode,protectedIndices,
      coverageTiers:options.mode==="balanced"?balancedTiers:eligible.map(row=>row.tier),
@@ -300,8 +297,8 @@ export function optimizeKnowledgeRotation(save,rawOptions={},onProgress=null){
      // The descending EXP distribution is the primary Balanced objective.
      staircase.fit,
      staircase.coverage,
+     options.stackEndTier?rotation.targetCreated:rotation.balancedCycles,
      staircase.weightedRate,
-     rotation.balancedCycles,
      -durationSeconds
     ];
     const beatsRank=(a,b)=>{
@@ -377,6 +374,7 @@ export function optimizeKnowledgeRotation(save,rawOptions={},onProgress=null){
  return {
   available:true,mode:options.mode,targetTier,
   balancedStartTier,balancedEndTier,
+  stackEndTier:options.mode==="balanced"&&options.stackEndTier,
   actualBalancedStartTier:actualStartTier,
   balancedTiers:options.mode==="balanced"?balancedTiers:[],
   options,layout,
@@ -511,6 +509,7 @@ export function continueKnowledgeRotation(save,snapshot,waves=6){
   startingBoard:board,slots:layout.slots,mode:snapshot.mode,
   targetTier:snapshot.targetTier??64,
   balancedEndTier:snapshot.balancedEndTier??64,
+  stackEndTier:snapshot.mode==="balanced"&&snapshot.stackEndTier===true,
   requestedTier:requested,guaranteedBonus:profile.guaranteed,
   windCap:snapshot.windCap,chain:snapshot.windCap>0?25:0,
   expAt:profile.expAt,cookCost:sushiDirectCookFuel,rounds:count,
