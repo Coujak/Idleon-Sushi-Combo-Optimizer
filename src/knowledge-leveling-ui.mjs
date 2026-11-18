@@ -798,7 +798,7 @@ export function initializeKnowledgeLevelingUI(getSave){
   const bullets=[
    "The optimizer uses the Combo Meter legal merge engine, including up to 25 East Wind upgrades when unlocked. Each verified creation event awards EXP to the created Sushi tier.",
    "Knowledge leveling always plans all unlocked fireplace columns as pink Lithium. Apply any required switches in-game before comparing EXP and Fuel predictions.",
-   "The optimizer chooses a NEW prepared Sushi board rather than copying the imported inventory. It retains your highest-tier Sushi at its original location. Clearing other current Sushi to reach this preparation is a separate, unsolved task.",
+   "Use my current Sushi board to begin with every imported Sushi in its real position, and legally merge, move, and cook from that state. Leave it unchecked for a designed clean preparation; that option may still require manual board cleanup. The highest-tier anchor is protected in both modes.",
    "Balanced spreads EXP through the selected range. With Stack end-tier enabled, it banks End-tier copies and only harvests when the board fills. Click Continue for another 5% of refills, or hold to repeat.",
    "Focused: produce and bank the selected tier, then harvest pairs only when necessary to recover space. Click Continue to extend by 5%, or hold it down to repeat until release (an in-flight increment finishes). Focused does not stop when a T64 is created; its goal is continued target EXP.",
    "Moving Sushi into a vacant slot is a separate action. Movement Mittens toggles dragging to plates; disable it for Sushi repositioning.",
