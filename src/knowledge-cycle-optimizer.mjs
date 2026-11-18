@@ -32,6 +32,7 @@ export function normalizeKnowledgeCycleOptions(raw={}){
   targetTier:Number.isInteger(target)&&target>=1&&target<=64?target:null,
   balancedStartTier,balancedEndTier,
   stackEndTier:x.stackEndTier!==false,
+  useCurrentBoard:x.useCurrentBoard===true,
   secondsPerCook:safeSeconds(x.secondsPerCook,2),
   secondsPerMerge:safeSeconds(x.secondsPerMerge,1.5),
   fuelGeneration:validPositive(x.fuelGeneration)?Number(x.fuelGeneration):null,
