@@ -49,7 +49,7 @@ export function simulateContinuousKnowledgeRotation({
  const gains=blank(),frames=[];
  let cooks=0,merges=0,windEvents=0,moves=0,fuel=0,roundsDone=0,
   focusCompressed=0,haltReason="",completed=false;
- let activePhase=mode==="focused"?"prepare":"balanced";
+ let activePhase=bankingTarget?"prepare":"balanced";
  let targetCreated=Math.max(0,Math.floor(Number(startingTargetCreated))||0),
   targetMergedInHarvest=0,peakTargetCopies=count(board,targetTier);
  const harvestBatches=[];
@@ -330,7 +330,7 @@ export function simulateContinuousKnowledgeRotation({
  // copies into T59. Merge only unprotected equal-tier pairs during harvest;
  // the source tier being consumed does NOT earn the target's EXP.
  function harvestFocus(reason){
-  if(mode!=="focused"||count(board,targetTier)<2)return false;
+  if(!bankingTarget||count(board,targetTier)<2)return false;
   const before=count(board,targetTier);
   const filledBefore=occupied(board);
   activePhase="harvest";
@@ -427,6 +427,10 @@ export function simulateContinuousKnowledgeRotation({
     const was=focusCount();
     mergePass({compressFocus:true});
     if(focusCount()<was)focusCompressed+=was-focusCount();
+   }else if(bankEndTier&&count(board,targetTier)>=2){
+    if(!harvestFocus("Balanced end-tier stockpile has filled the board")){
+     haltReason="Cannot harvest banked end-tier Sushi safely";break;
+    }
    }else{
     haltReason="No empty slots or legal pair merges remain";break;
    }
