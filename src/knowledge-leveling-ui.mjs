@@ -66,6 +66,7 @@ export function initializeKnowledgeLevelingUI(getSave){
  const loadText=$("knowledgePlanLoadingText"),showZero=$("knowledgePlanShowZero");
  const summary=$("knowledgePlanFeatured"),replay=$("knowledgePlanRotation");
  const passiveBox=$("knowledgePlanPassive"),passiveToggle=$("knowledgePlanProtectPassive");
+ const useCurrentBoardToggle=$("knowledgePlanUseCurrentBoard");
  const board=$("knowledgePlanBoard"),tips=$("knowledgePlanTips");
  const continueButton=$("knowledgePlanContinue");
  const continueStatus=$("knowledgePlanContinueStatus");
@@ -93,12 +94,14 @@ export function initializeKnowledgeLevelingUI(getSave){
  mode.value=state.mode;
  stackEndToggle.checked=state.stackEndTier!==false;
  passiveToggle.checked=state.preservePassive;
+ useCurrentBoardToggle.checked=state.useCurrentBoard===true;
  const persist=()=>{
   try{window.localStorage.setItem(preferenceKey,JSON.stringify({
    mode:mode.value,targetTier:state.targetTier,
    balancedStartTier:state.balancedStartTier,
    balancedEndTier:state.balancedEndTier,
    stackEndTier:stackEndToggle.checked,
+   useCurrentBoard:useCurrentBoardToggle.checked,
    preservePassive:passiveToggle.checked
   }));}catch{/* Browser-local settings are optional. */}
  };
@@ -206,6 +209,7 @@ export function initializeKnowledgeLevelingUI(getSave){
    balancedStartTier:state.balancedStartTier,
    balancedEndTier:state.balancedEndTier,
    stackEndTier:stackEndToggle.checked,
+   useCurrentBoard:useCurrentBoardToggle.checked,
    preservePassive:passiveToggle.checked,
    fuelGeneration:quantityInput("knowledgePlanFuelRate"),
    fuelCapacity:quantityInput("knowledgePlanFuelCap"),
@@ -857,6 +861,9 @@ export function initializeKnowledgeLevelingUI(getSave){
   });
   slider.addEventListener("change",()=>{persist();release();});
  }
+ useCurrentBoardToggle.addEventListener("change",()=>{
+  state.useCurrentBoard=useCurrentBoardToggle.checked;persist();clearAndPrompt();
+ });
  passiveToggle.addEventListener("change",()=>{
   state.preservePassive=passiveToggle.checked;persist();clearAndPrompt();
  });
@@ -868,8 +875,8 @@ export function initializeKnowledgeLevelingUI(getSave){
   const save=getSave();
   if(!save)return;
   build.disabled=true;cancelButton.classList.remove("hidden");
-  beginProgress("Evaluating Knowledge preparations…");
-  status.textContent="Comparing Knowledge strategies…";
+  beginProgress(useCurrentBoardToggle.checked?"Optimizing current Sushi board…":"Evaluating Knowledge preparations…");
+  status.textContent=useCurrentBoardToggle.checked?"Searching legal moves and merges from your imported board…":"Comparing Knowledge strategies…";
   try{
    const search=createKnowledgeWorker();
    worker=search;
