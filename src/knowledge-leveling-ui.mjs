@@ -241,9 +241,14 @@ export function initializeKnowledgeLevelingUI(getSave){
    ["T"+p.targetTier+" active EXP",compact(p.targetExp)],
    ["Peak copies on board",compact(p.peakTargetCopies)],
    ["Batch harvests",compact(p.harvestCount)]
+  ]:p.stackEndTier?[
+   ["Range EXP coverage",p.coverageTotal+" / "+p.coverageRequested],
+   ["Active EXP · simulated",compact(p.totalExpPerCycle)],
+   ["T"+p.balancedEndTier+" created",compact(p.targetCreated)],
+   ["Peak T"+p.balancedEndTier+" copies",compact(p.peakTargetCopies)]
   ]:[
    ["Range EXP coverage",p.coverageTotal+" / "+p.coverageRequested],
-   ["Active EXP",compact(p.totalExpPerCycle)],
+   ["Active EXP · simulated",compact(p.totalExpPerCycle)],
    ["Highest newly created","T"+p.highestNewTier],
    ["Refills",compact(p.roundsCompleted)]
   ];
@@ -328,11 +333,13 @@ export function initializeKnowledgeLevelingUI(getSave){
    addNote(cls==="lab-kp-warning"?summary:extraBody,text,cls);
   if(p.mode==="balanced"){
    planNote("Prepare and refill T"+(p.firstCookResultTier??p.actualBalancedStartTier)+
-    " Sushi, then merge upward to create T"+p.balancedEndTier+
+    " Sushi, then merge upward toward T"+p.balancedEndTier+
     ". Active EXP for T"+p.balancedStartTier+"–T"+p.balancedEndTier+
     " is the scoring priority. The game cook request is T"+p.startCookTier+
     (p.guaranteedCookBonus?
-     ", plus "+p.guaranteedCookBonus+" guaranteed cooking tiers.":"."),
+     ", plus "+p.guaranteedCookBonus+" guaranteed cooking tiers.":".")+
+    (p.stackEndTier?" Keep banking T"+p.balancedEndTier+
+     " copies and harvest when the board saturates.":""),
     "lab-kp-note");
    if(p.actualBalancedStartTier>p.balancedStartTier)
     planNote("Requested Start T"+p.balancedStartTier+
@@ -762,8 +769,7 @@ export function initializeKnowledgeLevelingUI(getSave){
    },
    getDelay:()=>Number(speed.value)
   });
-  // Balanced ends on the selected new End tier; Focused keeps building and
-  // harvesting its selected target while legal progress is possible.
+  // Balanced with stacking and Focused both support multiple target creations.
   continueButton.classList.toggle("hidden",!canExtendBalancedRotation(p));
   continueButton.textContent=knowledgeContinueButtonLabel(p.roundsCompleted);
   continueButton.title="Click for +5% of current refills. Hold to repeat; release to stop after the current validated increment.";
@@ -776,9 +782,9 @@ export function initializeKnowledgeLevelingUI(getSave){
   tips.replaceChildren();
   const bullets=[
    "The optimizer uses the Combo Meter legal merge engine, including up to 25 East Wind upgrades when unlocked. Each verified creation event awards EXP to the created Sushi tier.",
-   "Lithium Firelighter is 2× Knowledge EXP for Sushi above pink fireplaces; the solver also models reduced Fuel regeneration when orange fireplaces are changed to pink.",
+   "Knowledge leveling always plans all unlocked fireplace columns as pink Lithium. Apply any required switches in-game before comparing EXP and Fuel predictions.",
    "The optimizer chooses a NEW prepared Sushi board rather than copying the imported inventory. It retains your highest-tier Sushi at its original location. Clearing other current Sushi to reach this preparation is a separate, unsolved task.",
-   "Balanced prepares and refills the selected Start tier (after guaranteed +tier cooking bonuses), then merges toward the End tier. An existing protected Sushi does not count as a newly created End tier. An unobtainable custom Start is reported rather than replaced. Click Continue for another 5% of refills, or hold to repeat.",
+   "Balanced spreads EXP through the selected range. With Stack end-tier enabled, it banks End-tier copies and only harvests when the board fills. Click Continue for another 5% of refills, or hold to repeat.",
    "Focused: produce and bank the selected tier, then harvest pairs only when necessary to recover space. Click Continue to extend by 5%, or hold it down to repeat until release (an in-flight increment finishes). Focused does not stop when a T64 is created; its goal is continued target EXP.",
    "Moving Sushi into a vacant slot is a separate action. Movement Mittens toggles dragging to plates; disable it for Sushi repositioning.",
    "The first full-board fill is screened using the imported Fuel balance, Fuel capacity, estimated generation and actual tier costs. A separate warning appears if no tested recipe avoids regeneration waits. Milktoast/Cold provide passive EXP/day and can be optionally protected.",
@@ -786,8 +792,7 @@ export function initializeKnowledgeLevelingUI(getSave){
   ];
   for(const note of bullets)tips.append(elem("li","",note));
  }
- // Step 0 and Prepared are true restarts for Focused, discarding the
- // extra replay and finalBoard produced by later Next Harvest searches.
+ // Step 0 and Prepared restart the initial preview for both modes.
  function rewindKnowledgeReplay(prepared=false){
   if(!result||!controller)return;
   continueHold?.stop();
