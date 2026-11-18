@@ -4,7 +4,7 @@ import {getKnowledgeRows,numberText,projectKnowledgeLevelProgress} from "./lab-m
 import {sushiTierIconPath} from "./sushi-reference.mjs?v=1.16.6";
 import {parseGameQuantity} from "./progression-calibration.mjs?v=1.17.1";
 import {normalizeKnowledgeCycleOptions}
- from "./knowledge-cycle-optimizer.mjs?v=1.0.4";
+ from "./knowledge-cycle-optimizer.mjs?v=1.0.5";
 import {createReplayController} from "./replay-controller.mjs";
 import {
  combineKnowledgeContinuation,knowledgeContinuationResumeStep,
@@ -16,7 +16,7 @@ import {installKnowledgeContinueHold} from "./knowledge-continue-hold.mjs?v=1.0.
 import {buildKnowledgeActiveExpHistory} from "./knowledge-active-exp-history.mjs?v=1.0.2";
 
 const $=id=>document.getElementById(id);
-const createKnowledgeWorker=()=>new Worker(new URL("./knowledge-cycle-worker.mjs?v=1.0.31",
+const createKnowledgeWorker=()=>new Worker(new URL("./knowledge-cycle-worker.mjs?v=1.0.32",
  import.meta.url),{type:"module"});
 const elem=(tag,cls="",value)=>{
  const node=document.createElement(tag);
