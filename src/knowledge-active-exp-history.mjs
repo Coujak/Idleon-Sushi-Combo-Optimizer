@@ -13,7 +13,8 @@ export function buildKnowledgeActiveExpHistory(frames,maxTier=64){
   const gains=frame.gains??[];
   const counts=Array(maxTier+1).fill(0);
   for(const event of frame.events??[]){
-   if(Number.isInteger(event.tier)&&event.tier>=1&&event.tier<=maxTier){
+   if(Number.isInteger(event.tier)&&event.tier>=1&&event.tier<=maxTier&&
+      ["cook","merge","wind","search-summary"].includes(event.kind)){
     // Search checkpoints summarize discarded validated creation events.
     // The number is exact, and a checkpoint is NOT itself a cook or merge.
     const amount=event.kind==="search-summary"?
