@@ -1,6 +1,6 @@
 // Search legal cook/merge/park rotations from freshly DESIGNED preparation
 // scenarios. The imported board provides account constraints, not ingredients.
-import {simulateContinuousKnowledgeRotation} from "./knowledge-continuous-rotation.mjs?v=1.0.19";
+import {simulateContinuousKnowledgeRotation} from "./knowledge-continuous-rotation.mjs?v=1.0.20";
 import {estimateKnowledgeRefillFuel} from "./knowledge-fuel-safety.mjs?v=1.0.1";
 import {
  designKnowledgeStartingBoard,captureKnowledgePreparedBoard
@@ -11,7 +11,7 @@ import {
 import {estimateSushiFuelEconomy,sushiDirectCookFuel} from "./perfecto-fuel.mjs?v=1.16.8";
 import {getKnowledgeRows,getUpgradeRows} from "./lab-model.mjs?v=1.19.13";
 import {getSushiDashboardMetrics} from "./dashboard-metrics.mjs?v=1.0.2";
-import {normalizeKnowledgeCycleOptions} from "./knowledge-cycle-optimizer.mjs?v=1.0.3";
+import {normalizeKnowledgeCycleOptions} from "./knowledge-cycle-optimizer.mjs?v=1.0.4";
 import {inspectKnowledgePinkFireplaces} from "./knowledge-pink-fireplaces.mjs?v=1.0.0";
 import {calculateKnowledgeCreationExp} from "./knowledge-creation-exp.mjs?v=1.0.1";
 
