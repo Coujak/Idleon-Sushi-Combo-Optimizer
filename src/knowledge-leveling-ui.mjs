@@ -599,7 +599,9 @@ export function initializeKnowledgeLevelingUI(getSave){
    const {exp,creations}=activeExpHistory.atStep(tier,step);
    display.gained.textContent=compact(exp);
    display.gained.classList.toggle("is-empty",exp===0);
-   display.created.textContent=creations?creations+" creation"+(creations===1?"":"s"):"";
+   display.created.textContent=creations?
+    creations+" creation"+(creations===1?"":"s")+
+    " · avg "+compact(exp/creations)+" EXP each":"";
    if(display.expBar&&display.projected){
     const projection=projectKnowledgeLevelProgress(display.level,display.xp,exp);
     if(!projection)continue;
