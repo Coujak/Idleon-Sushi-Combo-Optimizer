@@ -14,7 +14,7 @@ const remaining=(board,slots)=>board.flatMap((tier,i)=>slots[i]>=0&&tier>0?[{at:
 const highest=board=>board.reduce((a,b)=>Math.max(a,b),0);
 
 export function simulateContinuousKnowledgeRotation({
- startingBoard,slots,mode="balanced",targetTier=64,balancedEndTier=64,requestedTier=1,
+ startingBoard,slots,mode="balanced",targetTier=64,balancedEndTier=64,stackEndTier=false,requestedTier=1,
  guaranteedBonus=0,windCap=0,chain=0,expAt=()=>1,cookCost=()=>1,
  rounds=6,pattern="wind",recipeOffset=0,packingMode="simple",protectedIndices=[],
  protectFocusedMilktoast=true,startingContext="imported",
@@ -35,6 +35,8 @@ export function simulateContinuousKnowledgeRotation({
  if(board.some((tier,i)=>tier<0||tier>MAX||!Number.isInteger(tier)||tier>0&&!playable.has(i)))
   throw Error("Imported board contains an invalid Sushi tier or locked position");
  const initial=board.slice();
+ const bankEndTier=mode==="balanced"&&stackEndTier===true;
+ const bankingTarget=mode==="focused"||bankEndTier;
  const protectedSet=new Set(protectedIndices);
  for(const index of protectedSet){
   if(!Number.isInteger(index)||!playable.has(index)||board[index]<1)
@@ -66,16 +68,16 @@ export function simulateContinuousKnowledgeRotation({
    // action can create several Sushi under different fireplace columns.
    event.knowledgeExp=value;
    out[event.tier]+=value;gains[event.tier]+=value;
-   if(mode==="focused"&&event.tier===targetTier)targetCreated++;
+   if(bankingTarget&&event.tier===targetTier)targetCreated++;
   }
   return out;
  };
  const record=(kind,title,detail,events=[],values=blank(),extras={})=>{
-  if(mode==="focused")peakTargetCopies=Math.max(peakTargetCopies,count(board,targetTier));
+  if(bankingTarget)peakTargetCopies=Math.max(peakTargetCopies,count(board,targetTier));
   frames.push({kind,title,detail,board:board.slice(),events,gains:values,
    protectedIndices:[...protectedSet],phase:activePhase,
-   targetCopies:mode==="focused"?count(board,targetTier):null,
-   targetCreated:mode==="focused"?targetCreated:null,
+   targetCopies:bankingTarget?count(board,targetTier):null,
+   targetCreated:bankingTarget?targetCreated:null,
    exp:values.reduce((a,b)=>a+b,0),...extras});
  };
  record("start",startingContext==="designed"?"Preparation design start":"Current Sushi board",
@@ -103,7 +105,7 @@ export function simulateContinuousKnowledgeRotation({
    location(src)+" → "+location(dst)+
    (action.events.length>1?" · "+(action.events.length-1)+" East Wind upgrades":""),
    action.events,values,{src,dst});
-  if(mode==="balanced"&&!completed&&action.events.some(event=>
+  if(mode==="balanced"&&!bankEndTier&&!completed&&action.events.some(event=>
    event.tier===balancedEndTier&&old[event.at]!==balancedEndTier)){
    completed=true;
    balancedCycles++;
@@ -135,7 +137,7 @@ export function simulateContinuousKnowledgeRotation({
   record("cook","Cook T"+tier+(result===tier?"":" → T"+result),
    "Fill "+location(at)+" with a fresh Sushi", [event],expDelta([event]),
    {at,requestedTier:tier,cookFuel:cost});
-  if(mode==="balanced"&&!completed&&result===balancedEndTier){
+  if(mode==="balanced"&&!bankEndTier&&!completed&&result===balancedEndTier){
    completed=true;balancedCycles++;
    haltReason="New T"+balancedEndTier+" created — Balanced rotation complete";
   }
@@ -157,10 +159,10 @@ export function simulateContinuousKnowledgeRotation({
     if(tier>0)groups.get(tier).push(i);
    });
    let best=null,bestScore=-Infinity;
-   const allowTarget=mode!=="focused"||compressFocus;
+   const allowTarget=!bankingTarget||(compressFocus&&!bankEndTier);
    for(const [tier,positions] of groups){
     if(positions.length<2)continue;
-    if(mode==="focused"&&tier===targetTier&&!allowTarget)continue;
+    if(bankingTarget&&tier===targetTier&&!allowTarget)continue;
     const destinations=positions.length<=10?positions:
      unique([...positions.slice(0,5),...positions.slice(-5)]);
     for(const dst of destinations){
@@ -179,7 +181,7 @@ export function simulateContinuousKnowledgeRotation({
        [...protectedSet].some(i=>action.board[i]!==board[i]))continue;
       // Treat every stored target copy as banked during preparation.
       // Wind must not silently turn a banked T58 into a T59.
-      if(mode==="focused"&&activePhase==="prepare"&&
+      if(bankingTarget&&activePhase==="prepare"&&
        board.some((v,i)=>v===targetTier&&action.board[i]!==v))continue;
       const events=action.events;
       const createsTarget=events.reduce((sum,e)=>sum+(e.tier===targetTier?1:0),0);
@@ -193,10 +195,11 @@ export function simulateContinuousKnowledgeRotation({
       const close=[...pairs.values()].reduce((sum,n)=>sum+Math.floor(n/2),0);
       let score=mode==="focused"?
        createsTarget*10000+reach*32+wind*5+close*.3:
-       wind*23+creates64*18+events.length*5+close*.1;
+       wind*23+creates64*18+events.length*5+close*.1+
+        (bankEndTier?createsTarget*75:0);
       if(mode==="focused"&&compressFocus&&tier===targetTier)
        score+=200+focusCount();
-      if(mode==="balanced"&&tier===balancedEndTier)score+=500;
+      if(mode==="balanced"&&!bankEndTier&&tier===balancedEndTier)score+=500;
       if(mode==="focused"&&tier>targetTier)score-=100;
       score-=Math.abs(src-dst)*.005;
       if(score>bestScore){bestScore=score;best={src,dst};}
@@ -457,7 +460,7 @@ export function simulateContinuousKnowledgeRotation({
  const totalExp=gains.reduce((a,b)=>a+b,0);
  return {
   valid:true,frames,initialBoard:initial,finalBoard:final,
-  mode,targetTier,balancedEndTier,requestedTier,rounds:roundsDone,completed,
+  mode,targetTier,balancedEndTier,stackEndTier:bankEndTier,requestedTier,rounds:roundsDone,completed,
   focusCopies:focusCount(),focusCompressed,
   targetCreated,targetMergedInHarvest,peakTargetCopies,
   harvestBatches,harvested:harvestBatches.length,
@@ -470,6 +473,6 @@ export function simulateContinuousKnowledgeRotation({
   coveredTiers:discoveredCoverage.filter(t=>gains[t]>0),
   uncoveredTiers:discoveredCoverage.filter(t=>gains[t]===0),
   protectedIndices:[...protectedSet],
-  repeatable:completed&&mode==="balanced"
+  repeatable:completed&&mode==="balanced"&&!bankEndTier
  };
 }
