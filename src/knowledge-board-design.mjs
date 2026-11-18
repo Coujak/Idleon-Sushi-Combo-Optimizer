@@ -47,6 +47,44 @@ export function designKnowledgeStartingBoard(layout,{preservePassive=false}={}){
  };
 }
 
+// Alternate Knowledge starting state: every Sushi stays exactly where the
+// imported save says it is. No invented cleanup, teleport or deletion.
+export function importKnowledgeStartingBoard(layout,{preservePassive=false}={}){
+ const {tiles,slots}=layout??{};
+ if(!Array.isArray(tiles)||!Array.isArray(slots)||
+    tiles.length!==SIZE||slots.length!==SIZE)
+  throw Error("Current Sushi board requires 120 tiles and 120 plate slots");
+ if(tiles.some((tier,i)=>!Number.isInteger(tier)||tier<0||tier>64||
+    (tier>0&&!eligible(slots,i))))
+  throw Error("Current Sushi board has an invalid or locked Sushi position");
+ const occupied=tiles.flatMap((tier,i)=>tier>0?[i]:[]);
+ const highest=occupied.reduce((value,i)=>Math.max(value,tiles[i]),0);
+ const anchor=highest>0?occupied.filter(i=>tiles[i]===highest).at(-1):null;
+ const keep=new Set(anchor===null?[]:[anchor]);
+ if(preservePassive)for(const i of occupied)
+  if(slots[i]===2||slots[i]===3)keep.add(i);
+ const unlocked=slots.flatMap((slot,i)=>eligible(slots,i)?[i]:[]);
+ const empty=unlocked.filter(i=>tiles[i]===0);
+ return {
+  board:tiles.slice(),anchor,anchorTier:anchor===null?null:highest,
+  preservedIndices:[...keep].sort((a,b)=>a-b),
+  protectedIndices:[...keep].sort((a,b)=>a-b),
+  omittedImportedPositions:[],omittedCount:0,
+  requiresManualCleanup:false,
+  availableWorkingSlots:Math.max(1,empty.length),
+  unlockedCount:unlocked.length,
+  initialOccupied:occupied.length,initialEmpty:empty.length,
+  goalOnly:false,
+  usesImportedBoard:true,
+  preparationNote:"Starting directly from all "+occupied.length+
+   " Sushi on the imported board. Their exact tiers and positions are retained. "+
+   (anchor===null?"No original highest-tier anchor exists. ":
+    "The original T"+highest+" at position "+anchor+" is protected. ")+
+   (preservePassive?"Existing Cold/Milktoast Sushi are protected. ":"")+
+   "Only replayed legal cooks, merges, and relocations can change the board."
+ };
+}
+
 export function captureKnowledgePreparedBoard(frames,initialBoard){
  if(!Array.isArray(frames)||!Array.isArray(initialBoard))
   throw Error("Missing validated Sushi preparation replay");
