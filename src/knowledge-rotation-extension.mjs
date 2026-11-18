@@ -61,7 +61,8 @@ export function combineKnowledgeContinuation(previous,chunk,requestedWaves=6){
   rotationTerminal:Boolean(chunk.completed),
   repeatable:false,initialBoardMatchesFinal:false,
   balancedCycles:safeNumber(previous.balancedCycles)+chunk.balancedCycles,
-  targetCreated:previous.mode==="focused"?chunk.targetCreated:previous.targetCreated,
+  targetCreated:previous.mode==="focused"||previous.stackEndTier?
+   chunk.targetCreated:previous.targetCreated,
   targetMergedInHarvest:safeNumber(previous.targetMergedInHarvest)+
    safeNumber(chunk.targetMergedInHarvest),
   peakTargetCopies:Math.max(safeNumber(previous.peakTargetCopies),
