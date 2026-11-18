@@ -31,6 +31,7 @@ export function normalizeKnowledgeCycleOptions(raw={}){
   mode:x.mode==="focused"?"focused":"balanced",
   targetTier:Number.isInteger(target)&&target>=1&&target<=64?target:null,
   balancedStartTier,balancedEndTier,
+  stackEndTier:x.stackEndTier!==false,
   secondsPerCook:safeSeconds(x.secondsPerCook,2),
   secondsPerMerge:safeSeconds(x.secondsPerMerge,1.5),
   fuelGeneration:validPositive(x.fuelGeneration)?Number(x.fuelGeneration):null,
