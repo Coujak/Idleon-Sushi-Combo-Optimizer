@@ -131,7 +131,7 @@ test("Knowledge progression keeps four columns and passive EXP in separate setup
  assert.equal((header.match(/<th /g)??[]).length,4);
  assert.doesNotMatch(header,/Passive \/ day/);
  assert.match(header,/Total EXP\/hr · est\./);
- assert.match(section,/including modeled passive EXP/);
+ assert.match(section,/Active EXP is cumulative from Step 0/);
  assert.match(ui,/Estimated active EXP\/hr plus modeled passive EXP\/hr/);
  assert.match(ui,/tr\.append\(name,active,totalRate,nextLevel\)/);
  assert.match(ui,/Passive EXP · Plate setup/);
@@ -150,10 +150,10 @@ test("Knowledge playback speeds follow ascending order and preserve 1× default"
 });
 
 test("Focused reset returns to original plan before jumping to another harvest",()=>{
- assert.match(ui,/let initialFocusedPlan=null/);
- assert.match(ui,/if\(plan\.mode==="focused"\)initialFocusedPlan=plan/);
+ assert.match(ui,/let initialKnowledgePlan=null/);
+ assert.match(ui,/initialKnowledgePlan=plan/);
  assert.match(ui,/function rewindKnowledgeReplay\(prepared=false\)/);
- assert.match(ui,/result!==initialFocusedPlan/);
+ assert.match(ui,/result!==initialKnowledgePlan/);
  assert.match(ui,/createReplay\(original,prepared\?original\.preparedStep\?\?0:0\)/);
  assert.match(ui,/\$\("knowledgePlanReset"\)\.addEventListener\("click",\(\)=>rewindKnowledgeReplay\(false\)\)/);
  assert.match(ui,/\$\("knowledgePlanPrepared"\)\.addEventListener\("click",\(\)=>rewindKnowledgeReplay\(true\)\)/);

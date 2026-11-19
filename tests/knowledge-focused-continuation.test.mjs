@@ -147,7 +147,7 @@ test("Step 0 restores the original Focused T58 plan after multiple continuations
   finalBoard:[59,59],roundsCompleted:16
  };
  const context={
-  result:extended,initialFocusedPlan:original,
+  result:extended,initialKnowledgePlan:original,
   controller:{step:5,goTo(i){context.visibleStep=i;}},
   continueHold:{stop(){context.stopped=true;}},
   worker:null,jumpToNextRefill:true,jumpToNextHarvest:true,
@@ -186,7 +186,7 @@ test("Prepared restores original Focused plan and cancels in-flight extensions",
  const later={...original,steps:original.steps.concat([{kind:"partial"}]),
   roundsCompleted:12};
  const context={
-  result:later,initialFocusedPlan:original,
+  result:later,initialKnowledgePlan:original,
   controller:{step:5,goTo(index){context.visibleStep=index;}},
   continueHold:{stop(){context.stopped=true;}},
   worker:{},jumpToNextRefill:true,jumpToNextHarvest:true,

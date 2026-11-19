@@ -77,10 +77,10 @@ test("Sparse EXP history handles long hold-to-continue previews efficiently",()=
  assert.deepEqual(h.atStep(58,250),{exp:20000,creations:2});
  assert.deepEqual(h.atStep(58,30000),{exp:2400000,creations:240});
 });
-test("UI labels the active table as modeled EXP through the selected step",()=>{
+test("UI labels active EXP as cumulative since Step 0",()=>{
  const html=readFileSync(new URL("../index.html",import.meta.url),"utf8");
  const ui=readFileSync(new URL("../src/knowledge-leveling-ui.mjs",import.meta.url),"utf8");
- assert.match(html,/Active EXP · to step/);
+ assert.match(html,/Active EXP · since Step 0/);
  assert.match(html,/Total EXP\/hr · est./);
  assert.match(ui,/buildKnowledgeActiveExpHistory\(p\.steps\)/);
  assert.match(ui,/renderVisibleActiveExp\(index\)/);
