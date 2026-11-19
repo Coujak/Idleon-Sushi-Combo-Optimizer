@@ -64,7 +64,7 @@ test("Preserve existing passive-source Sushi is off unless explicitly requested"
  const upgrades=Array(46).fill(0),flags=Array(64).fill(0);
  for(let i=0;i<12;i++)slots[i]=0;
  slots[2]=3;tiles[2]=5;tiles[11]=63;
- upgrades[6]=4;upgrades[13]=1;upgrades[37]=1;
+ upgrades[6]=4;upgrades[13]=1;upgrades[26]=1;upgrades[37]=1;
  const save={slots,tiles,fires:Array(15).fill(0),
   sushi:[[],[],upgrades,[],[0,0,0,0],flags,Array(64).fill(0),Array(64).fill(1)]};
  const run=optimizeKnowledgeRotation(save,{
@@ -112,7 +112,7 @@ test("Account-based Focused T58 does not select a full board of prohibitively co
  const tiles=Array(120).fill(-1);
  tiles[99]=63;
  const upgrades=Array(46).fill(0);
- upgrades[6]=45;upgrades[13]=1;upgrades[29]=1;upgrades[37]=2;
+ upgrades[6]=45;upgrades[13]=1;upgrades[26]=1;upgrades[29]=1;upgrades[37]=2;
  const flags=Array(64).fill(0),levels=Array(64).fill(1);
  const account={slots,tiles,fires:Array(15).fill(0),
   sushi:[[],[],upgrades,[],[1e13,0,0,0],flags,
